@@ -104,11 +104,4 @@ When cmake has completed, simply run make:
 $ make
 ```
 
-# Source Layout
-
-The source code for HARD has the following structure (some files and
-directories are omitted):
-
-<img src="doc/structure.jpg" alt="Directory Structure" width="600"/>
-
 <!-- vim: set tabstop=2 shiftwidth=2 expandtab fo=cqt tw=72 : -->
