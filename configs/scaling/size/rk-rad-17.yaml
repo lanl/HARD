@@ -1,0 +1,30 @@
+---
+problem: rad-rh
+gamma: 1.4
+kappa: 0.4
+mean_molecular_weight: 0.5
+t0: 0.0
+tf: 5.0e-3
+max_steps: 5
+cfl: 0.3
+max_dt: 5.0e-13
+log_frequency: 1
+output_frequency: 10000
+levels: [6, 6, 5]
+lowest_level: 6
+coords:
+  - [0.0, 0.0, 0.0]
+  - [1.0e5, 1.0e5, 1.0e5]
+boundaries:
+  xlow: flow
+  xhigh: flow
+  ylow: periodic
+  yhigh: periodic
+  zlow: periodic
+  zhigh: periodic
+catalyst:
+  script: /path
+  implementation: paraview
+  implementation_directory: /path
+  implementation: paraview
+  implementation_directory: /path

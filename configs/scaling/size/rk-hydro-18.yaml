@@ -1,0 +1,28 @@
+---
+problem: rankine-hugoniot
+kappa: 0.0
+mean_molecular_weight: 1.0
+output_frequency: 10
+lowest_level: 6
+gamma: 1.4
+t0: 0.0
+tf: 1.0
+max_steps: 5
+cfl: 0.6
+max_dt: 1.0
+log_frequency: 5
+levels: [6, 6, 6]
+coords:
+  - [0.0, 0.0, 0.0]
+  - [1.0, 1.0, 1.0]
+boundaries:
+  xlow: reflecting
+  xhigh: reflecting
+  ylow: flow
+  yhigh: flow
+  zlow: flow
+  zhigh: flow
+catalyst:
+  script: /path
+  implementation: paraview
+  implementation_directory: /path
