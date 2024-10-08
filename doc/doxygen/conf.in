@@ -1,0 +1,25 @@
+#------------------------------------------------------------------------------#
+# Values specific to this project.
+#------------------------------------------------------------------------------#
+
+PROJECT_LOGO           = @PROJECT_SOURCE_DIR@/doc/doxygen/flecsi.png
+PROJECT_NUMBER         = "Version: ${${PROJECT_NAME}_VERSION}"
+OUTPUT_DIRECTORY       = @CMAKE_BINARY_DIR@/.doxygen
+XML_OUTPUT            = xml
+IMAGE_PATH             = @PROJECT_SOURCE_DIR@/doc/doxygen/images
+STRIP_FROM_PATH        = @PROJECT_SOURCE_DIR@/spec \
+                         @CMAKE_BINARY_DIR@
+STRIP_FROM_INC_PATH    = @PROJECT_SOURCE_DIR@/spec \
+                         @CMAKE_BINARY_DIR@
+INPUT                  = @PROJECT_SOURCE_DIR@/spec \
+                         @PROJECT_SOURCE_DIR@/doc/doxygen/mainpage.md
+USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/doc/doxygen/mainpage.md
+
+EXCLUDE_PATTERNS = @PROJECT_SOURCE_DIR@/spec/*.md \
+                   */test/*
+PREDEFINED = DOXYGEN \
+             FLECSI_INLINE_TARGET=
+WARN_LOGFILE = @CMAKE_BINARY_DIR@/api-@name@.out
+
+@INCLUDE = @PROJECT_SOURCE_DIR@/doc/doxygen/common.conf
+@INCLUDE = @CMAKE_BINARY_DIR@/.doxygen/@name@/@name@.conf

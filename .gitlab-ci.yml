@@ -1,0 +1,228 @@
+stages:
+  - prechecks
+  - mpi
+  - legion
+
+variables:
+  SCHEDULER_PARAMETERS: "-N 1 --qos=debug -p general,scaling --constraint=\"cpu_family:broadwell&(ib:edr|ib:hdr)\""
+  ENABLED_CLUSTERS: "darwin"
+  SPACK_UPSTREAM: /projects/cdss2024/shared/spack-env/2024-07-08
+
+default:
+  interruptible: true
+
+.ascgit_job:
+  id_tokens:
+    SITE_ID_TOKEN:
+      aud: https://asc-git.lanl.gov
+
+.darwin_job:
+  rules:
+    - if: $ENABLED_CLUSTERS =~ /darwin/ && ( $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH )
+  variables:
+    CLUSTER: darwin
+  tags:
+    - darwin-slurm-shared
+
+.prepare_spack:
+  script: &prepare_spack
+    - umask 0007
+    - export CI_SPACK_ENV=$TMPDIR/ci-env
+    - source ${SPACK_UPSTREAM}/replicate.sh $CI_SPACK_ENV
+    - source ${CI_SPACK_ENV}/activate.sh
+
+.prepare_spack_env:
+  script: &prepare_spack_env
+    - source ${CI_SPACK_ENV}/systems/${CLUSTER}/activate.sh ${SPACK_ENV_NAME}
+    - spack install
+
+format:
+  stage: prechecks
+  needs: []
+  extends:
+   - .ascgit_job
+   - .darwin_job
+  variables:
+    SPACK_ENV_NAME: format
+  allow_failure: false
+  script:
+    - *prepare_spack
+    - *prepare_spack_env
+    - mkdir build
+    - cd build
+    - module load clang/13.0.0
+    - cmake -DENABLE_FORMAT=on ..
+    - cmake --build . --target format && cd ${CI_PROJECT_DIR} && git diff --exit-code --compact-summary
+
+mpi_gcc:
+  stage: mpi
+  needs: []
+  extends:
+   - .ascgit_job
+   - .darwin_job
+  variables:
+    SPACK_ENV_NAME: openmpi-mpi-gnu
+  script:
+    - *prepare_spack
+    - *prepare_spack_env
+    - chmod +x app/tests/test_distributed.sh
+    - mkdir build
+    - cd build
+    - cmake .. -DENABLE_UNIT_TESTS=ON
+    - make -j $(nproc) || make VERBOSE=1
+    - export CTEST_OUTPUT_ON_FAILURE=1
+    - ctest --output-junit tests.xml
+  artifacts:
+    paths:
+      - build/tests.xml
+      - build/app
+    reports:
+      junit:
+       - build/tests.xml
+
+legion_gcc:
+  stage: legion
+  needs: []
+  extends:
+   - .ascgit_job
+   - .darwin_job
+  variables:
+    SPACK_ENV_NAME: openmpi-legion-gnu
+  script:
+    - *prepare_spack
+    - *prepare_spack_env
+    - mkdir build
+    - cd build
+    - cmake .. -DENABLE_UNIT_TESTS=ON
+    - make -j $(nproc) || make VERBOSE=1
+    - export CTEST_OUTPUT_ON_FAILURE=1
+    - ctest --output-junit tests.xml
+  artifacts:
+    paths:
+      - build/tests.xml
+    reports:
+      junit:
+       - build/tests.xml
+
+# ampere_mpi_cuda_clang:
+#   stage: mpi
+#   needs: []
+#   extends:
+#    - .ascgit_job
+#    - .darwin_job
+#   variables:
+#     SPACK_ENV_NAME: ampere-mpi-cuda-release
+#     SCHEDULER_PARAMETERS: "-N 1 --qos=debug -p shared-gpu-ampere"
+#   script:
+#     - *prepare_spack
+#     - *prepare_spack_env
+#     - mkdir build
+#     - cd build
+#     - cmake .. -DENABLE_UNIT_TESTS=ON
+#     - make -j $(nproc) || make VERBOSE=1
+#     - export CTEST_OUTPUT_ON_FAILURE=1
+#     - ctest --output-junit tests.xml
+#   artifacts:
+#     paths:
+#       - build/tests.xml
+#     reports:
+#       junit:
+#        - build/tests.xml
+
+# ampere_legion_cuda_clang:
+#   stage: legion
+#   needs: []
+#   extends:
+#    - .ascgit_job
+#    - .darwin_job
+#   variables:
+#     SPACK_ENV_NAME: ampere-cuda-release
+#     SCHEDULER_PARAMETERS: "-N 1 --qos=debug -p shared-gpu-ampere"
+#   script:
+#     - *prepare_spack
+#     - *prepare_spack_env
+#     - mkdir build
+#     - cd build
+#     - cmake .. -DENABLE_UNIT_TESTS=ON
+#     - make -j $(nproc) || make VERBOSE=1
+#     - export CTEST_OUTPUT_ON_FAILURE=1
+#     - ctest --output-junit tests.xml
+#   artifacts:
+#     paths:
+#       - build/tests.xml
+#     reports:
+#       junit:
+#        - build/tests.xml
+
+volta_mpi_cuda_clang:
+  stage: mpi
+  needs: []
+  extends:
+   - .ascgit_job
+   - .darwin_job
+  variables:
+    SPACK_ENV_NAME: volta-mpi-cuda-release
+    SCHEDULER_PARAMETERS: "-N 1 --qos=debug -p volta-x86 -C cpu_family:haswell"
+  script:
+    - *prepare_spack
+    - *prepare_spack_env
+    - mkdir build
+    - cd build
+    - cmake .. -DENABLE_UNIT_TESTS=ON
+    - make -j $(nproc) || make VERBOSE=1
+    - export CTEST_OUTPUT_ON_FAILURE=1
+    - ctest --output-junit tests.xml
+  artifacts:
+    paths:
+      - build/tests.xml
+    reports:
+      junit:
+       - build/tests.xml
+
+mpi_gcc_catalyst:
+  stage: mpi
+  needs: []
+  extends:
+   - .ascgit_job
+   - .darwin_job
+  variables:
+    SPACK_ENV_NAME: openmpi-mpi-gnu
+  script:
+    - *prepare_spack
+    - *prepare_spack_env
+    - mkdir build
+    - cd build
+    - cmake .. -DENABLE_UNIT_TESTS=ON -DENABLE_CATALYST=ON
+    - make -j $(nproc) || make VERBOSE=1
+    - export CTEST_OUTPUT_ON_FAILURE=1
+    - ctest --output-junit tests.xml
+  artifacts:
+    paths:
+      - build/tests.xml
+    reports:
+      junit:
+       - build/tests.xml
+
+legion_gcc_catalyst:
+  stage: legion
+  needs: []
+  extends:
+   - .ascgit_job
+   - .darwin_job
+  variables:
+    SPACK_ENV_NAME: openmpi-legion-gnu
+  script:
+    - *prepare_spack
+    - *prepare_spack_env
+    - mkdir build
+    - cd build
+    - cmake .. -DENABLE_UNIT_TESTS=ON -DENABLE_CATALYST=ON
+    - make -j $(nproc) || make VERBOSE=1
+    - export CTEST_OUTPUT_ON_FAILURE=1
+    - ctest --output-junit tests.xml
+  artifacts:
+    paths:
+      - build/tests.xml
+    reports:
+      junit:
+       - build/tests.xml

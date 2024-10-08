@@ -1,0 +1,145 @@
+\documentclass[border=10pt,multi,tikz]{standalone}
+\usepackage[edges]{forest}
+\definecolor{folderbg}{RGB}{104, 189, 173}
+\definecolor{folderborder}{RGB}{57, 102, 81}
+\newlength\Size
+\setlength\Size{4pt}
+\tikzset{%
+  folder/.pic={%
+    \filldraw [draw=folderborder, top color=folderbg!50, bottom color=folderbg]
+      (-1.05*\Size,0.2\Size+5pt) rectangle ++(.75*\Size,-0.2\Size-5pt);
+    \filldraw [draw=folderborder, top color=folderbg!50, bottom color=folderbg]
+      (-1.15*\Size,-\Size) rectangle (1.15*\Size,\Size);
+  },
+  file/.pic={%
+    \filldraw
+      [draw=folderborder, top color=folderbg!5, bottom color=folderbg!10]
+        (-\Size,.4*\Size+5pt) coordinate (a) |- (\Size,-1.2*\Size)
+        coordinate (b) -- ++(0,1.6*\Size) coordinate (c) -- ++(-5pt,5pt)
+        coordinate (d) -- cycle (d) |- (c) ;
+  },
+}
+\forestset{%
+  declare autowrapped toks={pic me}{},
+  declare boolean register={pic root},
+  pic root=0,
+  pic dir tree/.style={%
+    for tree={%
+      folder,
+      font=\ttfamily,
+      grow'=0,
+    },
+    before typesetting nodes={%
+      for tree={%
+        edge label+/.option={pic me},
+      },
+      if pic root={
+        tikz+={
+          \pic at ([xshift=\Size].west) {folder};
+        },
+        align={l}
+      }{},
+    },
+  },
+  pic me set/.code n args=2{%
+    \forestset{%
+      #1/.style={%
+        inner xsep=2\Size,
+        pic me={pic {#2}},
+      }
+    }
+  },
+  pic me set={directory}{folder},
+  pic me set={file}{file},
+}
+
+\begin{document}
+
+\begin{forest}
+  pic dir tree,
+  pic root,
+  for tree={% folder icons by default; override using file for file icons
+    directory,
+    fit=band
+  },
+  [hard
+    [app
+        [advance.hh
+          \textit{(Advance action)},
+          file
+        ]
+        [analyze.hh
+          \textit{(Analysis action)},
+          file
+        ]
+        [hard.cc
+          \textit{(Main file: "boiler plate")},
+          file
+        ]
+        [init.hh
+          \textit{(Initialization action)},
+          file
+        ]
+        [options.hh
+          \textit{(Command-line options)},
+          file
+        ]
+        [state.hh
+          \textit{(State variable definitions)},
+          file
+        ]
+        [types.hh
+          \textit{(C++ type definitions)},
+          file
+        ]
+    ]
+    [doc
+      \textit{(Documentation Sources)}
+    ]
+    [CMakeLists.txt
+      \textit{(Top-level CMake configuration)},
+      file
+    ]
+    [README.md
+      \textit{(This file)},
+      file
+    ]
+    [spack-repo
+      \textit{(Spack configuration files)}
+    ]
+    [spec \textit{(FleCSI Specialization)}
+      [control.hh
+        \textit{(Control Model: Time advance \& control structure)},
+        file
+      ]
+      [io.hh
+        \textit{(I/O: Helper type for analysis)},
+        file
+      ]
+      [labels.hh
+        \textit{(Enumeration Labels: axis, indexspace)},
+        file
+      ]
+      [mesh.hh
+        \textit{(Mesh Specialization: Mesh interface \& ranges)},
+        file
+      ]
+      [runtime.hh
+        \textit{(Runtime: Helper functions)},
+        file
+      ]
+      [types.hh
+        \textit{(C++ type definitions)},
+        file
+      ]
+      [utils.hh
+        \textit{(Helper functions)},
+        file
+      ]
+    ]
+  ]
+%  \node at (current bounding box.south)
+%    [below=1ex,draw,cloud,aspect=6,cloud puffs=30] 
+%    {\emph{Note: This is a partial listing of directories and files.}};
+\end{forest}
+\end{document}

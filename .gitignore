@@ -1,0 +1,6 @@
+build*/
+*.pyc
+
+/app/tasks/.nfs*
+
+.vscode/*
