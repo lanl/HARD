@@ -44,7 +44,7 @@ environment config and replace the contents with the following, where
 ```
 spack:
   specs:
-  - flecsi@2.3-cdss+flog+graphviz++hdf5++kokkos backend=mpi
+  - flecsi@2.3+flog+graphviz++hdf5++kokkos backend=mpi
   - graphviz+libgd
   - yaml-cpp
   view: true
