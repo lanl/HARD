@@ -24,7 +24,7 @@ endif()
 target_link_libraries(hard
 	Spec::Spec
 	FleCSI::FleCSI
-	yaml-cpp
+	yaml-cpp::yaml-cpp
 )
 
 
