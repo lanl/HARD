@@ -497,5 +497,4 @@ update_u(single<double>::accessor<ro> dt_a,
 
 } // namespace hard::tasks
 
-
 #endif // HARD_TIME_DERIVATIVE_HH
