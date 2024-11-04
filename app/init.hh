@@ -4,7 +4,6 @@
 #include "options.hh"
 #include "state.hh"
 #include "tasks/boundary.hh"
-#include "tasks/hydro.hh"
 #include "tasks/hydro/cons2prim.hh"
 #include "tasks/init.hh"
 #include "tasks/initial_data/all_initial_data.hh"
@@ -274,7 +273,7 @@ initialize(control_policy<state, D> & cp) {
     flecsi::default_accelerator>(
     s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m), gamma(s.gt));
   s.dtmin_ =
-    reduce<tasks::hydro::update_dtmin<D>, exec::fold::min>(s.m, lmax_f);
+    reduce<hard::task::rad::update_dtmin<D>, exec::fold::min>(s.m, lmax_f);
 
   /*--------------------------------------------------------------------------*
     Initialize time to 0

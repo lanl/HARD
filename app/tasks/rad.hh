@@ -10,6 +10,26 @@
 
 namespace hard::task::rad {
 
+template<std::size_t D>
+double
+update_dtmin(typename mesh<D>::template accessor<ro> m,
+  flecsi::future<double> lmax_f) {
+
+  double lmax = lmax_f.get();
+  if constexpr(D == 1) {
+    return m.template delta<ax::x>() / lmax;
+  }
+  else if constexpr(D == 2) {
+    return std::min(
+      m.template delta<ax::x>() / lmax, m.template delta<ax::y>() / lmax);
+  }
+  else {
+    return std::min(m.template delta<ax::x>() / lmax,
+      std::min(
+        m.template delta<ax::y>() / lmax, m.template delta<ax::z>() / lmax));
+  } // if
+} // update_dtmin
+
 using hard::tasks::util::get_mdiota_policy;
 
 // Get the gradient of the velocity using a 5-point stencil.

@@ -4,7 +4,6 @@
 #include "numerical_algorithms/time_stepper.hh"
 #include "state.hh"
 #include "tasks/boundary.hh"
-#include "tasks/hydro.hh"
 #include "tasks/hydro/compute_interface_fluxes.hh"
 #include "tasks/hydro/cons2prim.hh"
 #include "tasks/hydro/maxcharspeed.hh"
@@ -304,7 +303,7 @@ update_time_step_size(control_policy<state, D> & cp) {
       s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m), gamma(s.gt));
 
   s.dtmin_ =
-    flecsi::reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
+    flecsi::reduce<hard::task::rad::update_dtmin<D>, flecsi::exec::fold::min>(
       s.m, lmax_f);
 
 #ifdef HARD_ENABLE_LEGION_TRACING
