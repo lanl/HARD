@@ -14,8 +14,11 @@ sqr(T t) {
 } // sq
 
 template<std::size_t D>
-inline mesh<D>::boundary_type
+inline typename mesh<D>::boundary_type
 mesh_boundary(std::string const & b) {
+  if(b == "dirichlet") {
+    return spec::mesh<D>::boundary_type::dirichlet;
+  }
   if(b == "flow") {
     return spec::mesh<D>::boundary_type::flow;
   }
