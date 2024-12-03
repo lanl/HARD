@@ -20,11 +20,11 @@ constexpr double radiation_constant{7.56573325e-15};
 
 constexpr double proton_mass{1.67262192369e-24};
 
-//eV to Joule conversion factor
-constexpr double eVtoJ{6.242e+18};
+// eV to Joule conversion factor
+constexpr double eV_to_J{6.242e+18};
 
-//Joule to eV conversion factor
-constexpr double JtoeV{1.60218e-19};
+// Joule to eV conversion factor
+constexpr double J_to_eV{1.60218e-19};
 
 } // namespace cgs
 
