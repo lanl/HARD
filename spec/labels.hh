@@ -71,6 +71,8 @@ enum boundary {
 /// All boundary conditions are implemented using the \em ghost-cell approach
 /// outlined in the text.
 enum boundary_type {
+  /// Fixed value
+  dirichlet,
   /// Zero-order extrapolation from the interior solution.
   flow,
   /// Cauchy problem solution for solid wall boundary.

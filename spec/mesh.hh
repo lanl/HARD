@@ -62,21 +62,21 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
   using index_space = is::index_space;
   using index_spaces = flecsi::topo::help::has<is::cells>;
   using axis = ax::axis;
-  using axes = detail::help<D>::axes;
+  using axes = typename detail::help<D>::axes;
   using boundary = bd::boundary;
   using boundary_type = bd::boundary_type;
-  using coord = mesh::base::coord;
-  using gcoord = mesh::base::gcoord;
+  using coord = typename mesh::base::coord;
+  using gcoord = typename mesh::base::gcoord;
   using periodic_axes = std::array<bool, D>;
   using bmap = std::array<std::array<bd::boundary_type, 2 /* low, high*/>, D>;
   using grect = std::array<std::array<double, 2 /* low, high */>, D>;
-  using colors = mesh::base::colors;
-  using coloring = mesh::base::coloring;
+  using colors = typename mesh::base::colors;
+  using coloring = typename mesh::base::coloring;
   using color_coord = std::array<flecsi::Color, D>;
-  using axis_definition = mesh::base::axis_definition;
-  using index_definition = mesh::base::index_definition;
+  using axis_definition = typename mesh::base::axis_definition;
+  using index_definition = typename mesh::base::index_definition;
 
-  using meta_data = detail::help<D>::meta_data;
+  using meta_data = typename detail::help<D>::meta_data;
 
   template<auto>
   static constexpr std::size_t privilege_count = 2;
@@ -102,7 +102,7 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
     /// Return axis info for the given axis.
     /// @tparam A The mesh axis.
     template<mesh::axis A>
-    FLECSI_INLINE_TARGET mesh::base::axis_info axis() const {
+    FLECSI_INLINE_TARGET typename mesh::base::axis_info axis() const {
       return B::template axis<is::cells, A>();
     }
 
