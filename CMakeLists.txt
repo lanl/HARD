@@ -77,7 +77,7 @@ mark_as_advanced(HARD_WRITE_CONTROL_INFO)
 #------------------------------------------------------------------------------#
 
 option(HARD_BENCHMARK_MODE
-  "Benchmark mode disables I/O and adds time measurement" ON)
+  "Benchmark mode disables I/O and adds time measurement" OFF)
 mark_as_advanced(HARD_BENCHMARK_MODE)
 
 #------------------------------------------------------------------------------#
