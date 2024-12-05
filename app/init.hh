@@ -244,6 +244,15 @@ initialize(control_policy<state, D> & cp) {
       gamma(s.gt),
       particle_mass(s.gt));
   }
+  else if(config["problem"].as<std::string>() == "implosion") {
+    execute<tasks::initial_data::implosion_forced_T<D>>(s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m),
+      gamma(s.gt),
+      particle_mass(s.gt));
+  }
   else {
     flog_fatal(
       "unsupported problem(" << config["problem"].as<std::string>() << ")");

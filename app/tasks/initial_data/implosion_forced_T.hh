@@ -27,7 +27,7 @@ namespace hard::tasks::initial_data {
 //
 template<std::size_t Dim>
 auto
-heating_and_cooling(typename mesh<Dim>::template accessor<ro> m,
+implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
@@ -73,7 +73,7 @@ heating_and_cooling(typename mesh<Dim>::template accessor<ro> m,
   }
   else {
     flog_fatal(
-      "Implosion problem is only implemented for D = 1")
+      "Implosion problem is only implemented for D == 1")
   }
 }
 
