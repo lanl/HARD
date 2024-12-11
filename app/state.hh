@@ -12,10 +12,11 @@ namespace hard {
   Global parameters.
  *----------------------------------------------------------------------------*/
 
-inline const single<double>::definition<flecsi::topo::global> gamma;
-inline const single<double>::definition<flecsi::topo::global> kappa;
-
-inline const single<double>::definition<flecsi::topo::global> particle_mass;
+inline const single<double>::definition<global> gamma;
+inline const single<double>::definition<global> kappa;
+inline const single<double>::definition<global> particle_mass;
+inline const field<double>::definition<global> time_boundary;
+inline const field<double>::definition<global> temperature_boundary;
 
 /*----------------------------------------------------------------------------*
   Problem state.
@@ -31,6 +32,7 @@ struct state {
    *--------------------------------------------------------------------------*/
   index::slot ct; /* Color topology. */
   flecsi::topo::global::slot gt;
+  flecsi::topo::global::slot dense_topology;
 
   // Vector for meshes in multigrid
   std::vector<std::unique_ptr<typename mesh<D>::slot>> mh;
@@ -44,7 +46,7 @@ struct state {
    *--------------------------------------------------------------------------*/
 
   static inline const single<typename mesh<D>::bmap>::template definition<
-    flecsi::topo::global>
+    global>
     bmap;
 
   /*--------------------------------------------------------------------------*
@@ -52,10 +54,10 @@ struct state {
    *--------------------------------------------------------------------------*/
 
   /* Maximum characteristic speed for a color. */
-  static inline const single<vec<D>>::template definition<flecsi::topo::index>
+  static inline const single<vec<D>>::template definition<index>
     lmax;
 
-  static inline const single<double>::template definition<flecsi::topo::global>
+  static inline const single<double>::template definition<global>
     dt, t, dt_weighted;
 
   /*--------------------------------------------------------------------------*
