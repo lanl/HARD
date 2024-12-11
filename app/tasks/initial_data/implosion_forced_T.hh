@@ -32,6 +32,7 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
   field<double>::accessor<wo, na> radiation_energy_density_a,
+  field<double>::accessor<ro> temperature_boundary_a,
   single<double>::accessor<ro> gamma_a,
   single<double>::accessor<ro> particle_mass_a) {
 
@@ -51,6 +52,8 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
     config["problem_parameters"]["fluid_mass_density"].as<double>();
   const double fluid_temperature =
     config["problem_parameters"]["fluid_temperature"].as<double>();
+
+  // Constant radiation temperature in the domain
   const double radiation_temperature =
     config["problem_parameters"]["radiation_temperature"].as<double>();
 
