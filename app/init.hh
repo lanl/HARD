@@ -31,6 +31,38 @@ initialize(control_policy<state, D> & cp) {
     Global and color topology allocations.
    *--------------------------------------------------------------------------*/
 
+  // How many boundary points to allocate
+  std::string filename{"../../external/fds_source/source_fds.txt"};
+
+  int n_lines{0};
+  std::ifstream filein(filename);
+  std::vector<double> time;
+  std::vector<double> temperature;
+  for (std::string line; std::getline(filein, line); )
+  {
+
+    int i{0};
+    std::istringstream input;
+    input.str(line);
+
+    for (std::string element; std::getline(input, element, ' '); )
+    {
+      if (i == 0)
+      {
+        time.emplace_back(std::stod(element));
+      }
+      else
+      {
+        temperature.emplace_back(std::stod(element));
+      }
+      i++;
+    }
+
+    n_lines++;
+  }
+
+  s.dense_topology.allocate(n_lines);
+
   s.gt.allocate({});
   const auto num_colors =
     opt::colors.value() == -1 ? flecsi::processes() : opt::colors.value();
@@ -59,6 +91,13 @@ initialize(control_policy<state, D> & cp) {
   } // if
 
   auto bf = execute<tasks::init::boundaries<D>>(s.bmap(s.gt), bnds);
+
+  /*--------------------------------------------------------------------------*
+    T boundary.
+   *--------------------------------------------------------------------------*/
+
+  execute<tasks::init::set_t_boundary>(time_boundary(s.dense_topology), time);
+  execute<tasks::init::set_t_boundary>(temperature_boundary(s.dense_topology), temperature);
 
   /*--------------------------------------------------------------------------*
     Gamma.
@@ -250,6 +289,7 @@ initialize(control_policy<state, D> & cp) {
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
+      temperature_boundary(s.dense_topology),
       gamma(s.gt),
       particle_mass(s.gt));
   }
