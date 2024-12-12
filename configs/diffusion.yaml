@@ -1,0 +1,34 @@
+---
+
+problem: radiation_energy_diffusion
+
+kappa: 1.0
+gamma: 1.4
+mean_molecular_weight: 1.0
+
+t0: 0.0
+tf: 10000000
+max_steps: 1
+cfl: 10000.0
+max_dt: 2.0
+log_frequency: 10
+output_frequency: 1
+levels: [4, 3, 1]
+coords:
+  - [0.0, 0.0, 0.0]
+  - [20.0, 1.0, 1.0]
+  # - [0.0, 0.0, 0.0]  # sine wave
+  # - [1.0, 1.0, 1.0]
+boundaries:
+  xlow: periodic
+  xhigh: periodic
+  ylow: periodic
+  yhigh: periodic
+  zlow: periodic
+  zhigh: periodic
+catalyst:
+  script: /path
+  implementation: paraview
+  implementation_directory: /path
+
+lowest_level: 1

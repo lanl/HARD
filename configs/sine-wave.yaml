@@ -1,17 +1,18 @@
 ---
 problem: sine-wave
 gamma: 1.4
-kappa: 1.0
+kappa: 1.0e-100
 mean_molecular_weight: 1.0
+
 t0: 0.0
-tf: 1.0
-max_steps: 2
+tf: 10000.0
+max_steps: 1600
 cfl: 0.3
 max_dt: 1.0
 log_frequency: 1
-output_frequency: 10
-levels: [3, 3, 3]
-lowest_level: 1
+output_frequency: 100
+levels: [9, 1, 1]
+lowest_level: 9
 coords:
   - [0.0, 0.0, 0.0]
   - [2.0, 1.0, 1.0]

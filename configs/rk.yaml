@@ -1,23 +1,23 @@
 ---
-problem: rankine-hugoniot
+problem: rad-rh
 gamma: 1.4
-kappa: 1.0e-100
+kappa: 0.4
 mean_molecular_weight: 1.0
 t0: 0.0
 tf: 1.0
-max_steps: 2
+max_steps: 200000
 cfl: 0.3
-max_dt: 1.0
-log_frequency: 1
-output_frequency: 10
-levels: [3, 3, 3]
-lowest_level: 3
+max_dt: 1.0e-8
+log_frequency: 1000
+output_frequency: 1000
+levels: [7, 3, 3]
+lowest_level: 7
 coords:
-  - [0.0, 0.0, 0.0]
-  - [1.0, 1.0, 1.0]
+  - [0, 0, 0]
+  - [1e5, 1.0, 1.0]
 boundaries:
-  xlow: reflecting
-  xhigh: reflecting
+  xlow: flow
+  xhigh: flow
   ylow: flow
   yhigh: flow
   zlow: flow

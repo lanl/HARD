@@ -1,0 +1,42 @@
+---
+problem: radiative-kh-instability
+
+problem_parameters:
+  y0: 0.0
+  strip_thickness: 1.0e7
+  strip_temperature: 1e4
+  strip_mass_density: 2.0e-6
+  background_mass_density: 1.0e-6
+  velocity_shear: 0.6e6
+  velocity_perturbation_amplitude: 0.03e6
+  wavelength: 1e7
+  perturb_width: 0.05e7
+
+gamma: 1.4
+kappa: 1.0e20
+mean_molecular_weight: 1.0
+
+t0: 0.0
+tf: 100.0
+max_steps: 10000
+cfl: 0.20
+max_dt: 100.0
+log_frequency: 100
+output_frequency: 100
+levels: [9, 9, 0]
+lowest_level: 9
+coords:
+  - [0.0, 0.0, 0.0]
+  - [1e7, 1e7, 1e7]
+boundaries:
+  xlow: periodic
+  xhigh: periodic
+  ylow: flow
+  yhigh: flow
+  zlow: periodic
+  zhigh: periodic
+
+catalyst:
+  script: ../tools/gridwriter.py
+  implementation: paraview
+  implementation_directory: /vast/home/yoonsoo/spack/var/spack/environments/flastro_paraview/.spack-env/view/lib64/catalyst/

@@ -7,7 +7,7 @@
 #include <spec/utils.hh>
 #include <yaml-cpp/yaml.h>
 
-namespace hard::tasks::initial_data {
+namespace flastro::tasks::initial_data {
 
 //
 // A test problem demonstrating fluid and radiation reaching to a thermal
@@ -71,4 +71,4 @@ heating_and_cooling(typename mesh<Dim>::template accessor<ro> m,
   }
 }
 
-} // namespace hard::tasks::initial_data
+} // namespace flastro::tasks::initial_data

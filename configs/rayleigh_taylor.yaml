@@ -1,0 +1,44 @@
+---
+problem: rayleigh_taylor
+
+gamma: 1.4
+mean_molecular_weight: 1.0
+
+# without radiation
+problem_parameters:
+  boundary_z: 10.0
+  density_upper: 0.15
+  density_lower: 0.1
+  p0: 2.5
+  pertub_width: 1.0
+  velocity_amplitude: 0.02
+  radiation_energy_density: 1.0e-50
+  wavelength: 20.0
+kappa: 1.0
+
+t0: 0.0
+tf: 100.0
+max_steps: 1000000
+cfl: 0.2
+max_dt: 1.0
+
+log_frequency: 10
+output_frequency: 100
+
+levels: [6, 1, 6]
+lowest_level: 6
+coords:
+  - [0.0, 0.0, 0.0]
+  - [20.0, 1.0, 20.0]
+
+boundaries:
+  xlow: periodic
+  xhigh: periodic
+  ylow: periodic
+  yhigh: periodic
+  zlow: reflecting
+  zhigh: reflecting
+catalyst:
+  script: ../tools/gridwriter.py
+  implementation: paraview
+  implementation_directory: /vast/home/yoonsoo/spack/var/spack/environments/flastro_paraview/.spack-env/view/lib64/catalyst/

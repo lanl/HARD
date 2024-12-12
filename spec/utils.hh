@@ -25,6 +25,9 @@ mesh_boundary(std::string const & b) {
   if(b == "periodic") {
     return spec::mesh<D>::boundary_type::periodic;
   }
+  if(b == "dirichlet") {
+    return spec::mesh<D>::boundary_type::dirichlet;
+  }
   else {
     flog_fatal("invalid boundary type(" << b << ")");
   } // if

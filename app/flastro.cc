@@ -19,15 +19,15 @@
 
 using namespace flecsi;
 using namespace spec;
-using namespace hard;
+using namespace flastro;
 
 int
 main(int argc, char ** argv) {
   // Output the control model and actions if the user has enabled
-  // HARD_WRITE_CONTROL_INFO.
-#if defined(HARD_WRITE_CONTROL_INFO)
-  control<state, 3>::write_graph("HARD", "cm.dot");
-  control<state, 3>::write_actions("HARD", "actions.dot");
+  // FLASTRO_WRITE_CONTROL_INFO.
+#if defined(FLASTRO_WRITE_CONTROL_INFO)
+  control<state, 3>::write_graph("FlAstro", "cm.dot");
+  control<state, 3>::write_actions("FlAstro", "actions.dot");
 #endif
 
   const flecsi::getopt g;
@@ -44,6 +44,7 @@ main(int argc, char ** argv) {
   cfg.flog.tags = {opt::flog_tags};
   cfg.flog.verbose = {opt::flog_verbose};
   cfg.flog.process = {opt::flog_process};
+  cfg.flog.strip_level = {opt::flog_strip_level};
 
 #if FLECSI_BACKEND == FLECSI_BACKEND_legion
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
@@ -58,7 +59,7 @@ main(int argc, char ** argv) {
 
   YAML::Node config = YAML::LoadFile(opt::config.value());
 
-#ifdef HARD_BENCHMARK_MODE
+#ifdef FLASTRO_BENCHMARK_MODE
   // Write header if process 0 and header==1
   if(flecsi::process() == 0 && opt::header.value()) {
     std::ofstream runtime_file;

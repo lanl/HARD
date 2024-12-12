@@ -1,23 +1,26 @@
 ---
-problem: sod
+problem:
+  sod
+
 gamma: 1.4
 kappa: 1.0e-100
 mean_molecular_weight: 1.0
+
 t0: 0.0
-tf: 1.0
-max_steps: 2
+tf: 0.2
+max_steps: 200
 cfl: 0.3
-max_dt: 1.0
+max_dt: 1.0e-3
 log_frequency: 1
-output_frequency: 10
-levels: [3, 3, 3]
-lowest_level: 3
+output_frequency: 100
+levels: [7, 2, 2]
+lowest_level: 7
 coords:
   - [0.0, 0.0, 0.0]
   - [1.0, 1.0, 1.0]
 boundaries:
-  xlow: reflecting
-  xhigh: reflecting
+  xlow: flow
+  xhigh: flow
   ylow: flow
   yhigh: flow
   zlow: flow

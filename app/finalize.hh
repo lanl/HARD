@@ -1,5 +1,5 @@
-#ifndef HARD_FINALIZE_HH
-#define HARD_FINALIZE_HH
+#ifndef FLASTRO_FINALIZE_HH
+#define FLASTRO_FINALIZE_HH
 
 #include "tasks/io.hh"
 #include "types.hh"
@@ -11,7 +11,7 @@
 #include "tasks/catalyst.hh"
 #endif
 
-namespace hard::action {
+namespace flastro::action {
 
 template<std::size_t D>
 void
@@ -37,6 +37,6 @@ inline control<state, 1>::action<finalize<1>, cp::finalize> finalize1_action;
 inline control<state, 2>::action<finalize<2>, cp::finalize> finalize2_action;
 inline control<state, 3>::action<finalize<3>, cp::finalize> finalize3_action;
 
-} // namespace hard::action
+} // namespace flastro::action
 
-#endif // HARD_FINALIZE_HH
+#endif // FLASTRO_FINALIZE_HH

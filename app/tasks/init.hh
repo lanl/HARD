@@ -1,12 +1,12 @@
-#ifndef HARD_TASKS_INIT_HH
-#define HARD_TASKS_INIT_HH
+#ifndef FLASTRO_TASKS_INIT_HH
+#define FLASTRO_TASKS_INIT_HH
 
 #include "../constants.hh"
 #include "../types.hh"
 #include <cmath>
 #include <flecsi/flog.hh>
 
-namespace hard {
+namespace flastro {
 
 namespace tasks::init {
 
@@ -190,6 +190,6 @@ boundaries(
 } // boundaries
 
 } // namespace tasks::init
-} // namespace hard
+} // namespace flastro
 
-#endif // HARD_TASKS_INIT_HH
+#endif // FLASTRO_TASKS_INIT_HH

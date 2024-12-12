@@ -4,13 +4,13 @@
 //   https://gitlab.kitware.com/paraview/paraview.git
 //   https://gitlab.kitware.com/paraview/paraview/-/tree/master/Examples/Catalyst2/CxxFullExample
 
-#ifndef HARD_CATALYST_TYPES_HH
-#define HARD_CATALYST_TYPES_HH
+#ifndef FLASTRO_CATALYST_TYPES_HH
+#define FLASTRO_CATALYST_TYPES_HH
 
 #include <cstddef>
 #include <vector>
 
-namespace hard {
+namespace flastro {
 
 class simple_cubic
 {
@@ -75,5 +75,5 @@ inline unsigned int
 inline unsigned int
   my_rank; // to mimic MPI language, stores flecsi process id / "rank"
 
-} // namespace hard
-#endif // HARD_CATALYST_TYPES_HH
+} // namespace flastro
+#endif // FLASTRO_CATALYST_TYPES_HH

@@ -1,17 +1,17 @@
 ---
 problem: kh-test
-gamma: 1.6667
+gamma: 1.4
 kappa: 0.0
 mean_molecular_weight: 1.0
 t0: 0.0
-tf: 1.0
-max_steps: 10000
-cfl: 0.3
-max_dt: 5.0e-2
+tf: 2.0
+max_steps: 10000000
+cfl: 0.25
+max_dt: 1.0
 log_frequency: 1
-output_frequency: 100
-levels: [8, 8, 4]
-lowest_level: 8
+output_frequency: 10
+levels: [6, 6, 2]
+lowest_level: 6
 coords:
   - [0.0, 0.0, 0.0]
   - [1.0, 1.0, 1.0]
@@ -20,9 +20,10 @@ boundaries:
   xhigh: periodic
   ylow: periodic
   yhigh: periodic
-  zlow: flow
-  zhigh: flow
+  zlow: periodic
+  zhigh: periodic
+
 catalyst:
-  script: /path
+  script: ../tools/gridwriter.py
   implementation: paraview
-  implementation_directory: /path
+  implementation_directory: /vast/home/yoonsoo/spack/var/spack/environments/flastro_paraview/.spack-env/view/lib64/catalyst/

@@ -4,7 +4,7 @@
 #include "../utils.hh"
 #include <cstddef>
 
-namespace hard::tasks::hydro {
+namespace flastro::tasks::hydro {
 template<std::size_t D>
 double
 update_max_characteristic_speed(typename mesh<D>::template accessor<ro> m,
@@ -12,7 +12,7 @@ update_max_characteristic_speed(typename mesh<D>::template accessor<ro> m,
   typename field<vec<D>>::template accessor<ro, na> u_a,
   field<double>::accessor<ro, na> p_a,
   single<double>::accessor<ro> gamma_a) {
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
   namespace fold = flecsi::exec::fold;
 
   auto density = m.template mdcolex<is::cells>(r_a);
@@ -62,4 +62,4 @@ update_max_characteristic_speed(typename mesh<D>::template accessor<ro> m,
 
 } //
 
-} // namespace hard::tasks::hydro
+} // namespace flastro::tasks::hydro

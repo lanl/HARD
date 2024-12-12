@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstddef>
 
-namespace hard::tasks::initial_data {
+namespace flastro::tasks::initial_data {
 
 //
 // A sinusoidal density profile being advected with a constant velocity.
@@ -59,4 +59,4 @@ sine_wave(typename mesh<Dim>::template accessor<ro> m,
   }
 }
 
-} // namespace hard::tasks::initial_data
+} // namespace flastro::tasks::initial_data

@@ -5,7 +5,7 @@
 #include "../../types.hh"
 #include <cstddef>
 
-namespace hard::tasks::hydro {
+namespace flastro::tasks::hydro {
 
 //
 // Based on the reconstructed primitives and conservatives on cell interfaces,
@@ -65,7 +65,7 @@ compute_interface_fluxes(std::size_t face_axis,
   auto dt_radiation_energy_density =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
 
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
   // Compute (1 / dx^i)
   const auto one_over_dx_i = [&m]() {
     if constexpr(Dim == 1) {
@@ -538,4 +538,4 @@ compute_interface_fluxes(std::size_t face_axis,
   }
 }
 
-} // namespace hard::tasks::hydro
+} // namespace flastro::tasks::hydro

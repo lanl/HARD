@@ -1,0 +1,30 @@
+spack:
+  specs:
+  - flecsi@2%cce@16.0.0 backend=hpx build_type=Release caliper_detail=low ^hpx@1.10.0
+    build_type=Release networking=mpi max_cpu_count=256 ^python@3.6 ^cray-mpich@8.1.26
+  - yaml-cpp%cce@16.0.0
+  view: true
+  concretizer:
+    unify: true
+  packages:
+    python:
+      externals:
+      - spec: python@2.7.18+bz2+crypt+ctypes~dbm~lzma+nis~pyexpat+pythoncmd~readline~sqlite3~ssl~tkinter+uuid+zlib
+        prefix: /usr
+      - spec: python@3.6.15+bz2+crypt+ctypes~dbm+lzma+nis+pyexpat~pythoncmd+readline+sqlite3+ssl~tkinter+uuid+zlib
+        prefix: /usr
+    perl:
+      externals:
+      - spec: perl@5.26.1~cpanm+opcode+open+shared+threads
+        prefix: /usr
+    openssl:
+      externals:
+      - spec: openssl@1.1.1l
+        prefix: /usr
+    cray-mpich:
+      externals:
+      - spec: cray-mpich@8.1.26
+        modules:
+        - cray-mpich/8.1.26
+  mirrors:
+    pe-serve: https://pe-serve.lanl.gov/spack-mirror/

@@ -3,7 +3,7 @@
 #include "../rad_function.hh"
 #include <assert.h>
 
-namespace hard::numerical_algorithms {
+namespace flastro::numerical_algorithms {
 
 namespace root_finder {
 
@@ -32,7 +32,7 @@ struct Secant {
 
 FLECSI_INLINE_TARGET double
 halleys_get_root(double c4, double c1, double c0, double upper_bracket_bound) {
-  using namespace hard::energy_polynomial;
+  using namespace flastro::energy_polynomial;
 
   double xn = upper_bracket_bound * 0.5; // Initial guess
   double dx;
@@ -67,4 +67,4 @@ struct RegulaFalsi {
 };
 
 } // namespace root_finder
-} // namespace hard::numerical_algorithms
+} // namespace flastro::numerical_algorithms

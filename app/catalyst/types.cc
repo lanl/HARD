@@ -15,7 +15,7 @@
 #include <flecsi/flog.hh>
 
 using namespace flecsi;
-using namespace hard;
+using namespace flastro;
 
 simple_cubic::simple_cubic() = default;
 

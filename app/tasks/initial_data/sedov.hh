@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <yaml-cpp/yaml.h>
 
-namespace hard::tasks::initial_data {
+namespace flastro::tasks::initial_data {
 
 //
 // A sedov blast wave is being initialized.
@@ -37,8 +37,8 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
   const double mult = 1.0 / (gamma - 1.0);
 
   // physical constants in cgs units
-  const double kb = hard::constants::cgs::boltzmann_constant;
-  const double a = hard::constants::cgs::radiation_constant;
+  const double kb = flastro::constants::cgs::boltzmann_constant;
+  const double a = flastro::constants::cgs::radiation_constant;
 
   // Parse input parameters
   YAML::Node config = YAML::LoadFile(opt::config.value());
@@ -147,4 +147,4 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
   }
 }
 
-} // namespace hard::tasks::initial_data
+} // namespace flastro::tasks::initial_data

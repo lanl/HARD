@@ -43,7 +43,7 @@ struct control_policy : flecsi::run::control_base {
 
   static constexpr std::size_t dimension = D;
 
-#ifdef HARD_ENABLE_LEGION_TRACING
+#ifdef FLASTRO_ENABLE_LEGION_TRACING
   flecsi::exec::trace tracing;
   std::optional<flecsi::exec::trace::guard> guard;
 #endif
@@ -97,7 +97,7 @@ struct control_policy : flecsi::run::control_base {
   }
 
   static bool cycle_control(control_policy & cp) {
-#ifdef HARD_BENCHMARK_MODE
+#ifdef FLASTRO_BENCHMARK_MODE
 
     // Time each cycle
     if(cp.step_ == 0) {
@@ -158,7 +158,7 @@ private:
   std::size_t log_frequency_;
   std::size_t output_frequency_;
   S<D> state_;
-#ifdef HARD_BENCHMARK_MODE
+#ifdef FLASTRO_BENCHMARK_MODE
 
   std::chrono::time_point<std::chrono::system_clock> start_timer_;
   double total_runtime_{0.0};

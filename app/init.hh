@@ -1,5 +1,5 @@
-#ifndef HARD_INITIALIZE_HH
-#define HARD_INITIALIZE_HH
+#ifndef FLASTRO_INITIALIZE_HH
+#define FLASTRO_INITIALIZE_HH
 
 #include "options.hh"
 #include "state.hh"
@@ -18,7 +18,7 @@
 #include <flecsi/flog.hh>
 #include <yaml-cpp/yaml.h>
 
-namespace hard {
+namespace flastro {
 namespace action {
 
 template<std::size_t D>
@@ -210,12 +210,23 @@ initialize(control_policy<state, D> & cp) {
       gamma(s.gt));
   }
   else if(config["problem"].as<std::string>() == "kh-test") {
-    execute<tasks::initial_data::kh_instability<D>>(s.m,
+    execute<tasks::initial_data::kh_instability<D>,
+      flecsi::default_accelerator>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
       gamma(s.gt));
+  }
+  else if(config["problem"].as<std::string>() == "radiative-kh-instability") {
+    execute<tasks::initial_data::radiative_kh_instability<D>,
+      flecsi::default_accelerator>(s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m),
+      gamma(s.gt),
+      particle_mass(s.gt));
   }
   else if(config["problem"].as<std::string>() == "heating_and_cooling") {
     execute<tasks::initial_data::heating_and_cooling<D>>(s.m,
@@ -227,8 +238,7 @@ initialize(control_policy<state, D> & cp) {
       particle_mass(s.gt));
   }
   else if(config["problem"].as<std::string>() == "rad-rh") {
-    execute<tasks::initial_data::
-        rad_RH<tasks::initial_data::rad_shock::rad_rankine_hugoniot, D>>(s.m,
+    execute<tasks::initial_data::rad_RH<D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
@@ -244,6 +254,37 @@ initialize(control_policy<state, D> & cp) {
       s.radiation_energy_density(s.m),
       gamma(s.gt),
       particle_mass(s.gt));
+  }
+  else if(config["problem"].as<std::string>() == "shadow_2d") {
+    execute<tasks::initial_data::shadow_2d<D>>(s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m),
+      gamma(s.gt));
+  }
+  else if(config["problem"].as<std::string>() == "radiation_energy_diffusion") {
+    execute<tasks::initial_data::radiation_energy_diffusion<D>>(s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m));
+  }
+  else if(config["problem"].as<std::string>() == "rayleigh_taylor") {
+    execute<tasks::initial_data::rayleigh_taylor<D>>(s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m),
+      gamma(s.gt),
+      particle_mass(s.gt));
+  }
+  else if(config["problem"].as<std::string>() == "su-olson") {
+    execute<tasks::initial_data::su_olson<D>>(s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m));
   }
   else {
     flog_fatal(
@@ -284,7 +325,7 @@ initialize(control_policy<state, D> & cp) {
   /*--------------------------------------------------------------------------*
     Save raw data after initialization, at t=t_i
   *--------------------------------------------------------------------------*/
-#ifndef HARD_BENCHMARK_MODE
+#ifndef FLASTRO_BENCHMARK_MODE
 
   auto lm = data::launch::make(s.m);
   execute<tasks::io::raw<D>, mpi>(
@@ -311,12 +352,12 @@ initialize(control_policy<state, D> & cp) {
 
     // Initialize lattice
     execute<tasks::external::get_lattice_size<D>, mpi>(s.m);
-    flog(info) << "init action, catalyst: got lattice dimensions from hard: "
+    flog(info) << "init action, catalyst: got lattice dimensions from flastro: "
                << number_vertices[0] << " x " << number_vertices[1] << " x "
                << number_vertices[2] << " vertices." << std::endl;
 
     execute<tasks::external::get_color_data<D>, mpi>(s.m);
-    flog(info) << "init action, catalyst: got color dimensions from hard: "
+    flog(info) << "init action, catalyst: got color dimensions from flastro: "
                << number_colors[0] << " x " << number_colors[1] << " x "
                << number_colors[2] << " color blocks." << std::endl;
 
@@ -402,6 +443,6 @@ inline control<state, 2>::action<initialize<2>, cp::initialize> init2_action;
 inline control<state, 3>::action<initialize<3>, cp::initialize> init3_action;
 
 } // namespace action
-} // namespace hard
+} // namespace flastro
 
-#endif // HARD_INITIALIZE_HH
+#endif // FLASTRO_INITIALIZE_HH

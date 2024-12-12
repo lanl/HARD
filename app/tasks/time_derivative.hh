@@ -1,12 +1,11 @@
 
-#ifndef HARD_TIME_DERIVATIVE_HH
-#define HARD_TIME_DERIVATIVE_HH
+#pragma once
 
 #include "../numerical_algorithms/time_stepper.hh"
 #include "../types.hh"
 #include <cstddef>
 
-namespace hard::tasks {
+namespace flastro::tasks {
 
 template<std::size_t Dim>
 void
@@ -30,7 +29,7 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
   auto dt_radiation_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
 
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
   if constexpr(Dim == 1) {
     forall(
       i, (m.template cells<ax::x, dm::quantities>()), "set_dudt_to_zero_1d") {
@@ -114,7 +113,7 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
   auto radiation_energy_density_n =
     m.template mdcolex<is::cells>(radiation_energy_density_n_a);
 
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
   if constexpr(Dim == 1) {
     forall(i, (m.template cells<ax::x, dm::quantities>()), "store_state_1d") {
       mass_density_n(i) = mass_density(i);
@@ -182,7 +181,7 @@ compute_u_after_implicit_solve(typename mesh<Dim>::template accessor<ro> m,
   auto dt_radiation_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
 
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
   if constexpr(Dim == 1) {
     forall(i, (m.template cells<ax::x, dm::quantities>()), "compute_u_1d") {
       auto & dt_weighted = *dtw_a;
@@ -305,7 +304,7 @@ update_u(single<double>::accessor<ro> dt_a,
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
 
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
   if constexpr(Dim == 1) {
     forall(i, (m.template cells<ax::x, dm::quantities>()), "update_u_1d") {
       // Weights
@@ -495,7 +494,4 @@ update_u(single<double>::accessor<ro> dt_a,
   }
 }
 
-} // namespace hard::tasks
-
-
-#endif // HARD_TIME_DERIVATIVE_HH
+} // namespace flastro::tasks

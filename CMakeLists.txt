@@ -21,7 +21,7 @@ cmake_policy(SET CMP0144 NEW) # ``PACKAGE_NAME''_ROOT
 # Project.
 #------------------------------------------------------------------------------#
 
-project(HARD LANGUAGES C CXX)
+project(FlAstro LANGUAGES C CXX)
 set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -68,25 +68,25 @@ endif()
 # Control-Model Output
 #------------------------------------------------------------------------------#
 
-option(HARD_WRITE_CONTROL_INFO
+option(FLASTRO_WRITE_CONTROL_INFO
   "Output the control model graph and actions at startup" OFF)
-mark_as_advanced(HARD_WRITE_CONTROL_INFO)
+mark_as_advanced(FLASTRO_WRITE_CONTROL_INFO)
 
 #------------------------------------------------------------------------------#
 # Benchmark Mode
 #------------------------------------------------------------------------------#
 
-option(HARD_BENCHMARK_MODE
+option(FLASTRO_BENCHMARK_MODE
   "Benchmark mode disables I/O and adds time measurement" ON)
-mark_as_advanced(HARD_BENCHMARK_MODE)
+mark_as_advanced(FLASTRO_BENCHMARK_MODE)
 
 #------------------------------------------------------------------------------#
 # Benchmark Mode
 #------------------------------------------------------------------------------#
 
-option(HARD_ENABLE_LEGION_TRACING
+option(FLASTRO_ENABLE_LEGION_TRACING
   "Enable Legion Tracing" OFF)
-mark_as_advanced(HARD_ENABLE_LEGION_TRACING)
+mark_as_advanced(FLASTRO_ENABLE_LEGION_TRACING)
 
 #------------------------------------------------------------------------------#
 # Disable Radiation
@@ -144,9 +144,9 @@ if(ENABLE_DOCUMENTATION)
 
   # Avoid race condition by proactively creating output directory
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/.doxygen/xml)
-  flecsi_add_doxygen_target(hard
+  flecsi_add_doxygen_target(flastro
     CONFIGS
-      ${CMAKE_SOURCE_DIR}/doc/doxygen/hard.conf.in
+      ${CMAKE_SOURCE_DIR}/doc/doxygen/flastro.conf.in
       ${CMAKE_SOURCE_DIR}/doc/doxygen/conf.in
   )
 
@@ -158,14 +158,14 @@ if(ENABLE_DOCUMENTATION)
     ${CMAKE_BINARY_DIR}/.sphinx
   )
   # Create output directory
-  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/.sphinx/hard/src)
+  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/.sphinx/flastro/src)
   execute_process(COMMAND
     ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/spec
-    ${CMAKE_BINARY_DIR}/.sphinx/hard/src/spec
+    ${CMAKE_BINARY_DIR}/.sphinx/flastro/src/spec
   )
   execute_process(COMMAND
     ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/app
-    ${CMAKE_BINARY_DIR}/.sphinx/hard/src/app
+    ${CMAKE_BINARY_DIR}/.sphinx/flastro/src/app
   )
 
   flecsi_add_sphinx_target(main
@@ -180,7 +180,7 @@ if(ENABLE_DOCUMENTATION)
       echo "Updating pages" &&
       ([ -e pages ] ||
         ${GIT_EXECUTABLE} clone -q --single-branch --branch pages
-        git@gitlab.lanl.gov:cdss24/hard.git pages &&
+        git@gitlab.lanl.gov:cdss24/flastro.git pages &&
         cd pages &&
         ${GIT_EXECUTABLE} rm -qr . && ${GIT_EXECUTABLE} reset -q &&
         ${GIT_EXECUTABLE} checkout .gitignore &&

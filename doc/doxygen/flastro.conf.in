@@ -2,4 +2,4 @@
 # Values specific to this target.
 #------------------------------------------------------------------------------#
 
-PROJECT_NAME = "HARD User API"
+PROJECT_NAME = "FlAstro User API"

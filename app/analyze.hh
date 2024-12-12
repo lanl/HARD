@@ -1,5 +1,5 @@
-#ifndef HARD_ANALYZE_HH
-#define HARD_ANALYZE_HH
+#ifndef FLASTRO_ANALYZE_HH
+#define FLASTRO_ANALYZE_HH
 
 #include "tasks/io.hh"
 #include "types.hh"
@@ -11,7 +11,7 @@
 #include "tasks/catalyst.hh"
 #endif
 
-namespace hard::action {
+namespace flastro::action {
 
 template<std::size_t D>
 void
@@ -20,7 +20,7 @@ analyze(control_policy<state, D> & cp) {
   auto & s = cp.state();
   auto lm = data::launch::make(s.m);
 
-#ifndef HARD_BENCHMARK_MODE
+#ifndef FLASTRO_BENCHMARK_MODE
   if(((cp.step() % cp.output_frequency()) == 0) or
      (cp.step() == cp.max_steps())) {
 
@@ -69,6 +69,6 @@ inline control<state, 1>::action<analyze<1>, cp::analyze> analyze1_action;
 inline control<state, 2>::action<analyze<2>, cp::analyze> analyze2_action;
 inline control<state, 3>::action<analyze<3>, cp::analyze> analyze3_action;
 
-} // namespace hard::action
+} // namespace flastro::action
 
-#endif // HARD_ANALYZE_HH
+#endif // FLASTRO_ANALYZE_HH

@@ -1,5 +1,5 @@
-#ifndef HARD_TASKS_IO_HH
-#define HARD_TASKS_IO_HH
+#ifndef FLASTRO_TASKS_IO_HH
+#define FLASTRO_TASKS_IO_HH
 
 #include "../state.hh"
 
@@ -7,7 +7,7 @@
 #include <iomanip>
 #include <spec/io.hh>
 
-namespace hard::tasks::io {
+namespace flastro::tasks::io {
 
 template<std::size_t D>
 void inline raw(spec::io::name const & base,
@@ -152,6 +152,6 @@ void inline raw(spec::io::name const & base,
   } // if
 } // raw
 
-} // namespace hard::tasks::io
+} // namespace flastro::tasks::io
 
-#endif // HARD_TASKS_IO_HH
+#endif // FLASTRO_TASKS_IO_HH

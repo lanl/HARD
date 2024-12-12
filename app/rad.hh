@@ -1,12 +1,12 @@
-#ifndef HARD_RAD_HH
-#define HARD_RAD_HH
+#ifndef FLASTRO_RAD_HH
+#define FLASTRO_RAD_HH
 
 #include "state.hh"
 #include "tasks/rad.hh"
 
 #include <cstddef>
 
-namespace hard::rad {
+namespace flastro::rad {
 
 template<std::size_t D>
 void
@@ -17,10 +17,10 @@ vcycle(state<D> & s, std::size_t index) {
   std::size_t level{s.highest_level - index};
 
   if(level == s.lowest_level) {
-#ifndef HARD_BENCHMARK_MODE
+#ifndef FLASTRO_BENCHMARK_MODE
 
-    flog(warn) << "Direct solve level(index): " << level << "(" << index << ")"
-               << std::endl;
+    // flog(warn) << "Direct solve level(index): " << level << "(" << index << ")"
+              //  << std::endl;
 
 #endif
     // Direct solve for a single interior point
@@ -35,10 +35,10 @@ vcycle(state<D> & s, std::size_t index) {
     } // for
   }
   else {
-#ifndef HARD_BENCHMARK_MODE
+#ifndef FLASTRO_BENCHMARK_MODE
 
-    flog(warn) << "Cycle level(index): " << level << "(" << index << ")"
-               << std::endl;
+    // flog(warn) << "Cycle level(index): " << level << "(" << index << ")"
+              //  << std::endl;
 
 #endif
     auto & mc = *s.mh[index + 1];
@@ -104,20 +104,20 @@ fmg(state<D> & s, std::size_t index = 0) {
 
   // Deepest level
   if(level == s.lowest_level) {
-#ifndef HARD_BENCHMARK_MODE
+#ifndef FLASTRO_BENCHMARK_MODE
 
-    flog(warn) << "Deepest level(index):" << level << "(" << index << ")"
-               << std::endl;
+    // flog(warn) << "Deepest level(index):" << level << "(" << index << ")"
+              //  << std::endl;
 
 #endif
     // If in the deepest level, the V-Cycle is already doing a direct solve
     vcycle<D>(s, index);
   }
   else {
-#ifndef HARD_BENCHMARK_MODE
+#ifndef FLASTRO_BENCHMARK_MODE
 
-    flog(warn) << "cycle level(index): " << level << "(" << index << ")"
-               << std::endl;
+    // flog(warn) << "cycle level(index): " << level << "(" << index << ")"
+              //  << std::endl;
 #endif
     auto & mc = *s.mh[index + 1];
 
@@ -161,6 +161,6 @@ fmg(state<D> & s, std::size_t index = 0) {
   } // if
 } // fmg
 
-} // namespace hard::rad
+} // namespace flastro::rad
 
-#endif // HARD_RAD_HH
+#endif // FLASTRO_RAD_HH

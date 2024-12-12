@@ -2,7 +2,7 @@
 
    <br />
 
-.. _hard_problem:
+.. _flastro_problem:
 
 Example Problem
 ***************

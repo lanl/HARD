@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstddef>
 
-namespace hard::numerical_algorithms::root_finder {
+namespace flastro::numerical_algorithms::root_finder {
 
 // Options for root finders
 
@@ -22,7 +22,7 @@ Bisection::get_root(double c4,
 
   double fa, fb, fc;
 
-  namespace energy_polynomial = hard::energy_polynomial;
+  namespace energy_polynomial = flastro::energy_polynomial;
 
   fa = energy_polynomial::func(an, c4, c1, c0);
   fb = energy_polynomial::func(bn, c4, c1, c0);
@@ -36,6 +36,8 @@ Bisection::get_root(double c4,
     cn = 0.5 * (an + bn);
     fc = energy_polynomial::func(cn, c4, c1, c0);
 
+    // @YK : it seems like these lines need to be fixed before using bisection
+    // method
     double fa = energy_polynomial::func(an, c4, c1, c0);
     double fc = energy_polynomial::func(cn, c4, c1, c0);
 
@@ -130,4 +132,4 @@ NewtonRaphson::get_root(double c4,
 //   return -1.0; // No convergence
 // }
 
-} // namespace hard::numerical_algorithms::root_finder
+} // namespace flastro::numerical_algorithms::root_finder

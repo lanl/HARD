@@ -4,8 +4,8 @@
 //   https://gitlab.kitware.com/paraview/paraview.git
 //   https://gitlab.kitware.com/paraview/paraview/-/tree/master/Examples/Catalyst2/CxxFullExample
 
-#ifndef HARD_CATALYST_ADAPTOR_HH
-#define HARD_CATALYST_ADAPTOR_HH
+#ifndef FLASTRO_CATALYST_ADAPTOR_HH
+#define FLASTRO_CATALYST_ADAPTOR_HH
 
 #include "types.hh"
 
@@ -35,7 +35,7 @@ namespace catalyst_adaptor {
 void initialize();
 void execute(int cycle,
   double time,
-  hard::simple_cubic & grid,
+  flastro::simple_cubic & grid,
   double * velocity_array,
   double * density_array,
   double * pressure_array,
@@ -44,4 +44,4 @@ void execute(int cycle,
 void finalize();
 } // namespace catalyst_adaptor
 
-#endif // HARD_CATALYST_ADAPTOR_HH
+#endif // FLASTRO_CATALYST_ADAPTOR_HH

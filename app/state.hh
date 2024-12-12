@@ -1,12 +1,12 @@
-#ifndef HARD_STATE_HH
-#define HARD_STATE_HH
+#ifndef FLASTRO_STATE_HH
+#define FLASTRO_STATE_HH
 
 #include "types.hh"
 #ifdef USE_CATALYST
 #include "catalyst/types.hh"
 #endif // USE_CATALYST
 
-namespace hard {
+namespace flastro {
 
 /*----------------------------------------------------------------------------*
   Global parameters.
@@ -233,6 +233,6 @@ inline const single<catalyst_attributes>::definition<flecsi::topo::index>
 
 #endif // USE_CATALYST
 
-} // namespace hard
+} // namespace flastro
 
-#endif // HARD_STATE_HH
+#endif // FLASTRO_STATE_HH

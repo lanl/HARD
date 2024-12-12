@@ -76,7 +76,9 @@ enum boundary_type {
   /// Cauchy problem solution for solid wall boundary.
   reflecting,
   /// Substitution with opposite interior solution.
-  periodic
+  periodic,
+  /// Dirichlet boundary condition
+  dirichlet,
 }; // enum boundary_type
 } // namespace bd
 

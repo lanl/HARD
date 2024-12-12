@@ -2,9 +2,9 @@
 
    <br />
 
-.. _hard_api:
+.. _flastro_api:
 
-HARD Specialization API Reference
+FlAstro Specialization API Reference
 ************************************
 
 .. doxygenstruct:: spec::mesh

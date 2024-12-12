@@ -1,5 +1,5 @@
-#ifndef HARD_ADVANCE_HH
-#define HARD_ADVANCE_HH
+#ifndef FLASTRO_ADVANCE_HH
+#define FLASTRO_ADVANCE_HH
 
 #include "actions.hh"
 #include "numerical_algorithms/time_stepper.hh"
@@ -13,7 +13,7 @@
 
 #include <flecsi/execution.hh>
 
-namespace hard::actions {
+namespace flastro::actions {
 
 template<std::size_t D, time_stepper::rk_stage Stage>
 void
@@ -59,7 +59,7 @@ radiation_advance(control_policy<state, D> & cp) {
   flecsi::execute<task::rad::const_init<D>, flecsi::default_accelerator>(
     s.m, s.Resf(s.m), 0.0);
 
-  hard::rad::fmg<D>(s);
+  flastro::rad::fmg<D>(s);
 
   // After solving the elliptic part, store dU_dt for implicit part and
   // recover the intermediate state
@@ -124,7 +124,7 @@ radiation_advance(control_policy<state, D> & cp) {
 //              Action lists and dependencies
 // ---------------------------------------------------------------------------------------
 
-using namespace hard::time_stepper;
+using namespace flastro::time_stepper;
 
 //
 //  < Second order IMEX-RK time stepping >
@@ -337,6 +337,6 @@ inline const auto dep_update_time_step_size_2d =
 inline const auto dep_update_time_step_size_3d =
   update_time_step_size_3d.add(perform_time_step_3d);
 
-} // namespace hard::actions
+} // namespace flastro::actions
 
-#endif // HARD_ADVANCE_HH
+#endif // FLASTRO_ADVANCE_HH

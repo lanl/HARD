@@ -1,0 +1,36 @@
+---
+problem: su-olson
+
+problem_parameters:
+  e_floor: 1.0e-12
+  E_floor: 1.0e-12
+
+kappa: 1.0
+
+gamma: 1.4
+mean_molecular_weight: 1.0
+
+t0: 0.0
+tf: 100000.0
+max_steps: 1000
+cfl: 100000.0
+max_dt: 1.0e-2
+log_frequency: 10
+output_frequency: 10
+levels: [8, 1, 1]
+lowest_level: 8
+coords:
+  - [0.0, 0.0, 0.0]
+  - [10.0, 1.0, 1.0]
+boundaries:
+  xlow: reflecting
+  xhigh: flow
+  ylow: periodic
+  yhigh: periodic
+  zlow: periodic
+  zhigh: periodic
+
+catalyst:
+  script: ../tools/gridwriter.py
+  implementation: paraview
+  implementation_directory: /vast/home/yoonsoo/spack/var/spack/environments/flastro_paraview/.spack-env/view/lib64/catalyst/

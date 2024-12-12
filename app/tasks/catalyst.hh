@@ -1,5 +1,5 @@
-#ifndef HARD_TASK_EXTERNAL_HH
-#define HARD_TASK_EXTERNAL_HH
+#ifndef FLASTRO_TASK_EXTERNAL_HH
+#define FLASTRO_TASK_EXTERNAL_HH
 
 #include <flecsi/flog.hh>
 
@@ -8,7 +8,7 @@
 #include "../state.hh"
 #include "../types.hh"
 
-namespace hard::tasks::external {
+namespace flastro::tasks::external {
 
 /*--------------------------------------------------------------------------*
   init tasks
@@ -197,6 +197,6 @@ finalize(single<catalyst_attributes>::accessor<rw> c_a) {
   flog(info) << "Catalyst Finalize, ok" << std::endl;
 }
 
-} // namespace hard::tasks::external
+} // namespace flastro::tasks::external
 
-#endif // HARD_TASKS_EXTERNAL_HH
+#endif // FLASTRO_TASKS_EXTERNAL_HH

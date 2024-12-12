@@ -1,0 +1,49 @@
+---
+problem: shadow_2d
+
+problem_parameters:
+  mass_density_high: 1.0e3
+  mass_density_low: 1.0e-6
+  pressure : 1.0e-5
+  radiation_energy_density_left: 1.0e0
+  radiation_energy_density_right: 1.0e-3
+  x0 : 0.4
+  y0 : 0.5
+  cylinder_radius: 0.12
+
+gamma: 1.4
+mean_molecular_weight: 1.0
+t0: 0.0
+cfl: 0.3
+max_steps: 10000
+
+# ---- Config 1 (optically thick) ---- #
+# kappa: 1e12
+# tf: 3.0e-5
+# max_dt: 1.0e-8
+
+# ---- Config 2 (optically thin) ---- #
+kappa: 1e4
+tf: 1.0e-10
+max_dt: 5.0e-14
+
+log_frequency: 10
+output_frequency: 10
+
+levels: [6, 6, 1]
+lowest_level: 6
+coords:
+  - [0, 0, 0]
+  - [1, 1, 1]
+
+boundaries:
+  xlow: flow
+  xhigh: flow
+  ylow: periodic
+  yhigh: periodic
+  zlow: periodic
+  zhigh: periodic
+catalyst:
+  script: ../tools/gridwriter.py
+  implementation: paraview
+  implementation_directory: /vast/home/yoonsoo/spack/var/spack/environments/flastro_paraview/.spack-env/view/lib64/catalyst/

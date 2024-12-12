@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstddef>
 
-namespace hard::tasks::initial_data {
+namespace flastro::tasks::initial_data {
 
 /*----------------------------------------------------------------------------*
   Kelvin-Helmholtz Instability.
@@ -27,19 +27,24 @@ kh_instability(typename mesh<D>::template accessor<ro> m,
     m.template mdcolex<is::cells>(radiation_energy_density_a);
   auto const gamma = *gamma_a;
   const double mult = 1.0 / (gamma - 1.0);
-  const double wavenumber = 2.0 * M_PI;
-  const double N = 4;
 
-  // density, velocity and pressure for two fluids
+  using spec::utils::sqr;
+
+  // density, velocity and pressure for two strips of fluids
   const double rL = 1.0;
   const double uL = -0.5;
-  const double vL = 0.0;
   const double pL = 2.5;
 
   const double rH = 2.0;
   const double uH = 0.5;
-  const double vH = 0.0;
   const double pH = 2.5;
+
+  // Perturbation
+  const double velocity_perturbation_amplitude = 0.1;
+  const double N = 2;
+  const double wavenumber = N * 2.0 * M_PI;
+  const double perturb_width = 0.05 / sqrt(2.0);
+  const double gaussian_factor = 0.5 / sqr(perturb_width);
 
   if constexpr(D == 1) {
     flog_fatal(
@@ -51,38 +56,67 @@ kh_instability(typename mesh<D>::template accessor<ro> m,
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);
 
+        const double v_y = velocity_perturbation_amplitude *
+                           sin(wavenumber * x) *
+                           (exp(-gaussian_factor * sqr(y - 0.25)) +
+                             exp(-gaussian_factor * sqr(y - 0.75)));
+
         // initialize two different density and velocity fluids
         if(std::abs(y - 0.5) > 0.25) {
           mass_density(i, j) = rL;
           momentum_density(i, j).x = rL * uL;
-          momentum_density(i, j).y = rL * vL;
+          momentum_density(i, j).y = rL * v_y;
           total_energy_density(i, j) =
-            mult * pL + 0.5 * rL * (utils::sqr(uL) + utils::sqr(vL));
+            mult * pL + 0.5 * rL * (sqr(uL) + sqr(v_y));
         }
         else {
           mass_density(i, j) = rH;
           momentum_density(i, j).x = rH * uH;
-          momentum_density(i, j).y = rH * vH;
+          momentum_density(i, j).y = rH * v_y;
           total_energy_density(i, j) =
-            mult * pH + 0.5 * rH * (utils::sqr(uH) + utils::sqr(vH));
+            mult * pH + 0.5 * rH * (sqr(uH) + sqr(v_y));
         } // if
 
         radiation_energy_density(i, j) = 0.0;
 
-        // velocity perturbations in the Y-direction
-        if(std::abs(y - 0.25) < 0.1) {
-          momentum_density(i, j).y = 0.05 * sin(N * wavenumber * x);
-        }
-        if(std::abs(y - 0.75) < 0.1) {
-          momentum_density(i, j).y = 0.05 * sin(N * wavenumber * x);
-        }
       } // for
     }; // forall
   }
   else /* D == 3 */ {
-    flog_fatal(
-      "Kelvin-Helmholtz instability problem for D == 3 is not implemented")
-  } // if
+    forall(k, (m.template cells<ax::z, dm::quantities>()), "init_kh_3d") {
+      for(auto j : m.template cells<ax::y, dm::quantities>()) {
+        for(auto i : m.template cells<ax::x, dm::quantities>()) {
+
+          const auto x = m.template center<ax::x>(i);
+          const auto y = m.template center<ax::y>(j);
+
+          const double v_y = velocity_perturbation_amplitude *
+                             sin(wavenumber * x) *
+                             (exp(-gaussian_factor * sqr(y - 0.25)) +
+                               exp(-gaussian_factor * sqr(y - 0.75)));
+
+          // initialize two different density and velocity fluids
+          if(std::abs(y - 0.5) > 0.25) {
+            mass_density(i, j, k) = rL;
+            momentum_density(i, j, k).x = rL * uL;
+            momentum_density(i, j, k).y = rL * v_y;
+            total_energy_density(i, j, k) =
+              mult * pL + 0.5 * rL * (sqr(uL) + sqr(v_y));
+          }
+          else {
+            mass_density(i, j, k) = rH;
+            momentum_density(i, j, k).x = rH * uH;
+            momentum_density(i, j, k).y = rH * v_y;
+            total_energy_density(i, j, k) =
+              mult * pH + 0.5 * rH * (sqr(uH) + sqr(v_y));
+          } // if
+
+          momentum_density(i, j, k).z = 0.0;
+          radiation_energy_density(i, j, k) = 0.0;
+        }
+      }
+    };
+  }
 } //  kh_instability
 
-} // namespace hard::tasks::initial_data
+} // namespace flastro::tasks::initial_data

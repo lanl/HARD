@@ -20,7 +20,7 @@ then
   echo '  		   67: absolute value of velocity'
   echo '  		   89: absolute value of momentum'
   echo
-  echo " Example: Plot density of 200 first time steps of a 128x128 hard run."
+  echo " Example: Plot density of 200 first time steps of a 128x128 flastro run."
   echo "          $0 1 200 128 4" 
   echo
   exit 1;

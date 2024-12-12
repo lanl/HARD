@@ -1,11 +1,11 @@
-#ifndef HARD_TASKS_UTIL_HH
-#define HARD_TASKS_UTIL_HH
+#ifndef FLASTRO_TASKS_UTIL_HH
+#define FLASTRO_TASKS_UTIL_HH
 
 #include "../state.hh"
 
 #include <sstream>
 
-namespace hard::tasks::util {
+namespace flastro::tasks::util {
 
 template<dm::domain DM, std::size_t D>
 inline void
@@ -125,6 +125,6 @@ get_mdiota_policy(const M & m, const IT & it1, const IT & it2, const IT & it3) {
     m, sub_range{b1, e1}, sub_range{b2, e2}, sub_range{b3, e3});
 } // get_mdiota_policy
 
-} // namespace hard::tasks::util
+} // namespace flastro::tasks::util
 
-#endif // HARD_TASKS_UTIL_HH
+#endif // FLASTRO_TASKS_UTIL_HH

@@ -4,7 +4,7 @@
 #include "../../types.hh"
 #include <cstddef>
 
-namespace hard::tasks::hydro {
+namespace flastro::tasks::hydro {
 
 //
 // Perform reconstruction of primitive variables on cell interfaces, calculate
@@ -63,7 +63,7 @@ reconstruct(std::size_t reconstruction_axis,
   auto rETail = m.template mdcolex<is::cells>(rETail_a);
   auto rEHead = m.template mdcolex<is::cells>(rEHead_a);
 
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
   using spec::utils::sqr;
 
   if constexpr(Dim == 1) {
@@ -381,4 +381,4 @@ reconstruct(std::size_t reconstruction_axis,
   }
 }
 
-} // namespace hard::tasks::hydro
+} // namespace flastro::tasks::hydro

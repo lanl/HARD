@@ -1,0 +1,28 @@
+spack:
+  specs:
+  - yaml-cpp%gcc@12.2.0
+  - hpx@1.10.0%gcc@12.2.0 build_type=Release networking=lci max_cpu_count=128 ^lci@1.7.7%gcc@12.2.0
+  - flecsi@2%gcc@12.2.0+flog backend=hpx build_type=Release caliper_detail=low ^hpx networking=lci ^openmpi@4.1.5%gcc@12.2.0
+  view: true
+  concretizer:
+    unify: true
+  packages:
+    openmpi:
+      externals:
+      - spec: openmpi@4.1.5%gcc@=12.2.0~cuda~cxx~cxx_exceptions~java~memchecker+pmi~static~wrapper-rpath
+          fabrics=ucx schedulers=slurm
+        prefix: /projects/opt/rhel8/x86_64/openmpi/4.1.5-gcc_12.2.0
+  compilers:
+  - compiler:
+      spec: gcc@=12.2.0
+      paths:
+        cc: /projects/opt/rhel8/x86_64/gcc/12.2.0/bin/gcc
+        cxx: /projects/opt/rhel8/x86_64/gcc/12.2.0/bin/g++
+        f77: /projects/opt/rhel8/x86_64/gcc/12.2.0/bin/gfortran
+        fc: /projects/opt/rhel8/x86_64/gcc/12.2.0/bin/gfortran
+      flags: {}
+      operating_system: rhel8
+      target: x86_64
+      modules: []
+      environment: {}
+      extra_rpaths: []

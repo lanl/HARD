@@ -1,0 +1,24 @@
+spack:
+  specs:
+  - flecsi@2%cce@16.0.0+flog+kokkos+openmp backend=mpi build_type=Release caliper_detail=low
+    ^cray-mpich@8.1.26
+  - yaml-cpp%cce@16.0.0
+  view: true
+  concretizer:
+    unify: true
+  packages:
+    perl:
+      externals:
+      - spec: perl@5.26.1~cpanm+opcode+open+shared+threads
+        prefix: /usr
+    openssl:
+      externals:
+      - spec: openssl@1.1.1l
+        prefix: /usr
+    cray-mpich:
+      externals:
+      - spec: cray-mpich@8.1.26
+        modules:
+        - cray-mpich/8.1.26
+  mirrors:
+    pe-serve: https://pe-serve.lanl.gov/spack-mirror/

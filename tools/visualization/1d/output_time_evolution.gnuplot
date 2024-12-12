@@ -114,7 +114,7 @@ set cbtics  norangelimit autofreq
 set rtics axis in scale 1,0.5 nomirror norotate  autojustify
 set rtics  norangelimit autofreq 
 unset ttics
-set title "hard 1D, 128 cells, sod evolution 0.0 < t < 0.2" 
+set title "flastro 1D, 128 cells, sod evolution 0.0 < t < 0.2" 
 set title  font "" norotate
 set timestamp bottom 
 set timestamp "" 

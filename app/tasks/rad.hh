@@ -1,5 +1,5 @@
-#ifndef HARD_TASKS_RAD_HH
-#define HARD_TASKS_RAD_HH
+#ifndef FLASTRO_TASKS_RAD_HH
+#define FLASTRO_TASKS_RAD_HH
 
 #include "../constants.hh"
 #include "../state.hh"
@@ -8,9 +8,9 @@
 #include <cstddef>
 #include <spec/utils.hh>
 
-namespace hard::task::rad {
+namespace flastro::task::rad {
 
-using hard::tasks::util::get_mdiota_policy;
+using flastro::tasks::util::get_mdiota_policy;
 
 // Get the gradient of the velocity using a 5-point stencil.
 template<std::size_t D>
@@ -380,6 +380,7 @@ getRadForce(typename mesh<D>::template accessor<ro> m,
 template<std::size_t D>
 void
 explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
+  typename spec::single<double>::template accessor<ro> t,
   // Primitive variables
   typename field<vec<D>>::template accessor<ro, na> velocity_a,
   // Terms required for computing radiation force and photon tiring
@@ -410,15 +411,21 @@ explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
 
       // Explicitly updating conservative variables with S_ex
       // Adding the radiation force term to the momentum density
-      dt_momentum_density(i) += fr(i);
+      // dt_momentum_density(i) += fr(i);
 
       // Updating the total gas energy density: Adding contribution from the
       // work done by the radiative force: vdot_fr(i) = u(i).x * fr(i).x
-      dt_total_energy_density(i) += velocity(i).x * fr(i).x;
+      // dt_total_energy_density(i) += velocity(i).x * fr(i).x;
 
       // Subtracting the photon tiring term, (P::gradV), from the radiation
       // energy density in each cell. See Eq(34) in Moens2022.
-      dt_radiation_energy_density(i) += -P_tensor(i).xx * gradV(i).xx;
+      // dt_radiation_energy_density(i) += -P_tensor(i).xx * gradV(i).xx;
+
+      const auto x = m.template center<ax::x>(i);
+
+      if(t < 10.0 and x < 0.5) {
+        dt_radiation_energy_density(i) += 1.0;
+      }
     };
   }
   else if constexpr(D == 2) {
@@ -498,8 +505,9 @@ getDiff(typename mesh<D>::template accessor<ro> m,
   if constexpr(D == 1) {
     forall(i, (m.template cells<ax::x, dm::quantities>()), "getDiff") {
       auto const kappa = *kappa_a;
-      const double clight = hard::constants::cgs::speed_of_light;
+      const double clight = flastro::constants::cgs::speed_of_light;
       Diff(i) = clight * lambda(i) / (kappa * r(i));
+      // Diff(i) = 1.0;
     }; // for
   }
   else if constexpr(D == 2) {
@@ -509,7 +517,7 @@ getDiff(typename mesh<D>::template accessor<ro> m,
 
     forall(ji, mdpolicy_aa, "getDiff") {
       auto const kappa = *kappa_a;
-      const double clight = hard::constants::cgs::speed_of_light;
+      const double clight = flastro::constants::cgs::speed_of_light;
       auto [j, i] = ji;
       Diff(i, j) = clight * lambda(i, j) / (kappa * r(i, j));
     }; // forall
@@ -522,7 +530,7 @@ getDiff(typename mesh<D>::template accessor<ro> m,
 
     forall(kji, mdpolicy_aaa, "getDiff") {
       auto const kappa = *kappa_a;
-      const double clight = hard::constants::cgs::speed_of_light;
+      const double clight = flastro::constants::cgs::speed_of_light;
       auto [k, j, i] = kji;
       Diff(i, j, k) = clight * lambda(i, j, k) / (kappa * r(i, j, k));
     };
@@ -1306,6 +1314,6 @@ correction(typename mesh<D>::template accessor<ro> m,
   } // if
 } // correction
 
-} // namespace hard::task::rad
+} // namespace flastro::task::rad
 
-#endif // HARD_TASKS_RAD_HH
+#endif // FLASTRO_TASKS_RAD_HH

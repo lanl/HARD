@@ -3,7 +3,7 @@
 
 #include <spec/utils.hh>
 
-namespace hard {
+namespace flastro {
 
 //
 // Following struct contains the definition and derivatives of a quartic
@@ -38,4 +38,4 @@ funcprime2(double x, double c4) {
 }
 }; // namespace energy_polynomial
 
-} // namespace hard
+} // namespace flastro

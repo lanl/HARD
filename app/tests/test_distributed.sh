@@ -2,7 +2,7 @@
 
 # Path to the executable
 mpi_executable="$1"
-hard_executable="$2"
+flastro_executable="$2"
 config_file="$3"
 additional_args="$4"
 
@@ -10,12 +10,12 @@ additional_args="$4"
 rm *.raw
 ls
 echo "Starting.."
-OMP_NUM_THREADS=1 "$mpi_executable" -np 1 "$hard_executable" "$config_file" $additional_args
+OMP_NUM_THREADS=1 "$mpi_executable" -np 1 "$flastro_executable" "$config_file" $additional_args
 echo "Mid..."
 # rename before getting overwritten by next command
 mv output-00002-*-0.raw r1.raw
 ls
-OMP_NUM_THREADS=1 "$mpi_executable" -np 16 "$hard_executable" "$config_file" $additional_args
+OMP_NUM_THREADS=1 "$mpi_executable" -np 16 "$flastro_executable" "$config_file" $additional_args
 ls
 
 # Stitch together 16 raw outputs to 1 (mp.raw)

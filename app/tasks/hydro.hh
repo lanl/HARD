@@ -1,5 +1,5 @@
-#ifndef HARD_TASKS_HYDRO_HH
-#define HARD_TASKS_HYDRO_HH
+#ifndef FLASTRO_TASKS_HYDRO_HH
+#define FLASTRO_TASKS_HYDRO_HH
 
 #include "../numerical_algorithms/riemann_solvers.hh"
 #include "../state.hh"
@@ -8,7 +8,7 @@
 
 #include <limits>
 
-namespace hard::tasks::hydro {
+namespace flastro::tasks::hydro {
 
 template<std::size_t D>
 double
@@ -1698,6 +1698,6 @@ advance(typename mesh<D>::template accessor<ro> m,
   } // if ax==z
 } // advance
 
-} // namespace hard::tasks::hydro
+} // namespace flastro::tasks::hydro
 
-#endif // HARD_TASKS_HYDRO_HH
+#endif // FLASTRO_TASKS_HYDRO_HH

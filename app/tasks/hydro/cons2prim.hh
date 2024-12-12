@@ -5,7 +5,7 @@
 #include "../utils.hh"
 #include <cstddef>
 
-namespace hard::tasks::hydro {
+namespace flastro::tasks::hydro {
 
 template<std::size_t Dim>
 void
@@ -16,7 +16,7 @@ conservative_to_primitive(typename mesh<Dim>::template accessor<ro> m,
   typename field<vec<Dim>>::template accessor<wo, na> velocity_a,
   field<double>::accessor<wo, na> pressure_a,
   single<double>::accessor<ro> gamma_a) {
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
@@ -65,4 +65,4 @@ conservative_to_primitive(typename mesh<Dim>::template accessor<ro> m,
   } // if
 }
 
-} // namespace hard::tasks::hydro
+} // namespace flastro::tasks::hydro

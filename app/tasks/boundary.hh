@@ -8,7 +8,7 @@
 #define LOW 0
 #define HIGH 1
 
-namespace hard::tasks {
+namespace flastro::tasks {
 
 template<std::size_t D>
 void
@@ -22,7 +22,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
   // conservative variables
   typename field<vec<D>>::template accessor<rw, ro> ru_a,
   field<double>::accessor<rw, ro> rE_a) {
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
 
   auto r = m.template mdcolex<is::cells>(r_a);
   auto v = m.template mdcolex<is::cells>(v_a);
@@ -457,7 +457,7 @@ void
 apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
   field<double>::accessor<rw, na> r_a) {
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
   auto r = m.template mdcolex<is::cells>(r_a);
 
   const size_t ghost_zone_size = m.ghost_zone_size();
@@ -702,4 +702,4 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
   } // if
 } // flow
 
-} // namespace hard::tasks
+} // namespace flastro::tasks

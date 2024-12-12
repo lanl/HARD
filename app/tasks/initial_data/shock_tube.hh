@@ -6,7 +6,7 @@
 #include <cmath>
 #include <cstddef>
 
-namespace hard::tasks::initial_data {
+namespace flastro::tasks::initial_data {
 
 namespace shock_tubes {
 
@@ -58,7 +58,7 @@ shock(typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<rw, ro> total_energy_density_a,
   field<double>::accessor<rw, ro> radiation_energy_density_a,
   single<double>::accessor<ro> gamma_a) {
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
@@ -165,4 +165,4 @@ shock(typename mesh<D>::template accessor<ro> m,
   } // if
 } // shock
 
-} // namespace hard::tasks::initial_data
+} // namespace flastro::tasks::initial_data

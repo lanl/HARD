@@ -1,11 +1,11 @@
-#ifndef HARD_TYPES_HH
-#define HARD_TYPES_HH
+#ifndef FLASTRO_TYPES_HH
+#define FLASTRO_TYPES_HH
 
 #include <spec/control.hh>
 #include <spec/types.hh>
 #include <spec/utils.hh>
 
-namespace hard {
+namespace flastro {
 
 /*----------------------------------------------------------------------------*
   Pull in some generic types.
@@ -87,6 +87,6 @@ private:
   int flip_{0};
 };
 
-} // namespace hard
+} // namespace flastro
 
-#endif // HARD_TYPES_HH
+#endif // FLASTRO_TYPES_HH

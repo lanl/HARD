@@ -1,9 +1,9 @@
-#ifndef HARD_OPTIONS_HH
-#define HARD_OPTIONS_HH
+#ifndef FLASTRO_OPTIONS_HH
+#define FLASTRO_OPTIONS_HH
 
 #include <flecsi/execution.hh>
 
-namespace hard::opt {
+namespace flastro::opt {
 
 inline flecsi::program_option<std::string> config("yaml file",
   "The yaml config file.",
@@ -26,12 +26,12 @@ inline flecsi::program_option<std::string> catalyst_script("catalyst script",
   });
 #endif
 
-inline flecsi::program_option<int> dimension("Hard Options",
+inline flecsi::program_option<int> dimension("Flastro Options",
   "dimension,d",
   "Specify the dimension of the solver (default: 3).",
   {{flecsi::option_default, 3}});
 
-inline flecsi::program_option<int> colors("Hard Options",
+inline flecsi::program_option<int> colors("Flastro Options",
   "colors,c",
   "Specify the number of colors (default: num processes).",
   {{flecsi::option_default, -1}});
@@ -51,12 +51,19 @@ inline flecsi::program_option<int> flog_process("FLOG Options",
   "process,p",
   "Specify output process. Passing '-1' will enable output from all processes.",
   {{flecsi::option_default, 0}});
-#ifdef HARD_BENCHMARK_MODE
+
+#ifdef FLASTRO_BENCHMARK_MODE
 inline flecsi::program_option<bool> header("Header",
   "header,h",
   "Write header line into result file. Passing '1' will write header line",
   {{flecsi::option_default, 0}});
 #endif
-} // namespace hard::opt
 
-#endif // HARD_OPTIONS_HH
+inline flecsi::program_option<int> flog_strip_level("FLOG Options",
+  "strip-level,s",
+  "Specify the FLOG strip level.",
+  {{flecsi::option_default, 0}});
+
+} // namespace flastro::opt
+
+#endif // FLASTRO_OPTIONS_HH

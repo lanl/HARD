@@ -16,14 +16,14 @@
 #include <cstddef>
 #include <spec/limiter.hh>
 
-namespace hard::actions {
+namespace flastro::actions {
 
 template<std::size_t D>
 void
 initialize_time_derivative(control_policy<state, D> & cp) {
   auto & s = cp.state();
 
-#ifdef HARD_ENABLE_LEGION_TRACING
+#ifdef FLASTRO_ENABLE_LEGION_TRACING
   // Legion tracing: Skip first iteration
   if(cp.step() == 0)
     cp.tracing.skip();
@@ -32,7 +32,7 @@ initialize_time_derivative(control_policy<state, D> & cp) {
 #endif
 
   flecsi::execute<tasks::init::compute_dt_weighted>(
-    s.dt(s.gt), s.dt_weighted(s.gt), hard::time_stepper::time_stepper_gamma);
+    s.dt(s.gt), s.dt_weighted(s.gt), flastro::time_stepper::time_stepper_gamma);
 
   // Set all dU_dt temporaries to zero before adding time derivative terms
   flecsi::execute<tasks::set_dudt_to_zero<D>, flecsi::default_accelerator>(s.m,
@@ -109,6 +109,7 @@ explicit_source_terms(control_policy<state, D> & cp) {
   if constexpr(Stage == time_stepper::rk_stage::First) {
     flecsi::execute<task::rad::explicitSourceUpdate<D>,
       flecsi::default_accelerator>(s.m,
+      s.t(s.gt),
       s.velocity(s.m),
       s.radiation_force(s.m),
       s.radiation_pressure_tensor(s.m),
@@ -121,6 +122,7 @@ explicit_source_terms(control_policy<state, D> & cp) {
   else if constexpr(Stage == time_stepper::rk_stage::Second) {
     flecsi::execute<task::rad::explicitSourceUpdate<D>,
       flecsi::default_accelerator>(s.m,
+      s.t(s.gt),
       s.velocity(s.m),
       s.radiation_force(s.m),
       s.radiation_pressure_tensor(s.m),
@@ -147,37 +149,37 @@ fluxes_terms(control_policy<state, D> & cp) {
 
   for(std::size_t axis = 0; axis < D; axis++) {
     // clang-format off
-    flecsi::execute<tasks::hydro::reconstruct<D, limiter>, flecsi::default_accelerator>(axis,
-      s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m),
-      s.radiation_energy_density(s.m),
-      s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-      s.pTail(s.m), s.pHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
-      s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m), gamma(s.gt));
+    // flecsi::execute<tasks::hydro::reconstruct<D, limiter>, flecsi::default_accelerator>(axis,
+    //   s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m),
+    //   s.radiation_energy_density(s.m),
+    //   s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
+    //   s.pTail(s.m), s.pHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+    //   s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m), gamma(s.gt));
 
     if constexpr(Stage == time_stepper::rk_stage::First) {
-      flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
-        s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-        s.pTail(s.m), s.pHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
-        s.ruTail(s.m), s.ruHead(s.m),
-        s.rETail(s.m), s.rEHead(s.m),
-        s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
-        s.dt_mass_density(s.m),
-        s.dt_momentum_density(s.m),
-        s.dt_total_energy_density(s.m),
-        s.dt_radiation_energy_density(s.m),
-        gamma(s.gt));
+      // flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
+      //   s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
+      //   s.pTail(s.m), s.pHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+      //   s.ruTail(s.m), s.ruHead(s.m),
+      //   s.rETail(s.m), s.rEHead(s.m),
+      //   s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
+      //   s.dt_mass_density(s.m),
+      //   s.dt_momentum_density(s.m),
+      //   s.dt_total_energy_density(s.m),
+      //   s.dt_radiation_energy_density(s.m),
+      //   gamma(s.gt));
     }
     else if constexpr(Stage == time_stepper::rk_stage::Second) {
-      flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
-        s.rTail(s.m), s.rHead(s.m), s.uTail(s.m),s.uHead(s.m),
-        s.pTail(s.m), s.pHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
-        s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m),
-        s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
-        s.dt_mass_density_2(s.m),
-        s.dt_momentum_density_2(s.m),
-        s.dt_total_energy_density_2(s.m),
-        s.dt_radiation_energy_density_2(s.m),
-        gamma(s.gt));
+      // flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
+      //   s.rTail(s.m), s.rHead(s.m), s.uTail(s.m),s.uHead(s.m),
+      //   s.pTail(s.m), s.pHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+      //   s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m),
+      //   s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
+      //   s.dt_mass_density_2(s.m),
+      //   s.dt_momentum_density_2(s.m),
+      //   s.dt_total_energy_density_2(s.m),
+      //   s.dt_radiation_energy_density_2(s.m),
+      //   gamma(s.gt));
     }
     // clang-format on
   }
@@ -307,9 +309,9 @@ update_time_step_size(control_policy<state, D> & cp) {
     flecsi::reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
       s.m, lmax_f);
 
-#ifdef HARD_ENABLE_LEGION_TRACING
+#ifdef FLASTRO_ENABLE_LEGION_TRACING
   cp.guard.reset();
 #endif
 }
 
-} // namespace hard::actions
+} // namespace flastro::actions

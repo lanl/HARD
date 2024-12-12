@@ -1,17 +1,13 @@
-# HARD: Hydrodynamics And Radiative Diffusion
+# FlAstro
 
-HARD is a radiation-hydrodynamics solver suite for the study of
-astrophysical phenomena.
-
-HARD is based on the FleCSI framework and implemented on top of FleCSI-SP (FleCSI Specialization project). 
-
-# Copyright
-© 2024. Triad National Security, LLC. All rights reserved.
-This program was produced under U.S. Government contract 89233218CNA000001 for Los Alamos National Laboratory (LANL), which is operated by Triad National Security, LLC for the U.S. Department of Energy/National Nuclear Security Administration. All rights in the program are reserved by Triad National Security, LLC, and the U.S. Department of Energy/National Nuclear Security Administration. The Government is granted for itself and others acting on its behalf a nonexclusive, paid-up, irrevocable worldwide license in this material to reproduce, prepare. derivative works, distribute copies to the public, perform publicly and display publicly, and to permit others to do so (Copyright request O4795).
+FlAstro is a radiation-hydrodynamics solver suite for the study of
+astrophysical phenomena. To start using FlAstro take a look at the
+[documentation](http://cdss24.pages.lanl.gov/flastro). For a quick start
+to building FlAstro, follow the steps below.
 
 # Spack
 
-The easiest way to build HARD is to use *spack*:
+The easiast way to build FlAstro is to use *spack*:
 
 Clone the spack repo and initialize:
 ```
@@ -32,26 +28,27 @@ Notice that this also sets the *SPACK_EDITOR* environment variable. This
 is useful for selecting the editor program spack will use for various
 interface operations (used below).
 
-Next, create a spack *environment* for HARD and activate it:
+Next, create a spack *environment* for FlAstro and activate it:
 ```
-$ spack env create hard
-$ spacktivate hard
+$ spack env create flastro
+$ spacktivate flastro
 ```
 
-Once you are in the *hard* environment, you need to edit the
+Once you are in the *flastro* environment, you need to edit the
 environment config and replace the contents with the following, where
-*PATH-TO-HARD-CLONE* is the path to your clone of HARD:
+*PATH-TO-FLASTRO-CLONE* is the path to your clone of FlAstro:
 ```
 spack:
   specs:
-  - flecsi@2.3-cdss+flog+graphviz++hdf5++kokkos backend=mpi
+  - flecsi@2.3-cdss+flog+graphviz++hdf5++kokkos backend=legion
+    build_type=Debug caliper_detail=medium ^legion network=gasnet conduit=mpi
   - graphviz+libgd
   - yaml-cpp
   view: true
   concretizer:
     unify: true
   repos:
-  - /PATH-TO-HARD-CLONE/spack-repo
+  - /PATH-TO-FLASTRO-CLONE/spack-repo
 ```
 
 To edit the environment config, execute the following, which will open
@@ -80,17 +77,17 @@ the packages:
 ```
 $ spack install
 ```
-This will fetch all of the HARD dependencies and build them in your
+This will fetch all of the FlAstro dependencies and build them in your
 local spack tree (under *$HOME/.spack/opt* to be precise). This step
 will take some time.
 
 # Build
 
 Now that we have setup our spack environment, the rest of the build is
-really easy. First, change directory into your HARD clone and create
+really easy. First, change directory into your FlAstro clone and create
 a build directory:
 ```
-$ cd PATH-TO-HARD-CLONE
+$ cd PATH-TO-FLASTRO-CLONE
 $ mkdir build
 ```
 Next, change directory into the build directory and run *cmake*:
@@ -98,10 +95,17 @@ Next, change directory into the build directory and run *cmake*:
 $ cd build
 $ cmake ..
 ```
-This will configure your build with the default settings for HARD.
+This will configure your build with the default settings for FlAstro.
 When cmake has completed, simply run make:
 ```
 $ make
 ```
+
+# Source Layout
+
+The source code for FlAstro has the following structure (some files and
+directories are omitted):
+
+<img src="doc/structure.jpg" alt="Directory Structure" width="600"/>
 
 <!-- vim: set tabstop=2 shiftwidth=2 expandtab fo=cqt tw=72 : -->

@@ -9,7 +9,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-using namespace hard;
+using namespace flastro;
 
 /*Thomas Vogel:
 I am separating the original CatalystAdaptor.h from Kitware (that contains

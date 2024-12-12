@@ -1,5 +1,5 @@
-#ifndef HARD_TASKS_RADROOT_HH
-#define HARD_TASKS_RADROOT_HH
+#ifndef FLASTRO_TASKS_RADROOT_HH
+#define FLASTRO_TASKS_RADROOT_HH
 
 #include "../constants.hh"
 #include "../numerical_algorithms/root_finder.hh"
@@ -7,7 +7,7 @@
 #include "utils.hh"
 #include <spec/utils.hh>
 
-namespace hard::task::rad_root {
+namespace flastro::task::rad_root {
 // This task computes the updated radiation and gas energies.
 // The update is performed by finding a root to a quartic polynomial.
 template<std::size_t D>
@@ -25,7 +25,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<rw, na> dt_total_energy_density_implicit_a,
   field<double>::accessor<rw, na> dt_radiation_energy_density_implicit_a) {
 
-  using hard::tasks::util::get_mdiota_policy;
+  using flastro::tasks::util::get_mdiota_policy;
 
   auto r = m.template mdcolex<is::cells>(r_a);
   auto u = m.template mdcolex<is::cells>(u_a);
@@ -51,28 +51,21 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
 
       // TODO: verify these variables are not computed by each thread, and
       // stored in each thread register
-      auto const gamma = *gamma_a;
+      // auto const gamma = *gamma_a;
       auto const kappa = *kappa_a;
-      auto const particle_mass = *particle_mass_a;
-      const double gamma_minus_1 = gamma - 1.0;
-      const double a1_times_rho3 =
-        4.0 * kappa * hard::constants::cgs::stefan_boltzmann_constant *
-        spec::utils::sqr(
-          spec::utils::sqr(gamma_minus_1 * particle_mass /
-                           hard::constants::cgs::boltzmann_constant)) *
-        dt_weighted;
-      const double a2_over_rho =
-        hard::constants::cgs::speed_of_light * kappa * dt_weighted;
+      // auto const particle_mass = *particle_mass_a;
+      // const double gamma_minus_1 = gamma - 1.0;
 
-      const double a1 = a1_times_rho3 / (r(i) * spec::utils::sqr((r(i))));
-      const double a2 = a2_over_rho * r(i);
-
-      const double ke = 0.5 * r(i) * u(i).norm_squared(); // kinetic energy
-      const double en = rE(i) - ke; // internal energy
+      const double en = rE(i); // gas internal energy
       const double En = radiation_energy_density(i); // radiation energy
 
-      const double up_en = numerical_algorithms::root_finder::halleys_get_root(
-        a1, 1.0 + a2, -(en + (en + En) * a2), en + En);
+      // Analytic inversion for Su-Olson problem
+      const double up_En = (En + en * dt_weighted / (1.0 + dt_weighted)) *
+                           (1 + dt_weighted) / (1 + 2.0 * dt_weighted);
+      const double up_en = en + En - up_En;
+
+      // flog(info) << " en = " << en << ", En = " << En << std::endl;
+      // flog(info) << " up_en = " << up_en << ", up_En = " << up_En << std::endl;
 
       dt_total_energy_density_implicit(i) += (up_en - en) * one_over_aii_dt;
       dt_radiation_energy_density_implicit(i) += (en - up_en) * one_over_aii_dt;
@@ -94,13 +87,13 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       auto const particle_mass = *particle_mass_a;
       const double gamma_minus_1 = gamma - 1.0;
       const double a1_times_rho3 =
-        4.0 * kappa * hard::constants::cgs::stefan_boltzmann_constant *
+        4.0 * kappa * flastro::constants::cgs::stefan_boltzmann_constant *
         spec::utils::sqr(
           spec::utils::sqr(gamma_minus_1 * particle_mass /
-                           hard::constants::cgs::boltzmann_constant)) *
+                           flastro::constants::cgs::boltzmann_constant)) *
         dt_weighted;
       const double a2_over_rho =
-        hard::constants::cgs::speed_of_light * kappa * dt_weighted;
+        flastro::constants::cgs::speed_of_light * kappa * dt_weighted;
 
       auto [j, i] = ji;
       const double a1 = a1_times_rho3 / (r(i, j) * spec::utils::sqr((r(i, j))));
@@ -134,13 +127,13 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       auto const particle_mass = *particle_mass_a;
       const double gamma_minus_1 = gamma - 1.0;
       const double a1_times_rho3 =
-        4.0 * kappa * hard::constants::cgs::stefan_boltzmann_constant *
+        4.0 * kappa * flastro::constants::cgs::stefan_boltzmann_constant *
         spec::utils::sqr(
           spec::utils::sqr(gamma_minus_1 * particle_mass /
-                           hard::constants::cgs::boltzmann_constant)) *
+                           flastro::constants::cgs::boltzmann_constant)) *
         dt_weighted;
       const double a2_over_rho =
-        hard::constants::cgs::speed_of_light * kappa * dt_weighted;
+        flastro::constants::cgs::speed_of_light * kappa * dt_weighted;
 
       auto [k, j, i] = kji;
       const double a1 =
@@ -161,5 +154,5 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
     };
   }
 }
-} // namespace hard::task::rad_root
+} // namespace flastro::task::rad_root
 #endif
