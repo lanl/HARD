@@ -36,7 +36,8 @@ radiation_advance(control_policy<state, D> & cp) {
     kappa(s.gt));
 
   flecsi::execute<tasks::apply_boundary_single_field<D>,
-    flecsi::default_accelerator>(s.m, s.bmap(s.gt), s.lambda_bridge(s.m));
+    flecsi::default_accelerator>(
+    s.m, s.bmap(s.gt), s.lambda_bridge(s.m), std::nullopt);
 
   execute<task::rad::getDiff<D>, flecsi::default_accelerator>(
     s.m, s.mass_density(s.m), s.lambda_bridge(s.m), s.Diff(s.m), kappa(s.gt));
