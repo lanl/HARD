@@ -2,6 +2,7 @@
 #define HARD_OPTIONS_HH
 
 #include <flecsi/execution.hh>
+#include <string.h>
 
 namespace hard::opt {
 
@@ -30,6 +31,11 @@ inline flecsi::program_option<int> dimension("Hard Options",
   "dimension,d",
   "Specify the dimension of the solver (default: 3).",
   {{flecsi::option_default, 3}});
+
+inline flecsi::program_option<std::string> source_fds("Hard Options",
+  "fds_file",
+  "Specify where the file lives (default: source_fds.txt)",
+  {{flecsi::option_default, "source_fds.txt"}});
 
 inline flecsi::program_option<int> colors("Hard Options",
   "colors,c",
