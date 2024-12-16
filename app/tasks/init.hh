@@ -32,8 +32,7 @@ void inline gamma(single<double>::accessor<wo> gamma_a, double g) {
 void inline set_t_boundary(field<double>::accessor<wo> t_boundary_a,
     std::vector<double> copy_values) {
 
-  for (int i{0}; i < t_boundary_a.span().size(); i++)
-  {
+  for (int i{0}; i < t_boundary_a.span().size(); i++) {
     t_boundary_a[i] = copy_values[i];
   }
 } // t_boundary
