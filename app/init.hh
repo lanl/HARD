@@ -45,14 +45,11 @@ initialize(control_policy<state, D> & cp) {
     std::istringstream input;
     input.str(line);
 
-    for (std::string element; std::getline(input, element, ' '); )
-    {
-      if (i == 0)
-      {
+    for (std::string element; std::getline(input, element, ' '); ) {
+      if (i == 0) {
         time.emplace_back(std::stod(element));
       }
-      else
-      {
+      else {
         temperature.emplace_back(std::stod(element));
       }
       i++;
