@@ -1,0 +1,37 @@
+---
+
+problem: implosion
+
+problem_parameters:
+  fluid_mass_density: 1.0e-11
+  fluid_temperature: 3000
+  radiation_temperature: 3000
+
+kappa: 1.0
+gamma: 1.4
+mean_molecular_weight: 1.0
+
+t0: 0.0
+tf: 10
+max_steps: 200
+cfl: 0.3
+max_dt: 1.0
+log_frequency: 1
+output_frequency: 1
+levels: [2, 1, 1]
+coords:
+  - [0.0, 0.0, 0.0]
+  - [1e7, 1.0, 1.0]
+boundaries:
+  xlow: periodic
+  xhigh: periodic
+  ylow: periodic
+  yhigh: periodic
+  zlow: periodic
+  zhigh: periodic
+catalyst:
+  script: /path
+  implementation: paraview
+  implementation_directory: /path
+
+lowest_level: 1
