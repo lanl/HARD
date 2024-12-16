@@ -32,7 +32,7 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
 
   // How many boundary points to allocate
-  std::string filename{"../../external/fds_source/source_fds.txt"};
+  std::string filename{opt::source_fds};
 
   int n_lines{0};
   std::ifstream filein(filename);
