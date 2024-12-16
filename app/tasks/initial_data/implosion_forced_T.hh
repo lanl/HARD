@@ -14,17 +14,6 @@ namespace hard::tasks::initial_data {
 //
 // This is only 1D problem for ICP-mockup type
 
-
-//
-// A test problem demonstrating fluid and radiation reaching to a thermal
-// equilibrium.
-//
-// The fluid is uniform and initially at rest everywhere. Radiation energy
-// density is also uniform everywhere.
-//
-// Ideally, since E_rad = const. and nonzero everywhere, this problem should run
-// without any issues even if every radiation-hydro tasks are switched on.
-//
 template<std::size_t Dim>
 auto
 implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
