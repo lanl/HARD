@@ -1,30 +1,31 @@
 ---
-
+# For testing, we don't have material physics in it
+# We will use DT_gas profile from xRage
 problem: implosion
 
 problem_parameters:
-  fluid_mass_density: 1.0e-11
-  fluid_temperature: 3000
-  radiation_temperature: 3000
+  fluid_mass_density: 0.0004426672160078688 # g/cm^3, DT_Gas
+  fluid_temperature: 0.001631260210129 # eV 
+  radiation_temperature: 0.001631260210129 # eV
 
 kappa: 1.0
 gamma: 1.4
 mean_molecular_weight: 1.0
 
 t0: 0.0
-tf: 10
+tf: 10 #9.5e-9
 max_steps: 200
-cfl: 0.3
-max_dt: 1.0
+cfl: 0.6 # Using higher CFL, reference dec uses variable CFL
+max_dt: 1.0 #1e-10
 log_frequency: 1
 output_frequency: 1
 levels: [2, 1, 1]
 coords:
   - [0.0, 0.0, 0.0]
-  - [1e7, 1.0, 1.0]
+  - [1e3, 1.0, 1.0]
 boundaries:
   xlow: periodic
-  xhigh: periodic
+  xhigh: dirichlet
   ylow: periodic
   yhigh: periodic
   zlow: periodic
