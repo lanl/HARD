@@ -9,8 +9,8 @@
 
 namespace hard::tasks::initial_data {
 
-// A test problem that implodes inward with external temperature source 
-// from FDS input. 
+// A test problem that implodes inward with external temperature source
+// from FDS input.
 //
 // This is only 1D problem for ICP-mockup type
 
@@ -46,6 +46,11 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
   const double radiation_temperature =
     config["problem_parameters"]["radiation_temperature"].as<double>();
 
+  // Radiation temperature in the boundary
+  // TODO remove
+  std::cout << "Temperature boundary: " << temperature_boundary_a[0]
+            << std::endl;
+
   // Note : assuming ideal gas EOS
   const double fluid_internal_energy_density =
     mass_density_v * constants::cgs::boltzmann_constant * fluid_temperature /
@@ -64,8 +69,7 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
     }
   }
   else {
-    flog_fatal(
-      "Implosion problem is only implemented for D == 1")
+    flog_fatal("Implosion problem is only implemented for D == 1")
   }
 }
 

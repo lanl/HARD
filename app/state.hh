@@ -54,11 +54,10 @@ struct state {
    *--------------------------------------------------------------------------*/
 
   /* Maximum characteristic speed for a color. */
-  static inline const single<vec<D>>::template definition<index>
-    lmax;
+  static inline const single<vec<D>>::template definition<index> lmax;
 
-  static inline const single<double>::template definition<global>
-    dt, t, dt_weighted;
+  static inline const single<double>::template definition<global> dt, t,
+    dt_weighted;
 
   /*--------------------------------------------------------------------------*
     Mesh fields.

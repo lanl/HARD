@@ -20,14 +20,14 @@ using control_policy = spec::control_policy<S, D>;
 using cp = spec::cp;
 template<std::size_t D>
 using mesh = spec::mesh<D>;
+using spec::field;
+using spec::global;
+using spec::index;
+using spec::multi;
+using spec::single;
 using spec::stencil;
 using spec::vec;
 using spec::st::dirs;
-using spec::index;
-using spec::global;
-using spec::field;
-using spec::multi;
-using spec::single;
 
 /*----------------------------------------------------------------------------*
   Namespace labels.
