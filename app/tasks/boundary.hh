@@ -451,13 +451,66 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
   } // if
 } // flow
 
+// TODO: Undo the hardcoded boundary
+template<std::size_t D>
+void
+apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
+  typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
+  field<double>::accessor<rw, na> r_a,
+  flecsi::future<double> radiation_boundary_f) {
+  using hard::tasks::util::get_mdiota_policy;
+  auto r = m.template mdcolex<is::cells>(r_a);
+
+  const size_t ghost_zone_size = m.ghost_zone_size();
+  double radiation_boundary = radiation_boundary_f.get();
+
+  if(m.template is_high<ax::x>()) {
+    const std::size_t i = m.template size<ax::x, dm::all>();
+    if constexpr(D == 1) {
+      flecsi::util::iota_view policy{0, 1}; // default execution space
+      forall(x, policy, "dirichlet_x_high_1D") {
+        const typename mesh<D>::bmap & bm = *bmap_a;
+        const auto xlow = bm[0][HIGH];
+
+        for(size_t m = 0; m < ghost_zone_size; ++m) {
+          r(i - 1 - m) = radiation_boundary;
+        }
+      }; // forall
+    }
+    else if constexpr(D == 2) {
+      forall(
+        j, (m.template cells<ax::y, dm::quantities>()), "dirichlet_x_high_2D") {
+        const typename mesh<D>::bmap & bm = *bmap_a;
+        const auto xlow = bm[0][HIGH];
+        for(size_t m = 0; m < ghost_zone_size; ++m) {
+          r(i - 1 - m, j) = radiation_boundary;
+        }
+      }; // /forall
+    }
+    else /* D == 3 */ {
+      auto mdpolicy_zy = get_mdiota_policy(r,
+        m.template cells<ax::z, dm::quantities>(),
+        m.template cells<ax::y, dm::quantities>());
+
+      forall(kj, mdpolicy_zy, "dirichlet_x_high_3D") {
+        auto [k, j] = kj;
+        const typename mesh<D>::bmap & bm = *bmap_a;
+        const auto xlow = bm[0][HIGH];
+
+        for(size_t m = 0; m < ghost_zone_size; ++m) {
+          r(i - 1 - m, j, k) = radiation_boundary;
+        }
+      }; // forall
+    } // if
+  } // if
+} // flow
+
 // TODO: Refactor. apply_boundary overload for just one field.
 template<std::size_t D>
 void
 apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
-  field<double>::accessor<rw, na> r_a,
-  std::optional<double> dirichlet_value_opt) {
+  field<double>::accessor<rw, na> r_a) {
   using hard::tasks::util::get_mdiota_policy;
   auto r = m.template mdcolex<is::cells>(r_a);
 
@@ -479,12 +532,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
             r(m) = r(2 * ghost_zone_size - 1 - m);
           }
         }
-        else if(xlow == bd::dirichlet) {
-          const double dirichlet_value = dirichlet_value_opt.value();
-          for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(m) = dirichlet_value;
-          }
-        }
       };
     }
     else if constexpr(D == 2) {
@@ -499,12 +546,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         else if(xlow == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
             r(m, j) = r(2 * ghost_zone_size - 1 - m, j);
-          }
-        }
-        else if(xlow == bd::dirichlet) {
-          const double dirichlet_value = dirichlet_value_opt.value();
-          for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(m, j) = dirichlet_value;
           }
         }
       }; // for
@@ -528,12 +569,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
             r(m, j, k) = r(2 * ghost_zone_size - 1 - m, j, k);
           }
         }
-        else if(xlow == bd::dirichlet) {
-          const double dirichlet_value = dirichlet_value_opt.value();
-          for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(m, j, k) = dirichlet_value;
-          }
-        }
       }; // forall
     } // if
   }
@@ -554,12 +589,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
             r(i - 1 - m) = r(i - 2 * ghost_zone_size + m);
           }
         }
-        else if(xhigh == bd::dirichlet) {
-          const double dirichlet_value = dirichlet_value_opt.value();
-          for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i - 1 - m) = dirichlet_value;
-          }
-        }
       };
     }
     else if constexpr(D == 2) {
@@ -574,12 +603,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         else if(xhigh == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
             r(i - 1 - m, j) = r(i - 2 * ghost_zone_size + m, j);
-          }
-        }
-        else if(xhigh == bd::dirichlet) {
-          const double dirichlet_value = dirichlet_value_opt.value();
-          for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i - 1 - m, j) = dirichlet_value;
           }
         }
       }; // forall
@@ -603,12 +626,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
             r(i - 1 - m, j, k) = r(i - 2 * ghost_zone_size + m, j, k);
           }
         }
-        else if(xhigh == bd::dirichlet) {
-          const double dirichlet_value = dirichlet_value_opt.value();
-          for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i - 1 - m, j, k) = dirichlet_value;
-          }
-        }
       }; // forall
     } // if
   } // if
@@ -627,12 +644,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
           else if(ylow == bd::reflecting) {
             for(size_t m = 0; m < ghost_zone_size; ++m) {
               r(i, m) = r(i, 2 * ghost_zone_size - 1 - m);
-            }
-          }
-          else if(ylow == bd::dirichlet) {
-          const double dirichlet_value = dirichlet_value_opt.value();
-            for(size_t m = 0; m < ghost_zone_size; ++m) {
-              r(i, m) = dirichlet_value;
             }
           }
         }; // forall
@@ -656,12 +667,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
               r(i, m, k) = r(i, 2 * ghost_zone_size - 1 - m, k);
             }
           }
-          else if(ylow == bd::dirichlet) {
-          const double dirichlet_value = dirichlet_value_opt.value();
-            for(size_t m = 0; m < ghost_zone_size; ++m) {
-              r(i, m, k) = dirichlet_value;
-            }
-          }
         }; // forall
       } // if
     }
@@ -679,12 +684,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
           else if(yhigh == bd::reflecting) {
             for(size_t m = 0; m < ghost_zone_size; ++m) {
               r(i, j - 1 - m) = r(i, j - 2 * ghost_zone_size + m);
-            }
-          }
-          else if(yhigh == bd::dirichlet) {
-          const double dirichlet_value = dirichlet_value_opt.value();
-            for(size_t m = 0; m < ghost_zone_size; ++m) {
-              r(i, j - 1 - m) = dirichlet_value;
             }
           }
         }; // forall
@@ -730,12 +729,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
             r(i, j, m) = r(i, j, 2 * ghost_zone_size - 1 - m);
           }
         }
-        else if(zlow == bd::dirichlet) {
-          const double dirichlet_value = dirichlet_value_opt.value();
-          for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i, j, m) = dirichlet_value;
-          }
-        }
       }; // forall
     }
     if(m.template is_high<ax::z>()) {
@@ -755,12 +748,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         else if(zhigh == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
             r(i, j, k - 1 - m) = r(i, j, k - 2 * ghost_zone_size + m);
-          }
-        }
-        else if(zhigh == bd::dirichlet) {
-          const double dirichlet_value = dirichlet_value_opt.value();
-          for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i, j, k - 1 - m) = dirichlet_value;
           }
         }
       }; // forall

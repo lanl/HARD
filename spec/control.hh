@@ -84,8 +84,8 @@ struct control_policy : flecsi::run::control_base {
   }
 
   static void compute_dt(
-    typename spec::single<double>::template accessor<flecsi::wo> t,
-    typename spec::single<double>::template accessor<flecsi::wo> dt,
+    typename single<double>::template accessor<flecsi::wo> t,
+    typename single<double>::template accessor<flecsi::wo> dt,
     flecsi::future<double> dtmin,
     double tf,
     double max_dt,

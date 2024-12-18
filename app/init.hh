@@ -38,15 +38,14 @@ initialize(control_policy<state, D> & cp) {
   std::ifstream filein(filename);
   std::vector<double> time;
   std::vector<double> temperature;
-  for (std::string line; std::getline(filein, line); )
-  {
+  for(std::string line; std::getline(filein, line);) {
 
     int i{0};
     std::istringstream input;
     input.str(line);
 
-    for (std::string element; std::getline(input, element, ' '); ) {
-      if (i == 0) {
+    for(std::string element; std::getline(input, element, ' ');) {
+      if(i == 0) {
         time.emplace_back(std::stod(element));
       }
       else {
@@ -94,7 +93,8 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
 
   execute<tasks::init::set_t_boundary>(time_boundary(s.dense_topology), time);
-  execute<tasks::init::set_t_boundary>(temperature_boundary(s.dense_topology), temperature);
+  execute<tasks::init::set_t_boundary>(
+    temperature_boundary(s.dense_topology), temperature);
 
   /*--------------------------------------------------------------------------*
     Gamma.

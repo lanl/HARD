@@ -1332,6 +1332,39 @@ correction(typename mesh<D>::template accessor<ro> m,
   } // if
 } // correction
 
+// Linear interpolation for boundary temperature
+double
+interp_e_boundary(typename single<double>::accessor<flecsi::ro> t,
+  typename field<double>::accessor<flecsi::ro> time_boundary,
+  typename field<double>::accessor<flecsi::ro> temperature_boundary) {
+
+  auto get_energy = [](const double & x) -> double {
+    return constants::cgs::radiation_constant *
+           spec::utils::sqr(spec::utils::sqr(x));
+  };
+
+  // Is it the first or last value?
+  std::size_t i_end{time_boundary.span().size()};
+  if(t <= time_boundary[0])
+    return get_energy(temperature_boundary[0]);
+  if(t >= time_boundary[i_end - 1])
+    return get_energy(temperature_boundary[i_end - 1]);
+
+  for(int i{0}; i < (i_end - 1); i++) {
+    if((t >= time_boundary[i]) && (t <= time_boundary[i + 1])) {
+      double dx{time_boundary[i + 1] - time_boundary[i]};
+      double dy{temperature_boundary[i + 1] - temperature_boundary[i]};
+
+      // Found point, return
+      return get_energy(dy * (time_boundary[i + 1] - t) + time_boundary[i]);
+    };
+  }
+
+  // We should never reach this line
+  flog_fatal("Linear interpolation failed");
+  return -1.0; // Point never found
+} // interp_e_boundary
+
 } // namespace hard::task::rad
 
 #endif // HARD_TASKS_RAD_HH

@@ -36,8 +36,17 @@ radiation_advance(control_policy<state, D> & cp) {
     kappa(s.gt));
 
   flecsi::execute<tasks::apply_boundary_single_field<D>,
+    flecsi::default_accelerator>(s.m, s.bmap(s.gt), s.lambda_bridge(s.m));
+
+  auto radiation_boundary_f =
+    flecsi::execute<task::rad::interp_e_boundary>(s.t(s.gt),
+      time_boundary(s.dense_topology),
+      temperature_boundary(s.dense_topology));
+
+  // TODO figure out how not to use the hardcoded radiation temperature boundary
+  flecsi::execute<tasks::apply_radiation_boundary<D>,
     flecsi::default_accelerator>(
-    s.m, s.bmap(s.gt), s.lambda_bridge(s.m), std::nullopt);
+    s.m, s.bmap(s.gt), s.radiation_energy_density(s.m), radiation_boundary_f);
 
   execute<task::rad::getDiff<D>, flecsi::default_accelerator>(
     s.m, s.mass_density(s.m), s.lambda_bridge(s.m), s.Diff(s.m), kappa(s.gt));
