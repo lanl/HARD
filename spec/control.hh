@@ -136,7 +136,8 @@ struct control_policy : flecsi::run::control_base {
       s.t(s.gt), s.dt(s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_);
 
     if((cp.step_ % cp.log_frequency_) == 0 || cp.step_ == cp.max_steps_) {
-      flog(info) << "step: " << cp.step_ << "/" << cp.max_steps_ << std::endl;
+      flog(info) << "step: " << cp.step_ << "/" << cp.max_steps_
+                 << "   dt = " << (cp.cfl_ * cp.dtmin_) << std::endl;
       flecsi::flog::flush();
     } // if
     ++cp.step_;
