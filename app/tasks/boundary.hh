@@ -53,13 +53,13 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         }
         else if(xlow == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(m) = r(2 * ghost_zone_size - 1 - m);
-            v(m).x = -v(2 * ghost_zone_size - 1 - m).x;
-            p(m) = p(2 * ghost_zone_size - 1 - m);
+            r(m) = r(ghost_zone_size);
+            v(m).x = -v(ghost_zone_size).x;
+            p(m) = p(ghost_zone_size);
 
-            ru(m).x = -ru(2 * ghost_zone_size - 1 - m).x;
-            rE(m) = rE(2 * ghost_zone_size - 1 - m);
-            Erad(m) = Erad(2 * ghost_zone_size - 1 - m);
+            ru(m).x = -ru(ghost_zone_size).x;
+            rE(m) = rE(ghost_zone_size);
+            Erad(m) = Erad(ghost_zone_size);
           }
         }
       };
@@ -81,15 +81,15 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         }
         else if(xlow == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(m, j) = r(2 * ghost_zone_size - 1 - m, j);
-            v(m, j).x = -v(2 * ghost_zone_size - 1 - m, j).x;
-            v(m, j).y = v(2 * ghost_zone_size - 1 - m, j).y;
-            p(m, j) = p(2 * ghost_zone_size - 1 - m, j);
+            r(m, j) = r(ghost_zone_size, j);
+            v(m, j).x = -v(ghost_zone_size, j).x;
+            v(m, j).y = v(ghost_zone_size, j).y;
+            p(m, j) = p(ghost_zone_size, j);
 
-            ru(m, j).x = -ru(2 * ghost_zone_size - 1 - m, j).x;
-            ru(m, j).y = ru(2 * ghost_zone_size - 1 - m, j).y;
-            rE(m, j) = rE(2 * ghost_zone_size - 1 - m, j);
-            Erad(m, j) = Erad(2 * ghost_zone_size - 1 - m, j);
+            ru(m, j).x = -ru(ghost_zone_size, j).x;
+            ru(m, j).y = ru(ghost_zone_size, j).y;
+            rE(m, j) = rE(ghost_zone_size, j);
+            Erad(m, j) = Erad(ghost_zone_size, j);
           }
         }
       }; // for
@@ -116,17 +116,17 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         }
         else if(xlow == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(m, j, k) = r(2 * ghost_zone_size - 1 - m, j, k);
-            v(m, j, k).x = -v(2 * ghost_zone_size - 1 - m, j, k).x;
-            v(m, j, k).y = v(2 * ghost_zone_size - 1 - m, j, k).y;
-            v(m, j, k).z = v(2 * ghost_zone_size - 1 - m, j, k).z;
-            p(m, j, k) = p(2 * ghost_zone_size - 1 - m, j, k);
+            r(m, j, k) = r(ghost_zone_size, j, k);
+            v(m, j, k).x = -v(ghost_zone_size, j, k).x;
+            v(m, j, k).y = v(ghost_zone_size, j, k).y;
+            v(m, j, k).z = v(ghost_zone_size, j, k).z;
+            p(m, j, k) = p(ghost_zone_size, j, k);
 
-            ru(m, j, k).x = -ru(2 * ghost_zone_size - 1 - m, j, k).x;
-            ru(m, j, k).y = ru(2 * ghost_zone_size - 1 - m, j, k).y;
-            ru(m, j, k).z = ru(2 * ghost_zone_size - 1 - m, j, k).z;
-            rE(m, j, k) = rE(2 * ghost_zone_size - 1 - m, j, k);
-            Erad(m, j, k) = Erad(2 * ghost_zone_size - 1 - m, j, k);
+            ru(m, j, k).x = -ru(ghost_zone_size, j, k).x;
+            ru(m, j, k).y = ru(ghost_zone_size, j, k).y;
+            ru(m, j, k).z = ru(ghost_zone_size, j, k).z;
+            rE(m, j, k) = rE(ghost_zone_size, j, k);
+            Erad(m, j, k) = Erad(ghost_zone_size, j, k);
           }
         }
       }; // forall
@@ -152,13 +152,13 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         }
         else if(xhigh == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i - 1 - m) = r(i - 2 * ghost_zone_size + m);
-            v(i - 1 - m) = v(i - 2 * ghost_zone_size + m);
-            p(i - 1 - m) = p(i - 2 * ghost_zone_size + m);
+            r(i - 1 - m) = r(i - 1 - ghost_zone_size);
+            v(i - 1 - m).x = -v(i - 1 - ghost_zone_size).x;
+            p(i - 1 - m) = p(i - 1 - ghost_zone_size);
 
-            ru(i - 1 - m) = ru(i - 2 * ghost_zone_size + m);
-            rE(i - 1 - m) = rE(i - 2 * ghost_zone_size + m);
-            Erad(i - 1 - m) = Erad(i - 2 * ghost_zone_size + m);
+            ru(i - 1 - m).x = -ru(i - 1 - ghost_zone_size).x;
+            rE(i - 1 - m) = rE(i - 1 - ghost_zone_size);
+            Erad(i - 1 - m) = Erad(i - 1 - ghost_zone_size);
           }
         }
       };
@@ -180,15 +180,15 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         }
         else if(xhigh == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i - 1 - m, j) = r(i - 2 * ghost_zone_size + m, j);
-            v(i - 1 - m, j).x = -v(i - 2 * ghost_zone_size + m, j).x;
-            v(i - 1 - m, j).y = v(i - 2 * ghost_zone_size + m, j).y;
-            p(i - 1 - m, j) = p(i - 2 * ghost_zone_size + m, j);
+            r(i - 1 - m, j) = r(i - 1 - ghost_zone_size, j);
+            v(i - 1 - m, j).x = -v(i - 1 - ghost_zone_size, j).x;
+            v(i - 1 - m, j).y = v(i - 1 - ghost_zone_size, j).y;
+            p(i - 1 - m, j) = p(i - 1 - ghost_zone_size, j);
 
-            ru(i - 1 - m, j).x = -ru(i - 2 * ghost_zone_size + m, j).x;
-            ru(i - 1 - m, j).y = ru(i - 2 * ghost_zone_size + m, j).y;
-            rE(i - 1 - m, j) = rE(i - 2 * ghost_zone_size + m, j);
-            Erad(i - 1 - m, j) = Erad(i - 2 * ghost_zone_size + m, j);
+            ru(i - 1 - m, j).x = -ru(i - 1 - ghost_zone_size, j).x;
+            ru(i - 1 - m, j).y = ru(i - 1 - ghost_zone_size, j).y;
+            rE(i - 1 - m, j) = rE(i - 1 - ghost_zone_size, j);
+            Erad(i - 1 - m, j) = Erad(i - 1 - ghost_zone_size, j);
           }
         }
       }; // forall
@@ -215,17 +215,17 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         }
         else if(xhigh == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i - 1 - m, j, k) = r(i - 2 * ghost_zone_size + m, j, k);
-            v(i - 1 - m, j, k).x = -v(i - 2 * ghost_zone_size + m, j, k).x;
-            v(i - 1 - m, j, k).y = v(i - 2 * ghost_zone_size + m, j, k).y;
-            v(i - 1 - m, j, k).z = v(i - 2 * ghost_zone_size + m, j, k).z;
-            p(i - 1 - m, j, k) = p(i - 2 * ghost_zone_size + m, j, k);
+            r(i - 1 - m, j, k) = r(i - 1 - ghost_zone_size, j, k);
+            v(i - 1 - m, j, k).x = -v(i - 1 - ghost_zone_size, j, k).x;
+            v(i - 1 - m, j, k).y = v(i - 1 - ghost_zone_size, j, k).y;
+            v(i - 1 - m, j, k).z = v(i - 1 - ghost_zone_size, j, k).z;
+            p(i - 1 - m, j, k) = p(i - 1 - ghost_zone_size, j, k);
 
-            ru(i - 1 - m, j, k).x = -ru(i - 2 * ghost_zone_size + m, j, k).x;
-            ru(i - 1 - m, j, k).y = ru(i - 2 * ghost_zone_size + m, j, k).y;
-            ru(i - 1 - m, j, k).z = ru(i - 2 * ghost_zone_size + m, j, k).z;
-            rE(i - 1 - m, j, k) = rE(i - 2 * ghost_zone_size + m, j, k);
-            Erad(i - 1 - m, j, k) = Erad(i - 2 * ghost_zone_size + m, j, k);
+            ru(i - 1 - m, j, k).x = -ru(i - 1 - ghost_zone_size, j, k).x;
+            ru(i - 1 - m, j, k).y = ru(i - 1 - ghost_zone_size, j, k).y;
+            ru(i - 1 - m, j, k).z = ru(i - 1 - ghost_zone_size, j, k).z;
+            rE(i - 1 - m, j, k) = rE(i - 1 - ghost_zone_size, j, k);
+            Erad(i - 1 - m, j, k) = Erad(i - 1 - ghost_zone_size, j, k);
           }
         }
 
@@ -252,15 +252,15 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
           }
           else if(ylow == bd::reflecting) {
             for(size_t m = 0; m < ghost_zone_size; ++m) {
-              r(i, m) = r(i, 2 * ghost_zone_size - 1 - m);
-              v(i, m).x = v(i, 2 * ghost_zone_size - 1 - m).x;
-              v(i, m).y = -v(i, 2 * ghost_zone_size - 1 - m).y;
-              p(i, m) = p(i, 2 * ghost_zone_size - 1 - m);
+              r(i, m) = r(i, ghost_zone_size);
+              v(i, m).x = v(i, ghost_zone_size).x;
+              v(i, m).y = -v(i, ghost_zone_size).y;
+              p(i, m) = p(i, ghost_zone_size);
 
-              ru(i, m).x = ru(i, 2 * ghost_zone_size - 1 - m).x;
-              ru(i, m).y = -ru(i, 2 * ghost_zone_size - 1 - m).y;
-              rE(i, m) = rE(i, 2 * ghost_zone_size - 1 - m);
-              Erad(i, m) = Erad(i, 2 * ghost_zone_size - 1 - m);
+              ru(i, m).x = ru(i, ghost_zone_size).x;
+              ru(i, m).y = -ru(i, ghost_zone_size).y;
+              rE(i, m) = rE(i, ghost_zone_size);
+              Erad(i, m) = Erad(i, ghost_zone_size);
             }
           }
         }; // forall
@@ -287,17 +287,17 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
           }
           else if(ylow == bd::reflecting) {
             for(size_t m = 0; m < ghost_zone_size; ++m) {
-              r(i, m, k) = r(i, 2 * ghost_zone_size - 1 - m, k);
-              v(i, m, k).x = v(i, 2 * ghost_zone_size - 1 - m, k).x;
-              v(i, m, k).y = -v(i, 2 * ghost_zone_size - 1 - m, k).y;
-              v(i, m, k).z = v(i, 2 * ghost_zone_size - 1 - m, k).z;
-              p(i, m, k) = p(i, 2 * ghost_zone_size - 1 - m, k);
+              r(i, m, k) = r(i, ghost_zone_size, k);
+              v(i, m, k).x = v(i, ghost_zone_size, k).x;
+              v(i, m, k).y = -v(i, ghost_zone_size, k).y;
+              v(i, m, k).z = v(i, ghost_zone_size, k).z;
+              p(i, m, k) = p(i, ghost_zone_size, k);
 
-              ru(i, m, k).x = ru(i, 2 * ghost_zone_size - 1 - m, k).x;
-              ru(i, m, k).y = -ru(i, 2 * ghost_zone_size - 1 - m, k).y;
-              ru(i, m, k).z = ru(i, 2 * ghost_zone_size - 1 - m, k).z;
-              rE(i, m, k) = rE(i, 2 * ghost_zone_size - 1 - m, k);
-              Erad(i, m, k) = Erad(i, 2 * ghost_zone_size - 1 - m, k);
+              ru(i, m, k).x = ru(i, ghost_zone_size, k).x;
+              ru(i, m, k).y = -ru(i, ghost_zone_size, k).y;
+              ru(i, m, k).z = ru(i, ghost_zone_size, k).z;
+              rE(i, m, k) = rE(i, ghost_zone_size, k);
+              Erad(i, m, k) = Erad(i, ghost_zone_size, k);
             }
           }
         }; // forall
@@ -322,15 +322,15 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
           }
           else if(yhigh == bd::reflecting) {
             for(size_t m = 0; m < ghost_zone_size; ++m) {
-              r(i, j - 1 - m) = r(i, j - 2 * ghost_zone_size + m);
-              v(i, j - 1 - m).x = v(i, j - 2 * ghost_zone_size + m).x;
-              v(i, j - 1 - m).y = -v(i, j - 2 * ghost_zone_size + m).y;
-              p(i, j - 1 - m) = p(i, j - 2 * ghost_zone_size + m);
+              r(i, j - 1 - m) = r(i, j - 1 - ghost_zone_size);
+              v(i, j - 1 - m).x = v(i, j - 1 - ghost_zone_size).x;
+              v(i, j - 1 - m).y = -v(i, j - 1 - ghost_zone_size).y;
+              p(i, j - 1 - m) = p(i, j - 1 - ghost_zone_size);
 
-              ru(i, j - 1 - m).x = ru(i, j - 2 * ghost_zone_size + m).x;
-              ru(i, j - 1 - m).y = -ru(i, j - 2 * ghost_zone_size + m).y;
-              rE(i, j - 1 - m) = rE(i, j - 2 * ghost_zone_size + m);
-              Erad(i, j - 1 - m) = Erad(i, j - 2 * ghost_zone_size + m);
+              ru(i, j - 1 - m).x = ru(i, j - 1 - ghost_zone_size).x;
+              ru(i, j - 1 - m).y = -ru(i, j - 1 - ghost_zone_size).y;
+              rE(i, j - 1 - m) = rE(i, j - 1 - ghost_zone_size);
+              Erad(i, j - 1 - m) = Erad(i, j - 1 - ghost_zone_size);
             }
           }
         }; // forall
@@ -356,17 +356,17 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
           }
           else if(yhigh == bd::reflecting) {
             for(size_t m = 0; m < ghost_zone_size; ++m) {
-              r(i, j - 1 - m, k) = r(i, j - 2 * ghost_zone_size + m, k);
-              v(i, j - 1 - m, k).x = v(i, j - 2 * ghost_zone_size + m, k).x;
-              v(i, j - 1 - m, k).y = -v(i, j - 2 * ghost_zone_size + m, k).y;
-              v(i, j - 1 - m, k).z = v(i, j - 2 * ghost_zone_size + m, k).z;
-              p(i, j - 1 - m, k) = p(i, j - 2 * ghost_zone_size + m, k);
+              r(i, j - 1 - m, k) = r(i, j - 1 - ghost_zone_size, k);
+              v(i, j - 1 - m, k).x = v(i, j - 1 - ghost_zone_size, k).x;
+              v(i, j - 1 - m, k).y = -v(i, j - 1 - ghost_zone_size, k).y;
+              v(i, j - 1 - m, k).z = v(i, j - 1 - ghost_zone_size, k).z;
+              p(i, j - 1 - m, k) = p(i, j - 1 - ghost_zone_size, k);
 
-              ru(i, j - 1 - m, k).x = ru(i, j - 2 * ghost_zone_size + m, k).x;
-              ru(i, j - 1 - m, k).y = -ru(i, j - 2 * ghost_zone_size + m, k).y;
-              ru(i, j - 1 - m, k).z = ru(i, j - 2 * ghost_zone_size + m, k).z;
-              rE(i, j - 1 - m, k) = rE(i, j - 2 * ghost_zone_size + m, k);
-              Erad(i, j - 1 - m, k) = Erad(i, j - 2 * ghost_zone_size + m, k);
+              ru(i, j - 1 - m, k).x = ru(i, j - 1 - ghost_zone_size, k).x;
+              ru(i, j - 1 - m, k).y = -ru(i, j - 1 - ghost_zone_size, k).y;
+              ru(i, j - 1 - m, k).z = ru(i, j - 1 - ghost_zone_size, k).z;
+              rE(i, j - 1 - m, k) = rE(i, j - 1 - ghost_zone_size, k);
+              Erad(i, j - 1 - m, k) = Erad(i, j - 1 - ghost_zone_size, k);
             }
           }
         }; // forall
@@ -395,17 +395,17 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         }
         else if(zlow == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i, j, m) = r(i, j, 2 * ghost_zone_size - 1 - m);
-            v(i, j, m).x = v(i, j, 2 * ghost_zone_size - 1 - m).x;
-            v(i, j, m).y = v(i, j, 2 * ghost_zone_size - 1 - m).y;
-            v(i, j, m).z = -v(i, j, 2 * ghost_zone_size - 1 - m).z;
-            p(i, j, m) = p(i, j, 2 * ghost_zone_size - 1 - m);
+            r(i, j, m) = r(i, j, ghost_zone_size);
+            v(i, j, m).x = v(i, j, ghost_zone_size).x;
+            v(i, j, m).y = v(i, j, ghost_zone_size).y;
+            v(i, j, m).z = -v(i, j, ghost_zone_size).z;
+            p(i, j, m) = p(i, j, ghost_zone_size);
 
-            ru(i, j, m).x = ru(i, j, 2 * ghost_zone_size - 1 - m).x;
-            ru(i, j, m).y = ru(i, j, 2 * ghost_zone_size - 1 - m).y;
-            ru(i, j, m).z = -ru(i, j, 2 * ghost_zone_size - 1 - m).z;
-            rE(i, j, m) = rE(i, j, 2 * ghost_zone_size - 1 - m);
-            Erad(i, j, m) = Erad(i, j, 2 * ghost_zone_size - 1 - m);
+            ru(i, j, m).x = ru(i, j, ghost_zone_size).x;
+            ru(i, j, m).y = ru(i, j, ghost_zone_size).y;
+            ru(i, j, m).z = -ru(i, j, ghost_zone_size).z;
+            rE(i, j, m) = rE(i, j, ghost_zone_size);
+            Erad(i, j, m) = Erad(i, j, ghost_zone_size);
           }
         }
       }; // forall
@@ -433,17 +433,17 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         else if(zhigh == bd::reflecting) {
 
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i, j, k - 1 - m) = r(i, j, k - 2 * ghost_zone_size + m);
-            v(i, j, k - 1 - m).x = v(i, j, k - 2 * ghost_zone_size + m).x;
-            v(i, j, k - 1 - m).y = v(i, j, k - 2 * ghost_zone_size + m).y;
-            v(i, j, k - 1 - m).z = -v(i, j, k - 2 * ghost_zone_size + m).z;
-            p(i, j, k - 1 - m) = p(i, j, k - 2 * ghost_zone_size + m);
+            r(i, j, k - 1 - m) = r(i, j, k - 1 - ghost_zone_size);
+            v(i, j, k - 1 - m).x = v(i, j, k - 1 - ghost_zone_size).x;
+            v(i, j, k - 1 - m).y = v(i, j, k - 1 - ghost_zone_size).y;
+            v(i, j, k - 1 - m).z = -v(i, j, k - 1 - ghost_zone_size).z;
+            p(i, j, k - 1 - m) = p(i, j, k - 1 - ghost_zone_size);
 
-            ru(i, j, k - 1 - m).x = ru(i, j, k - 2 * ghost_zone_size + m).x;
-            ru(i, j, k - 1 - m).y = ru(i, j, k - 2 * ghost_zone_size + m).y;
-            ru(i, j, k - 1 - m).z = -ru(i, j, k - 2 * ghost_zone_size + m).z;
-            rE(i, j, k - 1 - m) = rE(i, j, k - 2 * ghost_zone_size + m);
-            Erad(i, j, k - 1 - m) = Erad(i, j, k - 2 * ghost_zone_size + m);
+            ru(i, j, k - 1 - m).x = ru(i, j, k - 1 - ghost_zone_size).x;
+            ru(i, j, k - 1 - m).y = ru(i, j, k - 1 - ghost_zone_size).y;
+            ru(i, j, k - 1 - m).z = -ru(i, j, k - 1 - ghost_zone_size).z;
+            rE(i, j, k - 1 - m) = rE(i, j, k - 1 - ghost_zone_size);
+            Erad(i, j, k - 1 - m) = Erad(i, j, k - 1 - ghost_zone_size);
           }
         }
       }; // forall
@@ -475,7 +475,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         }
         else if(xlow == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(m) = r(2 * ghost_zone_size - 1 - m);
+            r(m) = r(ghost_zone_size);
           }
         }
       };
@@ -491,7 +491,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         }
         else if(xlow == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(m, j) = r(2 * ghost_zone_size - 1 - m, j);
+            r(m, j) = r(ghost_zone_size, j);
           }
         }
       }; // for
@@ -512,7 +512,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         }
         else if(xlow == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(m, j, k) = r(2 * ghost_zone_size - 1 - m, j, k);
+            r(m, j, k) = r(ghost_zone_size, j, k);
           }
         }
       }; // forall
@@ -532,7 +532,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         }
         else if(xhigh == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i - 1 - m) = r(i - 2 * ghost_zone_size + m);
+            r(i - 1 - m) = r(i - 1 - ghost_zone_size);
           }
         }
       };
@@ -548,7 +548,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         }
         else if(xhigh == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i - 1 - m, j) = r(i - 2 * ghost_zone_size + m, j);
+            r(i - 1 - m, j) = r(i - 1 - ghost_zone_size, j);
           }
         }
       }; // forall
@@ -569,7 +569,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         }
         else if(xhigh == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i - 1 - m, j, k) = r(i - 2 * ghost_zone_size + m, j, k);
+            r(i - 1 - m, j, k) = r(i - 1 - ghost_zone_size, j, k);
           }
         }
 
@@ -590,7 +590,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
           }
           else if(ylow == bd::reflecting) {
             for(size_t m = 0; m < ghost_zone_size; ++m) {
-              r(i, m) = r(i, 2 * ghost_zone_size - 1 - m);
+              r(i, m) = r(i, ghost_zone_size);
             }
           }
         }; // forall
@@ -611,7 +611,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
           }
           else if(ylow == bd::reflecting) {
             for(size_t m = 0; m < ghost_zone_size; ++m) {
-              r(i, m, k) = r(i, 2 * ghost_zone_size - 1 - m, k);
+              r(i, m, k) = r(i, ghost_zone_size, k);
             }
           }
         }; // forall
@@ -630,7 +630,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
           }
           else if(yhigh == bd::reflecting) {
             for(size_t m = 0; m < ghost_zone_size; ++m) {
-              r(i, j - 1 - m) = r(i, j - 2 * ghost_zone_size + m);
+              r(i, j - 1 - m) = r(i, j - 1 - ghost_zone_size);
             }
           }
         }; // forall
@@ -650,7 +650,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
           }
           else if(yhigh == bd::reflecting) {
             for(size_t m = 0; m < ghost_zone_size; ++m) {
-              r(i, j - 1 - m, k) = r(i, j - 2 * ghost_zone_size + m, k);
+              r(i, j - 1 - m, k) = r(i, j - 1 - ghost_zone_size, k);
             }
           }
         }; // forall
@@ -673,7 +673,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         }
         else if(zlow == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i, j, m) = r(i, j, 2 * ghost_zone_size - 1 - m);
+            r(i, j, m) = r(i, j, ghost_zone_size);
           }
         }
       }; // forall
@@ -694,7 +694,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         }
         else if(zhigh == bd::reflecting) {
           for(size_t m = 0; m < ghost_zone_size; ++m) {
-            r(i, j, k - 1 - m) = r(i, j, k - 2 * ghost_zone_size + m);
+            r(i, j, k - 1 - m) = r(i, j, k - 1 - ghost_zone_size);
           }
         }
       }; // forall
