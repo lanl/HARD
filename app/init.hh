@@ -283,15 +283,13 @@ initialize(control_policy<state, D> & cp) {
       gamma(s.gt),
       particle_mass(s.gt));
   }
-  else if(config["problem"].as<std::string>() == "implosion") {
-    execute<tasks::initial_data::implosion_forced_T<D>>(s.m,
+  else if(config["problem"].as<std::string>() == "lw-implosion") {
+    execute<tasks::initial_data::lw_implosion<D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
-      temperature_boundary(s.dense_topology),
-      gamma(s.gt),
-      particle_mass(s.gt));
+      gamma(s.gt));
   }
   else {
     flog_fatal(
