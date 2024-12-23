@@ -9,7 +9,7 @@ problem_parameters:
   radiation_temperature: 0.001631260210129 # eV
 
 kappa: 1.0
-gamma: 1.4
+gamma: 0.666666
 mean_molecular_weight: 1.0
 
 t0: 0.0
@@ -24,7 +24,7 @@ coords:
   - [0.0, 0.0, 0.0]
   - [1e3, 1.0, 1.0]
 boundaries:
-  xlow: periodic
+  xlow: reflecting
   xhigh: dirichlet
   ylow: periodic
   yhigh: periodic
