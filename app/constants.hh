@@ -26,6 +26,12 @@ constexpr double eV_to_J{6.242e+18};
 // Joule to eV conversion factor
 constexpr double J_to_eV{1.60218e-19};
 
+// eV to Kelvin conversion factor
+constexpr double eV_to_K{1.1604525e+4};
+
+// Kelvin to eV conversion factor
+constexpr double K_to_eV{8.617328154e-5};
+
 } // namespace cgs
 
 } // namespace constants
