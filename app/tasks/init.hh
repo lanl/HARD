@@ -29,11 +29,33 @@ void inline gamma(single<double>::accessor<wo> gamma_a, double g) {
   (*gamma_a) = g;
 } // gamma
 
+/*----------------------------------------------------------------------------*
+  Temperature boundaries.
+ *----------------------------------------------------------------------------*/
+
 void inline set_t_boundary(field<double>::accessor<wo> t_boundary,
   std::vector<double> copy_values) {
 
   for(int i{0}; i < t_boundary.span().size(); i++) {
     t_boundary[i] = copy_values[i];
+  }
+} // t_boundary
+
+void inline convert_temperature(field<double>::accessor<rw> temperature,
+  std::string const & unit) {
+
+  assert((unit == "K" || unit == "eV") && "Unsupported temperature unit");
+
+  double conversion_factor{};
+  if(unit == "K") {
+    return;
+  }
+  else if(unit == "eV") {
+    conversion_factor = hard::constants::cgs::eV_to_K;
+  }
+
+  for(int i{0}; i < temperature.span().size(); i++) {
+    temperature[i] *= conversion_factor;
   }
 } // t_boundary
 
