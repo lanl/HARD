@@ -95,6 +95,9 @@ initialize(control_policy<state, D> & cp) {
   execute<tasks::init::set_t_boundary>(time_boundary(s.dense_topology), time);
   execute<tasks::init::set_t_boundary>(
     temperature_boundary(s.dense_topology), temperature);
+  execute<tasks::init::convert_temperature>(
+    temperature_boundary(s.dense_topology),
+    config["temperature_units"].as<std::string>());
 
   /*--------------------------------------------------------------------------*
     Gamma.
