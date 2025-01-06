@@ -41,13 +41,17 @@ void inline set_t_boundary(field<double>::accessor<wo> t_boundary,
   }
 } // t_boundary
 
+/*----------------------------------------------------------------------------*
+  Temperature unit conversion from eV (or other) to Kelvin
+ *----------------------------------------------------------------------------*/
+
 void inline convert_temperature(field<double>::accessor<rw> temperature,
   std::string const & unit) {
 
-  assert((unit == "K" || unit == "eV") && "Unsupported temperature unit");
+  assert((unit == "Kelvin" || unit == "eV") && "Unsupported temperature unit");
 
   double conversion_factor{};
-  if(unit == "K") {
+  if(unit == "Kelvin") {
     return;
   }
   else if(unit == "eV") {
