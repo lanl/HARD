@@ -11,7 +11,7 @@ problem_parameters:
 kappa: 1.0
 gamma: 0.666666
 mean_molecular_weight: 1.0
-temperature_units: eV
+temperature_units: eV # Change eV to Kelvin
 
 t0: 0.0
 tf: 10 #9.5e-9
@@ -20,7 +20,7 @@ cfl: 0.6 # Using higher CFL, reference dec uses variable CFL
 max_dt: 1.0 #1e-10
 log_frequency: 1
 output_frequency: 1
-levels: [2, 1, 1]
+levels: [5, 1, 1] 
 coords:
   - [0.0, 0.0, 0.0]
   - [1e3, 1.0, 1.0]
