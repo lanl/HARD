@@ -2,7 +2,7 @@
 #pragma once
 
 #include "heating_and_cooling.hh"
-#include "kelvin_helm.hh"
+#include "kh_instability.hh"
 #include "lw_implosion.hh"
 #include "rad_rank_hugoniot.hh"
 #include "sedov.hh"
