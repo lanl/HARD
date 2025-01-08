@@ -143,7 +143,7 @@ void
 fluxes_terms(control_policy<state, D> & cp) {
   auto & s = cp.state();
 
-  using limiter = spec::limiters::weno5z;
+  using limiter = spec::limiters::ppm4;
 
   for(std::size_t axis = 0; axis < D; axis++) {
     // clang-format off
