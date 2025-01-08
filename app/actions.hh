@@ -70,7 +70,11 @@ initialize_time_derivative(control_policy<state, D> & cp) {
 
 template<std::size_t D, time_stepper::rk_stage Stage>
 void
-explicit_source_terms(control_policy<state, D> & cp) {
+explicit_source_terms(control_policy<state, D> &
+#ifndef DISABLE_RADIATION
+    cp
+#endif
+) {
 
 #ifndef DISABLE_RADIATION
 
@@ -189,7 +193,11 @@ fluxes_terms(control_policy<state, D> & cp) {
 // radiative heating-cooling part
 template<std::size_t D, time_stepper::rk_stage Stage>
 void
-implicit_source_terms(control_policy<state, D> & cp) {
+implicit_source_terms(control_policy<state, D> &
+#ifndef DISABLE_RADIATION
+    cp
+#endif
+) {
 
 #ifndef DISABLE_RADIATION
 
