@@ -30,6 +30,51 @@ struct minmod {
   }
 };
 
+struct ppm4 {
+
+  FLECSI_INLINE_TARGET static std::array<double, 2> reconstruct(
+    double u_minus_2,
+    double u_minus,
+    double u_0,
+    double u_plus,
+    double u_plus_2) {
+
+    const double one_over_twelve{0.08333333333333333};
+
+    // Unlimited 4-th order reconstruction
+    double u_plus_12 =
+      (7.0 * (u_0 + u_plus) - (u_plus_2 + u_minus)) * one_over_twelve;
+    double u_minus_12 =
+      (7.0 * (u_0 + u_minus) - (u_minus_2 + u_plus)) * one_over_twelve;
+
+    // Limit the unlimited reconstruction values to lie between adjacent cell
+    // averages.
+    u_plus_12 = std::max(u_plus_12, std::min(u_0, u_plus));
+    u_plus_12 = std::min(u_plus_12, std::max(u_0, u_plus));
+    u_minus_12 = std::max(u_minus_12, std::min(u_0, u_minus));
+    u_minus_12 = std::min(u_minus_12, std::max(u_0, u_minus));
+
+    // Evaluate differences
+    const double delta_u_plus = u_plus_12 - u_0;
+    const double delta_u_minus = u_0 - u_minus_12;
+
+    if(delta_u_plus * delta_u_minus < 0.0) {
+      return {{u_0, u_0}};
+    }
+    else {
+
+      if(std::abs(delta_u_plus) >= 2.0 * std::abs(delta_u_minus)) {
+        u_plus_12 = u_0 + 2.0 * delta_u_minus;
+      }
+      if(std::abs(delta_u_minus) >= 2.0 * std::abs(delta_u_plus)) {
+        u_minus_12 = u_0 - 2.0 * delta_u_plus;
+      }
+
+      return {{u_minus_12, u_plus_12}};
+    }
+  }
+};
+
 struct weno5z {
   FLECSI_INLINE_TARGET static std::array<double, 2> reconstruct(
     double u_minus_2,
