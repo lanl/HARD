@@ -15,9 +15,8 @@ namespace hard::action {
 
 template<std::size_t D>
 void
-finalize(control_policy<state, D> & cp) {
+finalize(control_policy<state, D> &) {
   using namespace flecsi;
-  auto & s = cp.state();
 
 #ifdef USE_CATALYST
 

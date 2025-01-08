@@ -27,7 +27,11 @@ reconstruct(std::size_t reconstruction_axis,
   field<double>::accessor<ro, ro> mass_density_a,
   typename field<vec<Dim>>::template accessor<ro, ro> velocity_a,
   field<double>::accessor<ro, ro> pressure_a,
-  field<double>::accessor<ro, ro> radiation_energy_density_a,
+  field<double>::accessor<ro, ro>
+#ifndef DISABLE_RADIATION
+    radiation_energy_density_a
+#endif
+  ,
   // reconstructed primitives on faces
   field<double>::accessor<wo, na> rTail_a,
   field<double>::accessor<wo, na> rHead_a,
@@ -35,8 +39,16 @@ reconstruct(std::size_t reconstruction_axis,
   typename field<vec<Dim>>::template accessor<wo, na> uHead_a,
   field<double>::accessor<wo, na> pTail_a,
   field<double>::accessor<wo, na> pHead_a,
-  field<double>::accessor<wo, na> EradTail_a,
-  field<double>::accessor<wo, na> EradHead_a,
+  field<double>::accessor<wo, na>
+#ifndef DISABLE_RADIATION
+    EradTail_a
+#endif
+  ,
+  field<double>::accessor<wo, na>
+#ifndef DISABLE_RADIATION
+    EradHead_a
+#endif
+  ,
   // reconstructed conservatives on faces
   typename field<vec<Dim>>::template accessor<wo, na> ruTail_a,
   typename field<vec<Dim>>::template accessor<wo, na> ruHead_a,
@@ -48,16 +60,20 @@ reconstruct(std::size_t reconstruction_axis,
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto velocity = m.template mdcolex<is::cells>(velocity_a);
   auto pressure = m.template mdcolex<is::cells>(pressure_a);
+#ifndef DISABLE_RADIATION
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
+#endif
   auto rTail = m.template mdcolex<is::cells>(rTail_a);
   auto rHead = m.template mdcolex<is::cells>(rHead_a);
   auto uTail = m.template mdcolex<is::cells>(uTail_a);
   auto uHead = m.template mdcolex<is::cells>(uHead_a);
   auto pTail = m.template mdcolex<is::cells>(pTail_a);
   auto pHead = m.template mdcolex<is::cells>(pHead_a);
+#ifndef DISABLE_RADIATION
   auto EradTail = m.template mdcolex<is::cells>(EradTail_a);
   auto EradHead = m.template mdcolex<is::cells>(EradHead_a);
+#endif
   auto ruTail = m.template mdcolex<is::cells>(ruTail_a);
   auto ruHead = m.template mdcolex<is::cells>(ruHead_a);
   auto rETail = m.template mdcolex<is::cells>(rETail_a);

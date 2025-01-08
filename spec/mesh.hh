@@ -50,7 +50,7 @@ struct help<3> {
 template<std::size_t D>
 struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
 
-  static constexpr std::size_t ghost_zone_size_ = 3;
+  static constexpr flecsi::util::id ghost_zone_size_ = 3;
 
   static_assert(D == 1 || D == 2 || D == 3, "unsupported dimension");
 
@@ -200,7 +200,7 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
     /// Return the global id of \em i for the given axis.
     /// @tparam A The coordinate axis.
     template<ax::axis A>
-    FLECSI_INLINE_TARGET std::size_t global_id(std::size_t i) const {
+    FLECSI_INLINE_TARGET flecsi::util::gid global_id(std::size_t i) const {
       return axis<A>().global_id(i);
     } // global_id
 
@@ -211,7 +211,7 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
       if constexpr(A == ax::x) {
         return this->policy_meta().xdelta;
       }
-      else if constexpr(D == 2 || D == 3 && A == ax::y) {
+      else if constexpr(D == 2 || (D == 3 && A == ax::y)) {
         return this->policy_meta().ydelta;
       }
       else if constexpr(D == 3 && A == ax::z) {

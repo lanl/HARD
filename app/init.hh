@@ -61,7 +61,7 @@ initialize(control_policy<state, D> & cp) {
 
   s.gt.allocate({});
   const auto num_colors =
-    opt::colors.value() == -1 ? flecsi::processes() : opt::colors.value();
+    opt::colors.value() == 0 ? flecsi::processes() : opt::colors.value();
   s.ct.allocate(num_colors);
 
   /*--------------------------------------------------------------------------*
@@ -157,15 +157,12 @@ initialize(control_policy<state, D> & cp) {
 
     for(std::size_t i{0}; i < s.max_num_levels; i++) {
       typename mesh<D>::gcoord axis_extents(D);
-      axis_extents[ax::x] =
-        std::pow(2, config["levels"][0].as<std::size_t>() - i);
+      axis_extents[ax::x] = 1 << (config["levels"][0].as<std::size_t>() - i);
       if(D == 2 || D == 3) {
-        axis_extents[ax::y] =
-          std::pow(2, config["levels"][1].as<std::size_t>() - i);
+        axis_extents[ax::y] = 1 << (config["levels"][1].as<std::size_t>() - i);
       } // if
       if(D == 3) {
-        axis_extents[ax::z] =
-          std::pow(2, config["levels"][2].as<std::size_t>() - i);
+        axis_extents[ax::z] = 1 << (config["levels"][2].as<std::size_t>() - i);
       } // if
 
       // Add a new grid - the finest grid is already there

@@ -8,7 +8,7 @@ namespace hard::numerical_algorithms {
 namespace root_finder {
 
 constexpr double tol = 1.0e-12;
-constexpr size_t max_iter = 1000;
+constexpr std::size_t max_iter = 1000;
 
 struct Bisection {
   static double

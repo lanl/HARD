@@ -83,7 +83,7 @@ struct dual_field {
   } // operator
 
 private:
-  type fd_[2];
+  type fd_[2] = {};
   int flip_{0};
 };
 

@@ -332,9 +332,6 @@ getLambda(typename mesh<D>::template accessor<ro> m,
     };
   }
   else {
-    const std::size_t xsize = m.template size<ax::x, dm::quantities>();
-    const std::size_t ysize = m.template size<ax::y, dm::quantities>();
-    const std::size_t zsize = m.template size<ax::z, dm::quantities>();
     auto mdpolicy_qqq = get_mdiota_policy(Esf,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
@@ -932,7 +929,7 @@ nlinear_interpolation(typename mesh<D>::template accessor<ro> mc,
       auto ci = i / 2 + 1;
       auto di = +1;
       if((i + 1) % 2) {
-        auto di = -1;
+        di = -1;
       }
       ff(i) = 0.25 * (3 * cf(ci) + cf(ci + di));
     }; // for
@@ -947,12 +944,12 @@ nlinear_interpolation(typename mesh<D>::template accessor<ro> mc,
       auto cj = j / 2 + 1;
       auto dj = 1;
       if((j + 1) % 2) {
-        auto dj = -1;
+        dj = -1;
       }
       auto ci = i / 2 + 1;
       auto di = 1;
       if((i + 1) % 2) {
-        auto di = -1;
+        di = -1;
       }
       ff(i, j) = 0.0625 * (9 * cf(ci, cj) + 3 * cf(ci + di, cj) +
                             3 * cf(ci, cj + dj) + cf(ci + di, cj + dj));
@@ -969,17 +966,17 @@ nlinear_interpolation(typename mesh<D>::template accessor<ro> mc,
       auto ck = k / 2 + 1;
       auto dk = 1;
       if((k + 1) % 2) {
-        auto dk = -1;
+        dk = -1;
       }
       auto cj = j / 2 + 1;
       auto dj = 1;
       if((j + 1) % 2) {
-        auto dj = -1;
+        dj = -1;
       }
       auto ci = i / 2 + 1;
       auto di = 1;
       if((i + 1) % 2) {
-        auto di = -1;
+        di = -1;
       }
       ff(i, j, k) =
         0.015625 *
