@@ -94,7 +94,6 @@ FLECSI_INLINE_TARGET auto
 get_mdiota_policy(const M & m, const IT & it1, const IT & it2) {
   using flecsi::exec::mdiota_view;
   using flecsi::exec::sub_range;
-  using index_t = unsigned int;
 
   auto b1 = *it1.begin();
   auto e1 = *it1.end();
@@ -110,7 +109,6 @@ FLECSI_INLINE_TARGET auto
 get_mdiota_policy(const M & m, const IT & it1, const IT & it2, const IT & it3) {
   using flecsi::exec::mdiota_view;
   using flecsi::exec::sub_range;
-  using index_t = unsigned int;
 
   auto b1 = *it1.begin();
   auto e1 = *it1.end();

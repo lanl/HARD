@@ -68,7 +68,7 @@ mpi_gcc:
     - chmod +x app/tests/test_distributed.sh
     - mkdir build
     - cd build
-    - cmake .. -DENABLE_UNIT_TESTS=ON
+    - cmake .. -DCMAKE_CXX_FLAGS="-Wno-unknown-cuda-version -Wall -Wundef -W -Werror -Wvla" -DENABLE_UNIT_TESTS=ON
     - make -j $(nproc) || make VERBOSE=1
     - export CTEST_OUTPUT_ON_FAILURE=1
     - ctest --output-junit tests.xml
@@ -93,7 +93,7 @@ legion_gcc:
     - *prepare_spack_env
     - mkdir build
     - cd build
-    - cmake .. -DENABLE_UNIT_TESTS=ON
+    - cmake .. -DCMAKE_CXX_FLAGS="-Wno-unknown-cuda-version -Wall -Wundef -W -Werror -Wvla" -DENABLE_UNIT_TESTS=ON
     - make -j $(nproc) || make VERBOSE=1
     - export CTEST_OUTPUT_ON_FAILURE=1
     - ctest --output-junit tests.xml
@@ -118,7 +118,7 @@ legion_gcc:
 #     - *prepare_spack_env
 #     - mkdir build
 #     - cd build
-#     - cmake .. -DENABLE_UNIT_TESTS=ON
+#     - cmake .. -DCMAKE_CXX_FLAGS="-Wno-unknown-cuda-version -Wall -Wundef -W -Werror -Wvla" -DENABLE_UNIT_TESTS=ON
 #     - make -j $(nproc) || make VERBOSE=1
 #     - export CTEST_OUTPUT_ON_FAILURE=1
 #     - ctest --output-junit tests.xml
@@ -143,7 +143,7 @@ legion_gcc:
 #     - *prepare_spack_env
 #     - mkdir build
 #     - cd build
-#     - cmake .. -DENABLE_UNIT_TESTS=ON
+#     - cmake .. -DCMAKE_CXX_FLAGS="-Wno-unknown-cuda-version -Wall -Wundef -W -Werror -Wvla" -DENABLE_UNIT_TESTS=ON
 #     - make -j $(nproc) || make VERBOSE=1
 #     - export CTEST_OUTPUT_ON_FAILURE=1
 #     - ctest --output-junit tests.xml
@@ -168,7 +168,7 @@ volta_mpi_cuda_clang:
     - *prepare_spack_env
     - mkdir build
     - cd build
-    - cmake .. -DENABLE_UNIT_TESTS=ON
+    - cmake .. -DCMAKE_CXX_FLAGS="-Wno-unknown-cuda-version -Wall -Wundef -W -Werror -Wvla -Wno-missing-braces" -DENABLE_UNIT_TESTS=ON
     - make -j $(nproc) || make VERBOSE=1
     - export CTEST_OUTPUT_ON_FAILURE=1
     - ctest --output-junit tests.xml
@@ -192,7 +192,7 @@ mpi_gcc_catalyst:
     - *prepare_spack_env
     - mkdir build
     - cd build
-    - cmake .. -DENABLE_UNIT_TESTS=ON -DENABLE_CATALYST=ON
+    - cmake .. -DCMAKE_CXX_FLAGS="-Wno-unknown-cuda-version -Wall -Wundef -W -Werror -Wvla" -DENABLE_UNIT_TESTS=ON -DENABLE_CATALYST=ON
     - make -j $(nproc) || make VERBOSE=1
     - export CTEST_OUTPUT_ON_FAILURE=1
     - ctest --output-junit tests.xml
@@ -216,7 +216,7 @@ legion_gcc_catalyst:
     - *prepare_spack_env
     - mkdir build
     - cd build
-    - cmake .. -DENABLE_UNIT_TESTS=ON -DENABLE_CATALYST=ON
+    - cmake .. -DCMAKE_CXX_FLAGS="-Wno-unknown-cuda-version -Wall -Wundef -W -Werror -Wvla" -DENABLE_UNIT_TESTS=ON -DENABLE_CATALYST=ON
     - make -j $(nproc) || make VERBOSE=1
     - export CTEST_OUTPUT_ON_FAILURE=1
     - ctest --output-junit tests.xml

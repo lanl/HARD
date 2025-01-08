@@ -20,21 +20,18 @@ Bisection::get_root(double c4,
   double bn = upper_bracket_bound;
   double cn;
 
-  double fa, fb, fc;
-
   namespace energy_polynomial = hard::energy_polynomial;
 
-  fa = energy_polynomial::func(an, c4, c1, c0);
-  fb = energy_polynomial::func(bn, c4, c1, c0);
+  double fa = energy_polynomial::func(an, c4, c1, c0);
+  double fb = energy_polynomial::func(bn, c4, c1, c0);
 
   if(fa * fb > 0.0) {
     flog_fatal("Check the initial bracket bounds for Bisection");
   }
 
-  for(size_t i = 0; i < root_finder::max_iter; ++i) {
+  for(std::size_t i = 0; i < root_finder::max_iter; ++i) {
 
     cn = 0.5 * (an + bn);
-    fc = energy_polynomial::func(cn, c4, c1, c0);
 
     double fa = energy_polynomial::func(an, c4, c1, c0);
     double fc = energy_polynomial::func(cn, c4, c1, c0);
@@ -73,7 +70,7 @@ NewtonRaphson::get_root(double c4,
   double c0,
   double upper_bracket_bound) {
 
-  int i;
+  std::size_t i;
   double x = upper_bracket_bound * 0.5; // take this as an initial guess
   double dx{0.0};
   double f, fprime;

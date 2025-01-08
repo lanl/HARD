@@ -38,6 +38,8 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
       forall(x, policy, "bd_x") {
+        (void)x; // remove compiler warning for unused
+
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xlow = bm[0][LOW];
         if(xlow == bd::flow) { // NOTE: Same for all threads/warps in a color.
@@ -137,6 +139,8 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
       forall(x, policy, "flow_x_1d") {
+        (void)x; // remove compiler warning for unused
+
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xhigh = bm[0][HIGH];
         if(xhigh == bd::flow) {
@@ -520,6 +524,8 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
       forall(x, policy, "bd_x") {
+        (void)x; // remove compiler warning for unused
+
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xlow = bm[0][LOW];
         if(xlow == bd::flow) {
@@ -577,6 +583,8 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
       forall(x, policy, "flow_x_1d") {
+        (void)x; // remove compiler warning for unused
+
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xhigh = bm[0][HIGH];
         if(xhigh == bd::flow) {
