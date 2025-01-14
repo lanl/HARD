@@ -30,6 +30,7 @@ default:
     - export CI_SPACK_ENV=$TMPDIR/ci-env
     - source ${SPACK_UPSTREAM}/replicate.sh $CI_SPACK_ENV
     - source ${CI_SPACK_ENV}/activate.sh
+    - spack repo add spack-repo
 
 .prepare_spack_env:
   script: &prepare_spack_env
