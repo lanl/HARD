@@ -317,6 +317,7 @@ initialize(control_policy<state, D> & cp) {
     s.total_energy_density(s.m),
     s.velocity(s.m),
     s.pressure(s.m),
+    s.specific_internal_energy(s.m),
     gamma(s.gt));
   auto lmax_f = execute<tasks::hydro::update_max_characteristic_speed<D>,
     flecsi::default_accelerator>(
