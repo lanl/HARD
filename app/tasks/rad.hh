@@ -1335,9 +1335,9 @@ interp_e_boundary(typename single<double>::accessor<flecsi::ro> t,
   typename field<double>::accessor<flecsi::ro> time_boundary,
   typename field<double>::accessor<flecsi::ro> temperature_boundary) {
 
-  auto get_energy = [](const double & x) -> double {
+  auto get_energy = [](const double & temperature) -> double {
     return constants::cgs::radiation_constant *
-           spec::utils::sqr(spec::utils::sqr(x));
+           spec::utils::sqr(spec::utils::sqr(temperature));
   };
 
   // Is it the first or last value?
