@@ -1354,7 +1354,7 @@ interp_e_boundary(typename single<double>::accessor<flecsi::ro> t,
 
       // Found point, return
       return get_energy(
-        dy * (time_boundary[i + 1] - t) / dx + time_boundary[i]);
+        dy * (time_boundary[i + 1] - t) / dx + temperature_boundary[i]);
     };
   }
 
