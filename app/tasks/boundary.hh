@@ -459,7 +459,6 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
 template<std::size_t D>
 void
 apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
-  typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
   field<double>::accessor<rw, na> r_a,
   flecsi::future<double> radiation_boundary_f) {
   using hard::tasks::util::get_mdiota_policy;
@@ -473,9 +472,6 @@ apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
       forall(x, policy, "dirichlet_x_high_1D") {
-        const typename mesh<D>::bmap & bm = *bmap_a;
-        const auto xlow = bm[0][HIGH];
-
         for(size_t m = 0; m < ghost_zone_size; ++m) {
           r(i - 1 - m) = radiation_boundary;
         }
@@ -484,8 +480,6 @@ apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
     else if constexpr(D == 2) {
       forall(
         j, (m.template cells<ax::y, dm::quantities>()), "dirichlet_x_high_2D") {
-        const typename mesh<D>::bmap & bm = *bmap_a;
-        const auto xlow = bm[0][HIGH];
         for(size_t m = 0; m < ghost_zone_size; ++m) {
           r(i - 1 - m, j) = radiation_boundary;
         }
@@ -498,9 +492,6 @@ apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
 
       forall(kj, mdpolicy_zy, "dirichlet_x_high_3D") {
         auto [k, j] = kj;
-        const typename mesh<D>::bmap & bm = *bmap_a;
-        const auto xlow = bm[0][HIGH];
-
         for(size_t m = 0; m < ghost_zone_size; ++m) {
           r(i - 1 - m, j, k) = radiation_boundary;
         }
