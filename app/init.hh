@@ -130,11 +130,11 @@ initialize(control_policy<state, D> & cp) {
   s.highest_level = config["levels"][0].as<std::size_t>();
   if(D == 2 || D == 3) {
     s.highest_level =
-      std::max(s.highest_level, config["levels"][1].as<std::size_t>());
+      std::min(s.highest_level, config["levels"][1].as<std::size_t>());
   } // if
   if(D == 3) {
     s.highest_level =
-      std::max(s.highest_level, config["levels"][2].as<std::size_t>());
+      std::min(s.highest_level, config["levels"][2].as<std::size_t>());
   } // if
   s.max_num_levels = s.highest_level - s.lowest_level + 1;
 
