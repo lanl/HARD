@@ -274,6 +274,7 @@ update_variables(control_policy<state, D> & cp) {
     s.total_energy_density(s.m),
     s.velocity(s.m),
     s.pressure(s.m),
+    s.specific_internal_energy(s.m),
     gamma(s.gt));
 
   // Update boundary cells
