@@ -288,6 +288,16 @@ initialize(control_policy<state, D> & cp) {
       s.radiation_energy_density(s.m),
       gamma(s.gt));
   }
+  else if(config["problem"].as<std::string>() == "implosion") {
+    execute<tasks::initial_data::implosion_forced_T<D>>(s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m),
+      temperature_boundary(s.dense_topology),
+      gamma(s.gt),
+      particle_mass(s.gt));
+  }
   else {
     flog_fatal(
       "unsupported problem(" << config["problem"].as<std::string>() << ")");
@@ -409,8 +419,8 @@ initialize(control_policy<state, D> & cp) {
                  << config["catalyst"]["render"].size()
                  << " fields:" << std::endl;
       for(YAML::const_iterator it = config["catalyst"]["render"].begin();
-          it != config["catalyst"]["render"].end();
-          ++it) {
+        it != config["catalyst"]["render"].end();
+        ++it) {
         flog(info) << "\t -" << it->as<std::string>() << std::endl;
       }
     }
