@@ -420,7 +420,7 @@ explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
     m.template mdcolex<is::cells>(dt_total_energy_density_a);
   auto dt_radiation_energy_density =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
-  const double radiation_constant = hard::constants::cgs::radiation_constant;
+  // const double radiation_constant = hard::constants::cgs::radiation_constant;
 
   if constexpr(D == 1) {
     forall(
@@ -1347,7 +1347,7 @@ interp_e_boundary(typename single<double>::accessor<flecsi::ro> t,
   if(t >= time_boundary[i_end - 1])
     return get_energy(temperature_boundary[i_end - 1]);
 
-  for(int i{0}; i < (i_end - 1); i++) {
+  for(std::size_t i{0}; i < (i_end - 1); i++) {
     if((t >= time_boundary[i]) && (t <= time_boundary[i + 1])) {
       double dx{time_boundary[i + 1] - time_boundary[i]};
       double dy{temperature_boundary[i + 1] - temperature_boundary[i]};
