@@ -77,7 +77,7 @@ struct state {
   static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
     velocity;
   static inline const field<double>::definition<mesh<D>, is::cells> pressure;
-  static inline const field<double>::definition<mesh<D>, is::cells> 
+  static inline const field<double>::definition<mesh<D>, is::cells>
     specific_internal_energy;
 
   // Faces.
