@@ -1,0 +1,26 @@
+---
+problem: lw-implosion
+gamma: 1.4
+kappa: 1.0e-100
+mean_molecular_weight: 1.0
+t0: 0.0
+tf: 10.0
+max_steps: 20000
+cfl: 2.0
+max_dt: 1.0e-4
+log_frequency: 100
+output_frequency: 10000
+levels: [9, 9]
+lowest_level: 9
+coords:
+  - [0.0, 0.0]
+  - [0.3, 0.3]
+boundaries:
+  xlow: reflecting
+  xhigh: reflecting
+  ylow: reflecting
+  yhigh: reflecting
+catalyst:
+  script: /path
+  implementation: paraview
+  implementation_directory: /path
