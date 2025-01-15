@@ -9,7 +9,7 @@ problem_parameters:
   radiation_temperature: 18.92999988994724 # K
 
 kappa: 1.0
-gamma: 0.666666
+gamma: 1.666666
 mean_molecular_weight: 1.0
 temperature_units: eV # Change eV to Kelvin
 
