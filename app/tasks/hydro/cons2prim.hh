@@ -25,7 +25,8 @@ conservative_to_primitive(typename mesh<Dim>::template accessor<ro> m,
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto velocity = m.template mdcolex<is::cells>(velocity_a);
   auto pressure = m.template mdcolex<is::cells>(pressure_a);
-  auto specific_internal_energy = m.template mdcolex<is::cells>(specific_internal_energy_a);
+  auto specific_internal_energy =
+    m.template mdcolex<is::cells>(specific_internal_energy_a);
 
   if constexpr(Dim == 1) {
     forall(i, (m.template cells<ax::x, dm::quantities>()), "conv2prim") {
@@ -35,7 +36,7 @@ conservative_to_primitive(typename mesh<Dim>::template accessor<ro> m,
         (gamma - 1.0) * (total_energy_density(i) -
                           0.5 * mass_density(i) * velocity(i).norm_squared());
       specific_internal_energy(i) = total_energy_density(i) / mass_density(i) -
-	                             0.5 * velocity(i).norm_squared();
+                                    0.5 * velocity(i).norm_squared();
     }; // for
   }
   else if constexpr(Dim == 2) {
@@ -50,8 +51,9 @@ conservative_to_primitive(typename mesh<Dim>::template accessor<ro> m,
       pressure(i, j) = (gamma - 1.0) * (total_energy_density(i, j) -
                                          0.5 * mass_density(i, j) *
                                            velocity(i, j).norm_squared());
-      specific_internal_energy(i, j) = total_energy_density(i, j) / mass_density(i, j) -
-	                             0.5 * velocity(i, j).norm_squared();
+      specific_internal_energy(i, j) =
+        total_energy_density(i, j) / mass_density(i, j) -
+        0.5 * velocity(i, j).norm_squared();
     }; // for
   }
   else /* Dim == 3 */ {
@@ -67,8 +69,9 @@ conservative_to_primitive(typename mesh<Dim>::template accessor<ro> m,
       pressure(i, j, k) = (gamma - 1.0) * (total_energy_density(i, j, k) -
                                             0.5 * mass_density(i, j, k) *
                                               velocity(i, j, k).norm_squared());
-      specific_internal_energy(i, j, k) = total_energy_density(i, j, k) / mass_density(i, j, k) -
-	                             0.5 * velocity(i, j, k).norm_squared();
+      specific_internal_energy(i, j, k) =
+        total_energy_density(i, j, k) / mass_density(i, j, k) -
+        0.5 * velocity(i, j, k).norm_squared();
     }; // forall
   } // if
 }
