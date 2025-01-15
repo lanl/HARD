@@ -36,7 +36,7 @@ void inline gamma(single<double>::accessor<wo> gamma_a, double g) {
 void inline set_t_boundary(field<double>::accessor<wo> t_boundary,
   std::vector<double> copy_values) {
 
-  for(int i{0}; i < t_boundary.span().size(); i++) {
+  for(std::size_t i{0}; i < t_boundary.span().size(); i++) {
     t_boundary[i] = copy_values[i];
   }
 } // t_boundary
@@ -58,7 +58,7 @@ void inline convert_temperature(field<double>::accessor<rw> temperature,
     conversion_factor = hard::constants::cgs::eV_to_K;
   }
 
-  for(int i{0}; i < temperature.span().size(); i++) {
+  for(std::size_t i{0}; i < temperature.span().size(); i++) {
     temperature[i] *= conversion_factor;
   }
 } // t_boundary
