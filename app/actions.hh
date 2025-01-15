@@ -295,6 +295,16 @@ update_variables(control_policy<state, D> & cp) {
     s.momentum_density(s.m),
     s.total_energy_density(s.m));
 
+  // FIXME: figure out how not to use the hardcoded radiation temperature
+  // boundary
+  auto radiation_boundary_f =
+    flecsi::execute<task::rad::interp_e_boundary>(s.t(s.gt),
+      time_boundary(s.dense_topology),
+      temperature_boundary(s.dense_topology));
+  flecsi::execute<tasks::apply_radiation_boundary<D>,
+    flecsi::default_accelerator>(
+    s.m, s.radiation_energy_density(s.m), radiation_boundary_f);
+
 } // radiation_advance
 
 // --------------------------------------------------------------------
