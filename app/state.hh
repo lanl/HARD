@@ -215,6 +215,10 @@ struct state {
   static inline const field<double>::definition<mesh<D>, is::cells>
     radiation_energy_density_n;
 
+  // FIXME Temporary variable for sections of the code only used for the
+  // multigroup implementation (mostly boundaries)
+  bool mg = false;
+
 }; // struct state
 
 #ifdef USE_CATALYST

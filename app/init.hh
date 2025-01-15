@@ -95,9 +95,10 @@ initialize(control_policy<state, D> & cp) {
   execute<tasks::init::set_t_boundary>(time_boundary(s.dense_topology), time);
   execute<tasks::init::set_t_boundary>(
     temperature_boundary(s.dense_topology), temperature);
-  execute<tasks::init::convert_temperature>(
-    temperature_boundary(s.dense_topology),
-    config["temperature_units"].as<std::string>());
+  if(config["problem"].as<std::string>() == "implosion")
+    execute<tasks::init::convert_temperature>(
+      temperature_boundary(s.dense_topology),
+      config["temperature_units"].as<std::string>());
 
   /*--------------------------------------------------------------------------*
     Gamma.
@@ -297,6 +298,7 @@ initialize(control_policy<state, D> & cp) {
       temperature_boundary(s.dense_topology),
       gamma(s.gt),
       particle_mass(s.gt));
+    s.mg = true;
   }
   else {
     flog_fatal(
@@ -316,16 +318,17 @@ initialize(control_policy<state, D> & cp) {
     s.momentum_density(s.m),
     s.total_energy_density(s.m));
 
-  // FIXME: figure out how not to use the hardcoded radiation temperature
-  // boundary
-  auto radiation_boundary_f =
-    flecsi::execute<task::rad::interp_e_boundary>(s.t(s.gt),
-      time_boundary(s.dense_topology),
-      temperature_boundary(s.dense_topology));
-  flecsi::execute<tasks::apply_radiation_boundary<D>,
-    flecsi::default_accelerator>(
-    s.m, s.radiation_energy_density(s.m), radiation_boundary_f);
-
+  if(s.mg) {
+    // FIXME: figure out how not to use the hardcoded radiation temperature
+    // boundary
+    auto radiation_boundary_f =
+      flecsi::execute<task::rad::interp_e_boundary>(s.t(s.gt),
+        time_boundary(s.dense_topology),
+        temperature_boundary(s.dense_topology));
+    flecsi::execute<tasks::apply_radiation_boundary<D>,
+      flecsi::default_accelerator>(
+      s.m, s.radiation_energy_density(s.m), radiation_boundary_f);
+  }
   execute<tasks::hydro::conservative_to_primitive<D>,
     flecsi::default_accelerator>(s.m,
     s.mass_density(s.m),
