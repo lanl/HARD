@@ -472,6 +472,7 @@ apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
       forall(x, policy, "dirichlet_x_high_1D") {
+        (void)x;
         for(size_t m = 0; m < ghost_zone_size; ++m) {
           r(i - 1 - m) = radiation_boundary;
         }
