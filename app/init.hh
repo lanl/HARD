@@ -209,7 +209,7 @@ initialize(control_policy<state, D> & cp) {
       s.radiation_energy_density(s.m),
       gamma(s.gt));
   }
-  else if(config["problem"].as<std::string>() == "kh-test") {
+  else if(config["problem"].as<std::string>() == "kh-instability") {
     execute<tasks::initial_data::kh_instability<D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
