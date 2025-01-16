@@ -435,8 +435,8 @@ initialize(control_policy<state, D> & cp) {
                  << config["catalyst"]["render"].size()
                  << " fields:" << std::endl;
       for(YAML::const_iterator it = config["catalyst"]["render"].begin();
-        it != config["catalyst"]["render"].end();
-        ++it) {
+          it != config["catalyst"]["render"].end();
+          ++it) {
         flog(info) << "\t -" << it->as<std::string>() << std::endl;
       }
     }
