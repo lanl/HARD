@@ -2,7 +2,6 @@
 #define HARD_OPTIONS_HH
 
 #include <flecsi/execution.hh>
-#include <string.h>
 
 namespace hard::opt {
 
