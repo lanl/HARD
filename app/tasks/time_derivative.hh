@@ -4,6 +4,7 @@
 
 #include "../numerical_algorithms/time_stepper.hh"
 #include "../types.hh"
+#include "utils.hh"
 #include <cstddef>
 
 namespace hard::tasks {

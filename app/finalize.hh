@@ -1,8 +1,7 @@
 #ifndef HARD_FINALIZE_HH
 #define HARD_FINALIZE_HH
 
-#include "tasks/io.hh"
-#include "types.hh"
+#include "state.hh"
 
 #include <flecsi/flog.hh>
 #include <spec/io.hh>

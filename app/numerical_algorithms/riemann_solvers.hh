@@ -1,7 +1,6 @@
 
 #pragma once
 
-#include <array>
 #include <cmath>
 #include <cstddef>
 
@@ -13,20 +12,20 @@ namespace hard::numerical_algorithms {
 // Returns HLL Riemann fluxes for the hydro part
 //
 template<std::size_t Dim>
-FLECSI_INLINE_TARGET std::tuple<double, vec<Dim>, double>
+FLECSI_INLINE_TARGET std::tuple<double, spec::vec<Dim>, double>
 hll_hydro(
   // Evolved (conserved) variables
   const double mass_density_left,
   const double mass_density_right,
-  const vec<Dim> & momentum_density_left,
-  const vec<Dim> & momentum_density_right,
+  const spec::vec<Dim> & momentum_density_left,
+  const spec::vec<Dim> & momentum_density_right,
   const double total_energy_density_left,
   const double total_energy_density_right,
   // Fluxes
   const double flux_mass_density_left,
   const double flux_mass_density_right,
-  const vec<Dim> & flux_momentum_density_left,
-  const vec<Dim> & flux_momentum_density_right,
+  const spec::vec<Dim> & flux_momentum_density_left,
+  const spec::vec<Dim> & flux_momentum_density_right,
   const double flux_total_energy_density_left,
   const double flux_total_energy_density_right,
   // characteristic speeds from left and right states
@@ -35,7 +34,7 @@ hll_hydro(
   double min_char_speed_right,
   double max_char_speed_right) {
 
-  std::tuple<double, vec<Dim>, double> result{};
+  std::tuple<double, spec::vec<Dim>, double> result{};
 
   const double lambda_max =
     std::max(0.0, std::max(max_char_speed_left, max_char_speed_right));
