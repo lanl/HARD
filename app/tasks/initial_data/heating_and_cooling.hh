@@ -2,6 +2,7 @@
 #pragma once
 
 #include "../../constants.hh"
+#include "../../options.hh"
 #include "../../types.hh"
 #include <cstddef>
 #include <spec/utils.hh>

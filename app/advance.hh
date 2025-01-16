@@ -6,9 +6,7 @@
 #include "rad.hh"
 #include "state.hh"
 #include "tasks/boundary.hh"
-#include "tasks/init.hh"
 #include "tasks/rad.hh"
-#include "tasks/rad_root.hh"
 #include "tasks/time_derivative.hh"
 
 #include <flecsi/execution.hh>

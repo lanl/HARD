@@ -5,9 +5,11 @@
 #include "state.hh"
 #include "tasks/boundary.hh"
 #include "tasks/hydro/cons2prim.hh"
+#include "tasks/hydro/maxcharspeed.hh"
 #include "tasks/init.hh"
 #include "tasks/initial_data/all_initial_data.hh"
-#include "tasks/utils.hh"
+#include "tasks/io.hh"
+#include "tasks/rad.hh"
 #include "types.hh"
 
 #ifdef USE_CATALYST
@@ -433,8 +435,8 @@ initialize(control_policy<state, D> & cp) {
                  << config["catalyst"]["render"].size()
                  << " fields:" << std::endl;
       for(YAML::const_iterator it = config["catalyst"]["render"].begin();
-          it != config["catalyst"]["render"].end();
-          ++it) {
+        it != config["catalyst"]["render"].end();
+        ++it) {
         flog(info) << "\t -" << it->as<std::string>() << std::endl;
       }
     }

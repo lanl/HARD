@@ -2,7 +2,6 @@
 #define HARD_TASKS_RAD_HH
 
 #include "../constants.hh"
-#include "../state.hh"
 #include "utils.hh"
 #include <cmath>
 #include <cstddef>
