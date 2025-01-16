@@ -26,7 +26,7 @@ class Hard(CMakePackage):
         options = [
             self.define_from_variant("ENABLE_UNIT_TESTS", "tests"),
             self.define_from_variant("ENABLE_CATALYST", "catalyst"),
+            self.define("DISABLE_RADIATION", self.spec.satisfies("~radiation")),
         ]
-        options.append(self.define("DISABLE_RADIATION", self.spec.satisfies("~radiation")))
 
         return options
