@@ -70,24 +70,6 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       const double en = rE(i) - ke; // internal energy
       const double En = radiation_energy_density(i); // radiation energy
 
-      // TODO
-      // config="implosion-forced-T.yaml"
-      // a1 = 3.66336e-05
-      // a2 = 0.0878072
-      // en = 2.0636
-      // En = 0.612824
-      // config="implosion.yaml"
-      // a1 = 1.20e-30
-      // a2 = 1428.13
-      // en = 1.04e+06
-      // En = 9.715e-10
-      // config="implosion.yaml" // With higher temperatures
-      // a1 =
-      // a2 = 197
-      // en = 5.48e+7
-      // En = 0.6128
-      /*std::cout << "a1: " << a1 << std::endl;*/
-
       const double up_en = numerical_algorithms::root_finder::halleys_get_root(
         a1, 1.0 + a2, -(en + (en + En) * a2), en + En);
 
