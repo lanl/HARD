@@ -2,6 +2,7 @@
 #define HARD_INITIALIZE_HH
 
 #include "options.hh"
+#include "spec/eos.hh"
 #include "state.hh"
 #include "tasks/boundary.hh"
 #include "tasks/hydro/cons2prim.hh"
@@ -102,18 +103,19 @@ initialize(control_policy<state, D> & cp) {
       temperature_boundary(s.dense_topology),
       config["temperature_units"].as<std::string>());
 
-  /*--------------------------------------------------------------------------*
-    Gamma.
-   *--------------------------------------------------------------------------*/
-
+    /*--------------------------------------------------------------------------*
+      Gamma.
+     *--------------------------------------------------------------------------*/
+#ifndef DISABLE_RADIATION
   execute<tasks::init::gamma>(gamma(s.gt), config["gamma"].as<double>());
+#endif
 
   /*--------------------------------------------------------------------------*
     Kappa.
    *--------------------------------------------------------------------------*/
-
+#ifndef DISABLE_RADIATION
   execute<tasks::init::kappa>(kappa(s.gt), config["kappa"].as<double>());
-
+#endif
   /*--------------------------------------------------------------------------*
     Particle mass
    *--------------------------------------------------------------------------*/
@@ -216,6 +218,38 @@ initialize(control_policy<state, D> & cp) {
   // clang-format on
 
   /*--------------------------------------------------------------------------*
+    Equation of State
+   *--------------------------------------------------------------------------*/
+
+  if(config["eos"].as<std::string>() == "ideal") {
+    s.eos =
+      singularity::IdealGas(config["gamma"].as<double>(), 2.0 /* FIXME */);
+  }
+  else if(config["eos"].as<std::string>() == "spiner") {
+    s.eos = singularity::SpinerEOSDependsRhoSie(
+      config["spiner_file"].as<std::string>(),
+      config["spiner_matid"].as<std::string>());
+  }
+  else if(config["eos"].as<std::string>() == "gruneisen") {
+    s.eos = singularity::Gruneisen(config["gruneisen_c0"].as<double>(),
+      config["gruneisen_s1"].as<double>(),
+      0., // s2
+      0., // s3
+      config["gruneisen_G0"].as<double>(),
+      0., // b
+      0., // rho0
+      config["gruneisen_T0"].as<double>(),
+      0., // P0
+      config["gruneisen_Cv"].as<double>(),
+      0. // rho_max
+
+    );
+  }
+  else {
+    flog_fatal("unsupported EOS");
+  }
+
+  /*--------------------------------------------------------------------------*
     Initialize problem state.
    *--------------------------------------------------------------------------*/
 
@@ -227,7 +261,7 @@ initialize(control_policy<state, D> & cp) {
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
-      gamma(s.gt));
+      s.eos);
   }
   else if(config["problem"].as<std::string>() == "rankine-hugoniot") {
     execute<tasks::initial_data::
@@ -237,7 +271,7 @@ initialize(control_policy<state, D> & cp) {
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
-      gamma(s.gt));
+      s.eos);
   }
   else if(config["problem"].as<std::string>() == "sine-wave") {
     execute<tasks::initial_data::sine_wave<D>, flecsi::default_accelerator>(s.m,
@@ -245,7 +279,7 @@ initialize(control_policy<state, D> & cp) {
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
-      gamma(s.gt));
+      s.eos);
   }
   else if(config["problem"].as<std::string>() == "kh-test") {
     execute<tasks::initial_data::kh_instability<D>>(s.m,
@@ -253,8 +287,9 @@ initialize(control_policy<state, D> & cp) {
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
-      gamma(s.gt));
+      s.eos);
   }
+#if 0 
   else if(config["problem"].as<std::string>() == "heating_and_cooling") {
     execute<tasks::initial_data::heating_and_cooling<D>>(s.m,
       s.mass_density(s.m),
@@ -302,6 +337,7 @@ initialize(control_policy<state, D> & cp) {
       particle_mass(s.gt));
     s.mg = true;
   }
+#endif
   else {
     flog_fatal(
       "unsupported problem(" << config["problem"].as<std::string>() << ")");
@@ -339,10 +375,14 @@ initialize(control_policy<state, D> & cp) {
     s.velocity(s.m),
     s.pressure(s.m),
     s.specific_internal_energy(s.m),
-    gamma(s.gt));
+    s.sound_speed(s.m),
+    s.eos);
   auto lmax_f = execute<tasks::hydro::update_max_characteristic_speed<D>,
-    flecsi::default_accelerator>(
-    s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m), gamma(s.gt));
+    flecsi::default_accelerator>(s.m,
+    s.mass_density(s.m),
+    s.velocity(s.m),
+    s.pressure(s.m),
+    s.sound_speed(s.m));
   s.dtmin_ =
     reduce<hard::task::rad::update_dtmin<D>, exec::fold::min>(s.m, lmax_f);
 
@@ -363,6 +403,7 @@ initialize(control_policy<state, D> & cp) {
     lm,
     s.mass_density(lm),
     s.pressure(lm),
+    s.sound_speed(lm),
     s.velocity(lm),
     s.momentum_density(lm),
     s.total_energy_density(lm),

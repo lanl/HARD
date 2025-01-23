@@ -22,6 +22,10 @@ compute_interface_fluxes(std::size_t face_axis,
   typename field<vec<Dim>>::template accessor<wo, ro> uHead_a,
   field<double>::accessor<wo, ro> pTail_a,
   field<double>::accessor<wo, ro> pHead_a,
+  field<double>::accessor<wo, ro> eTail_a,
+  field<double>::accessor<wo, ro> eHead_a,
+  field<double>::accessor<wo, ro> cTail_a,
+  field<double>::accessor<wo, ro> cHead_a,
   field<double>::accessor<wo, ro>
 #ifndef DISABLE_RADIATION
     EradTail_a
@@ -53,9 +57,7 @@ compute_interface_fluxes(std::size_t face_axis,
 #ifndef DISABLE_RADIATION
     dt_radiation_energy_density_a
 #endif
-  ,
-  //
-  single<double>::accessor<ro> gamma_a) {
+) {
 
   auto rTail = m.template mdcolex<is::cells>(rTail_a);
   auto rHead = m.template mdcolex<is::cells>(rHead_a);
@@ -63,6 +65,11 @@ compute_interface_fluxes(std::size_t face_axis,
   auto uHead = m.template mdcolex<is::cells>(uHead_a);
   auto pTail = m.template mdcolex<is::cells>(pTail_a);
   auto pHead = m.template mdcolex<is::cells>(pHead_a);
+  auto eTail = m.template mdcolex<is::cells>(eTail_a);
+  auto eHead = m.template mdcolex<is::cells>(eHead_a);
+  auto cTail = m.template mdcolex<is::cells>(cTail_a);
+  auto cHead = m.template mdcolex<is::cells>(cHead_a);
+
 #ifndef DISABLE_RADIATION
   auto EradTail = m.template mdcolex<is::cells>(EradTail_a);
   auto EradHead = m.template mdcolex<is::cells>(EradHead_a);
@@ -111,14 +118,13 @@ compute_interface_fluxes(std::size_t face_axis,
 #endif
     forall(i, (m.template cells<ax::x, dm::corrector>()), "compute_flux_1d") {
       // min/max characteristic speeds on left
-      auto const gamma = *gamma_a;
 
-      const double cT = std::sqrt(gamma * pTail(i - 1) / rTail(i - 1));
+      const double cT = cTail(i - 1);
       const double LminT = uTail(i - 1).x - cT;
       const double LmaxT = uTail(i - 1).x + cT;
 
       // min/max characteristic speeds on right
-      const double cH = std::sqrt(gamma * pHead(i) / rHead(i));
+      const double cH = cHead(i);
       const double LminH = uHead(i).x - cH;
       const double LmaxH = uHead(i).x + cH;
 
@@ -170,16 +176,15 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::x, dm::corrector>());
 
       forall(ji, mdpolicy_qc, "compute_flux_2dx") {
-        auto const gamma = *gamma_a;
 
         auto [j, i] = ji;
         // min/max characteristic speeds on left
-        const double cT = std::sqrt(gamma * pTail(i - 1, j) / rTail(i - 1, j));
+        const double cT = cTail(i - 1, j);
         const double LminT = uTail(i - 1, j).x - cT;
         const double LmaxT = uTail(i - 1, j).x + cT;
 
         // min/max characteristic speeds on right
-        const double cH = std::sqrt(gamma * pHead(i, j) / rHead(i, j));
+        const double cH = cHead(i, j);
         const double LminH = uHead(i, j).x - cH;
         const double LmaxH = uHead(i, j).x + cH;
 
@@ -239,16 +244,15 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::x, dm::quantities>());
 
       forall(ji, mdpolicy_cq, "compute_flux_2dy") {
-        auto const gamma = *gamma_a;
 
         auto [j, i] = ji;
         // min/max characteristic speeds on left
-        const double cT = std::sqrt(gamma * pTail(i, j - 1) / rTail(i, j - 1));
+        const double cT = cTail(i, j - 1);
         const double LminT = uTail(i, j - 1).y - cT;
         const double LmaxT = uTail(i, j - 1).y + cT;
 
         // min/max characteristic speeds on right
-        const double cH = std::sqrt(gamma * pHead(i, j) / rHead(i, j));
+        const double cH = cHead(i, j);
         const double LminH = uHead(i, j).y - cH;
         const double LmaxH = uHead(i, j).y + cH;
 
@@ -311,17 +315,15 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::x, dm::corrector>());
 
       forall(kji, mdpolicy_qqc, "compute_flux_3dx") {
-        auto const gamma = *gamma_a;
 
         auto [k, j, i] = kji;
         // min/max characteristic speeds on left
-        const double cT =
-          std::sqrt(gamma * pTail(i - 1, j, k) / rTail(i - 1, j, k));
+        const double cT = cTail(i - 1, j, k);
         const double LminT = uTail(i - 1, j, k).x - cT;
         const double LmaxT = uTail(i - 1, j, k).x + cT;
 
         // min/max characteristic speeds on right
-        const double cH = std::sqrt(gamma * pHead(i, j, k) / rHead(i, j, k));
+        const double cH = cHead(i, j, k);
         const double LminH = uHead(i, j, k).x - cH;
         const double LmaxH = uHead(i, j, k).x + cH;
 
@@ -393,17 +395,15 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::x, dm::quantities>());
 
       forall(kji, mdpolicy_qcq, "compute_flux_3dy") {
-        auto const gamma = *gamma_a;
 
         auto [k, j, i] = kji;
         // min/max characteristic speeds on left
-        const double cT =
-          std::sqrt(gamma * pTail(i, j - 1, k) / rTail(i, j - 1, k));
+        const double cT = cTail(i, j - 1, k);
         const double LminT = uTail(i, j - 1, k).y - cT;
         const double LmaxT = uTail(i, j - 1, k).y + cT;
 
         // min/max characteristic speeds on right
-        const double cH = std::sqrt(gamma * pHead(i, j, k) / rHead(i, j, k));
+        const double cH = cHead(i, j, k);
         const double LminH = uHead(i, j, k).y - cH;
         const double LmaxH = uHead(i, j, k).y + cH;
 
@@ -472,17 +472,15 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::x, dm::quantities>());
 
       forall(kji, mdpolicy_cqq, "compute_flux_3dz") {
-        auto const gamma = *gamma_a;
 
         auto [k, j, i] = kji;
         // min/max characteristic speeds on left
-        const double cT =
-          std::sqrt(gamma * pTail(i, j, k - 1) / rTail(i, j, k - 1));
+        const double cT = cTail(i, j, k - 1);
         const double LminT = uTail(i, j, k - 1).z - cT;
         const double LmaxT = uTail(i, j, k - 1).z + cT;
 
         // min/max characteristic speeds on right
-        const double cH = std::sqrt(gamma * pHead(i, j, k) / rHead(i, j, k));
+        const double cH = cHead(i, j, k);
         const double LminH = uHead(i, j, k).z - cH;
         const double LmaxH = uHead(i, j, k).z + cH;
 

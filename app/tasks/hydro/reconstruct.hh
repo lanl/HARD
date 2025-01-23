@@ -27,6 +27,8 @@ reconstruct(std::size_t reconstruction_axis,
   field<double>::accessor<ro, ro> mass_density_a,
   typename field<vec<Dim>>::template accessor<ro, ro> velocity_a,
   field<double>::accessor<ro, ro> pressure_a,
+  field<double>::accessor<ro, ro> specific_internal_energy_a,
+  field<double>::accessor<ro, ro> soundspeed_a,
   field<double>::accessor<ro, ro>
 #ifndef DISABLE_RADIATION
     radiation_energy_density_a
@@ -39,6 +41,10 @@ reconstruct(std::size_t reconstruction_axis,
   typename field<vec<Dim>>::template accessor<wo, na> uHead_a,
   field<double>::accessor<wo, na> pTail_a,
   field<double>::accessor<wo, na> pHead_a,
+  field<double>::accessor<wo, na> eTail_a,
+  field<double>::accessor<wo, na> eHead_a,
+  field<double>::accessor<wo, na> cTail_a,
+  field<double>::accessor<wo, na> cHead_a,
   field<double>::accessor<wo, na>
 #ifndef DISABLE_RADIATION
     EradTail_a
@@ -53,13 +59,15 @@ reconstruct(std::size_t reconstruction_axis,
   typename field<vec<Dim>>::template accessor<wo, na> ruTail_a,
   typename field<vec<Dim>>::template accessor<wo, na> ruHead_a,
   field<double>::accessor<wo, na> rETail_a,
-  field<double>::accessor<wo, na> rEHead_a,
-  //
-  single<double>::accessor<ro> gamma_a) {
+  field<double>::accessor<wo, na> rEHead_a) {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto velocity = m.template mdcolex<is::cells>(velocity_a);
   auto pressure = m.template mdcolex<is::cells>(pressure_a);
+  auto soundspeed = m.template mdcolex<is::cells>(soundspeed_a);
+  auto specific_internal_energy =
+    m.template mdcolex<is::cells>(specific_internal_energy_a);
+
 #ifndef DISABLE_RADIATION
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
@@ -70,6 +78,10 @@ reconstruct(std::size_t reconstruction_axis,
   auto uHead = m.template mdcolex<is::cells>(uHead_a);
   auto pTail = m.template mdcolex<is::cells>(pTail_a);
   auto pHead = m.template mdcolex<is::cells>(pHead_a);
+  auto eTail = m.template mdcolex<is::cells>(eTail_a);
+  auto eHead = m.template mdcolex<is::cells>(eHead_a);
+  auto cTail = m.template mdcolex<is::cells>(cTail_a);
+  auto cHead = m.template mdcolex<is::cells>(cHead_a);
 #ifndef DISABLE_RADIATION
   auto EradTail = m.template mdcolex<is::cells>(EradTail_a);
   auto EradHead = m.template mdcolex<is::cells>(EradHead_a);
@@ -88,8 +100,6 @@ reconstruct(std::size_t reconstruction_axis,
     // }
 
     forall(i, (m.template cells<ax::x, dm::predictor>()), "reconstruct_1d") {
-      auto const gamma = *gamma_a;
-      auto const one_over_gamma_minus_1 = 1.0 / (gamma - 1.0);
 
       const auto r_face = Limiter::reconstruct(mass_density(i - 2),
         mass_density(i - 1),
@@ -106,6 +116,16 @@ reconstruct(std::size_t reconstruction_axis,
         pressure(i),
         pressure(i + 1),
         pressure(i + 2));
+      const auto e_face = Limiter::reconstruct(specific_internal_energy(i - 2),
+        specific_internal_energy(i - 1),
+        specific_internal_energy(i),
+        specific_internal_energy(i + 1),
+        specific_internal_energy(i + 2));
+      const auto c_face = Limiter::reconstruct(soundspeed(i - 2),
+        soundspeed(i - 1),
+        soundspeed(i),
+        soundspeed(i + 1),
+        soundspeed(i + 2));
 
       // NOTE: Avoid at(i) for GPU. at() does some bound check which doesn't
       // work on device. It should though, since at is constexpr.
@@ -115,14 +135,18 @@ reconstruct(std::size_t reconstruction_axis,
       uTail(i).x = v_face[1];
       pHead(i) = p_face[0];
       pTail(i) = p_face[1];
+      eHead(i) = e_face[0];
+      eTail(i) = e_face[1];
+      cHead(i) = c_face[0];
+      cTail(i) = c_face[1];
 
       // Compute conservative variables
       ruHead(i) = rHead(i) * uHead(i);
       ruTail(i) = rTail(i) * uTail(i);
-      rEHead(i) = one_over_gamma_minus_1 * pHead(i) +
-                  0.5 * rHead(i) * uHead(i).norm_squared();
-      rETail(i) = one_over_gamma_minus_1 * pTail(i) +
-                  0.5 * rTail(i) * uTail(i).norm_squared();
+      rEHead(i) =
+        eHead(i) * rHead(i) + 0.5 * rHead(i) * uHead(i).norm_squared();
+      rETail(i) =
+        eTail(i) * rTail(i) + 0.5 * rTail(i) * uTail(i).norm_squared();
 
 #ifndef DISABLE_RADIATION
       const auto Erad_face =
@@ -143,14 +167,14 @@ reconstruct(std::size_t reconstruction_axis,
       m.template cells<ax::x, dm::predictor>());
 
     forall(ji, mdpolicy_pp, "reconstruct_2d") {
-      auto const gamma = *gamma_a;
-      auto const one_over_gamma_minus_1 = 1.0 / (gamma - 1.0);
 
       auto [j, i] = ji;
       std::array<double, 2> r_face;
       std::array<double, 2> vx_face;
       std::array<double, 2> vy_face;
       std::array<double, 2> p_face;
+      std::array<double, 2> e_face;
+      std::array<double, 2> c_face;
 
 #ifndef DISABLE_RADIATION
       std::array<double, 2> Erad_face;
@@ -177,6 +201,16 @@ reconstruct(std::size_t reconstruction_axis,
           pressure(i, j),
           pressure(i + 1, j),
           pressure(i + 2, j));
+        e_face = Limiter::reconstruct(specific_internal_energy(i - 2, j),
+          specific_internal_energy(i - 1, j),
+          specific_internal_energy(i, j),
+          specific_internal_energy(i + 1, j),
+          specific_internal_energy(i + 2, j));
+        c_face = Limiter::reconstruct(soundspeed(i - 2, j),
+          soundspeed(i - 1, j),
+          soundspeed(i, j),
+          soundspeed(i + 1, j),
+          soundspeed(i + 2, j));
 
 #ifndef DISABLE_RADIATION
         Erad_face = Limiter::reconstruct(radiation_energy_density(i - 2, j),
@@ -207,6 +241,16 @@ reconstruct(std::size_t reconstruction_axis,
           pressure(i, j),
           pressure(i, j + 1),
           pressure(i, j + 2));
+        e_face = Limiter::reconstruct(specific_internal_energy(i, j - 2),
+          specific_internal_energy(i, j - 1),
+          specific_internal_energy(i, j),
+          specific_internal_energy(i, j + 1),
+          specific_internal_energy(i, j + 2));
+        c_face = Limiter::reconstruct(soundspeed(i, j - 2),
+          soundspeed(i, j - 1),
+          soundspeed(i, j),
+          soundspeed(i, j + 1),
+          soundspeed(i, j + 2));
 
 #ifndef DISABLE_RADIATION
         Erad_face = Limiter::reconstruct(radiation_energy_density(i, j - 2),
@@ -228,13 +272,17 @@ reconstruct(std::size_t reconstruction_axis,
       uTail(i, j).y = vy_face[1];
       pHead(i, j) = p_face[0];
       pTail(i, j) = p_face[1];
+      eHead(i, j) = e_face[0];
+      eTail(i, j) = e_face[1];
+      cHead(i, j) = c_face[0];
+      cTail(i, j) = c_face[1];
 
       // Compute conservative variables
       ruHead(i, j) = rHead(i, j) * uHead(i, j);
       ruTail(i, j) = rTail(i, j) * uTail(i, j);
-      rEHead(i, j) = one_over_gamma_minus_1 * pHead(i, j) +
+      rEHead(i, j) = eHead(i, j) * rHead(i, j) +
                      0.5 * rHead(i, j) * uHead(i, j).norm_squared();
-      rETail(i, j) = one_over_gamma_minus_1 * pTail(i, j) +
+      rETail(i, j) = eTail(i, j) * rTail(i, j) +
                      0.5 * rTail(i, j) * uTail(i, j).norm_squared();
 
 #ifndef DISABLE_RADIATION
@@ -250,14 +298,14 @@ reconstruct(std::size_t reconstruction_axis,
       m.template cells<ax::x, dm::predictor>());
 
     forall(kji, mdpolicy_ppp, "reconstruct_3d") {
-      auto const gamma = *gamma_a;
-      auto const one_over_gamma_minus_1 = 1.0 / (gamma - 1.0);
       auto [k, j, i] = kji;
       std::array<double, 2> r_face;
       std::array<double, 2> vx_face;
       std::array<double, 2> vy_face;
       std::array<double, 2> vz_face;
       std::array<double, 2> p_face;
+      std::array<double, 2> e_face;
+      std::array<double, 2> c_face;
 
 #ifndef DISABLE_RADIATION
       std::array<double, 2> Erad_face;
@@ -289,6 +337,16 @@ reconstruct(std::size_t reconstruction_axis,
           pressure(i, j, k),
           pressure(i + 1, j, k),
           pressure(i + 2, j, k));
+        e_face = Limiter::reconstruct(specific_internal_energy(i - 2, j, k),
+          specific_internal_energy(i - 1, j, k),
+          specific_internal_energy(i, j, k),
+          specific_internal_energy(i + 1, j, k),
+          specific_internal_energy(i + 2, j, k));
+        c_face = Limiter::reconstruct(soundspeed(i - 2, j, k),
+          soundspeed(i - 1, j, k),
+          soundspeed(i, j, k),
+          soundspeed(i + 1, j, k),
+          soundspeed(i + 2, j, k));
 
 #ifndef DISABLE_RADIATION
         Erad_face = Limiter::reconstruct(radiation_energy_density(i - 2, j, k),
@@ -324,6 +382,16 @@ reconstruct(std::size_t reconstruction_axis,
           pressure(i, j, k),
           pressure(i, j + 1, k),
           pressure(i, j + 2, k));
+        e_face = Limiter::reconstruct(specific_internal_energy(i, j - 2, k),
+          specific_internal_energy(i, j - 1, k),
+          specific_internal_energy(i, j, k),
+          specific_internal_energy(i, j + 1, k),
+          specific_internal_energy(i, j + 2, k));
+        c_face = Limiter::reconstruct(soundspeed(i, j - 2, k),
+          soundspeed(i, j - 1, k),
+          soundspeed(i, j, k),
+          soundspeed(i, j + 1, k),
+          soundspeed(i, j + 2, k));
 
 #ifndef DISABLE_RADIATION
         Erad_face = Limiter::reconstruct(radiation_energy_density(i, j - 2, k),
@@ -359,6 +427,16 @@ reconstruct(std::size_t reconstruction_axis,
           pressure(i, j, k),
           pressure(i, j, k + 1),
           pressure(i, j, k + 2));
+        e_face = Limiter::reconstruct(specific_internal_energy(i, j, k - 2),
+          specific_internal_energy(i, j, k - 1),
+          specific_internal_energy(i, j, k),
+          specific_internal_energy(i, j, k + 1),
+          specific_internal_energy(i, j, k + 2));
+        c_face = Limiter::reconstruct(soundspeed(i, j, k - 2),
+          soundspeed(i, j, k - 1),
+          soundspeed(i, j, k),
+          soundspeed(i, j, k + 1),
+          soundspeed(i, j, k + 2));
 
 #ifndef DISABLE_RADIATION
         Erad_face = Limiter::reconstruct(radiation_energy_density(i, j, k - 2),
@@ -379,6 +457,10 @@ reconstruct(std::size_t reconstruction_axis,
       uTail(i, j, k).z = vz_face[1];
       pHead(i, j, k) = p_face[0];
       pTail(i, j, k) = p_face[1];
+      eHead(i, j, k) = e_face[0];
+      eTail(i, j, k) = e_face[1];
+      cHead(i, j, k) = c_face[0];
+      cTail(i, j, k) = c_face[1];
 
 #ifndef DISABLE_RADIATION
       EradHead(i, j, k) = Erad_face[0];
@@ -388,9 +470,9 @@ reconstruct(std::size_t reconstruction_axis,
       // Compute conservative variables on faces
       ruHead(i, j, k) = rHead(i, j, k) * uHead(i, j, k);
       ruTail(i, j, k) = rTail(i, j, k) * uTail(i, j, k);
-      rEHead(i, j, k) = one_over_gamma_minus_1 * pHead(i, j, k) +
+      rEHead(i, j, k) = eHead(i, j, k) * cHead(i, j, k) +
                         0.5 * rHead(i, j, k) * uHead(i, j, k).norm_squared();
-      rETail(i, j, k) = one_over_gamma_minus_1 * pTail(i, j, k) +
+      rETail(i, j, k) = eTail(i, j, k) * cTail(i, j, k) +
                         0.5 * rTail(i, j, k) * uTail(i, j, k).norm_squared();
 
     }; // forall

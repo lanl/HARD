@@ -31,6 +31,7 @@ analyze(control_policy<state, D> & cp) {
       lm,
       s.mass_density(lm),
       s.pressure(lm),
+      s.sound_speed(lm),
       s.velocity(lm),
       s.momentum_density(lm),
       s.total_energy_density(lm),

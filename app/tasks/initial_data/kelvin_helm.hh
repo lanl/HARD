@@ -18,15 +18,13 @@ kh_instability(typename mesh<D>::template accessor<ro> m,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
   field<double>::accessor<wo, na> radiation_energy_density_a,
-  single<double>::accessor<ro> gamma_a) {
+  const eos::eos_wrapper & eos) {
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
-  auto const gamma = *gamma_a;
-  const double mult = 1.0 / (gamma - 1.0);
   const double wavenumber = 2.0 * M_PI;
   const double N = 4;
 
@@ -56,15 +54,15 @@ kh_instability(typename mesh<D>::template accessor<ro> m,
           mass_density(i, j) = rL;
           momentum_density(i, j).x = rL * uL;
           momentum_density(i, j).y = rL * vL;
-          total_energy_density(i, j) =
-            mult * pL + 0.5 * rL * (utils::sqr(uL) + utils::sqr(vL));
+          const double e = util::find_sie(eos, rL, pL);
+          total_energy_density(i, j) = rL * e + 0.5 * rL * (vL * vL);
         }
         else {
           mass_density(i, j) = rH;
           momentum_density(i, j).x = rH * uH;
           momentum_density(i, j).y = rH * vH;
-          total_energy_density(i, j) =
-            mult * pH + 0.5 * rH * (utils::sqr(uH) + utils::sqr(vH));
+          const double e = util::find_sie(eos, rH, pH);
+          total_energy_density(i, j) = rH * e + 0.5 * rH * (vH * vH);
         } // if
 
         radiation_energy_density(i, j) = 0.0;

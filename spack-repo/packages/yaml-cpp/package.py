@@ -1,4 +1,4 @@
-from spack import *
+from spack.package import *
 from spack.pkg.builtin.yaml_cpp import YamlCpp
 
 class YamlCpp(YamlCpp):

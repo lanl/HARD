@@ -25,6 +25,7 @@ target_link_libraries(hard
 	Spec::Spec
 	FleCSI::FleCSI
 	yaml-cpp::yaml-cpp
+  singularity-eos::singularity-eos
 )
 
 
@@ -72,3 +73,5 @@ if(ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
       ${CMAKE_SOURCE_DIR}/configs/distr-rk.yaml -d1)
 
 endif()
+
+install(TARGETS hard)

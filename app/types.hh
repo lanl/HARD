@@ -2,6 +2,7 @@
 #define HARD_TYPES_HH
 
 #include <spec/control.hh>
+#include <spec/eos.hh>
 #include <spec/types.hh>
 #include <spec/utils.hh>
 

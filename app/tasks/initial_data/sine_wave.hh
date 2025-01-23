@@ -2,6 +2,7 @@
 #pragma once
 
 #include "../../types.hh"
+#include "../utils.hh"
 #include <cmath>
 #include <cstddef>
 
@@ -18,7 +19,7 @@ sine_wave(typename mesh<Dim>::template accessor<ro> m,
   typename field<vec<Dim>>::template accessor<rw, ro> momentum_density_a,
   field<double>::accessor<rw, ro> total_energy_density_a,
   field<double>::accessor<rw, ro> radiation_energy_density_a,
-  single<double>::accessor<ro> gamma_a) {
+  const eos::eos_wrapper & eos) {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
@@ -40,15 +41,13 @@ sine_wave(typename mesh<Dim>::template accessor<ro> m,
   if constexpr(Dim == 1) {
     forall(
       i, (m.template cells<ax::x, dm::quantities>()), "init_sine_wave_1d") {
-      auto const gamma = *gamma_a;
-      const double mult = 1.0 / (gamma - 1.0);
-
       const auto x = m.template center<ax::x>(i);
 
       mass_density(i) = 1.0 + mass_density_amplitude * sin(wavenumber * x);
       momentum_density(i).x = mass_density(i) * velocity_x;
+      const double e = util::find_sie(eos, mass_density(i), pressure);
       total_energy_density(i) =
-        mult * pressure + 0.5 * mass_density(i) * utils::sqr(velocity_x);
+        mass_density(i) * e + 0.5 * mass_density(i) * utils::sqr(velocity_x);
 
       radiation_energy_density(i) = 0.0;
 
