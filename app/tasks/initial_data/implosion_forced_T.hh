@@ -2,7 +2,6 @@
 #pragma once
 
 #include "../../constants.hh"
-#include "../../options.hh"
 #include "../../types.hh"
 #include <cstddef>
 #include <spec/utils.hh>
@@ -10,23 +9,19 @@
 
 namespace hard::tasks::initial_data {
 
+// A test problem that implodes inward with external temperature source
+// from FDS input.
 //
-// A test problem demonstrating fluid and radiation reaching to a thermal
-// equilibrium.
-//
-// The fluid is uniform and initially at rest everywhere. Radiation energy
-// density is also uniform everywhere.
-//
-// Ideally, since E_rad = const. and nonzero everywhere, this problem should run
-// without any issues even if every radiation-hydro tasks are switched on.
-//
+// This is only 1D problem for ICP-mockup type
+
 template<std::size_t Dim>
 auto
-heating_and_cooling(typename mesh<Dim>::template accessor<ro> m,
+implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
   field<double>::accessor<wo, na> radiation_energy_density_a,
+  field<double>::accessor<ro> temperature_boundary_a,
   single<double>::accessor<ro> gamma_a,
   single<double>::accessor<ro> particle_mass_a) {
 
@@ -46,8 +41,15 @@ heating_and_cooling(typename mesh<Dim>::template accessor<ro> m,
     config["problem_parameters"]["fluid_mass_density"].as<double>();
   const double fluid_temperature =
     config["problem_parameters"]["fluid_temperature"].as<double>();
+
+  // Constant radiation temperature in the domain
   const double radiation_temperature =
     config["problem_parameters"]["radiation_temperature"].as<double>();
+
+  // Radiation temperature in the boundary
+  // TODO remove
+  std::cout << "Temperature boundary: " << temperature_boundary_a[0]
+            << std::endl;
 
   // Note : assuming ideal gas EOS
   const double fluid_internal_energy_density =
@@ -67,8 +69,7 @@ heating_and_cooling(typename mesh<Dim>::template accessor<ro> m,
     }
   }
   else {
-    flog_fatal(
-      "Radiative heating-cooling problem is only implemented for D = 1")
+    flog_fatal("Implosion problem is only implemented for D == 1")
   }
 }
 

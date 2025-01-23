@@ -22,8 +22,16 @@ compute_interface_fluxes(std::size_t face_axis,
   typename field<vec<Dim>>::template accessor<wo, ro> uHead_a,
   field<double>::accessor<wo, ro> pTail_a,
   field<double>::accessor<wo, ro> pHead_a,
-  field<double>::accessor<wo, ro> EradTail_a,
-  field<double>::accessor<wo, ro> EradHead_a,
+  field<double>::accessor<wo, ro>
+#ifndef DISABLE_RADIATION
+    EradTail_a
+#endif
+  ,
+  field<double>::accessor<wo, ro>
+#ifndef DISABLE_RADIATION
+    EradHead_a
+#endif
+  ,
   typename field<vec<Dim>>::template accessor<wo, ro> ruTail_a,
   typename field<vec<Dim>>::template accessor<wo, ro> ruHead_a,
   field<double>::accessor<wo, ro> rETail_a,
@@ -32,12 +40,20 @@ compute_interface_fluxes(std::size_t face_axis,
   field<double>::accessor<wo, ro> rF_a,
   typename field<vec<Dim>>::template accessor<wo, ro> ruF_a,
   field<double>::accessor<wo, ro> rEF_a,
-  field<double>::accessor<wo, ro> EradF_a,
+  field<double>::accessor<wo, ro>
+#ifndef DISABLE_RADIATION
+    EradF_a
+#endif
+  ,
   // time derivative
   field<double>::accessor<rw, na> dt_mass_density_a,
   typename field<vec<Dim>>::template accessor<rw, ro> dt_momentum_density_a,
   field<double>::accessor<rw, na> dt_total_energy_density_a,
-  field<double>::accessor<rw, na> dt_radiation_energy_density_a,
+  field<double>::accessor<rw, na>
+#ifndef DISABLE_RADIATION
+    dt_radiation_energy_density_a
+#endif
+  ,
   //
   single<double>::accessor<ro> gamma_a) {
 
@@ -47,8 +63,10 @@ compute_interface_fluxes(std::size_t face_axis,
   auto uHead = m.template mdcolex<is::cells>(uHead_a);
   auto pTail = m.template mdcolex<is::cells>(pTail_a);
   auto pHead = m.template mdcolex<is::cells>(pHead_a);
+#ifndef DISABLE_RADIATION
   auto EradTail = m.template mdcolex<is::cells>(EradTail_a);
   auto EradHead = m.template mdcolex<is::cells>(EradHead_a);
+#endif
   auto ruTail = m.template mdcolex<is::cells>(ruTail_a);
   auto ruHead = m.template mdcolex<is::cells>(ruHead_a);
   auto rETail = m.template mdcolex<is::cells>(rETail_a);
@@ -56,15 +74,18 @@ compute_interface_fluxes(std::size_t face_axis,
   auto rF = m.template mdcolex<is::cells>(rF_a);
   auto ruF = m.template mdcolex<is::cells>(ruF_a);
   auto rEF = m.template mdcolex<is::cells>(rEF_a);
+#ifndef DISABLE_RADIATION
   auto EradF = m.template mdcolex<is::cells>(EradF_a);
+#endif
   auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
   auto dt_momentum_density =
     m.template mdcolex<is::cells>(dt_momentum_density_a);
   auto dt_total_energy_density =
     m.template mdcolex<is::cells>(dt_total_energy_density_a);
+#ifndef DISABLE_RADIATION
   auto dt_radiation_energy_density =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
-
+#endif
   using hard::tasks::util::get_mdiota_policy;
   // Compute (1 / dx^i)
   const auto one_over_dx_i = [&m]() {
@@ -128,8 +149,6 @@ compute_interface_fluxes(std::size_t face_axis,
 
     // Store dF^x/dx into du_dt
     forall(i, (m.template cells<ax::x, dm::quantities>()), "update_flux_1d") {
-      auto const gamma = *gamma_a;
-
       dt_mass_density(i) += one_over_dx_i[0] * (rF(i) - rF(i + 1));
       dt_momentum_density(i) += one_over_dx_i[0] * (ruF(i) - ruF(i + 1));
       dt_total_energy_density(i) += one_over_dx_i[0] * (rEF(i) - rEF(i + 1));
@@ -201,8 +220,6 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::x, dm::quantities>());
 
       forall(ji, mdpolicy_qq, "update_flux_2dx") {
-        auto const gamma = *gamma_a;
-
         auto [j, i] = ji;
         dt_mass_density(i, j) += one_over_dx_i[0] * (rF(i, j) - rF(i + 1, j));
         dt_momentum_density(i, j) +=
@@ -271,8 +288,6 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::x, dm::quantities>());
 
       forall(ji, mdpolicy_qq, "update_flux_2dy") {
-        auto const gamma = *gamma_a;
-
         auto [j, i] = ji;
         dt_mass_density(i, j) += one_over_dx_i[1] * (rF(i, j) - rF(i, j + 1));
         dt_momentum_density(i, j) +=
@@ -358,8 +373,6 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::x, dm::quantities>());
 
       forall(kji, mdpolicy_qqq, "update_flux_3dx") {
-        auto const gamma = *gamma_a;
-
         auto [k, j, i] = kji;
         dt_mass_density(i, j, k) +=
           one_over_dx_i[0] * (rF(i, j, k) - rF(i + 1, j, k));
@@ -439,8 +452,6 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::x, dm::quantities>());
 
       forall(kji, mdpolicy_qqq, "update_flux_3dy") {
-        auto const gamma = *gamma_a;
-
         auto [k, j, i] = kji;
         dt_mass_density(i, j, k) +=
           one_over_dx_i[1] * (rF(i, j, k) - rF(i, j + 1, k));
@@ -520,8 +531,6 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::x, dm::quantities>());
 
       forall(kji, mdpolicy_qqq, "update_flux_3dz") {
-        auto const gamma = *gamma_a;
-
         auto [k, j, i] = kji;
         dt_mass_density(i, j, k) +=
           one_over_dx_i[2] * (rF(i, j, k) - rF(i, j, k + 1));

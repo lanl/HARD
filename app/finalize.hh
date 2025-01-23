@@ -1,8 +1,7 @@
 #ifndef HARD_FINALIZE_HH
 #define HARD_FINALIZE_HH
 
-#include "tasks/io.hh"
-#include "types.hh"
+#include "state.hh"
 
 #include <flecsi/flog.hh>
 #include <spec/io.hh>
@@ -15,9 +14,8 @@ namespace hard::action {
 
 template<std::size_t D>
 void
-finalize(control_policy<state, D> & cp) {
+finalize(control_policy<state, D> &) {
   using namespace flecsi;
-  auto & s = cp.state();
 
 #ifdef USE_CATALYST
 

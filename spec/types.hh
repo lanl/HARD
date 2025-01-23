@@ -40,25 +40,11 @@ struct vec<1> {
     return x;
   }
   FLECSI_INLINE_TARGET double & get(const size_t idx) {
-#ifdef DEBUG
-    if(idx != 0) {
-      flog_fatal(
-        "Invalid access occured vec<1>.get() function, trying to access "
-        "the index "
-        << idx);
-    }
-#endif
+    assert(idx == 0 && "Invalid access for 1d vector");
     return x;
   }
   FLECSI_INLINE_TARGET const double & get(const size_t idx) const {
-#ifdef DEBUG
-    if(idx != 0) {
-      flog_fatal(
-        "Invalid access occured vec<1>.get() function, trying to access "
-        "the index "
-        << idx);
-    }
-#endif
+    assert(idx == 0 && "Invalid access for 1d vector");
     return x;
   }
 };
@@ -81,25 +67,11 @@ struct vec<2> {
     return std::sqrt(norm_squared());
   }
   FLECSI_INLINE_TARGET double & get(const size_t idx) {
-#ifdef DEBUG
-    if((idx < 0) or (idx > 1)) {
-      flog_fatal(
-        "Invalid access occured vec<2>.get() function, trying to access "
-        "the index "
-        << idx);
-    }
-#endif
+    assert(idx <= 1 && "Invalid access for 2d vector");
     return components[idx];
   }
   FLECSI_INLINE_TARGET const double & get(const size_t idx) const {
-#ifdef DEBUG
-    if((idx < 0) or (idx > 1)) {
-      flog_fatal(
-        "Invalid access occured vec<2>.get() function, trying to access "
-        "the index "
-        << idx);
-    }
-#endif
+    assert(idx <= 1 && "Invalid access for 2d vector");
     return components[idx];
   }
 };
@@ -123,25 +95,11 @@ struct vec<3> {
     return std::sqrt(norm_squared());
   }
   FLECSI_INLINE_TARGET double & get(const size_t idx) {
-#ifdef DEBUG
-    if((idx < 0) or (idx > 2)) {
-      flog_fatal(
-        "Invalid access occured vec<3>.get() function, trying to access "
-        "the index "
-        << idx);
-    }
-#endif
+    assert(idx <= 2 && "Invalid access for 3d vector");
     return components[idx];
   }
   FLECSI_INLINE_TARGET const double & get(const size_t idx) const {
-#ifdef DEBUG
-    if((idx < 0) or (idx > 2)) {
-      flog_fatal(
-        "Invalid access occured vec<3>.get() function, trying to access "
-        "the index "
-        << idx);
-    }
-#endif
+    assert(idx <= 2 && "Invalid access for 3d vector");
     return components[idx];
   }
 };

@@ -1,0 +1,39 @@
+---
+# For testing, we don't have material physics in it
+# We will use DT_gas profile from xRage
+problem: implosion
+
+problem_parameters:
+  fluid_mass_density: 0.0004426672160078688 # g/cm^3, DT_Gas
+  fluid_temperature: 18.92999988994724 # K 
+  radiation_temperature: 18.92999988994724 # K
+
+kappa: 1.0
+gamma: 1.666666
+mean_molecular_weight: 1.0
+temperature_units: eV # Change eV to Kelvin
+
+t0: 0.0
+tf: 10 #9.5e-9
+max_steps: 200
+cfl: 0.6 # Using higher CFL, reference dec uses variable CFL
+max_dt: 1.0 #1e-10
+log_frequency: 1
+output_frequency: 1
+levels: [5, 1, 1] 
+coords:
+  - [0.0, 0.0, 0.0]
+  - [1e3, 1.0, 1.0]
+boundaries:
+  xlow: reflecting
+  xhigh: dirichlet
+  ylow: periodic
+  yhigh: periodic
+  zlow: periodic
+  zhigh: periodic
+catalyst:
+  script: /path
+  implementation: paraview
+  implementation_directory: /path
+
+lowest_level: 1
