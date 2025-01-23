@@ -1,6 +1,7 @@
 #ifndef HARD_STATE_HH
 #define HARD_STATE_HH
 
+#include "spec/eos.hh"
 #include "types.hh"
 #ifdef USE_CATALYST
 #include "catalyst/types.hh"
@@ -12,8 +13,10 @@ namespace hard {
   Global parameters.
  *----------------------------------------------------------------------------*/
 
+#ifndef DISABLE_RADIATION
 inline const single<double>::definition<global> gamma;
 inline const single<double>::definition<global> kappa;
+#endif
 inline const single<double>::definition<global> particle_mass;
 inline const field<double>::definition<global> time_boundary;
 inline const field<double>::definition<global> temperature_boundary;
@@ -26,6 +29,12 @@ template<std::size_t D>
 struct state {
 
   flecsi::future<double> dtmin_;
+
+  /*--------------------------------------------------------------------------*
+    Topology slots.
+  *--------------------------------------------------------------------------*/
+
+  eos::eos_wrapper eos;
 
   /*--------------------------------------------------------------------------*
     Topology slots.
@@ -75,12 +84,17 @@ struct state {
 
   // Primitives.
   static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
-    velocity;
-  static inline const field<double>::definition<mesh<D>, is::cells> pressure;
+    velocity; // u
   static inline const field<double>::definition<mesh<D>, is::cells>
-    specific_internal_energy;
+    pressure; // p
+  static inline const field<double>::definition<mesh<D>, is::cells>
+    specific_internal_energy; // e
+  static inline const field<double>::definition<mesh<D>, is::cells>
+    sound_speed; // c
 
   // Faces.
+  static inline const field<double>::definition<mesh<D>, is::cells> eTail;
+  static inline const field<double>::definition<mesh<D>, is::cells> cTail;
   static inline const field<double>::definition<mesh<D>, is::cells> rTail;
   static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
     ruTail;
@@ -90,6 +104,8 @@ struct state {
   static inline const field<double>::definition<mesh<D>, is::cells> pTail;
   static inline const field<double>::definition<mesh<D>, is::cells> EradTail;
 
+  static inline const field<double>::definition<mesh<D>, is::cells> eHead;
+  static inline const field<double>::definition<mesh<D>, is::cells> cHead;
   static inline const field<double>::definition<mesh<D>, is::cells> rHead;
   static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
     ruHead;
