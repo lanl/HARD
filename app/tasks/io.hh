@@ -55,7 +55,7 @@ void inline raw(spec::io::name const & base,
       // time, cellid_x, coord_x, density, pressure, velocity,
       // fluid total energy density, radiation energy density
       file
-        << "#time\tcellid_x\tcoord_x\tdensity\tpressure\tvelocity\totalE\tRadE"
+        << "#time\tcellid_x\tcoord_x\tdensity\tpressure\tvelocity\ttotalE\tRadE"
         << std::endl;
       file << std::fixed; // just to get a uniform file format
       for(auto i : m.template cells<ax::x, dm::quantities>()) {

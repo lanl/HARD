@@ -70,7 +70,11 @@ initialize_time_derivative(control_policy<state, D> & cp) {
 
 template<std::size_t D, time_stepper::rk_stage Stage>
 void
-explicit_source_terms(control_policy<state, D> & cp) {
+explicit_source_terms(control_policy<state, D> &
+#ifndef DISABLE_RADIATION
+    cp
+#endif
+) {
 
 #ifndef DISABLE_RADIATION
 
@@ -142,7 +146,7 @@ void
 fluxes_terms(control_policy<state, D> & cp) {
   auto & s = cp.state();
 
-  using limiter = spec::limiters::weno5z;
+  using limiter = spec::limiters::ppm4;
 
   for(std::size_t axis = 0; axis < D; axis++) {
     // clang-format off
@@ -189,7 +193,11 @@ fluxes_terms(control_policy<state, D> & cp) {
 // radiative heating-cooling part
 template<std::size_t D, time_stepper::rk_stage Stage>
 void
-implicit_source_terms(control_policy<state, D> & cp) {
+implicit_source_terms(control_policy<state, D> &
+#ifndef DISABLE_RADIATION
+    cp
+#endif
+) {
 
 #ifndef DISABLE_RADIATION
 
@@ -274,6 +282,7 @@ update_variables(control_policy<state, D> & cp) {
     s.total_energy_density(s.m),
     s.velocity(s.m),
     s.pressure(s.m),
+    s.specific_internal_energy(s.m),
     gamma(s.gt));
 
   // Update boundary cells
@@ -286,6 +295,17 @@ update_variables(control_policy<state, D> & cp) {
     s.momentum_density(s.m),
     s.total_energy_density(s.m));
 
+  if(s.mg) {
+    // FIXME: figure out how not to use the hardcoded radiation temperature
+    // boundary
+    auto radiation_boundary_f =
+      flecsi::execute<task::rad::interp_e_boundary>(s.t(s.gt),
+        time_boundary(s.dense_topology),
+        temperature_boundary(s.dense_topology));
+    flecsi::execute<tasks::apply_radiation_boundary<D>,
+      flecsi::default_accelerator>(
+      s.m, s.radiation_energy_density(s.m), radiation_boundary_f);
+  }
 } // radiation_advance
 
 // --------------------------------------------------------------------

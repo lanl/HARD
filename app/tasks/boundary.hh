@@ -38,6 +38,8 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
       forall(x, policy, "bd_x") {
+        (void)x; // remove compiler warning for unused
+
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xlow = bm[0][LOW];
         if(xlow == bd::flow) { // NOTE: Same for all threads/warps in a color.
@@ -137,6 +139,8 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
       forall(x, policy, "flow_x_1d") {
+        (void)x; // remove compiler warning for unused
+
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xhigh = bm[0][HIGH];
         if(xhigh == bd::flow) {
@@ -451,6 +455,52 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
   } // if
 } // flow
 
+// TODO: Undo the hardcoded boundary
+template<std::size_t D>
+void
+apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
+  field<double>::accessor<rw, na> r_a,
+  flecsi::future<double> radiation_boundary_f) {
+  using hard::tasks::util::get_mdiota_policy;
+  auto r = m.template mdcolex<is::cells>(r_a);
+
+  const size_t ghost_zone_size = m.ghost_zone_size();
+  double radiation_boundary = radiation_boundary_f.get();
+
+  if(m.template is_high<ax::x>()) {
+    const std::size_t i = m.template size<ax::x, dm::all>();
+    if constexpr(D == 1) {
+      flecsi::util::iota_view policy{0, 1}; // default execution space
+      forall(x, policy, "dirichlet_x_high_1D") {
+        (void)x;
+        for(size_t m = 0; m < ghost_zone_size; ++m) {
+          r(i - 1 - m) = radiation_boundary;
+        }
+      }; // forall
+    }
+    else if constexpr(D == 2) {
+      forall(
+        j, (m.template cells<ax::y, dm::quantities>()), "dirichlet_x_high_2D") {
+        for(size_t m = 0; m < ghost_zone_size; ++m) {
+          r(i - 1 - m, j) = radiation_boundary;
+        }
+      }; // /forall
+    }
+    else /* D == 3 */ {
+      auto mdpolicy_zy = get_mdiota_policy(r,
+        m.template cells<ax::z, dm::quantities>(),
+        m.template cells<ax::y, dm::quantities>());
+
+      forall(kj, mdpolicy_zy, "dirichlet_x_high_3D") {
+        auto [k, j] = kj;
+        for(size_t m = 0; m < ghost_zone_size; ++m) {
+          r(i - 1 - m, j, k) = radiation_boundary;
+        }
+      }; // forall
+    } // if
+  } // if
+} // flow
+
 // TODO: Refactor. apply_boundary overload for just one field.
 template<std::size_t D>
 void
@@ -466,6 +516,8 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
       forall(x, policy, "bd_x") {
+        (void)x; // remove compiler warning for unused
+
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xlow = bm[0][LOW];
         if(xlow == bd::flow) {
@@ -523,6 +575,8 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
       forall(x, policy, "flow_x_1d") {
+        (void)x; // remove compiler warning for unused
+
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xhigh = bm[0][HIGH];
         if(xhigh == bd::flow) {
@@ -572,7 +626,6 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
             r(i - 1 - m, j, k) = r(i - 2 * ghost_zone_size + m, j, k);
           }
         }
-
       }; // forall
     } // if
   } // if

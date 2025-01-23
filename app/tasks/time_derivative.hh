@@ -4,6 +4,7 @@
 
 #include "../numerical_algorithms/time_stepper.hh"
 #include "../types.hh"
+#include "utils.hh"
 #include <cstddef>
 
 namespace hard::tasks {
@@ -94,12 +95,20 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<ro, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<ro, na> momentum_density_a,
   field<double>::accessor<ro, na> total_energy_density_a,
-  field<double>::accessor<ro, na> radiation_energy_density_a,
+  field<double>::accessor<ro, na>
+#ifndef DISABLE_RADIATION
+    radiation_energy_density_a
+#endif
   // Copied into
+  ,
   field<double>::accessor<wo, na> mass_density_n_a,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_n_a,
   field<double>::accessor<wo, na> total_energy_density_n_a,
-  field<double>::accessor<wo, na> radiation_energy_density_n_a) {
+  field<double>::accessor<wo, na>
+#ifndef DISABLE_RADIATION
+    radiation_energy_density_n_a
+#endif
+) {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto mass_density_n = m.template mdcolex<is::cells>(mass_density_n_a);
@@ -109,10 +118,12 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto total_energy_density_n =
     m.template mdcolex<is::cells>(total_energy_density_n_a);
+#ifndef DISABLE_RADIATION
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
   auto radiation_energy_density_n =
     m.template mdcolex<is::cells>(radiation_energy_density_n_a);
+#endif
 
   using hard::tasks::util::get_mdiota_policy;
   if constexpr(Dim == 1) {
@@ -169,18 +180,31 @@ void
 compute_u_after_implicit_solve(typename mesh<Dim>::template accessor<ro> m,
   single<double>::accessor<ro> dtw_a,
   field<double>::accessor<rw, na> total_energy_density_a,
-  field<double>::accessor<rw, na> radiation_energy_density_a,
+  field<double>::accessor<rw, na>
+#ifndef DISABLE_RADIATION
+    radiation_energy_density_a
+#endif
+  ,
   field<double>::accessor<ro, na> dt_total_energy_density_implicit_a,
-  field<double>::accessor<ro, na> dt_radiation_energy_density_implicit_a) {
+  field<double>::accessor<ro, na>
+#ifndef DISABLE_RADIATION
+    dt_radiation_energy_density_implicit_a
+#endif
+) {
 
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
+#ifndef DISABLE_RADIATION
+
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
+#endif
   auto dt_total_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_total_energy_density_implicit_a);
+#ifndef DISABLE_RADIATION
   auto dt_radiation_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
+#endif
 
   using hard::tasks::util::get_mdiota_policy;
   if constexpr(Dim == 1) {
@@ -246,71 +270,105 @@ update_u(single<double>::accessor<ro> dt_a,
   field<double>::accessor<ro, na> mass_density_n_a,
   typename field<vec<Dim>>::template accessor<ro, na> momentum_density_n_a,
   field<double>::accessor<ro, na> total_energy_density_n_a,
-  field<double>::accessor<ro, na> radiation_energy_density_n_a,
+  field<double>::accessor<ro, na>
+#ifndef DISABLE_RADIATION
+    radiation_energy_density_n_a
+#endif
+  ,
   // explicit & implicit time derivatives for the state U^1
   field<double>::accessor<ro, na> dt_mass_density_a,
   typename field<vec<Dim>>::template accessor<ro, na> dt_momentum_density_a,
   field<double>::accessor<ro, na> dt_total_energy_density_a,
-  field<double>::accessor<ro, na> dt_radiation_energy_density_a,
+  field<double>::accessor<ro, na>
+#ifndef DISABLE_RADIATION
+    dt_radiation_energy_density_a
+#endif
+  ,
   field<double>::accessor<ro, na> dt_total_energy_density_implicit_a,
-  field<double>::accessor<ro, na> dt_radiation_energy_density_implicit_a,
+  field<double>::accessor<ro, na>
+#ifndef DISABLE_RADIATION
+    dt_radiation_energy_density_implicit_a
+#endif
+  ,
   // explicit & implicit time derivatives for the state U^2
   field<double>::accessor<ro, na> dt_mass_density_2_a,
   typename field<vec<Dim>>::template accessor<ro, na> dt_momentum_density_2_a,
   field<double>::accessor<ro, na> dt_total_energy_density_2_a,
-  field<double>::accessor<ro, na> dt_radiation_energy_density_2_a,
+  field<double>::accessor<ro, na>
+#ifndef DISABLE_RADIATION
+    dt_radiation_energy_density_2_a
+#endif
+  ,
   field<double>::accessor<ro, na> dt_total_energy_density_implicit_2_a,
-  field<double>::accessor<ro, na> dt_radiation_energy_density_implicit_2_a,
+  field<double>::accessor<ro, na>
+#ifndef DISABLE_RADIATION
+    dt_radiation_energy_density_implicit_2_a
+#endif
+  ,
   // write U^n+1 into following arguments
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
-  field<double>::accessor<wo, na> radiation_energy_density_a) {
+  field<double>::accessor<wo, na>
+#ifndef DISABLE_RADIATION
+    radiation_energy_density_a
+#endif
+) {
 
   auto mass_density_n = m.template mdcolex<is::cells>(mass_density_n_a);
   auto momentum_density_n = m.template mdcolex<is::cells>(momentum_density_n_a);
   auto total_energy_density_n =
     m.template mdcolex<is::cells>(total_energy_density_n_a);
+#ifndef DISABLE_RADIATION
   auto radiation_energy_density_n =
     m.template mdcolex<is::cells>(radiation_energy_density_n_a);
+#endif
 
   auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
   auto dt_momentum_density =
     m.template mdcolex<is::cells>(dt_momentum_density_a);
   auto dt_total_energy_density =
     m.template mdcolex<is::cells>(dt_total_energy_density_a);
+#ifndef DISABLE_RADIATION
   auto dt_radiation_energy_density =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
+#endif
   auto dt_total_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_total_energy_density_implicit_a);
+#ifndef DISABLE_RADIATION
   auto dt_radiation_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
+#endif
 
   auto dt_mass_density_2 = m.template mdcolex<is::cells>(dt_mass_density_2_a);
   auto dt_momentum_density_2 =
     m.template mdcolex<is::cells>(dt_momentum_density_2_a);
   auto dt_total_energy_density_2 =
     m.template mdcolex<is::cells>(dt_total_energy_density_2_a);
+#ifndef DISABLE_RADIATION
   auto dt_radiation_energy_density_2 =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_2_a);
+#endif
   auto dt_total_energy_density_implicit_2 =
     m.template mdcolex<is::cells>(dt_total_energy_density_implicit_2_a);
+#ifndef DISABLE_RADIATION
   auto dt_radiation_energy_density_implicit_2 =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_2_a);
+#endif
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
+#ifndef DISABLE_RADIATION
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
-
+#endif
   using hard::tasks::util::get_mdiota_policy;
   if constexpr(Dim == 1) {
     forall(i, (m.template cells<ax::x, dm::quantities>()), "update_u_1d") {
       // Weights
       auto dt = *dt_a;
-      const double gamma_dt = time_stepper::time_stepper_gamma * dt;
       const double one_minus_2gamma_dt =
         time_stepper::one_minus_2_time_stepper_gamma * dt;
 
@@ -372,7 +430,6 @@ update_u(single<double>::accessor<ro> dt_a,
       auto [j, i] = ji;
       // Weights
       auto dt = *dt_a;
-      const double gamma_dt = time_stepper::time_stepper_gamma * dt;
       const double one_minus_2gamma_dt =
         time_stepper::one_minus_2_time_stepper_gamma * dt;
 
@@ -437,7 +494,6 @@ update_u(single<double>::accessor<ro> dt_a,
       auto [k, j, i] = kji;
       // Weights
       auto dt = *dt_a;
-      const double gamma_dt = time_stepper::time_stepper_gamma * dt;
       const double one_minus_2gamma_dt =
         time_stepper::one_minus_2_time_stepper_gamma * dt;
 

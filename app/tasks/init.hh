@@ -30,6 +30,40 @@ void inline gamma(single<double>::accessor<wo> gamma_a, double g) {
 } // gamma
 
 /*----------------------------------------------------------------------------*
+  Temperature boundaries.
+ *----------------------------------------------------------------------------*/
+
+void inline set_t_boundary(field<double>::accessor<wo> t_boundary,
+  std::vector<double> copy_values) {
+
+  for(std::size_t i{0}; i < t_boundary.span().size(); i++) {
+    t_boundary[i] = copy_values[i];
+  }
+} // t_boundary
+
+/*----------------------------------------------------------------------------*
+  Temperature unit conversion from eV (or other) to Kelvin
+ *----------------------------------------------------------------------------*/
+
+void inline convert_temperature(field<double>::accessor<rw> temperature,
+  std::string const & unit) {
+
+  assert((unit == "Kelvin" || unit == "eV") && "Unsupported temperature unit");
+
+  double conversion_factor{};
+  if(unit == "Kelvin") {
+    return;
+  }
+  else if(unit == "eV") {
+    conversion_factor = hard::constants::cgs::eV_to_K;
+  }
+
+  for(std::size_t i{0}; i < temperature.span().size(); i++) {
+    temperature[i] *= conversion_factor;
+  }
+} // t_boundary
+
+/*----------------------------------------------------------------------------*
   Opacity parameter.
  *----------------------------------------------------------------------------*/
 
@@ -52,96 +86,96 @@ void inline particle_mass(single<double>::accessor<wo> particle_mass_a,
 
 template<std::size_t D>
 inline void
-touch(typename mesh<D>::template accessor<ro> m,
-  field<double>::accessor<wo, wo> r_a,
-  typename field<vec<D>>::template accessor<wo, wo> ru_a,
-  field<double>::accessor<wo, wo> rE_a,
+touch(typename mesh<D>::template accessor<ro>, // m,
+  field<double>::accessor<wo, wo>, // r_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ru_a,
+  field<double>::accessor<wo, wo>, // rE_a,
 
-  typename field<vec<D>>::template accessor<wo, wo> u_a,
-  field<double>::accessor<wo, wo> p_a,
-  field<double>::accessor<wo, wo> rTail_a,
-  typename field<vec<D>>::template accessor<wo, wo> ruTail_a,
-  field<double>::accessor<wo, wo> rETail_a,
-  typename field<vec<D>>::template accessor<wo, wo> uTail_a,
-  field<double>::accessor<wo, wo> pTail_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // u_a,
+  field<double>::accessor<wo, wo>, // p_a,
+  field<double>::accessor<wo, wo>, // rTail_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruTail_a,
+  field<double>::accessor<wo, wo>, // rETail_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uTail_a,
+  field<double>::accessor<wo, wo>, // pTail_a,
 
-  field<double>::accessor<wo, wo> rHead_a,
-  typename field<vec<D>>::template accessor<wo, wo> ruHead_a,
-  field<double>::accessor<wo, wo> rEHead_a,
-  typename field<vec<D>>::template accessor<wo, wo> uHead_a,
-  field<double>::accessor<wo, wo> pHead_a,
+  field<double>::accessor<wo, wo>, // rHead_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruHead_a,
+  field<double>::accessor<wo, wo>, // rEHead_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uHead_a,
+  field<double>::accessor<wo, wo>, // pHead_a,
 
-  field<double>::accessor<wo, wo> rF_a,
-  typename field<vec<D>>::template accessor<wo, wo> ruF_a,
-  field<double>::accessor<wo, wo> rEF_a
+  field<double>::accessor<wo, wo>, // rF_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruF_a,
+  field<double>::accessor<wo, wo> // rEF_a
 #ifndef DISABLE_RADIATION
   ,
-  field<double>::accessor<wo, wo> Erad_a,
-  field<double>::accessor<wo, wo> EradTail_a,
-  field<double>::accessor<wo, wo> EradHead_a,
-  field<double>::accessor<wo, wo> EradF_a,
-  field<double>::accessor<wo, wo> Esf_a,
-  field<double>::accessor<wo, wo> Ef_a,
-  typename field<stencil<D>>::template accessor<wo, wo> Ew_a,
-  field<double>::accessor<wo, wo> Df_a,
-  field<double>::accessor<wo, wo> Resf_a,
-  field<double>::accessor<wo, wo> Errf_a,
+  field<double>::accessor<wo, wo>, // Erad_a,
+  field<double>::accessor<wo, wo>, // EradTail_a,
+  field<double>::accessor<wo, wo>, // EradHead_a,
+  field<double>::accessor<wo, wo>, // EradF_a,
+  field<double>::accessor<wo, wo>, // Esf_a,
+  field<double>::accessor<wo, wo>, // Ef_a,
+  typename field<stencil<D>>::template accessor<wo, wo>, // Ew_a,
+  field<double>::accessor<wo, wo>, // Df_a,
+  field<double>::accessor<wo, wo>, // Resf_a,
+  field<double>::accessor<wo, wo>, // Errf_a,
   //
-  typename field<vec<D>>::template accessor<wo, wo> gradient_rad_energy_a,
-  field<double>::accessor<wo, wo> magnitude_gradient_rad_energy_a,
-  typename field<vec<D>>::template accessor<wo, wo> radiation_force_a,
-  field<double>::accessor<wo, wo> R_value_a,
-  field<double>::accessor<wo, wo> lambda_bridge_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // gradient_rad_energy_a,
+  field<double>::accessor<wo, wo>, // magnitude_gradient_rad_energy_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // radiation_force_a,
+  field<double>::accessor<wo, wo>, // R_value_a,
+  field<double>::accessor<wo, wo>, // lambda_bridge_a,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
-    wo> velocity_gradient_a
+    wo> // velocity_gradient_a
 #endif
 ) {
 } // touch
 
 template<std::size_t D>
 inline void
-touch1(typename mesh<D>::template accessor<ro> m,
-  field<double>::accessor<wo, wo> r_a,
-  typename field<vec<D>>::template accessor<wo, wo> ru_a,
-  field<double>::accessor<wo, wo> rE_a,
+touch1(typename mesh<D>::template accessor<ro>, // m,
+  field<double>::accessor<wo, wo>, // r_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ru_a,
+  field<double>::accessor<wo, wo>, // rE_a,
 
-  typename field<vec<D>>::template accessor<wo, wo> u_a,
-  field<double>::accessor<wo, wo> p_a,
-  field<double>::accessor<wo, wo> rTail_a,
-  typename field<vec<D>>::template accessor<wo, wo> ruTail_a,
-  field<double>::accessor<wo, wo> rETail_a,
-  typename field<vec<D>>::template accessor<wo, wo> uTail_a,
-  field<double>::accessor<wo, wo> pTail_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // u_a,
+  field<double>::accessor<wo, wo>, // p_a,
+  field<double>::accessor<wo, wo>, // rTail_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruTail_a,
+  field<double>::accessor<wo, wo>, // rETail_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uTail_a,
+  field<double>::accessor<wo, wo>, // pTail_a,
 
-  field<double>::accessor<wo, wo> rHead_a,
-  typename field<vec<D>>::template accessor<wo, wo> ruHead_a,
-  field<double>::accessor<wo, wo> rEHead_a,
-  typename field<vec<D>>::template accessor<wo, wo> uHead_a,
-  field<double>::accessor<wo, wo> pHead_a,
+  field<double>::accessor<wo, wo>, // rHead_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruHead_a,
+  field<double>::accessor<wo, wo>, // rEHead_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uHead_a,
+  field<double>::accessor<wo, wo>, // pHead_a,
 
-  field<double>::accessor<wo, wo> rF_a,
-  typename field<vec<D>>::template accessor<wo, wo> ruF_a,
-  field<double>::accessor<wo, wo> rEF_a
+  field<double>::accessor<wo, wo>, // rF_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruF_a,
+  field<double>::accessor<wo, wo> // rEF_a
 #ifndef DISABLE_RADIATION
   ,
-  field<double>::accessor<wo, wo> Erad_a,
-  field<double>::accessor<wo, wo> EradTail_a,
-  field<double>::accessor<wo, wo> EradHead_a,
-  field<double>::accessor<wo, wo> EradF_a,
-  field<double>::accessor<wo, wo> Esf_a,
-  field<double>::accessor<wo, wo> Ef_a,
-  typename field<stencil<D>>::template accessor<wo, wo> Ew_a,
-  field<double>::accessor<wo, wo> Df_a,
-  field<double>::accessor<wo, wo> Resf_a,
-  field<double>::accessor<wo, wo> Errf_a,
+  field<double>::accessor<wo, wo>, // Erad_a,
+  field<double>::accessor<wo, wo>, // EradTail_a,
+  field<double>::accessor<wo, wo>, // EradHead_a,
+  field<double>::accessor<wo, wo>, // EradF_a,
+  field<double>::accessor<wo, wo>, // Esf_a,
+  field<double>::accessor<wo, wo>, // Ef_a,
+  typename field<stencil<D>>::template accessor<wo, wo>, // Ew_a,
+  field<double>::accessor<wo, wo>, // Df_a,
+  field<double>::accessor<wo, wo>, // Resf_a,
+  field<double>::accessor<wo, wo>, // Errf_a,
   //
-  typename field<vec<D>>::template accessor<wo, wo> gradient_rad_energy_a,
-  field<double>::accessor<wo, wo> magnitude_gradient_rad_energy_a,
-  typename field<vec<D>>::template accessor<wo, wo> radiation_force_a,
-  field<double>::accessor<wo, wo> R_value_a,
-  field<double>::accessor<wo, wo> lambda_bridge_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // gradient_rad_energy_a,
+  field<double>::accessor<wo, wo>, // magnitude_gradient_rad_energy_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // radiation_force_a,
+  field<double>::accessor<wo, wo>, // R_value_a,
+  field<double>::accessor<wo, wo>, // lambda_bridge_a,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
-    wo> velocity_gradient_a
+    wo> // velocity_gradient_a
 #endif
 ) {
 } // touch

@@ -5,9 +5,11 @@
 #include "state.hh"
 #include "tasks/boundary.hh"
 #include "tasks/hydro/cons2prim.hh"
+#include "tasks/hydro/maxcharspeed.hh"
 #include "tasks/init.hh"
 #include "tasks/initial_data/all_initial_data.hh"
-#include "tasks/utils.hh"
+#include "tasks/io.hh"
+#include "tasks/rad.hh"
 #include "types.hh"
 
 #ifdef USE_CATALYST
@@ -31,9 +33,37 @@ initialize(control_policy<state, D> & cp) {
     Global and color topology allocations.
    *--------------------------------------------------------------------------*/
 
+  // How many boundary points to allocate
+  std::string filename{opt::source_fds};
+
+  int n_lines{0};
+  std::ifstream filein(filename);
+  std::vector<double> time;
+  std::vector<double> temperature;
+  for(std::string line; std::getline(filein, line);) {
+
+    int i{0};
+    std::istringstream input;
+    input.str(line);
+
+    for(std::string element; std::getline(input, element, ' ');) {
+      if(i == 0) {
+        time.emplace_back(std::stod(element));
+      }
+      else {
+        temperature.emplace_back(std::stod(element));
+      }
+      i++;
+    }
+
+    n_lines++;
+  }
+
+  s.dense_topology.allocate(n_lines);
+
   s.gt.allocate({});
   const auto num_colors =
-    opt::colors.value() == -1 ? flecsi::processes() : opt::colors.value();
+    opt::colors.value() == 0 ? flecsi::processes() : opt::colors.value();
   s.ct.allocate(num_colors);
 
   /*--------------------------------------------------------------------------*
@@ -59,6 +89,18 @@ initialize(control_policy<state, D> & cp) {
   } // if
 
   auto bf = execute<tasks::init::boundaries<D>>(s.bmap(s.gt), bnds);
+
+  /*--------------------------------------------------------------------------*
+    T boundary.
+   *--------------------------------------------------------------------------*/
+
+  execute<tasks::init::set_t_boundary>(time_boundary(s.dense_topology), time);
+  execute<tasks::init::set_t_boundary>(
+    temperature_boundary(s.dense_topology), temperature);
+  if(config["problem"].as<std::string>() == "implosion")
+    execute<tasks::init::convert_temperature>(
+      temperature_boundary(s.dense_topology),
+      config["temperature_units"].as<std::string>());
 
   /*--------------------------------------------------------------------------*
     Gamma.
@@ -91,11 +133,11 @@ initialize(control_policy<state, D> & cp) {
   s.highest_level = config["levels"][0].as<std::size_t>();
   if(D == 2 || D == 3) {
     s.highest_level =
-      std::max(s.highest_level, config["levels"][1].as<std::size_t>());
+      std::min(s.highest_level, config["levels"][1].as<std::size_t>());
   } // if
   if(D == 3) {
     s.highest_level =
-      std::max(s.highest_level, config["levels"][2].as<std::size_t>());
+      std::min(s.highest_level, config["levels"][2].as<std::size_t>());
   } // if
   s.max_num_levels = s.highest_level - s.lowest_level + 1;
 
@@ -118,15 +160,12 @@ initialize(control_policy<state, D> & cp) {
 
     for(std::size_t i{0}; i < s.max_num_levels; i++) {
       typename mesh<D>::gcoord axis_extents(D);
-      axis_extents[ax::x] =
-        std::pow(2, config["levels"][0].as<std::size_t>() - i);
+      axis_extents[ax::x] = 1 << (config["levels"][0].as<std::size_t>() - i);
       if(D == 2 || D == 3) {
-        axis_extents[ax::y] =
-          std::pow(2, config["levels"][1].as<std::size_t>() - i);
+        axis_extents[ax::y] = 1 << (config["levels"][1].as<std::size_t>() - i);
       } // if
       if(D == 3) {
-        axis_extents[ax::z] =
-          std::pow(2, config["levels"][2].as<std::size_t>() - i);
+        axis_extents[ax::z] = 1 << (config["levels"][2].as<std::size_t>() - i);
       } // if
 
       // Add a new grid - the finest grid is already there
@@ -244,6 +283,25 @@ initialize(control_policy<state, D> & cp) {
       gamma(s.gt),
       particle_mass(s.gt));
   }
+  else if(config["problem"].as<std::string>() == "lw-implosion") {
+    execute<tasks::initial_data::lw_implosion<D>>(s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m),
+      gamma(s.gt));
+  }
+  else if(config["problem"].as<std::string>() == "implosion") {
+    execute<tasks::initial_data::implosion_forced_T<D>>(s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m),
+      temperature_boundary(s.dense_topology),
+      gamma(s.gt),
+      particle_mass(s.gt));
+    s.mg = true;
+  }
   else {
     flog_fatal(
       "unsupported problem(" << config["problem"].as<std::string>() << ")");
@@ -261,6 +319,18 @@ initialize(control_policy<state, D> & cp) {
     s.radiation_energy_density(s.m),
     s.momentum_density(s.m),
     s.total_energy_density(s.m));
+
+  if(s.mg) {
+    // FIXME: figure out how not to use the hardcoded radiation temperature
+    // boundary
+    auto radiation_boundary_f =
+      flecsi::execute<task::rad::interp_e_boundary>(s.t(s.gt),
+        time_boundary(s.dense_topology),
+        temperature_boundary(s.dense_topology));
+    flecsi::execute<tasks::apply_radiation_boundary<D>,
+      flecsi::default_accelerator>(
+      s.m, s.radiation_energy_density(s.m), radiation_boundary_f);
+  }
   execute<tasks::hydro::conservative_to_primitive<D>,
     flecsi::default_accelerator>(s.m,
     s.mass_density(s.m),
@@ -268,6 +338,7 @@ initialize(control_policy<state, D> & cp) {
     s.total_energy_density(s.m),
     s.velocity(s.m),
     s.pressure(s.m),
+    s.specific_internal_energy(s.m),
     gamma(s.gt));
   auto lmax_f = execute<tasks::hydro::update_max_characteristic_speed<D>,
     flecsi::default_accelerator>(
