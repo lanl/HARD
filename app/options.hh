@@ -26,15 +26,20 @@ inline flecsi::program_option<std::string> catalyst_script("catalyst script",
   });
 #endif
 
-inline flecsi::program_option<int> dimension("Hard Options",
+inline flecsi::program_option<unsigned int> dimension("Hard Options",
   "dimension,d",
   "Specify the dimension of the solver (default: 3).",
   {{flecsi::option_default, 3}});
 
-inline flecsi::program_option<int> colors("Hard Options",
+inline flecsi::program_option<std::string> source_fds("Hard Options",
+  "fds_file",
+  "Specify where the file lives (default: source_fds.txt)",
+  {{flecsi::option_default, "source_fds.txt"}});
+
+inline flecsi::program_option<unsigned int> colors("Hard Options",
   "colors,c",
   "Specify the number of colors (default: num processes).",
-  {{flecsi::option_default, -1}});
+  {{flecsi::option_default, 0}});
 
 inline flecsi::program_option<std::string> flog_tags("FLOG Options",
   "tags,t",

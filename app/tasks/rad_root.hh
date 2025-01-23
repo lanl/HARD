@@ -3,7 +3,6 @@
 
 #include "../constants.hh"
 #include "../numerical_algorithms/root_finder.hh"
-#include "../state.hh"
 #include "utils.hh"
 #include <spec/utils.hh>
 

@@ -2,7 +2,6 @@
 #define HARD_TASKS_RAD_HH
 
 #include "../constants.hh"
-#include "../state.hh"
 #include "utils.hh"
 #include <cmath>
 #include <cstddef>
@@ -332,9 +331,6 @@ getLambda(typename mesh<D>::template accessor<ro> m,
     };
   }
   else {
-    const std::size_t xsize = m.template size<ax::x, dm::quantities>();
-    const std::size_t ysize = m.template size<ax::y, dm::quantities>();
-    const std::size_t zsize = m.template size<ax::z, dm::quantities>();
     auto mdpolicy_qqq = get_mdiota_policy(Esf,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
@@ -423,6 +419,7 @@ explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
     m.template mdcolex<is::cells>(dt_total_energy_density_a);
   auto dt_radiation_energy_density =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
+  // const double radiation_constant = hard::constants::cgs::radiation_constant;
 
   if constexpr(D == 1) {
     forall(
@@ -439,6 +436,11 @@ explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
       // Subtracting the photon tiring term, (P::gradV), from the radiation
       // energy density in each cell. See Eq(34) in Moens2022.
       dt_radiation_energy_density(i) += -P_tensor(i).xx * gradV(i).xx;
+
+      // TODO add the radiation temperature source
+      // Add the source from the temperature
+      /* dt_radiation_energy_density(i) += -P_tensor(i).xx * gradV(i).xx + */
+      /*   radiation_constant * pow(T_source(i), 4); */
     };
   }
   else if constexpr(D == 2) {
@@ -926,7 +928,7 @@ nlinear_interpolation(typename mesh<D>::template accessor<ro> mc,
       auto ci = i / 2 + 1;
       auto di = +1;
       if((i + 1) % 2) {
-        auto di = -1;
+        di = -1;
       }
       ff(i) = 0.25 * (3 * cf(ci) + cf(ci + di));
     }; // for
@@ -941,12 +943,12 @@ nlinear_interpolation(typename mesh<D>::template accessor<ro> mc,
       auto cj = j / 2 + 1;
       auto dj = 1;
       if((j + 1) % 2) {
-        auto dj = -1;
+        dj = -1;
       }
       auto ci = i / 2 + 1;
       auto di = 1;
       if((i + 1) % 2) {
-        auto di = -1;
+        di = -1;
       }
       ff(i, j) = 0.0625 * (9 * cf(ci, cj) + 3 * cf(ci + di, cj) +
                             3 * cf(ci, cj + dj) + cf(ci + di, cj + dj));
@@ -963,17 +965,17 @@ nlinear_interpolation(typename mesh<D>::template accessor<ro> mc,
       auto ck = k / 2 + 1;
       auto dk = 1;
       if((k + 1) % 2) {
-        auto dk = -1;
+        dk = -1;
       }
       auto cj = j / 2 + 1;
       auto dj = 1;
       if((j + 1) % 2) {
-        auto dj = -1;
+        dj = -1;
       }
       auto ci = i / 2 + 1;
       auto di = 1;
       if((i + 1) % 2) {
-        auto di = -1;
+        di = -1;
       }
       ff(i, j, k) =
         0.015625 *
@@ -1325,6 +1327,40 @@ correction(typename mesh<D>::template accessor<ro> m,
     }; // for
   } // if
 } // correction
+
+// Linear interpolation for boundary temperature
+double
+interp_e_boundary(typename single<double>::accessor<flecsi::ro> t,
+  typename field<double>::accessor<flecsi::ro> time_boundary,
+  typename field<double>::accessor<flecsi::ro> temperature_boundary) {
+
+  auto get_energy = [](const double & temperature) -> double {
+    return constants::cgs::radiation_constant *
+           spec::utils::sqr(spec::utils::sqr(temperature));
+  };
+
+  // Is it the first or last value?
+  std::size_t i_end{time_boundary.span().size()};
+  if(t <= time_boundary[0])
+    return get_energy(temperature_boundary[0]);
+  if(t >= time_boundary[i_end - 1])
+    return get_energy(temperature_boundary[i_end - 1]);
+
+  for(std::size_t i{0}; i < (i_end - 1); i++) {
+    if((t >= time_boundary[i]) && (t <= time_boundary[i + 1])) {
+      double dx{time_boundary[i + 1] - time_boundary[i]};
+      double dy{temperature_boundary[i + 1] - temperature_boundary[i]};
+
+      // Found point, return
+      return get_energy(
+        dy * (time_boundary[i + 1] - t) / dx + temperature_boundary[i]);
+    };
+  }
+
+  // We should never reach this line
+  flog_fatal("Linear interpolation failed");
+  return -1.0; // Point never found
+} // interp_e_boundary
 
 } // namespace hard::task::rad
 
