@@ -69,6 +69,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       const double ke = 0.5 * r(i) * u(i).norm_squared(); // kinetic energy
       const double en = rE(i) - ke; // internal energy
       const double En = radiation_energy_density(i); // radiation energy
+      assert(En > 0);
 
       const double up_en = numerical_algorithms::root_finder::halleys_get_root(
         a1, 1.0 + a2, -(en + (en + En) * a2), en + En);

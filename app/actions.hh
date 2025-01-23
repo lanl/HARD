@@ -153,34 +153,34 @@ fluxes_terms(control_policy<state, D> & cp) {
     flecsi::execute<tasks::hydro::reconstruct<D, limiter>, flecsi::default_accelerator>(axis,
       s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m),
       s.radiation_energy_density(s.m),
+      s.specific_internal_energy(s.m),
+      s.sound_speed(s.m),
       s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-      s.pTail(s.m), s.pHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
-      s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m), gamma(s.gt));
+     s.pTail(s.m), s.pHead(s.m),  s.eTail(s.m), s.eHead(s.m),  s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+      s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m));
 
     if constexpr(Stage == time_stepper::rk_stage::First) {
       flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
         s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-        s.pTail(s.m), s.pHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+        s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
         s.ruTail(s.m), s.ruHead(s.m),
         s.rETail(s.m), s.rEHead(s.m),
         s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
         s.dt_mass_density(s.m),
         s.dt_momentum_density(s.m),
         s.dt_total_energy_density(s.m),
-        s.dt_radiation_energy_density(s.m),
-        gamma(s.gt));
+        s.dt_radiation_energy_density(s.m));
     }
     else if constexpr(Stage == time_stepper::rk_stage::Second) {
       flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
         s.rTail(s.m), s.rHead(s.m), s.uTail(s.m),s.uHead(s.m),
-        s.pTail(s.m), s.pHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+        s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
         s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m),
         s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
         s.dt_mass_density_2(s.m),
         s.dt_momentum_density_2(s.m),
         s.dt_total_energy_density_2(s.m),
-        s.dt_radiation_energy_density_2(s.m),
-        gamma(s.gt));
+        s.dt_radiation_energy_density_2(s.m));
     }
     // clang-format on
   }
@@ -283,7 +283,8 @@ update_variables(control_policy<state, D> & cp) {
     s.velocity(s.m),
     s.pressure(s.m),
     s.specific_internal_energy(s.m),
-    gamma(s.gt));
+    s.sound_speed(s.m),
+    s.eos);
 
   // Update boundary cells
   flecsi::execute<tasks::apply_boundaries<D>, flecsi::default_accelerator>(s.m,
@@ -319,8 +320,11 @@ update_time_step_size(control_policy<state, D> & cp) {
 
   auto lmax_f =
     flecsi::execute<tasks::hydro::update_max_characteristic_speed<D>,
-      flecsi::default_accelerator>(
-      s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m), gamma(s.gt));
+      flecsi::default_accelerator>(s.m,
+      s.mass_density(s.m),
+      s.velocity(s.m),
+      s.pressure(s.m),
+      s.sound_speed(s.m));
 
   s.dtmin_ =
     flecsi::reduce<hard::task::rad::update_dtmin<D>, flecsi::exec::fold::min>(

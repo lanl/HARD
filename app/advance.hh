@@ -115,8 +115,8 @@ radiation_advance(control_policy<state, D> & cp) {
     s.velocity(s.m),
     s.pressure(s.m),
     s.specific_internal_energy(s.m),
-    gamma(s.gt));
-
+    s.sound_speed(s.m),
+    s.eos);
 #endif
 
   // and also update boundary cells
@@ -140,6 +140,7 @@ using namespace hard::time_stepper;
 //
 //  < Second order IMEX-RK time stepping >
 //
+
 //  Reference: IMEX-SSP2(2,2,2) scheme, Table 2 of Pareschi & Russo 2005
 //  (https://arxiv.org/abs/1009.2757)
 //
