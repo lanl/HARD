@@ -22,14 +22,6 @@ init_time(single<double>::accessor<wo> time, double vtime) {
 }
 
 /*----------------------------------------------------------------------------*
-  Ideal gas parameter.
- *----------------------------------------------------------------------------*/
-
-void inline gamma(single<double>::accessor<wo> gamma_a, double g) {
-  (*gamma_a) = g;
-} // gamma
-
-/*----------------------------------------------------------------------------*
   Temperature boundaries.
  *----------------------------------------------------------------------------*/
 
@@ -67,9 +59,28 @@ void inline convert_temperature(field<double>::accessor<rw> temperature,
   Opacity parameter.
  *----------------------------------------------------------------------------*/
 
+// Simple opacity that is used across all
 void inline kappa(single<double>::accessor<wo> kappa_a, double k) {
   (*kappa_a) = k;
 } // kappa
+
+// TODO : Below may need for each group
+
+// Planck mean absorption coefficient
+void inline kappaPa(single<double>::accessor<wo> kappaPa_a, double kPa) {
+  (*kappaPa_a) = kPa;
+} // kappaPa
+
+// Planck mean emission coefficient
+void inline kappaPe(single<double>::accessor<wo> kappaPe_a, double kPe) {
+  (*kappaPe_a) = kPe;
+} // kappaPe
+
+// TODO :Compuite me! Not really parameter but treated like parameter
+// Rosseland mean coefficient
+void inline kappaR(single<double>::accessor<wo> kappaR_a, double kR) {
+  (*kappaR_a) = kR;
+} // kappaR
 
 /*----------------------------------------------------------------------------*
   Set the average particle mass with a given mean molecular weight

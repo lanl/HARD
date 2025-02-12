@@ -104,15 +104,8 @@ initialize(control_policy<state, D> & cp) {
       config["temperature_units"].as<std::string>());
 
     /*--------------------------------------------------------------------------*
-      Gamma.
+      Kappa.
      *--------------------------------------------------------------------------*/
-#ifndef DISABLE_RADIATION
-  execute<tasks::init::gamma>(gamma(s.gt), config["gamma"].as<double>());
-#endif
-
-  /*--------------------------------------------------------------------------*
-    Kappa.
-   *--------------------------------------------------------------------------*/
 #ifndef DISABLE_RADIATION
   execute<tasks::init::kappa>(kappa(s.gt), config["kappa"].as<double>());
 #endif
