@@ -14,7 +14,6 @@ namespace hard {
  *----------------------------------------------------------------------------*/
 
 #ifndef DISABLE_RADIATION
-inline const single<double>::definition<global> gamma;
 inline const single<double>::definition<global> kappa;
 #endif
 inline const single<double>::definition<global> particle_mass;
@@ -91,6 +90,8 @@ struct state {
     specific_internal_energy; // e
   static inline const field<double>::definition<mesh<D>, is::cells>
     sound_speed; // c
+  static inline const field<double>::definition<mesh<D>, is::cells>
+    temperature; // c
 
   // Faces.
   static inline const field<double>::definition<mesh<D>, is::cells> eTail;

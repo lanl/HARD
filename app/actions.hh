@@ -210,13 +210,14 @@ implicit_source_terms(control_policy<state, D> &
       s.mass_density(s.m),
       s.velocity(s.m),
       s.total_energy_density(s.m),
+      s.temperature(s.m),
       s.radiation_energy_density(s.m),
-      gamma(s.gt),
       kappa(s.gt),
       particle_mass(s.gt),
       s.dt_weighted(s.gt),
       s.dt_total_energy_density_implicit(s.m),
-      s.dt_radiation_energy_density_implicit(s.m));
+      s.dt_radiation_energy_density_implicit(s.m),
+      s.eos);
   }
   else if constexpr(Stage == time_stepper::rk_stage::Second) {
     flecsi::execute<task::rad_root::update_energy_density<D>,
@@ -224,13 +225,14 @@ implicit_source_terms(control_policy<state, D> &
       s.mass_density(s.m),
       s.velocity(s.m),
       s.total_energy_density(s.m),
+      s.temperature(s.m),
       s.radiation_energy_density(s.m),
-      gamma(s.gt),
       kappa(s.gt),
       particle_mass(s.gt),
       s.dt_weighted(s.gt),
       s.dt_total_energy_density_implicit_2(s.m),
-      s.dt_radiation_energy_density_implicit_2(s.m));
+      s.dt_radiation_energy_density_implicit_2(s.m),
+      s.eos);
   }
 
 #endif
