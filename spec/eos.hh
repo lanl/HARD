@@ -37,6 +37,13 @@ struct eos_wrapper {
   }
 
   /*!
+    Return temperature as a function of density and internal specific energy.
+   */
+  FLECSI_INLINE_TARGET double tRhoSie(double r, double e) const {
+    return model_.TemperatureFromDensityInternalEnergy(r, e);
+  }
+
+  /*!
     Return sound speed as a function of density and specific internal energy.
    */
   FLECSI_INLINE_TARGET double cRhoSie(double r, double e) const {
