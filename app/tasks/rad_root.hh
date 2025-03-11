@@ -72,6 +72,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       const double ke = 0.5 * r(i) * u(i).norm_squared(); // kinetic energy
       const double en = rE(i) - ke; // internal energy
 
+      temperature(i) = eos.tRhoSie(r(i), en(i));
       double TempFour = pow(temperature(i), 4.0);
 
       const double En = radiation_energy_density(i); // radiation energy
@@ -99,6 +100,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
         0.5 * r(i, j) * u(i, j).norm_squared(); // kinetic energy
       const double en = rE(i, j) - ke; // internal energy
 
+      temperature(i, j) = eos.tRhoSie(r(i, j), en(i, j));
       double TempFour = pow(temperature(i, j), 4.0);
 
       const double En = radiation_energy_density(i, j); // radiation energy
@@ -125,6 +127,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
         0.5 * r(i, j, k) * u(i, j, k).norm_squared(); // kinetic energy
       const double en = rE(i, j, k) - ke; // internal energy
 
+      temperature(i, j, k) = eos.tRhoSie(r(i, j, k), en(i, j, k));
       double TempFour = pow(temperature(i, j, k), 4.0);
 
       const double En = radiation_energy_density(i, j, k); // radiation energy
