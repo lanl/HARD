@@ -23,11 +23,11 @@ find_sie(E const & eos,
   double_t sie{std::numeric_limits<double>::min()};
   const double_t min{eos.eRhoT(r, 1.0e-50)};
   const double_t max{eos.eRhoT(r, 1.0e20)};
-  g = g == std::numeric_limits<double>::min() ? 0.5 * (max - min) : g;
+  g = g == std::numeric_limits<double>::min() ? sqrt((max * min)) : g;
   auto s = regula_falsi(kernel, p, g, min, max, 1.0e-12, 1.0e-12, sie);
   flog_assert(s == Status::SUCCESS,
-    "speciic internal energy root finder failed for r = " << r
-                                                          << " and p = " << p);
+    "specific internal energy root finder failed for r = " << r
+                                                           << " and p = " << p);
   return sie;
 } // find_sie
 
