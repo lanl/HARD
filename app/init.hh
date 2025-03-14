@@ -216,7 +216,7 @@ initialize(control_policy<state, D> & cp) {
 
   if(config["eos"].as<std::string>() == "ideal") {
     s.eos =
-      singularity::IdealGas(config["gamma"].as<double>(), 2.0 /* FIXME */);
+      singularity::IdealGas(config["gamma"].as<double>() - 1, 2.0 /* FIXME */);
   }
   else if(config["eos"].as<std::string>() == "spiner") {
     s.eos = singularity::SpinerEOSDependsRhoSie(
