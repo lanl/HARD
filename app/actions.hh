@@ -152,9 +152,9 @@ fluxes_terms(control_policy<state, D> & cp) {
     // clang-format off
     flecsi::execute<tasks::hydro::reconstruct<D, limiter>, flecsi::default_accelerator>(axis,
       s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m),
-      s.radiation_energy_density(s.m),
       s.specific_internal_energy(s.m),
       s.sound_speed(s.m),
+      s.radiation_energy_density(s.m),
       s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
      s.pTail(s.m), s.pHead(s.m),  s.eTail(s.m), s.eHead(s.m),  s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
       s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m));

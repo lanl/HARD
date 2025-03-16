@@ -34,8 +34,10 @@ conservative_to_primitive(typename mesh<Dim>::template accessor<ro> m,
   if constexpr(Dim == 1) {
     forall(i, (m.template cells<ax::x, dm::quantities>()), "conv2prim") {
       velocity(i) = momentum_density(i) / mass_density(i);
-      specific_internal_energy(i) = total_energy_density(i) / mass_density(i) -
-                                    0.5 * velocity(i).norm_squared();
+      specific_internal_energy(i) =
+        (total_energy_density(i) -
+          0.5 * mass_density(i) * (velocity(i).norm_squared())) /
+        mass_density(i);
       pressure(i) = eos.pRhoSie(mass_density(i), specific_internal_energy(i));
       soundspeed(i) = eos.cRhoSie(mass_density(i), specific_internal_energy(i));
     }; // for

@@ -62,6 +62,14 @@ void inline raw(spec::io::name const & base,
            << std::endl;
       file << std::fixed; // just to get a uniform file format
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
+        if(std::isnan(r(i)) || std::isnan(p(i)) || std::isnan(rE(i)) ||
+           std::isnan(radE(i)) || std::isnan(c(i))) {
+          flog_fatal("NAN Variable: r: " << std::isnan(r(i))
+                                         << " p: " << std::isnan(p(i))
+                                         << " rE: " << std::isnan(rE(i))
+                                         << " radE: " << std::isnan(radE(i))
+                                         << " c: " << std::isnan(c(i)));
+        }
         file << std::setprecision(6) << std::scientific << time << "\t" << i
              << "\t" << m.template center<ax::x>(i) << std::setprecision(12)
              << "\t" << r(i) << "\t" << p(i) << "\t" << u(i).x << "\t" << rE(i)
