@@ -25,6 +25,27 @@ requires(D <= 3) struct vec {
 
 template<>
 struct vec<1> {
+
+  constexpr static std::size_t Dim = 1;
+
+  FLECSI_INLINE_TARGET vec<1>() {}
+
+  FLECSI_INLINE_TARGET vec<1>(double v) {
+    x = v;
+  }
+
+  FLECSI_INLINE_TARGET vec<1>(const vec<1> & v) {
+    x = v.x;
+  }
+
+  FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
+    return components[d];
+  }
+
+  FLECSI_INLINE_TARGET double operator[](std::size_t d) const noexcept {
+    return components[d];
+  }
+
   union
   {
     struct {
@@ -51,6 +72,9 @@ struct vec<1> {
 
 template<>
 struct vec<2> {
+
+  constexpr static std::size_t Dim = 2;
+
   union
   {
     struct {
@@ -59,6 +83,31 @@ struct vec<2> {
     };
     double components[2];
   };
+
+  FLECSI_INLINE_TARGET vec<2>() {}
+
+  FLECSI_INLINE_TARGET vec<2>(double v) {
+    x = v;
+    y = v;
+  }
+
+  FLECSI_INLINE_TARGET vec<2>(double x, double y) {
+    x = x;
+    y = y;
+  }
+
+  FLECSI_INLINE_TARGET vec<2>(const vec<2> & v) {
+    x = v.x;
+    y = v.y;
+  }
+
+  FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
+    return components[d];
+  }
+
+  FLECSI_INLINE_TARGET double operator[](std::size_t d) const noexcept {
+    return components[d];
+  }
 
   FLECSI_INLINE_TARGET double norm_squared() const {
     return x * x + y * y;
@@ -78,6 +127,9 @@ struct vec<2> {
 
 template<>
 struct vec<3> {
+
+  constexpr static std::size_t Dim = 3;
+
   union
   {
     struct {
@@ -87,6 +139,34 @@ struct vec<3> {
     };
     double components[3];
   };
+
+  FLECSI_INLINE_TARGET vec<3>() {}
+
+  FLECSI_INLINE_TARGET vec<3>(double v) {
+    x = v;
+    y = v;
+    z = v;
+  }
+
+  FLECSI_INLINE_TARGET vec<3>(double x, double y, double z) {
+    x = x;
+    y = y;
+    z = z;
+  }
+
+  FLECSI_INLINE_TARGET vec<3>(const vec<3> & v) {
+    x = v.x;
+    y = v.y;
+    z = v.z;
+  }
+
+  FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
+    return components[d];
+  }
+
+  FLECSI_INLINE_TARGET double operator[](std::size_t d) const noexcept {
+    return components[d];
+  }
 
   FLECSI_INLINE_TARGET double norm_squared() const {
     return x * x + y * y + z * z;
@@ -135,6 +215,32 @@ operator+(const vec<D> & a, const vec<D> & b) {
 
 template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
+operator+(const vec<D> & a, double b) {
+  vec<D> result;
+  result.x = a.x + b;
+  if constexpr(D > 1)
+    result.y = a.y + b;
+  if constexpr(D > 2)
+    result.z = a.z + b;
+
+  return result;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D>
+operator+(double b, const vec<D> & a) {
+  vec<D> result;
+  result.x = a.x + b;
+  if constexpr(D > 1)
+    result.y = a.y + b;
+  if constexpr(D > 2)
+    result.z = a.z + b;
+
+  return result;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D>
 operator-(const vec<D> & a, const vec<D> & b) {
   vec<D> result;
   result.x = a.x - b.x;
@@ -153,6 +259,26 @@ operator+=(vec<D> & a, const vec<D> & b) {
     a.y += b.y;
   if constexpr(D > 2)
     a.z += b.z;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET void
+operator+=(vec<D> & a, double b) {
+  a.x += b;
+  if constexpr(D > 1)
+    a.y += b;
+  if constexpr(D > 2)
+    a.z += b;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET void
+operator+=(double b, vec<D> & a) {
+  a.x += b;
+  if constexpr(D > 1)
+    a.y += b;
+  if constexpr(D > 2)
+    a.z += b;
 }
 
 template<std::size_t D>
@@ -204,6 +330,30 @@ operator/(const vec<D> & a, double s) {
     result.y = a.y / s;
   if constexpr(D > 2)
     result.z = a.z / s;
+  return result;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D>
+operator/(const vec<D> & a, const vec<D> & b) {
+  vec<D> result;
+  result.x = a.x / b.x;
+  if constexpr(D > 1)
+    result.y = a.y / b.y;
+  if constexpr(D > 2)
+    result.z = a.z / b.z;
+  return result;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D>
+abs(const vec<D> & a) {
+  vec<D> result;
+  result.x = std::abs(a.x);
+  if constexpr(D > 1)
+    result.y = std::abs(a.y);
+  if constexpr(D > 2)
+    result.z = std::abs(a.z);
   return result;
 }
 
