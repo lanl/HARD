@@ -15,19 +15,23 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
   typename field<vec<D>>::template accessor<ro, na> u_a,
   field<double>::accessor<ro, na> rE_a,
+  field<double>::accessor<ro, na> temperature_a,
   field<double>::accessor<ro, na> radiation_energy_density_a,
-  single<double>::accessor<ro> gamma_a,
   single<double>::accessor<ro> kappa_a,
   single<double>::accessor<ro> particle_mass_a,
   single<double>::accessor<ro> dt_a,
-  //
   field<double>::accessor<rw, na> dt_total_energy_density_implicit_a,
-  field<double>::accessor<rw, na> dt_radiation_energy_density_implicit_a) {
+  field<double>::accessor<rw, na> dt_radiation_energy_density_implicit_a,
+  eos::eos_wrapper const & eos) {
 
   using hard::tasks::util::get_mdiota_policy;
 
+  auto & dt_weighted = *dt_a;
+  const double one_over_aii_dt{1.0 / dt_weighted};
+
   auto r = m.template mdcolex<is::cells>(r_a);
   auto u = m.template mdcolex<is::cells>(u_a);
+  auto temperature = m.template mdcolex<is::cells>(temperature_a);
   auto rE = m.template mdcolex<is::cells>(rE_a);
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
@@ -36,6 +40,19 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
     m.template mdcolex<is::cells>(dt_total_energy_density_implicit_a);
   auto dt_radiation_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
+
+  auto const kappa = *kappa_a;
+  auto const particle_mass = *particle_mass_a;
+
+  const double dt_constant =
+    hard::constants::cgs::speed_of_light * kappa * dt_weighted;
+
+  const double dt_constant_rc = hard::constants::cgs::speed_of_light * kappa *
+                                dt_weighted *
+                                hard::constants::cgs::radiation_constant;
+
+  const double one_plus_dt_constant =
+    1.0 + hard::constants::cgs::speed_of_light * kappa * dt_weighted;
 
   if constexpr(D == 1) {
     /*------------------------------------------------------------------------*
@@ -50,31 +67,23 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
 
       // TODO: verify these variables are not computed by each thread, and
       // stored in each thread register
-      auto const gamma = *gamma_a;
-      auto const kappa = *kappa_a;
-      auto const particle_mass = *particle_mass_a;
-      const double gamma_minus_1 = gamma - 1.0;
-      const double a1_times_rho3 =
-        4.0 * kappa * hard::constants::cgs::stefan_boltzmann_constant *
-        spec::utils::sqr(
-          spec::utils::sqr(gamma_minus_1 * particle_mass /
-                           hard::constants::cgs::boltzmann_constant)) *
-        dt_weighted;
-      const double a2_over_rho =
-        hard::constants::cgs::speed_of_light * kappa * dt_weighted;
-
-      const double a1 = a1_times_rho3 / (r(i) * spec::utils::sqr((r(i))));
-      const double a2 = a2_over_rho * r(i);
+      // auto const gamma = *gamma_a;
 
       const double ke = 0.5 * r(i) * u(i).norm_squared(); // kinetic energy
       const double en = rE(i) - ke; // internal energy
-      const double En = radiation_energy_density(i); // radiation energy
 
-      const double up_en = numerical_algorithms::root_finder::halleys_get_root(
-        a1, 1.0 + a2, -(en + (en + En) * a2), en + En);
+      temperature(i) = eos.tRhoSie(r(i), en(i));
+      double TempFour = pow(temperature(i), 4.0);
+
+      const double En = radiation_energy_density(i); // radiation energy
+      assert(En > 0);
+      const double up_En =
+        (En + dt_constant_rc * TempFour) * one_plus_dt_constant;
+      const double up_en = en + dt_constant_rc * TempFour - dt_constant * up_En;
 
       dt_total_energy_density_implicit(i) += (up_en - en) * one_over_aii_dt;
       dt_radiation_energy_density_implicit(i) += (en - up_en) * one_over_aii_dt;
+
     }; // for
   }
   else if constexpr(D == 2) {
@@ -84,33 +93,21 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::x, dm::quantities>());
 
     forall(ji, mdpolicy_qq, "upd_energy_density") {
-      auto & dt_weighted = *dt_a;
-      const double one_over_aii_dt{1.0 / dt_weighted};
-      // TODO: verify these variables are not computed by each thread, and
-      // stored in each thread register
-      auto const gamma = *gamma_a;
-      auto const kappa = *kappa_a;
-      auto const particle_mass = *particle_mass_a;
-      const double gamma_minus_1 = gamma - 1.0;
-      const double a1_times_rho3 =
-        4.0 * kappa * hard::constants::cgs::stefan_boltzmann_constant *
-        spec::utils::sqr(
-          spec::utils::sqr(gamma_minus_1 * particle_mass /
-                           hard::constants::cgs::boltzmann_constant)) *
-        dt_weighted;
-      const double a2_over_rho =
-        hard::constants::cgs::speed_of_light * kappa * dt_weighted;
 
       auto [j, i] = ji;
-      const double a1 = a1_times_rho3 / (r(i, j) * spec::utils::sqr((r(i, j))));
-      const double a2 = a2_over_rho * r(i, j);
 
-      const double ke = 0.5 * r(i, j) * u(i, j).norm_squared();
+      const double ke =
+        0.5 * r(i, j) * u(i, j).norm_squared(); // kinetic energy
       const double en = rE(i, j) - ke; // internal energy
-      const double En = radiation_energy_density(i, j); // radiation energy
 
-      const double up_en = numerical_algorithms::root_finder::halleys_get_root(
-        a1, 1.0 + a2, -(en + (en + En) * a2), en + En);
+      temperature(i, j) = eos.tRhoSie(r(i, j), en(i, j));
+      double TempFour = pow(temperature(i, j), 4.0);
+
+      const double En = radiation_energy_density(i, j); // radiation energy
+      assert(En > 0);
+      const double up_En =
+        (En + dt_constant_rc * TempFour) * one_plus_dt_constant;
+      const double up_en = en + dt_constant_rc * TempFour - dt_constant * up_En;
 
       dt_total_energy_density_implicit(i, j) += (up_en - en) * one_over_aii_dt;
       dt_radiation_energy_density_implicit(i, j) +=
@@ -124,34 +121,20 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::x, dm::quantities>());
 
     forall(kji, mdpolicy_qqq, "upd_energy_density") {
-      auto & dt_weighted = *dt_a;
-      const double one_over_aii_dt{1.0 / dt_weighted};
-      // TODO: verify these variables are not computed by each thread, and
-      // stored in each thread register
-      auto const gamma = *gamma_a;
-      auto const kappa = *kappa_a;
-      auto const particle_mass = *particle_mass_a;
-      const double gamma_minus_1 = gamma - 1.0;
-      const double a1_times_rho3 =
-        4.0 * kappa * hard::constants::cgs::stefan_boltzmann_constant *
-        spec::utils::sqr(
-          spec::utils::sqr(gamma_minus_1 * particle_mass /
-                           hard::constants::cgs::boltzmann_constant)) *
-        dt_weighted;
-      const double a2_over_rho =
-        hard::constants::cgs::speed_of_light * kappa * dt_weighted;
-
       auto [k, j, i] = kji;
-      const double a1 =
-        a1_times_rho3 / (r(i, j, k) * spec::utils::sqr((r(i, j, k))));
-      const double a2 = a2_over_rho * r(i, j, k);
 
-      const double ke = 0.5 * r(i, j, k) * u(i, j, k).norm_squared();
+      const double ke =
+        0.5 * r(i, j, k) * u(i, j, k).norm_squared(); // kinetic energy
       const double en = rE(i, j, k) - ke; // internal energy
-      const double En = radiation_energy_density(i, j, k); // radiation energy
 
-      const double up_en = numerical_algorithms::root_finder::halleys_get_root(
-        a1, 1.0 + a2, -(en + (en + En) * a2), en + En);
+      temperature(i, j, k) = eos.tRhoSie(r(i, j, k), en(i, j, k));
+      double TempFour = pow(temperature(i, j, k), 4.0);
+
+      const double En = radiation_energy_density(i, j, k); // radiation energy
+      assert(En > 0);
+      const double up_En =
+        (En + dt_constant_rc * TempFour) * one_plus_dt_constant;
+      const double up_en = en + dt_constant_rc * TempFour - dt_constant * up_En;
 
       dt_total_energy_density_implicit(i, j, k) +=
         (up_en - en) * one_over_aii_dt;

@@ -4,7 +4,6 @@
 
 from spack.package import *
 
-
 class Hard(CMakePackage):
     """A FleCSI-based radiation-hydrodynamics solver suite
     for the study of astrophysical phenomena"""
@@ -18,9 +17,10 @@ class Hard(CMakePackage):
     variant("radiation", default=True, description="Enable support for radiation physics")
     variant("tests", default=False, description="Enable unit tests")
 
-    depends_on("flecsi@2.3.0")
+    depends_on("flecsi@2.3.0: +flog")
     depends_on("libcatalyst", when="+catalyst")
     depends_on("yaml-cpp@0.8:")
+    depends_on("singularity-eos@main +hdf5 +spiner +eospac build_extra=sesame")
 
     def cmake_args(self):
         options = [
