@@ -397,6 +397,7 @@ initialize(control_policy<state, D> & cp) {
     s.mass_density(lm),
     s.pressure(lm),
     s.sound_speed(lm),
+    s.specific_internal_energy(lm),
     s.velocity(lm),
     s.momentum_density(lm),
     s.total_energy_density(lm),
