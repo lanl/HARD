@@ -57,7 +57,7 @@ shock(typename mesh<D>::template accessor<ro> m,
   typename field<vec<D>>::template accessor<rw, ro> momentum_density_a,
   field<double>::accessor<rw, ro> total_energy_density_a,
   field<double>::accessor<rw, ro> radiation_energy_density_a,
-  single<double>::accessor<ro> gamma_a) {
+  const eos::eos_wrapper & eos) {
   using hard::tasks::util::get_mdiota_policy;
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
@@ -69,22 +69,19 @@ shock(typename mesh<D>::template accessor<ro> m,
 
   if constexpr(D == 1) {
     forall(i, (m.template cells<ax::x, dm::quantities>()), "init_1d") {
-      const double gamma = *gamma_a;
-      const double mult = 1.0 / (gamma - 1.0);
-
       const auto x = m.template head<ax::x>(i);
 
       if(x < T::x0) {
         mass_density(i) = T::rL;
         momentum_density(i).x = T::rL * T::uL;
-        total_energy_density(i) =
-          mult * T::pL + 0.5 * T::rL * (utils::sqr(T::uL));
+        const double e = util::find_sie(eos, T::rL, T::pL);
+        total_energy_density(i) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
         mass_density(i) = T::rR;
         momentum_density(i).x = T::rR * T::uR;
-        total_energy_density(i) =
-          mult * T::pR + 0.5 * T::rR * (utils::sqr(T::uR));
+        const double e = util::find_sie(eos, T::rR, T::pR);
+        total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
 
       radiation_energy_density(i) = 0.0;
@@ -98,9 +95,6 @@ shock(typename mesh<D>::template accessor<ro> m,
 
     forall(ji, mdpolicy_yx, "init_shock") {
       auto [j, i] = ji;
-      const double gamma = *gamma_a;
-      const double mult = 1.0 / (gamma - 1.0);
-
       const auto x = m.template head<ax::x>(i);
       const auto y = m.template head<ax::y>(j);
 
@@ -112,15 +106,15 @@ shock(typename mesh<D>::template accessor<ro> m,
         mass_density(i, j) = T::rL;
         momentum_density(i, j).x = T::rL * T::uL;
         momentum_density(i, j).y = T::rL * T::vL;
-        total_energy_density(i, j) =
-          mult * T::pL + 0.5 * T::rL * (utils::sqr(T::uL) + utils::sqr(T::vL));
+        const double e = util::find_sie(eos, T::rL, T::pL);
+        total_energy_density(i, j) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
         mass_density(i, j) = T::rR;
         momentum_density(i, j).x = T::rR * T::uR;
         momentum_density(i, j).y = T::rR * T::vR;
-        total_energy_density(i, j) =
-          mult * T::pR + 0.5 * T::rR * (utils::sqr(T::uR) + utils::sqr(T::vR));
+        const double e = util::find_sie(eos, T::rR, T::pR);
+        total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
 
       radiation_energy_density(i, j) = 0.0;
@@ -134,9 +128,6 @@ shock(typename mesh<D>::template accessor<ro> m,
 
     forall(kji, mdpolicy_zyx, "init_shock") {
       auto [k, j, i] = kji;
-      const double gamma = *gamma_a;
-      const double mult = 1.0 / (gamma - 1.0);
-
       const auto x = m.template head<ax::x>(i);
 
       if(x < T::x0) {
@@ -144,20 +135,18 @@ shock(typename mesh<D>::template accessor<ro> m,
         momentum_density(i, j, k).x = T::rL * T::uL;
         momentum_density(i, j, k).y = T::rL * T::vL;
         momentum_density(i, j, k).z = T::rL * T::wL;
+        const double e = util::find_sie(eos, T::rL, T::pL);
         total_energy_density(i, j, k) =
-          mult * T::pL +
-          0.5 * T::rL *
-            (utils::sqr(T::uL) + utils::sqr(T::vL) + utils::sqr(T::wL));
+          T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
         mass_density(i, j, k) = T::rR;
         momentum_density(i, j, k).x = T::rR * T::uR;
         momentum_density(i, j, k).y = T::rR * T::vR;
         momentum_density(i, j, k).z = T::rR * T::wR;
+        const double e = util::find_sie(eos, T::rR, T::pR);
         total_energy_density(i, j, k) =
-          mult * T::pR +
-          0.5 * T::rR *
-            (utils::sqr(T::uR) + utils::sqr(T::vR) + utils::sqr(T::wR));
+          T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
 
       radiation_energy_density(i, j, k) = 0.0;
