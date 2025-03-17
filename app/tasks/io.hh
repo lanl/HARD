@@ -16,6 +16,7 @@ void inline raw(spec::io::name const & base,
   multi<field<double>::accessor<ro, ro>> r_ma,
   multi<field<double>::accessor<ro, ro>> p_ma,
   multi<field<double>::accessor<ro, ro>> c_ma,
+  multi<field<double>::accessor<ro, ro>> e_ma,
   multi<typename field<vec<D>>::template accessor<ro, ro>> u_ma,
   multi<typename field<vec<D>>::template accessor<ro, ro>> ru_ma,
   multi<field<double>::accessor<ro, ro>> rE_ma,
@@ -27,6 +28,7 @@ void inline raw(spec::io::name const & base,
     auto r_a = r_ma.accessors()[i];
     auto p_a = p_ma.accessors()[i];
     auto c_a = c_ma.accessors()[i];
+    auto e_a = e_ma.accessors()[i];
     auto u_a = u_ma.accessors()[i];
     auto ru_a = ru_ma.accessors()[i];
     auto rE_a = rE_ma.accessors()[i];
@@ -35,6 +37,7 @@ void inline raw(spec::io::name const & base,
     auto r = m.template mdcolex<is::cells>(r_a);
     auto p = m.template mdcolex<is::cells>(p_a);
     auto c = m.template mdcolex<is::cells>(c_a);
+    auto e = m.template mdcolex<is::cells>(e_a);
     auto u = m.template mdcolex<is::cells>(u_a);
     auto ru = m.template mdcolex<is::cells>(ru_a);
     auto rE = m.template mdcolex<is::cells>(rE_a);
@@ -58,22 +61,22 @@ void inline raw(spec::io::name const & base,
       // time, cellid_x, coord_x, density, pressure, velocity,
       // fluid total energy density, radiation energy density
       file << "#time\tcellid_x\tcoord_"
-              "x\tdensity\tpressure\tvelocity\ttotalE\tRadE\tsoundspeed"
+              "x\tdensity\tpressure\tvelocity\ttotalE\tRadE\tsoundspeed\tsie"
            << std::endl;
       file << std::fixed; // just to get a uniform file format
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         if(std::isnan(r(i)) || std::isnan(p(i)) || std::isnan(rE(i)) ||
-           std::isnan(radE(i)) || std::isnan(c(i))) {
-          flog_fatal("NAN Variable: r: " << std::isnan(r(i))
-                                         << " p: " << std::isnan(p(i))
-                                         << " rE: " << std::isnan(rE(i))
-                                         << " radE: " << std::isnan(radE(i))
-                                         << " c: " << std::isnan(c(i)));
+           std::isnan(radE(i)) || std::isnan(c(i)) || std::isnan(e(i))) {
+          flog_fatal(
+            "NAN Variable: r: "
+            << std::isnan(r(i)) << " p: " << std::isnan(p(i))
+            << " rE: " << std::isnan(rE(i)) << " radE: " << std::isnan(radE(i))
+            << " c: " << std::isnan(c(i)) << " e: " << std::isnan(e(i)));
         }
         file << std::setprecision(6) << std::scientific << time << "\t" << i
              << "\t" << m.template center<ax::x>(i) << std::setprecision(12)
              << "\t" << r(i) << "\t" << p(i) << "\t" << u(i).x << "\t" << rE(i)
-             << "\t" << radE(i) << "\t" << c(i) << std::endl;
+             << "\t" << radE(i) << "\t" << c(i) << "\t" << e(i) << std::endl;
       } // for
       file << std::endl; // empty line needed for gnuplot's splot
     }
