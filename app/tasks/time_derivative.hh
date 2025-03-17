@@ -388,6 +388,10 @@ update_u(single<double>::accessor<ro> dt_a,
           radiation_energy_density_n(i) +
           (dt * dt_radiation_energy_density(i)) +
           (one_minus_2gamma_dt * dt_radiation_energy_density_implicit(i));
+        // radiation_energy_density_n(i) +
+        //(dt * dt_radiation_energy_density(i)) +
+        //(dt_with_const * radiation_constant* pow(radiation_temperature_n,4.0)
+        //+ dt_radiation_energy_density_implicit(i))/one_plus_dt_with_constant;
 #endif
       }
       else if constexpr(Stage == time_stepper::rk_stage::Update) {

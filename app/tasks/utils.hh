@@ -2,10 +2,34 @@
 #define HARD_TASKS_UTIL_HH
 
 #include "../state.hh"
+#include <singularity-eos/base/root-finding-1d/root_finding.hpp>
 
 #include <sstream>
 
 namespace hard::tasks::util {
+
+/*
+  Find the specific internal energy consitent with the given density and
+  pressure.
+ */
+template<typename E>
+auto
+find_sie(E const & eos,
+  double_t r,
+  double_t p,
+  double_t g = std::numeric_limits<double>::min()) {
+  using namespace RootFinding1D;
+  auto kernel = [&eos, r](double_t e) { return eos.pRhoSie(r, e); };
+  double_t sie{std::numeric_limits<double>::min()};
+  const double_t min{eos.eRhoT(r, 1.0e-50)};
+  const double_t max{eos.eRhoT(r, 1.0e20)};
+  g = g == std::numeric_limits<double>::min() ? sqrt((max * min)) : g;
+  auto s = regula_falsi(kernel, p, g, min, max, 1.0e-12, 1.0e-12, sie);
+  flog_assert(s == Status::SUCCESS,
+    "specific internal energy root finder failed for r = " << r
+                                                           << " and p = " << p);
+  return sie;
+} // find_sie
 
 template<dm::domain DM, std::size_t D>
 inline void
