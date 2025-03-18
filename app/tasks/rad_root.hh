@@ -15,11 +15,11 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
   typename field<vec<D>>::template accessor<ro, na> u_a,
   field<double>::accessor<ro, na> rE_a,
-  field<double>::accessor<ro, na> temperature_a,
   field<double>::accessor<ro, na> radiation_energy_density_a,
   single<double>::accessor<ro> kappa_a,
   single<double>::accessor<ro> particle_mass_a,
   single<double>::accessor<ro> dt_a,
+  field<double>::accessor<rw, na> temperature_a,
   field<double>::accessor<rw, na> dt_total_energy_density_implicit_a,
   field<double>::accessor<rw, na> dt_radiation_energy_density_implicit_a,
   eos::eos_wrapper const & eos) {
@@ -72,7 +72,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       const double ke = 0.5 * r(i) * u(i).norm_squared(); // kinetic energy
       const double en = rE(i) - ke; // internal energy
 
-      temperature(i) = eos.tRhoSie(r(i), en(i));
+      temperature(i) = eos.tRhoSie(r(i), en);
       double TempFour = pow(temperature(i), 4.0);
 
       const double En = radiation_energy_density(i); // radiation energy
@@ -100,7 +100,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
         0.5 * r(i, j) * u(i, j).norm_squared(); // kinetic energy
       const double en = rE(i, j) - ke; // internal energy
 
-      temperature(i, j) = eos.tRhoSie(r(i, j), en(i, j));
+      temperature(i, j) = eos.tRhoSie(r(i, j), en);
       double TempFour = pow(temperature(i, j), 4.0);
 
       const double En = radiation_energy_density(i, j); // radiation energy
@@ -127,7 +127,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
         0.5 * r(i, j, k) * u(i, j, k).norm_squared(); // kinetic energy
       const double en = rE(i, j, k) - ke; // internal energy
 
-      temperature(i, j, k) = eos.tRhoSie(r(i, j, k), en(i, j, k));
+      temperature(i, j, k) = eos.tRhoSie(r(i, j, k), en);
       double TempFour = pow(temperature(i, j, k), 4.0);
 
       const double En = radiation_energy_density(i, j, k); // radiation energy
