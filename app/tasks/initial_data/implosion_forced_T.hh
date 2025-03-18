@@ -60,9 +60,9 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
 
   // Note : assuming ideal gas EOS
 
-  const double fluid_internal_energy_density =
-    mass_density_v * constants::cgs::boltzmann_constant * fluid_temperature /
-    ((gamma - 1.0) * particle_mass);
+  const double fluid_internal_energy_density = 1.0; //TODO: fix
+  //  mass_density_v * constants::cgs::boltzmann_constant * fluid_temperature /
+  //  ((gamma - 1.0) * particle_mass);
  
   const double radiation_energy_density_v =
     constants::cgs::radiation_constant *
