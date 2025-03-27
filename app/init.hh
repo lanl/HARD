@@ -282,16 +282,18 @@ initialize(control_policy<state, D> & cp) {
       s.radiation_energy_density(s.m),
       s.eos);
   }
-#if 0 
   else if(config["problem"].as<std::string>() == "heating_and_cooling") {
+    if(config["eos"].as<std::string>() != "ideal")
+      flog_fatal("Heating and cooling test only supports Ideal Gas eos");
     execute<tasks::initial_data::heating_and_cooling<D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
-      gamma(s.gt),
-      particle_mass(s.gt));
+      particle_mass(s.gt),
+      config["gamma"].as<double>());
   }
+#if 0
   else if(config["problem"].as<std::string>() == "rad-rh") {
     execute<tasks::initial_data::
         rad_RH<tasks::initial_data::rad_shock::rad_rankine_hugoniot, D>>(s.m,

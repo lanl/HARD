@@ -10,6 +10,7 @@ problem_parameters:
 kappa: 1.0
 gamma: 1.4
 mean_molecular_weight: 1.0
+eos: ideal
 
 t0: 0.0
 tf: 40
@@ -34,4 +35,4 @@ catalyst:
   implementation: paraview
   implementation_directory: /path
 
-lowest_level: 1
+lowest_level: 2
