@@ -27,8 +27,8 @@ heating_and_cooling(typename mesh<Dim>::template accessor<ro> m,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
   field<double>::accessor<wo, na> radiation_energy_density_a,
-  single<double>::accessor<ro> gamma_a,
-  single<double>::accessor<ro> particle_mass_a) {
+  single<double>::accessor<ro> particle_mass_a,
+  const double gamma) {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
@@ -36,7 +36,6 @@ heating_and_cooling(typename mesh<Dim>::template accessor<ro> m,
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
-  auto const gamma = *gamma_a;
   auto const particle_mass = *particle_mass_a;
 
   // Parse input parameters
