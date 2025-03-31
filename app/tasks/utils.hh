@@ -16,8 +16,8 @@ namespace hard::tasks::util {
 template<typename E>
 auto
 find_sie(E const & eos,
-  double_t r,
-  double_t p,
+  const double_t r,
+  const double_t p,
   double_t g = std::numeric_limits<double>::min()) {
   using namespace RootFinding1D;
   auto kernel = [&eos, r](double_t e) { return eos.pRhoSie(r, e); };
@@ -39,12 +39,12 @@ find_sie(E const & eos,
 template<typename E>
 auto
 find_temp(E const & eos,
-  double_t r,
-  double_t e,
-  double_t gt,
-  double_t kappa,
-  double_t En,
-  double_t dt) {
+  const double_t r,
+  const double_t e,
+  const double_t gt,
+  const double_t kappa,
+  const double_t En,
+  const double_t dt) {
 
   using namespace RootFinding1D;
   double_t t{gt};
