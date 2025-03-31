@@ -5,46 +5,11 @@
 #include "../numerical_algorithms/root_finder.hh"
 #include "app/state.hh"
 #include "utils.hh"
-#include <cmath>
-#include <singularity-eos/base/root-finding-1d/root_finding.hpp>
 #include <spec/utils.hh>
 
 namespace hard::task::rad_root {
 // This task computes the updated radiation and gas energies.
 // The update is performed by finding a root to a quartic polynomial.
-
-// Here, we need to get the updated Temperature via root-finding
-// We have the form like:
-// F(T) = e(rho, T) - e^n - a / (1 + a) * (ar * T^4 - En)
-//  where a = dt * kappa * c
-template<typename E>
-auto
-find_temp(E const & eos,
-  double_t r,
-  double_t e,
-  double_t gt,
-  double_t kappa,
-  double_t En,
-  double_t dt) {
-
-  using namespace RootFinding1D;
-  double_t t{gt};
-  const double_t min{eos.tRhoSie(r, 1.0e-50)};
-  const double_t max{eos.tRhoSie(r, 1.0e20)};
-  const double_t ar{constants::cgs::radiation_constant};
-  const double_t a{dt * kappa * constants::cgs::speed_of_light};
-
-  auto kernel = [&eos, r, a, ar, En](double_t t) {
-    return eos.eRhoT(r, t) - a / (1 + a) * (ar * pow(t, 4.0) - En);
-  };
-
-  auto s = regula_falsi(kernel, e, gt, min, max, 1.0e-12, 1.0e-12, t);
-  flog_assert(s == Status::SUCCESS,
-    "specific internal energy root finder failed for r = " << r
-                                                           << " and t = " << t);
-  return t;
-
-} // find_temp
 
 //
 template<std::size_t D>
@@ -117,8 +82,8 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       assert(En >= 0);
 
       // Find the next temperature with root finding
-      const double up_Tn{
-        find_temp(eos, r(i), en, temperature(i), kappa, En, dt_weighted)};
+      const double up_Tn{tasks::util::find_temp(
+        eos, r(i), en, temperature(i), kappa, En, dt_weighted)};
       std::cout << "up_Tn = " << up_Tn << std::endl;
       double TempFour = pow(up_Tn, 4.0);
 
