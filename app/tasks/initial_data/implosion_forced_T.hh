@@ -21,7 +21,6 @@ struct implosion {
   static constexpr double Ti = 1.0;
 }; // struct implosion
 
-
 template<std::size_t Dim>
 auto
 implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
@@ -38,8 +37,8 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
-  //auto const gamma = *gamma_a;
-  //auto const particle_mass = *particle_mass_a;
+  // auto const gamma = *gamma_a;
+  // auto const particle_mass = *particle_mass_a;
 
   // Parse input parameters
   YAML::Node config = YAML::LoadFile(opt::config.value());
@@ -60,10 +59,10 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
 
   // Note : assuming ideal gas EOS
 
-  const double fluid_internal_energy_density = 1.0; //TODO: fix
+  const double fluid_internal_energy_density = 1.0; // TODO: fix
   //  mass_density_v * constants::cgs::boltzmann_constant * fluid_temperature /
   //  ((gamma - 1.0) * particle_mass);
- 
+
   const double radiation_energy_density_v =
     constants::cgs::radiation_constant *
     spec::utils::sqr(spec::utils::sqr(radiation_temperature));
