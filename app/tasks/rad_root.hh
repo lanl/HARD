@@ -85,8 +85,6 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       const double up_Tn{tasks::util::find_temp(
         eos, r(i), en, temperature(i), kappa, En, dt_weighted)};
 
-      const double up_En{get_up_En(up_Tn, En)};
-
       // Update En with the formula and en with conservation of energy
       const double up_En{get_up_En(up_Tn, En)};
       const double up_en{en - (up_En - En)};
