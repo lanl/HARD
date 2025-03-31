@@ -1,6 +1,7 @@
 #ifndef HARD_TASKS_UTIL_HH
 #define HARD_TASKS_UTIL_HH
 
+#include "../constants.hh"
 #include "../state.hh"
 #include <singularity-eos/base/root-finding-1d/root_finding.hpp>
 
@@ -30,6 +31,39 @@ find_sie(E const & eos,
                                                            << " and p = " << p);
   return sie;
 } // find_sie
+
+// Here, we need to get the updated Temperature via root-finding
+// We have the form like:
+// F(T) = e(rho, T) - e^n - a / (1 + a) * (ar * T^4 - En)
+//  where a = dt * kappa * c
+template<typename E>
+auto
+find_temp(E const & eos,
+  double_t r,
+  double_t e,
+  double_t gt,
+  double_t kappa,
+  double_t En,
+  double_t dt) {
+
+  using namespace RootFinding1D;
+  double_t t{gt};
+  const double_t min{eos.tRhoSie(r, 1.0e-50)};
+  const double_t max{eos.tRhoSie(r, 1.0e20)};
+  const double_t ar{constants::cgs::radiation_constant};
+  const double_t a{dt * kappa * constants::cgs::speed_of_light};
+
+  auto kernel = [&eos, r, a, ar, En](double_t t) {
+    return eos.eRhoT(r, t) + a / (1 + a) * (ar * pow(t, 4.0) - En);
+  };
+
+  auto s = regula_falsi(kernel, e, gt, min, max, 1.0e-12, 1.0e-12, t);
+  flog_assert(s == Status::SUCCESS,
+    "specific internal energy root finder failed for r = " << r
+                                                           << " and t = " << t);
+  return t;
+
+} // find_temp
 
 template<dm::domain DM, std::size_t D>
 inline void
