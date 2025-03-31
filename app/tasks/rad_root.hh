@@ -71,18 +71,28 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
 
       const double ke = 0.5 * r(i) * u(i).norm_squared(); // kinetic energy
       const double en = rE(i) - ke; // internal energy
-
+      
+      //getting temperature from EOS, this should be inital guess
       temperature(i) = eos.tRhoSie(r(i), en);
-      double TempFour = pow(temperature(i), 4.0);
 
       const double En = radiation_energy_density(i); // radiation energy
       assert(En > 0);
+      //Here, we need to get updated Temperature via root-finding
+      //We have the form like:
+      //F(T) = e(rho,T) - e^n + a/(1+a) * (ar*T^4 - En) 
+      // where a = dt*kappa*c
+      // For Newton-Raphson method, we need find T such that F(T) == 0
+      const double up_Tn = 0.0;
+      double TempFour = pow(up_Tn, 4.0);
+
       const double up_En =
         (En + dt_constant_rc * TempFour) * one_plus_dt_constant;
-      const double up_en = en + dt_constant_rc * TempFour - dt_constant * up_En;
+      // Simply get updated en from T^{n+1} via EOS
+      //const double up_en = en + dt_constant_rc * TempFour - dt_constant * up_En;
+      const double up_en = eos.eRhoT(r(i), up_Tn);
 
       dt_total_energy_density_implicit(i) += (up_en - en) * one_over_aii_dt;
-      dt_radiation_energy_density_implicit(i) += (en - up_en) * one_over_aii_dt;
+      dt_radiation_energy_density_implicit(i) += (up_En - En) * one_over_aii_dt;
 
     }; // for
   }
