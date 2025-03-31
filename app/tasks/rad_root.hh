@@ -2,7 +2,6 @@
 #define HARD_TASKS_RADROOT_HH
 
 #include "../constants.hh"
-#include "../numerical_algorithms/root_finder.hh"
 #include "app/state.hh"
 #include "utils.hh"
 #include <spec/utils.hh>
@@ -47,15 +46,16 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
   auto const kappa = *kappa_a;
   auto const particle_mass = *particle_mass_a;
 
-  const double dt_constant =
-    hard::constants::cgs::speed_of_light * kappa * dt_weighted;
+  // Timestep constant for energy update
+  const double dt_c{hard::constants::cgs::speed_of_light * kappa * dt_weighted};
 
-  const double dt_constant_rc = hard::constants::cgs::speed_of_light * kappa *
-                                dt_weighted *
-                                hard::constants::cgs::radiation_constant;
+  // Radiation constant (shorter name)
+  const double rad_c{hard::constants::cgs::radiation_constant};
 
-  const double one_plus_dt_constant =
-    1.0 + hard::constants::cgs::speed_of_light * kappa * dt_weighted;
+  // Define the En update function
+  auto get_up_En = [&eos, r, dt_c, rad_c](double_t t, double_t En) {
+    return (En + dt_c * rad_c * pow(t, 4.0)) / (1 + dt_c);
+  };
 
   if constexpr(D == 1) {
     /*------------------------------------------------------------------------*
@@ -84,15 +84,12 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       // Find the next temperature with root finding
       const double up_Tn{tasks::util::find_temp(
         eos, r(i), en, temperature(i), kappa, En, dt_weighted)};
-      std::cout << "up_Tn = " << up_Tn << std::endl;
-      double TempFour = pow(up_Tn, 4.0);
 
-      const double up_En =
-        (En + dt_constant_rc * TempFour) * one_plus_dt_constant;
-      // Simply get updated en from T^{n+1} via EOS
-      // const double up_en = en + dt_constant_rc * TempFour - dt_constant *
-      // up_En;
-      const double up_en = eos.eRhoT(r(i), up_Tn);
+      const double up_En{get_up_En(up_Tn, En)};
+
+      // Update En with the formula and en with conservation of energy
+      const double up_En{get_up_En(up_Tn, En)};
+      const double up_en{en - (up_En - En)};
 
       dt_total_energy_density_implicit(i) += (up_en - en) * one_over_aii_dt;
       dt_radiation_energy_density_implicit(i) += (up_En - En) * one_over_aii_dt;
@@ -118,11 +115,14 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
 
       const double En = radiation_energy_density(i, j); // radiation energy
       assert(En >= 0);
-      const double up_En =
-        (En + dt_constant_rc * TempFour) * one_plus_dt_constant;
-      const double up_en = en + dt_constant_rc * TempFour - dt_constant * up_En;
+
+      // FIXME: At some point use the correct temperature here
+      // Update En with the formula and en with conservation of energy
+      const double up_En{get_up_En(temperature(i, j), En)};
+      const double up_en{en - (up_En - En)};
 
       dt_total_energy_density_implicit(i, j) += (up_en - en) * one_over_aii_dt;
+      // FIXME: Be consistent here
       dt_radiation_energy_density_implicit(i, j) +=
         (en - up_en) * one_over_aii_dt;
     }; // forall
@@ -145,12 +145,15 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
 
       const double En = radiation_energy_density(i, j, k); // radiation energy
       assert(En >= 0);
-      const double up_En =
-        (En + dt_constant_rc * TempFour) * one_plus_dt_constant;
-      const double up_en = en + dt_constant_rc * TempFour - dt_constant * up_En;
+
+      // FIXME: At some point use the correct temperature here
+      // Update En with the formula and en with conservation of energy
+      const double up_En{get_up_En(temperature(i, j, k), En)};
+      const double up_en{en - (up_En - En)};
 
       dt_total_energy_density_implicit(i, j, k) +=
         (up_en - en) * one_over_aii_dt;
+      // FIXME: Be consistent here
       dt_radiation_energy_density_implicit(i, j, k) +=
         (en - up_en) * one_over_aii_dt;
     };
