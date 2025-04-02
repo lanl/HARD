@@ -27,12 +27,12 @@ compute_interface_fluxes(std::size_t face_axis,
   field<double>::accessor<wo, ro> cTail_a,
   field<double>::accessor<wo, ro> cHead_a,
   field<double>::accessor<wo, ro>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     EradTail_a
 #endif
   ,
   field<double>::accessor<wo, ro>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     EradHead_a
 #endif
   ,
@@ -45,7 +45,7 @@ compute_interface_fluxes(std::size_t face_axis,
   typename field<vec<Dim>>::template accessor<wo, ro> ruF_a,
   field<double>::accessor<wo, ro> rEF_a,
   field<double>::accessor<wo, ro>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     EradF_a
 #endif
   ,
@@ -54,7 +54,7 @@ compute_interface_fluxes(std::size_t face_axis,
   typename field<vec<Dim>>::template accessor<rw, ro> dt_momentum_density_a,
   field<double>::accessor<rw, na> dt_total_energy_density_a,
   field<double>::accessor<rw, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     dt_radiation_energy_density_a
 #endif
 ) {
@@ -70,7 +70,7 @@ compute_interface_fluxes(std::size_t face_axis,
   auto cTail = m.template mdcolex<is::cells>(cTail_a);
   auto cHead = m.template mdcolex<is::cells>(cHead_a);
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto EradTail = m.template mdcolex<is::cells>(EradTail_a);
   auto EradHead = m.template mdcolex<is::cells>(EradHead_a);
 #endif
@@ -81,7 +81,7 @@ compute_interface_fluxes(std::size_t face_axis,
   auto rF = m.template mdcolex<is::cells>(rF_a);
   auto ruF = m.template mdcolex<is::cells>(ruF_a);
   auto rEF = m.template mdcolex<is::cells>(rEF_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto EradF = m.template mdcolex<is::cells>(EradF_a);
 #endif
   auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
@@ -89,7 +89,7 @@ compute_interface_fluxes(std::size_t face_axis,
     m.template mdcolex<is::cells>(dt_momentum_density_a);
   auto dt_total_energy_density =
     m.template mdcolex<is::cells>(dt_total_energy_density_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto dt_radiation_energy_density =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
 #endif
@@ -147,7 +147,7 @@ compute_interface_fluxes(std::size_t face_axis,
       ruF(i) = get<1>(hll_fluxes);
       rEF(i) = get<2>(hll_fluxes);
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       EradF(i) = numerical_algorithms::advect_Erad(
         EradTail(i - 1), EradHead(i), uTail(i - 1).x, uHead(i).x);
 #endif
@@ -158,7 +158,7 @@ compute_interface_fluxes(std::size_t face_axis,
       dt_mass_density(i) += one_over_dx_i[0] * (rF(i) - rF(i + 1));
       dt_momentum_density(i) += one_over_dx_i[0] * (ruF(i) - ruF(i + 1));
       dt_total_energy_density(i) += one_over_dx_i[0] * (rEF(i) - rEF(i + 1));
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       dt_radiation_energy_density(i) +=
         one_over_dx_i[0] * (EradF(i) - EradF(i + 1));
 #endif
@@ -212,7 +212,7 @@ compute_interface_fluxes(std::size_t face_axis,
         ruF(i, j) = get<1>(hll_fluxes);
         rEF(i, j) = get<2>(hll_fluxes);
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         EradF(i, j) = numerical_algorithms::advect_Erad(
           EradTail(i - 1, j), EradHead(i, j), uTail(i - 1, j).x, uHead(i, j).x);
 #endif
@@ -231,7 +231,7 @@ compute_interface_fluxes(std::size_t face_axis,
           one_over_dx_i[0] * (ruF(i, j) - ruF(i + 1, j));
         dt_total_energy_density(i, j) +=
           one_over_dx_i[0] * (rEF(i, j) - rEF(i + 1, j));
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         dt_radiation_energy_density(i, j) +=
           one_over_dx_i[0] * (EradF(i, j) - EradF(i + 1, j));
 #endif
@@ -279,7 +279,7 @@ compute_interface_fluxes(std::size_t face_axis,
         ruF(i, j) = get<1>(hll_fluxes);
         rEF(i, j) = get<2>(hll_fluxes);
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         EradF(i, j) = numerical_algorithms::advect_Erad(
           EradTail(i, j - 1), EradHead(i, j), uTail(i, j - 1).y, uHead(i, j).y);
 #endif
@@ -298,7 +298,7 @@ compute_interface_fluxes(std::size_t face_axis,
           one_over_dx_i[1] * (ruF(i, j) - ruF(i, j + 1));
         dt_total_energy_density(i, j) +=
           one_over_dx_i[1] * (rEF(i, j) - rEF(i, j + 1));
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         dt_radiation_energy_density(i, j) +=
           one_over_dx_i[1] * (EradF(i, j) - EradF(i, j + 1));
 #endif
@@ -357,7 +357,7 @@ compute_interface_fluxes(std::size_t face_axis,
         ruF(i, j, k) = get<1>(hll_fluxes);
         rEF(i, j, k) = get<2>(hll_fluxes);
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         EradF(i, j, k) =
           numerical_algorithms::advect_Erad(EradTail(i - 1, j, k),
             EradHead(i, j, k),
@@ -382,7 +382,7 @@ compute_interface_fluxes(std::size_t face_axis,
           one_over_dx_i[0] * (ruF(i, j, k) - ruF(i + 1, j, k));
         dt_total_energy_density(i, j, k) +=
           one_over_dx_i[0] * (rEF(i, j, k) - rEF(i + 1, j, k));
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         dt_radiation_energy_density(i, j, k) +=
           one_over_dx_i[0] * (EradF(i, j, k) - EradF(i + 1, j, k));
 #endif
@@ -435,7 +435,7 @@ compute_interface_fluxes(std::size_t face_axis,
         ruF(i, j, k) = get<1>(hll_fluxes);
         rEF(i, j, k) = get<2>(hll_fluxes);
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         EradF(i, j, k) =
           numerical_algorithms::advect_Erad(EradTail(i, j - 1, k),
             EradHead(i, j, k),
@@ -459,7 +459,7 @@ compute_interface_fluxes(std::size_t face_axis,
           one_over_dx_i[1] * (ruF(i, j, k) - ruF(i, j + 1, k));
         dt_total_energy_density(i, j, k) +=
           one_over_dx_i[1] * (rEF(i, j, k) - rEF(i, j + 1, k));
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         dt_radiation_energy_density(i, j, k) +=
           one_over_dx_i[1] * (EradF(i, j, k) - EradF(i, j + 1, k));
 #endif
@@ -512,7 +512,7 @@ compute_interface_fluxes(std::size_t face_axis,
         ruF(i, j, k) = get<1>(hll_fluxes);
         rEF(i, j, k) = get<2>(hll_fluxes);
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         EradF(i, j, k) =
           numerical_algorithms::advect_Erad(EradTail(i, j, k - 1),
             EradHead(i, j, k),
@@ -536,7 +536,7 @@ compute_interface_fluxes(std::size_t face_axis,
           one_over_dx_i[2] * (ruF(i, j, k) - ruF(i, j, k + 1));
         dt_total_energy_density(i, j, k) +=
           one_over_dx_i[2] * (rEF(i, j, k) - rEF(i, j, k + 1));
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         dt_radiation_energy_density(i, j, k) +=
           one_over_dx_i[2] * (EradF(i, j, k) - EradF(i, j, k + 1));
 #endif
