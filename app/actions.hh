@@ -71,12 +71,12 @@ initialize_time_derivative(control_policy<state, D> & cp) {
 template<std::size_t D, time_stepper::rk_stage Stage>
 void
 explicit_source_terms(control_policy<state, D> &
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     cp
 #endif
 ) {
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
 
   auto & s = cp.state();
 
@@ -194,12 +194,12 @@ fluxes_terms(control_policy<state, D> & cp) {
 template<std::size_t D, time_stepper::rk_stage Stage>
 void
 implicit_source_terms(control_policy<state, D> &
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     cp
 #endif
 ) {
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
 
   auto & s = cp.state();
 
