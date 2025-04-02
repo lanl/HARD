@@ -81,6 +81,11 @@ struct state {
   static inline const field<double>::definition<mesh<D>, is::cells>
     radiation_energy_density;
 
+  // Intermediate radiation energy density for the implicit part of the
+  // operator split
+  static inline const field<double>::definition<mesh<D>, is::cells>
+    i_radiation_energy_density;
+
   // Primitives.
   static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
     velocity; // u

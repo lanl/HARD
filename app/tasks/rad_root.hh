@@ -24,6 +24,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<rw, na> temperature_a,
   field<double>::accessor<rw, na> dt_total_energy_density_implicit_a,
   field<double>::accessor<rw, na> dt_radiation_energy_density_implicit_a,
+  field<double>::accessor<wo, na> i_radiation_energy_density_a,
   eos::eos_wrapper const & eos) {
 
   using hard::tasks::util::get_mdiota_policy;
@@ -42,6 +43,8 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
     m.template mdcolex<is::cells>(dt_total_energy_density_implicit_a);
   auto dt_radiation_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
+  auto i_radiation_energy_density =
+    m.template mdcolex<is::cells>(i_radiation_energy_density_a);
 
   auto const kappa = *kappa_a;
   auto const particle_mass = *particle_mass_a;
@@ -66,7 +69,9 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       i, (m.template cells<ax::x, dm::quantities>()), "upd_energy_density") {
       auto & dt_weighted = *dt_a;
       const double one_over_aii_dt{1.0 / dt_weighted};
-      // a1 and a2 are constants defined in the paper Moens et al (2022)
+      // NOTE: a1 and a2 are constants defined in the paper Moens et al (2022)
+      // FIXME: The variables "a1" and "a2" do not exist, remove comment
+      // above?
 
       // TODO: verify these variables are not computed by each thread, and
       // stored in each thread register
@@ -88,6 +93,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       // Update En with the formula and en with conservation of energy
       const double up_En{get_up_En(up_Tn, En)};
       const double up_en{en - (up_En - En)};
+      i_radiation_energy_density(i) = up_En;
 
       dt_total_energy_density_implicit(i) += (up_en - en) * one_over_aii_dt;
       dt_radiation_energy_density_implicit(i) += (up_En - En) * one_over_aii_dt;
@@ -118,6 +124,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       // Update En with the formula and en with conservation of energy
       const double up_En{get_up_En(temperature(i, j), En)};
       const double up_en{en - (up_En - En)};
+      i_radiation_energy_density(i, j) = up_En;
 
       dt_total_energy_density_implicit(i, j) += (up_en - en) * one_over_aii_dt;
       // FIXME: Be consistent here
@@ -148,6 +155,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       // Update En with the formula and en with conservation of energy
       const double up_En{get_up_En(temperature(i, j, k), En)};
       const double up_en{en - (up_En - En)};
+      i_radiation_energy_density(i, j, k) = up_En;
 
       dt_total_energy_density_implicit(i, j, k) +=
         (up_en - en) * one_over_aii_dt;
