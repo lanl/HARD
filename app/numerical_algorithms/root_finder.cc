@@ -98,33 +98,4 @@ NewtonRaphson::get_root(double c4,
   return -1.0; // No convergence
 }
 
-// ------------------------------------------------------------------------------------------
-// double
-// halleys_get_root(double c4, double c1, double c0, double upper_bracket_bound)
-// {
-
-//   double xn = upper_bracket_bound * 0.5; // Initial guess
-//   double dx;
-
-//   for(std::size_t i = 0; i < root_finder::max_iter; ++i) {
-//     double fx = energy_polynomial::func(xn, c4, c1, c0);
-//     double fprime = energy_polynomial::funcprime(xn, c4, c1);
-//     double fprime2 = energy_polynomial::funcprime2(xn, c4);
-
-//     dx = -(2.0 * fx * fprime) / (2.0 * fprime * fprime - fx * fprime2);
-
-//     if((std::abs(fx) < tol) or (std::abs(dx) < tol * xn)) {
-//       if(xn < 0.0) {
-//         flog(error) << "Halley's method failed";
-//       }
-//       return xn;
-//     }
-
-//     xn = xn + dx;
-//   }
-
-//   flog_fatal("Halley's method failed to converge");
-//   return -1.0; // No convergence
-// }
-
 } // namespace hard::numerical_algorithms::root_finder

@@ -119,7 +119,7 @@ touch(typename mesh<D>::template accessor<ro>, // m,
   field<double>::accessor<wo, wo>, // rF_a,
   typename field<vec<D>>::template accessor<wo, wo>, // ruF_a,
   field<double>::accessor<wo, wo> // rEF_a
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   ,
   field<double>::accessor<wo, wo>, // Erad_a,
   field<double>::accessor<wo, wo>, // EradTail_a,
@@ -167,7 +167,7 @@ touch1(typename mesh<D>::template accessor<ro>, // m,
   field<double>::accessor<wo, wo>, // rF_a,
   typename field<vec<D>>::template accessor<wo, wo>, // ruF_a,
   field<double>::accessor<wo, wo> // rEF_a
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   ,
   field<double>::accessor<wo, wo>, // Erad_a,
   field<double>::accessor<wo, wo>, // EradTail_a,

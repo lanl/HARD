@@ -46,8 +46,8 @@ if(HARD_BENCHMARK_MODE)
   target_compile_definitions(hard PUBLIC HARD_BENCHMARK_MODE)
 endif()
 
-if(DISABLE_RADIATION)
-  target_compile_definitions(hard PUBLIC DISABLE_RADIATION)
+if(ENABLE_RADIATION)
+  target_compile_definitions(hard PUBLIC ENABLE_RADIATION)
 endif()
 
 if(HARD_ENABLE_LEGION_TRACING)

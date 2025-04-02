@@ -54,7 +54,7 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
       dt_momentum_density(i, j).x = 0.0;
       dt_momentum_density(i, j).y = 0.0;
       dt_total_energy_density(i, j) = 0.0;
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       dt_radiation_energy_density(i, j) = 0.0;
       dt_total_energy_density_implicit(i, j) = 0.0;
       dt_radiation_energy_density_implicit(i, j) = 0.0;
@@ -75,7 +75,7 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
       dt_momentum_density(i, j, k).y = 0.0;
       dt_momentum_density(i, j, k).z = 0.0;
       dt_total_energy_density(i, j, k) = 0.0;
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       dt_radiation_energy_density(i, j, k) = 0.0;
       dt_total_energy_density_implicit(i, j, k) = 0.0;
       dt_radiation_energy_density_implicit(i, j, k) = 0.0;
@@ -96,7 +96,7 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
   typename field<vec<Dim>>::template accessor<ro, na> momentum_density_a,
   field<double>::accessor<ro, na> total_energy_density_a,
   field<double>::accessor<ro, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     radiation_energy_density_a
 #endif
   // Copied into
@@ -105,7 +105,7 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_n_a,
   field<double>::accessor<wo, na> total_energy_density_n_a,
   field<double>::accessor<wo, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     radiation_energy_density_n_a
 #endif
 ) {
@@ -118,7 +118,7 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto total_energy_density_n =
     m.template mdcolex<is::cells>(total_energy_density_n_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
   auto radiation_energy_density_n =
@@ -131,7 +131,7 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
       mass_density_n(i) = mass_density(i);
       momentum_density_n(i) = momentum_density(i);
       total_energy_density_n(i) = total_energy_density(i);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       radiation_energy_density_n(i) = radiation_energy_density(i);
 #endif
     }; // forall
@@ -146,7 +146,7 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
       mass_density_n(i, j) = mass_density(i, j);
       momentum_density_n(i, j) = momentum_density(i, j);
       total_energy_density_n(i, j) = total_energy_density(i, j);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       radiation_energy_density_n(i, j) = radiation_energy_density(i, j);
 #endif
 
@@ -163,7 +163,7 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
       mass_density_n(i, j, k) = mass_density(i, j, k);
       momentum_density_n(i, j, k) = momentum_density(i, j, k);
       total_energy_density_n(i, j, k) = total_energy_density(i, j, k);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       radiation_energy_density_n(i, j, k) = radiation_energy_density(i, j, k);
 #endif
 
@@ -181,27 +181,27 @@ compute_u_after_implicit_solve(typename mesh<Dim>::template accessor<ro> m,
   single<double>::accessor<ro> dtw_a,
   field<double>::accessor<rw, na> total_energy_density_a,
   field<double>::accessor<rw, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     radiation_energy_density_a
 #endif
   ,
   field<double>::accessor<ro, na> dt_total_energy_density_implicit_a,
   field<double>::accessor<ro, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     dt_radiation_energy_density_implicit_a
 #endif
 ) {
 
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
 
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
 #endif
   auto dt_total_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_total_energy_density_implicit_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto dt_radiation_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
 #endif
@@ -212,7 +212,7 @@ compute_u_after_implicit_solve(typename mesh<Dim>::template accessor<ro> m,
       auto & dt_weighted = *dtw_a;
       total_energy_density(i) +=
         dt_weighted * dt_total_energy_density_implicit(i);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       radiation_energy_density(i) +=
         dt_weighted * dt_radiation_energy_density_implicit(i);
 #endif
@@ -228,7 +228,7 @@ compute_u_after_implicit_solve(typename mesh<Dim>::template accessor<ro> m,
       auto & dt_weighted = *dtw_a;
       total_energy_density(i, j) +=
         dt_weighted * dt_total_energy_density_implicit(i, j);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       radiation_energy_density(i, j) +=
         dt_weighted * dt_radiation_energy_density_implicit(i, j);
 #endif
@@ -245,7 +245,7 @@ compute_u_after_implicit_solve(typename mesh<Dim>::template accessor<ro> m,
       auto & dt_weighted = *dtw_a;
       total_energy_density(i, j, k) +=
         dt_weighted * dt_total_energy_density_implicit(i, j, k);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       radiation_energy_density(i, j, k) +=
         dt_weighted * dt_radiation_energy_density_implicit(i, j, k);
 #endif
@@ -271,7 +271,7 @@ update_u(single<double>::accessor<ro> dt_a,
   typename field<vec<Dim>>::template accessor<ro, na> momentum_density_n_a,
   field<double>::accessor<ro, na> total_energy_density_n_a,
   field<double>::accessor<ro, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     radiation_energy_density_n_a
 #endif
   ,
@@ -280,13 +280,13 @@ update_u(single<double>::accessor<ro> dt_a,
   typename field<vec<Dim>>::template accessor<ro, na> dt_momentum_density_a,
   field<double>::accessor<ro, na> dt_total_energy_density_a,
   field<double>::accessor<ro, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     dt_radiation_energy_density_a
 #endif
   ,
   field<double>::accessor<ro, na> dt_total_energy_density_implicit_a,
   field<double>::accessor<ro, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     dt_radiation_energy_density_implicit_a
 #endif
   ,
@@ -295,13 +295,13 @@ update_u(single<double>::accessor<ro> dt_a,
   typename field<vec<Dim>>::template accessor<ro, na> dt_momentum_density_2_a,
   field<double>::accessor<ro, na> dt_total_energy_density_2_a,
   field<double>::accessor<ro, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     dt_radiation_energy_density_2_a
 #endif
   ,
   field<double>::accessor<ro, na> dt_total_energy_density_implicit_2_a,
   field<double>::accessor<ro, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     dt_radiation_energy_density_implicit_2_a
 #endif
   ,
@@ -310,7 +310,7 @@ update_u(single<double>::accessor<ro> dt_a,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
   field<double>::accessor<wo, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     radiation_energy_density_a
 #endif
 ) {
@@ -319,7 +319,7 @@ update_u(single<double>::accessor<ro> dt_a,
   auto momentum_density_n = m.template mdcolex<is::cells>(momentum_density_n_a);
   auto total_energy_density_n =
     m.template mdcolex<is::cells>(total_energy_density_n_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto radiation_energy_density_n =
     m.template mdcolex<is::cells>(radiation_energy_density_n_a);
 #endif
@@ -329,13 +329,13 @@ update_u(single<double>::accessor<ro> dt_a,
     m.template mdcolex<is::cells>(dt_momentum_density_a);
   auto dt_total_energy_density =
     m.template mdcolex<is::cells>(dt_total_energy_density_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto dt_radiation_energy_density =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
 #endif
   auto dt_total_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_total_energy_density_implicit_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto dt_radiation_energy_density_implicit =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
 #endif
@@ -345,13 +345,13 @@ update_u(single<double>::accessor<ro> dt_a,
     m.template mdcolex<is::cells>(dt_momentum_density_2_a);
   auto dt_total_energy_density_2 =
     m.template mdcolex<is::cells>(dt_total_energy_density_2_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto dt_radiation_energy_density_2 =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_2_a);
 #endif
   auto dt_total_energy_density_implicit_2 =
     m.template mdcolex<is::cells>(dt_total_energy_density_implicit_2_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto dt_radiation_energy_density_implicit_2 =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_2_a);
 #endif
@@ -360,7 +360,7 @@ update_u(single<double>::accessor<ro> dt_a,
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
 #endif
@@ -383,7 +383,7 @@ update_u(single<double>::accessor<ro> dt_a,
           total_energy_density_n(i) + (dt * dt_total_energy_density(i)) +
           (one_minus_2gamma_dt * dt_total_energy_density_implicit(i));
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         radiation_energy_density(i) =
           radiation_energy_density_n(i) +
           (dt * dt_radiation_energy_density(i)) +
@@ -411,7 +411,7 @@ update_u(single<double>::accessor<ro> dt_a,
               dt_total_energy_density_implicit(i) +
               dt_total_energy_density_implicit_2(i));
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         radiation_energy_density(i) =
           radiation_energy_density_n(i) +
           0.5 * dt *
@@ -449,7 +449,7 @@ update_u(single<double>::accessor<ro> dt_a,
           total_energy_density_n(i, j) + (dt * dt_total_energy_density(i, j)) +
           (one_minus_2gamma_dt * dt_total_energy_density_implicit(i, j));
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         radiation_energy_density(i, j) =
           radiation_energy_density_n(i, j) +
           (dt * dt_radiation_energy_density(i, j)) +
@@ -473,7 +473,7 @@ update_u(single<double>::accessor<ro> dt_a,
               dt_total_energy_density_implicit(i, j) +
               dt_total_energy_density_implicit_2(i, j));
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         radiation_energy_density(i, j) =
           radiation_energy_density_n(i, j) +
           0.5 * dt *
@@ -513,7 +513,7 @@ update_u(single<double>::accessor<ro> dt_a,
           (dt * dt_total_energy_density(i, j, k)) +
           (one_minus_2gamma_dt * dt_total_energy_density_implicit(i, j, k));
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         radiation_energy_density(i, j, k) =
           radiation_energy_density_n(i, j, k) +
           (dt * dt_radiation_energy_density(i, j, k)) +
@@ -538,7 +538,7 @@ update_u(single<double>::accessor<ro> dt_a,
               dt_total_energy_density_implicit(i, j, k) +
               dt_total_energy_density_implicit_2(i, j, k));
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
         radiation_energy_density(i, j, k) =
           radiation_energy_density_n(i, j, k) +
           0.5 * dt *

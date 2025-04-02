@@ -98,9 +98,9 @@ mark_as_advanced(HARD_ENABLE_LEGION_TRACING)
 # Disable Radiation
 #------------------------------------------------------------------------------#
 
-option(DISABLE_RADIATION
-  "Disables radiation in evolution" OFF)
-mark_as_advanced(DISABLE_RADIATION)
+option(ENABLE_RADIATION
+  "Enable radiation in evolution" ON)
+mark_as_advanced(ENABLE_RADIATION)
 
 #------------------------------------------------------------------------------#
 # Formatting

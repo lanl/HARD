@@ -19,7 +19,7 @@ radiation_advance(control_policy<state, D> & cp) {
   using namespace flecsi;
   auto & s = cp.state();
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
 
   flecsi::execute<task::rad::getGradE<D>, flecsi::default_accelerator>(
     s.m, s.radiation_energy_density(s.m), s.gradient_rad_energy(s.m));

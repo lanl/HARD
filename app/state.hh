@@ -13,7 +13,7 @@ namespace hard {
   Global parameters.
  *----------------------------------------------------------------------------*/
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
 inline const single<double>::definition<global> kappa;
 #endif
 inline const single<double>::definition<global> particle_mass;

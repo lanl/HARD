@@ -106,7 +106,7 @@ initialize(control_policy<state, D> & cp) {
     /*--------------------------------------------------------------------------*
       Kappa.
      *--------------------------------------------------------------------------*/
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   execute<tasks::init::kappa>(kappa(s.gt), config["kappa"].as<double>());
 #endif
   /*--------------------------------------------------------------------------*
@@ -186,7 +186,7 @@ initialize(control_policy<state, D> & cp) {
     s.rTail(s.m), s.ruTail(s.m), s.rETail(s.m), s.uTail(s.m), s.pTail(s.m), 
     s.rHead(s.m), s.ruHead(s.m), s.rEHead(s.m), s.uHead(s.m), s.pHead(s.m),
     s.rF(s.m), s.ruF(s.m), s.rEF(s.m)
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     , s.radiation_energy_density(s.m), s.EradTail(s.m), s.EradHead(s.m), s.EradF(s.m),
     s.Esf(s.m), s.Ef(s.m), s.Ew(s.m), s.Diff(s.m), s.Resf(s.m), s.Errf(s.m),
     s.gradient_rad_energy(s.m), s.magnitude_gradient_rad_energy(s.m),
@@ -200,7 +200,7 @@ initialize(control_policy<state, D> & cp) {
     s.rTail(s.m), s.ruTail(s.m), s.rETail(s.m), s.uTail(s.m), s.pTail(s.m), 
     s.rHead(s.m), s.ruHead(s.m), s.rEHead(s.m), s.uHead(s.m), s.pHead(s.m),
     s.rF(s.m), s.ruF(s.m), s.rEF(s.m)
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     , s.radiation_energy_density(s.m), s.EradTail(s.m), s.EradHead(s.m), s.EradF(s.m),
     s.Esf(s.m), s.Ef(s.m), s.Ew(s.m), s.Diff(s.m), s.Resf(s.m), s.Errf(s.m),
     s.gradient_rad_energy(s.m), s.magnitude_gradient_rad_energy(s.m),
