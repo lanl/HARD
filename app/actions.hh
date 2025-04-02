@@ -217,6 +217,7 @@ implicit_source_terms(control_policy<state, D> &
       s.temperature(s.m),
       s.dt_total_energy_density_implicit(s.m),
       s.dt_radiation_energy_density_implicit(s.m),
+      s.i_radiation_energy_density(s.m),
       s.eos);
   }
   else if constexpr(Stage == time_stepper::rk_stage::Second) {
@@ -232,6 +233,7 @@ implicit_source_terms(control_policy<state, D> &
       s.temperature(s.m),
       s.dt_total_energy_density_implicit_2(s.m),
       s.dt_radiation_energy_density_implicit_2(s.m),
+      s.i_radiation_energy_density(s.m),
       s.eos);
   }
 
