@@ -73,7 +73,7 @@ reconstruct(std::size_t reconstruction_axis,
   field<double>::accessor<ro, ro> specific_internal_energy_a,
   field<double>::accessor<ro, ro> soundspeed_a,
   field<double>::accessor<ro, ro>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     radiation_energy_density_a
 #endif
   ,
@@ -89,12 +89,12 @@ reconstruct(std::size_t reconstruction_axis,
   field<double>::accessor<wo, na> cTail_a,
   field<double>::accessor<wo, na> cHead_a,
   field<double>::accessor<wo, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     EradTail_a
 #endif
   ,
   field<double>::accessor<wo, na>
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
     EradHead_a
 #endif
   ,
@@ -111,7 +111,7 @@ reconstruct(std::size_t reconstruction_axis,
   auto specific_internal_energy =
     m.template mdcolex<is::cells>(specific_internal_energy_a);
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
 #endif
@@ -125,7 +125,7 @@ reconstruct(std::size_t reconstruction_axis,
   auto eHead = m.template mdcolex<is::cells>(eHead_a);
   auto cTail = m.template mdcolex<is::cells>(cTail_a);
   auto cHead = m.template mdcolex<is::cells>(cHead_a);
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
   auto EradTail = m.template mdcolex<is::cells>(EradTail_a);
   auto EradHead = m.template mdcolex<is::cells>(EradHead_a);
 #endif
@@ -157,7 +157,7 @@ reconstruct(std::size_t reconstruction_axis,
       rETail(i) =
         rTail(i) * eTail(i) + 0.5 * rTail(i) * uTail(i).norm_squared();
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       std::tie(EradHead(i), EradTail(i)) =
         stencil<Limiter>()(i, radiation_energy_density);
 #endif
@@ -184,7 +184,7 @@ reconstruct(std::size_t reconstruction_axis,
       std::tie(cHead(i, j), cTail(i, j)) =
         stencil<Limiter>()(ra, i, j, soundspeed);
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       std::tie(EradHead(i, j), EradTail(i, j)) =
         stencil<Limiter>()(ra, i, j, radiation_energy_density);
 #endif
@@ -220,7 +220,7 @@ reconstruct(std::size_t reconstruction_axis,
       std::tie(cHead(i, j, k), cTail(i, j, k)) =
         stencil<Limiter>()(ra, i, j, k, soundspeed);
 
-#ifndef DISABLE_RADIATION
+#ifdef ENABLE_RADIATION
       std::tie(EradHead(i, j, k), EradTail(i, j, k)) =
         stencil<Limiter>()(ra, i, j, k, radiation_energy_density);
 #endif
