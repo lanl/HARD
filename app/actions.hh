@@ -1,7 +1,9 @@
 
 #pragma once
 
+#include "app/types.hh"
 #include "numerical_algorithms/time_stepper.hh"
+#include "rad.hh"
 #include "state.hh"
 #include "tasks/boundary.hh"
 #include "tasks/hydro/compute_interface_fluxes.hh"
@@ -38,16 +40,7 @@ initialize_time_derivative(control_policy<state, D> & cp) {
     s.dt_mass_density(s.m),
     s.dt_momentum_density(s.m),
     s.dt_total_energy_density(s.m),
-    s.dt_radiation_energy_density(s.m),
-    s.dt_total_energy_density_implicit(s.m),
-    s.dt_radiation_energy_density_implicit(s.m));
-  flecsi::execute<tasks::set_dudt_to_zero<D>, flecsi::default_accelerator>(s.m,
-    s.dt_mass_density_2(s.m),
-    s.dt_momentum_density_2(s.m),
-    s.dt_total_energy_density_2(s.m),
-    s.dt_radiation_energy_density_2(s.m),
-    s.dt_total_energy_density_implicit_2(s.m),
-    s.dt_radiation_energy_density_implicit_2(s.m));
+    s.dt_radiation_energy_density(s.m));
 
   // Store the current state of evolved variables (U^n) before performing a time
   // step
@@ -68,15 +61,9 @@ initialize_time_derivative(control_policy<state, D> & cp) {
 //              EXPLICIT PARTS OF EVOLUTION
 // --------------------------------------------------------------------
 
-template<std::size_t D, time_stepper::rk_stage Stage>
+template<std::size_t D>
 void
-explicit_source_terms(control_policy<state, D> &
-#ifdef ENABLE_RADIATION
-    cp
-#endif
-) {
-
-#ifdef ENABLE_RADIATION
+RK_advance(control_policy<state, D> & cp) {
 
   auto & s = cp.state();
 
@@ -108,43 +95,16 @@ explicit_source_terms(control_policy<state, D> &
   flecsi::execute<task::rad::getGradV<D>, flecsi::default_accelerator>(
     s.m, s.velocity_gradient(s.m), s.velocity(s.m));
 
-  // Compute explicit source terms and store them into (dU_dt)_explicit
-  if constexpr(Stage == time_stepper::rk_stage::First) {
-    flecsi::execute<task::rad::explicitSourceUpdate<D>,
-      flecsi::default_accelerator>(s.m,
-      s.velocity(s.m),
-      s.radiation_force(s.m),
-      s.radiation_pressure_tensor(s.m),
-      s.velocity_gradient(s.m),
-      //
-      s.dt_momentum_density(s.m),
-      s.dt_total_energy_density(s.m),
-      s.dt_radiation_energy_density(s.m));
-  }
-  else if constexpr(Stage == time_stepper::rk_stage::Second) {
-    flecsi::execute<task::rad::explicitSourceUpdate<D>,
-      flecsi::default_accelerator>(s.m,
-      s.velocity(s.m),
-      s.radiation_force(s.m),
-      s.radiation_pressure_tensor(s.m),
-      s.velocity_gradient(s.m),
-      //
-      s.dt_momentum_density_2(s.m),
-      s.dt_total_energy_density_2(s.m),
-      s.dt_radiation_energy_density_2(s.m));
-  }
-
-#endif
-}
-
-//
-// Perform reconstruction on cell faces, compute face fluxes with a Riemann
-// solver, and add the summation of dF^i/dx^i into (dU_dt)_explicit
-//
-template<std::size_t D, time_stepper::rk_stage Stage>
-void
-fluxes_terms(control_policy<state, D> & cp) {
-  auto & s = cp.state();
+  flecsi::execute<task::rad::explicitSourceUpdate<D>,
+    flecsi::default_accelerator>(s.m,
+    s.velocity(s.m),
+    s.radiation_force(s.m),
+    s.radiation_pressure_tensor(s.m),
+    s.velocity_gradient(s.m),
+    //
+    s.dt_momentum_density(s.m),
+    s.dt_total_energy_density(s.m),
+    s.dt_radiation_energy_density(s.m));
 
   using limiter = spec::limiters::ppm4;
 
@@ -156,127 +116,62 @@ fluxes_terms(control_policy<state, D> & cp) {
       s.sound_speed(s.m),
       s.radiation_energy_density(s.m),
       s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-     s.pTail(s.m), s.pHead(s.m),  s.eTail(s.m), s.eHead(s.m),  s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+      s.pTail(s.m), s.pHead(s.m),  s.eTail(s.m), s.eHead(s.m),  s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
       s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m));
 
-    if constexpr(Stage == time_stepper::rk_stage::First) {
-      flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
-        s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-        s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
-        s.ruTail(s.m), s.ruHead(s.m),
-        s.rETail(s.m), s.rEHead(s.m),
-        s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
-        s.dt_mass_density(s.m),
-        s.dt_momentum_density(s.m),
-        s.dt_total_energy_density(s.m),
-        s.dt_radiation_energy_density(s.m));
-    }
-    else if constexpr(Stage == time_stepper::rk_stage::Second) {
-      flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
-        s.rTail(s.m), s.rHead(s.m), s.uTail(s.m),s.uHead(s.m),
-        s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
-        s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m),
-        s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
-        s.dt_mass_density_2(s.m),
-        s.dt_momentum_density_2(s.m),
-        s.dt_total_energy_density_2(s.m),
-        s.dt_radiation_energy_density_2(s.m));
-    }
+    flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
+      s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
+      s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+      s.ruTail(s.m), s.ruHead(s.m),
+      s.rETail(s.m), s.rEHead(s.m),
+      s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
+      s.dt_mass_density(s.m),
+      s.dt_momentum_density(s.m),
+      s.dt_total_energy_density(s.m),
+      s.dt_radiation_energy_density(s.m));
+
     // clang-format on
   }
-} // fluxes_terms
+} // RK_advance
 
-// --------------------------------------------------------------------
-//              IMPLICIT PARTS OF EVOLUTION
-// --------------------------------------------------------------------
-
-// radiative heating-cooling part
-template<std::size_t D, time_stepper::rk_stage Stage>
+template<std::size_t D>
 void
-implicit_source_terms(control_policy<state, D> &
-#ifdef ENABLE_RADIATION
-    cp
-#endif
-) {
-
-#ifdef ENABLE_RADIATION
+update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
 
   auto & s = cp.state();
 
-  // Compute and store (de_dt, dE_dt)_implicit from matter-radiation coupling.
-  if constexpr(Stage == time_stepper::rk_stage::First) {
-    flecsi::execute<task::rad_root::update_energy_density<D>,
-      flecsi::default_accelerator>(s.m,
+  if(Stage == time_stepper::rk_stage::Second) {
+    const double coefficient{1};
+    flecsi::execute<tasks::update_u<D>, flecsi::default_accelerator>(s.dt(s.gt),
+      s.m,
+      //
       s.mass_density(s.m),
-      s.velocity(s.m),
+      s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
-      kappa(s.gt),
-      particle_mass(s.gt),
-      s.dt_weighted(s.gt),
-      s.temperature(s.m),
-      s.dt_total_energy_density_implicit(s.m),
-      s.dt_radiation_energy_density_implicit(s.m),
-      s.i_radiation_energy_density(s.m),
-      s.eos);
+      //
+      s.dt_mass_density(s.m),
+      s.dt_momentum_density(s.m),
+      s.dt_total_energy_density(s.m),
+      s.dt_radiation_energy_density(s.m),
+      coefficient);
   }
-  else if constexpr(Stage == time_stepper::rk_stage::Second) {
-    flecsi::execute<task::rad_root::update_energy_density<D>,
-      flecsi::default_accelerator>(s.m,
-      s.mass_density(s.m),
-      s.velocity(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
-      kappa(s.gt),
-      particle_mass(s.gt),
-      s.dt_weighted(s.gt),
-      s.temperature(s.m),
-      s.dt_total_energy_density_implicit_2(s.m),
-      s.dt_radiation_energy_density_implicit_2(s.m),
-      s.i_radiation_energy_density(s.m),
-      s.eos);
+  else if(Stage == time_stepper::rk_stage::Update) {
+    const double coefficient{0.5};
+    flecsi::execute<tasks::update_u<D>, flecsi::default_accelerator>(s.dt(s.gt),
+      s.m,
+      //
+      s.mass_density_n(s.m),
+      s.momentum_density_n(s.m),
+      s.total_energy_density_n(s.m),
+      s.radiation_energy_density_n(s.m),
+      //
+      s.dt_mass_density(s.m),
+      s.dt_momentum_density(s.m),
+      s.dt_total_energy_density(s.m),
+      s.dt_radiation_energy_density(s.m),
+      coefficient);
   }
-
-#endif
-}
-
-// --------------------------------------------------------------------
-//  Update conserved variables with computed (dU_dt)_explicit and
-//  (dU_dt)_implicit. Then perform primitive recovery and apply boundary
-//  conditions
-// --------------------------------------------------------------------
-template<std::size_t D, time_stepper::rk_stage Stage>
-void
-update_variables(control_policy<state, D> & cp) {
-  auto & s = cp.state();
-
-  flecsi::execute<tasks::update_u<D, Stage>, flecsi::default_accelerator>(
-    s.dt(s.gt),
-    s.m,
-    //
-    s.mass_density_n(s.m),
-    s.momentum_density_n(s.m),
-    s.total_energy_density_n(s.m),
-    s.radiation_energy_density_n(s.m),
-    //
-    s.dt_mass_density(s.m),
-    s.dt_momentum_density(s.m),
-    s.dt_total_energy_density(s.m),
-    s.dt_radiation_energy_density(s.m),
-    s.dt_total_energy_density_implicit(s.m),
-    s.dt_radiation_energy_density_implicit(s.m),
-    //
-    s.dt_mass_density_2(s.m),
-    s.dt_momentum_density_2(s.m),
-    s.dt_total_energy_density_2(s.m),
-    s.dt_radiation_energy_density_2(s.m),
-    s.dt_total_energy_density_implicit_2(s.m),
-    s.dt_radiation_energy_density_implicit_2(s.m),
-    //
-    s.mass_density(s.m),
-    s.momentum_density(s.m),
-    s.total_energy_density(s.m),
-    s.radiation_energy_density(s.m));
 
   // Perform primitive recovery
   flecsi::execute<tasks::hydro::conservative_to_primitive<D>,
@@ -311,12 +206,168 @@ update_variables(control_policy<state, D> & cp) {
       flecsi::default_accelerator>(
       s.m, s.radiation_energy_density(s.m), radiation_boundary_f);
   }
-} // radiation_advance
+
+} // update_vars
+
+//
+// Perform reconstruction on cell faces, compute face fluxes with a Riemann
+// solver, and add the summation of dF^i/dx^i into (dU_dt)_explicit
+//
+template<std::size_t D>
+void
+fluxes_terms(control_policy<state, D> & cp) {
+  auto & s = cp.state();
+
+  using limiter = spec::limiters::ppm4;
+
+  for(std::size_t axis = 0; axis < D; axis++) {
+    // clang-format off
+    flecsi::execute<tasks::hydro::reconstruct<D, limiter>, flecsi::default_accelerator>(axis,
+      s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m),
+      s.specific_internal_energy(s.m),
+      s.sound_speed(s.m),
+      s.radiation_energy_density(s.m),
+      s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
+     s.pTail(s.m), s.pHead(s.m),  s.eTail(s.m), s.eHead(s.m),  s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+      s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m));
+
+    flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
+      s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
+      s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+      s.ruTail(s.m), s.ruHead(s.m),
+      s.rETail(s.m), s.rEHead(s.m),
+      s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
+      s.dt_mass_density(s.m),
+      s.dt_momentum_density(s.m),
+      s.dt_total_energy_density(s.m),
+      s.dt_radiation_energy_density(s.m));
+    // clang-format on
+  }
+} // fluxes_terms
+
+template<std::size_t D>
+void
+advection_advance(control_policy<state, D> & cp) {
+
+  // First RK advance
+  RK_advance<D>(cp);
+
+  // Update variable for second advance
+  update_vars(cp, time_stepper::rk_stage::Second);
+
+  // Second RK advance
+  RK_advance<D>(cp);
+
+  // Final variable update
+  update_vars(cp, time_stepper::rk_stage::Update);
+
+} // advection_advance
 
 // --------------------------------------------------------------------
+//              IMPLICIT PARTS OF EVOLUTION
+// --------------------------------------------------------------------
+
+template<std::size_t D>
+void
+radiation_advance(control_policy<state, D> & cp) {
+
+#ifdef ENABLE_RADIATION
+
+  using namespace flecsi;
+  auto & s = cp.state();
+
+  flecsi::execute<task::rad_root::update_energy_density<D>,
+    flecsi::default_accelerator>(s.m,
+    s.mass_density(s.m),
+    s.velocity(s.m),
+    s.temperature(s.m),
+    s.total_energy_density(s.m),
+    s.radiation_energy_density(s.m),
+    kappa(s.gt),
+    particle_mass(s.gt),
+    s.dt_weighted(s.gt),
+    s.eos);
+
+  flecsi::execute<task::rad::getGradE<D>, flecsi::default_accelerator>(
+    s.m, s.radiation_energy_density(s.m), s.gradient_rad_energy(s.m));
+
+  flecsi::execute<task::rad::getLambda<D>, flecsi::default_accelerator>(s.m,
+    s.mass_density(s.m),
+    s.radiation_energy_density(s.m),
+    s.gradient_rad_energy(s.m),
+    s.magnitude_gradient_rad_energy(s.m),
+    s.R_value(s.m),
+    s.lambda_bridge(s.m),
+    kappa(s.gt));
+
+  flecsi::execute<tasks::apply_boundary_single_field<D>,
+    flecsi::default_accelerator>(s.m, s.bmap(s.gt), s.lambda_bridge(s.m));
+
+  if(s.mg) {
+    // FIXME: figure out how not to use the hardcoded radiation temperature
+    // boundary
+    auto radiation_boundary_f =
+      flecsi::execute<task::rad::interp_e_boundary>(s.t(s.gt),
+        time_boundary(s.dense_topology),
+        temperature_boundary(s.dense_topology));
+    flecsi::execute<tasks::apply_radiation_boundary<D>,
+      flecsi::default_accelerator>(
+      s.m, s.radiation_energy_density(s.m), radiation_boundary_f);
+  }
+
+  execute<task::rad::getDiff<D>, flecsi::default_accelerator>(
+    s.m, s.mass_density(s.m), s.lambda_bridge(s.m), s.Diff(s.m), kappa(s.gt));
+
+  // Initialize the diffusion coefficient
+  execute<task::rad::diffusion_init<D>, flecsi::default_accelerator>(
+    s.m, s.Diff(s.m), s.Df_x(s.m), s.Df_y(s.m), s.Df_z(s.m));
+
+  // Initialize the stencil
+  execute<task::rad::stencil_init<D>, flecsi::default_accelerator>(
+    s.m, s.Df_x(s.m), s.Df_y(s.m), s.Df_z(s.m), s.Ew(s.m), s.dt_weighted(s.gt));
+
+  // Initialize fields
+  flecsi::execute<task::rad::initialize_Ef<D>, flecsi::default_accelerator>(
+    s.m, s.i_radiation_energy_density(s.m), s.Ef(s.m));
+  flecsi::execute<task::rad::const_init<D>, flecsi::default_accelerator>(
+    s.m, s.Esf(s.m), 0.0);
+  flecsi::execute<task::rad::const_init<D>, flecsi::default_accelerator>(
+    s.m, s.Esf(s.m, 1), 0.0);
+  flecsi::execute<task::rad::const_init<D>, flecsi::default_accelerator>(
+    s.m, s.Resf(s.m), 0.0);
+
+  hard::rad::fmg<D>(s);
+
+  // Perform primitive recovery, since energy densities have changed
+  flecsi::execute<tasks::hydro::conservative_to_primitive<D>,
+    flecsi::default_accelerator>(s.m,
+    s.mass_density(s.m),
+    s.momentum_density(s.m),
+    s.total_energy_density(s.m),
+    s.velocity(s.m),
+    s.pressure(s.m),
+    s.specific_internal_energy(s.m),
+    s.sound_speed(s.m),
+    s.eos);
+
+  // and also update boundary cells
+  flecsi::execute<tasks::apply_boundaries<D>, flecsi::default_accelerator>(s.m,
+    s.bmap(s.gt),
+    s.mass_density(s.m),
+    s.velocity(s.m),
+    s.pressure(s.m),
+    s.radiation_energy_density(s.m),
+    s.momentum_density(s.m),
+    s.total_energy_density(s.m));
+
+#endif
+
+} // radiation_advance
+
+// -----------------------------------------------------------------------------
 //  Compute max characteristic speeds, and determine dt_min() for the next time
 //  step.
-// --------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 template<std::size_t D>
 void
 update_time_step_size(control_policy<state, D> & cp) {
@@ -337,6 +388,6 @@ update_time_step_size(control_policy<state, D> & cp) {
 #ifdef HARD_ENABLE_LEGION_TRACING
   cp.guard.reset();
 #endif
-}
+} // update_time_step_size
 
 } // namespace hard::actions
