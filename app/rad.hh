@@ -17,12 +17,11 @@ vcycle(state<D> & s, std::size_t index) {
   std::size_t level{s.highest_level - index};
 
   if(level == s.lowest_level) {
-#ifndef HARD_BENCHMARK_MODE
 
-    flog(warn) << "Direct solve level(index): " << level << "(" << index << ")"
-               << std::endl;
+    // FIXME: Remove when finished with debugging
+    // flog(warn) << "Direct solve level(index): " << level << "(" << index << ")"
+    //            << std::endl;
 
-#endif
     // Direct solve for a single interior point
     for(std::size_t i{0}; i < 100; i++) {
       s.Esf.flip();
@@ -35,12 +34,11 @@ vcycle(state<D> & s, std::size_t index) {
     } // for
   }
   else {
-#ifndef HARD_BENCHMARK_MODE
 
-    flog(warn) << "Cycle level(index): " << level << "(" << index << ")"
-               << std::endl;
+    // FIXME: Remove when finished with debugging
+    // flog(warn) << "Cycle level(index): " << level << "(" << index << ")"
+    //            << std::endl;
 
-#endif
     auto & mc = *s.mh[index + 1];
 
     // Pre Smoothing
@@ -104,21 +102,19 @@ fmg(state<D> & s, std::size_t index = 0) {
 
   // Deepest level
   if(level == s.lowest_level) {
-#ifndef HARD_BENCHMARK_MODE
 
-    flog(warn) << "Deepest level(index):" << level << "(" << index << ")"
-               << std::endl;
+    // FIXME: Remove when finished with debugging
+    // flog(warn) << "Deepest level(index):" << level << "(" << index << ")"
+    //            << std::endl;
 
-#endif
     // If in the deepest level, the V-Cycle is already doing a direct solve
     vcycle<D>(s, index);
   }
   else {
-#ifndef HARD_BENCHMARK_MODE
 
-    flog(warn) << "cycle level(index): " << level << "(" << index << ")"
-               << std::endl;
-#endif
+    // FIXME: Remove when finished with debugging
+    // flog(warn) << "cycle level(index): " << level << "(" << index << ")"
+    //            << std::endl;
     auto & mc = *s.mh[index + 1];
 
     // Set the RHS and solution field

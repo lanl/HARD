@@ -67,6 +67,7 @@ RK_advance(control_policy<state, D> & cp) {
 
   auto & s = cp.state();
 
+#ifdef ENABLE_RADIATION
   flecsi::execute<task::rad::getGradE<D>, flecsi::default_accelerator>(
     s.m, s.radiation_energy_density(s.m), s.gradient_rad_energy(s.m));
 
@@ -105,6 +106,7 @@ RK_advance(control_policy<state, D> & cp) {
     s.dt_momentum_density(s.m),
     s.dt_total_energy_density(s.m),
     s.dt_radiation_energy_density(s.m));
+#endif
 
   using limiter = spec::limiters::ppm4;
 
