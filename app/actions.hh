@@ -328,7 +328,7 @@ radiation_advance(control_policy<state, D> & cp) {
 
   // Initialize fields
   flecsi::execute<task::rad::initialize_Ef<D>, flecsi::default_accelerator>(
-    s.m, s.i_radiation_energy_density(s.m), s.Ef(s.m));
+    s.m, s.radiation_energy_density(s.m), s.Ef(s.m));
   flecsi::execute<task::rad::const_init<D>, flecsi::default_accelerator>(
     s.m, s.Esf(s.m), 0.0);
   flecsi::execute<task::rad::const_init<D>, flecsi::default_accelerator>(
