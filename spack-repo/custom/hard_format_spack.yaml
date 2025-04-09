@@ -1,0 +1,27 @@
+spack:
+  include:
+  - $spack/../systems/common/packages.yaml
+  - $spack/../systems/common/repos.yaml
+  - $spack/../systems/common/mirrors.yaml
+  - $spack/../systems/darwin/common/bootstrap.yaml
+  - $spack/../systems/darwin/common/compilers.yaml
+  - $spack/../systems/darwin/common/packages.yaml
+  - $spack/../systems/darwin/common/upstreams.yaml
+  specs:
+  - hard
+  view: true
+  concretizer:
+    unify: true
+  packages:
+    hard:
+      require: "+format"
+    flecsi:
+      require: "+flog+hdf5+kokkos backend=mpi"
+    kokkos:
+      require: "+shared"
+    llvm:
+       buildable: False
+       externals:
+        - spec: "llvm@13.0.0 +clang"
+          modules:
+            - clang/13.0.0

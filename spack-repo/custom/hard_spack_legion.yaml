@@ -1,0 +1,25 @@
+# This is a Spack Environment file.
+#
+# It describes a set of packages to be installed, along with
+# configuration settings.
+spack:
+  include:
+  - $spack/../systems/common/packages.yaml
+  - $spack/../systems/common/repos.yaml
+  - $spack/../systems/common/mirrors.yaml
+  - $spack/../systems/darwin/common/bootstrap.yaml
+  - $spack/../systems/darwin/common/compilers.yaml
+  - $spack/../systems/darwin/common/packages.yaml
+  - $spack/../systems/darwin/common/upstreams.yaml
+  specs:
+  - hard +tests 
+  view: true
+  concretizer:
+    unify: true
+  packages:
+    flecsi:
+      require: "+flog+graphviz+hdf5+kokkos build_type=Debug backend=legion"
+    legion:
+      require: "network=gasnet conduit=mpi"
+    kokkos:
+      require: "+shared"
