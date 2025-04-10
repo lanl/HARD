@@ -3,6 +3,7 @@ problem: sedov
 gamma: 1.4
 kappa: 1.0e0
 mean_molecular_weight: 0.5
+eos: ideal
 t0: 0.0
 tf: 1.e1
 max_steps: 10
@@ -21,12 +22,12 @@ coords:
   - [4.0e5, 4.0e5, 1.0e4]
 boundaries:
   xlow: flow
-  xhigh: flow 
+  xhigh: flow
   ylow: flow
   yhigh: flow
   zlow: flow
   zhigh: flow
 catalyst:
-  script: 
+  script:
   implementation: paraview
-  implementation_directory: 
+  implementation_directory:

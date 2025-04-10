@@ -439,8 +439,9 @@ explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
 
       // TODO:
       // Add the source from the temperature
+      // NOTE: Isn't this already in the rad_root part?
       // dt_radiation_energy_density(i) +=
-      //   radiation_constant * pow(T_source(i), 4);
+      //   constants::cgs::radiation_constant * pow(T_source(i), 4);
     };
   }
   else if constexpr(D == 2) {
