@@ -29,7 +29,8 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> total_energy_density_a,
   field<double>::accessor<wo, na> radiation_energy_density_a,
   field<double>::accessor<ro> temperature_boundary_a,
-  const eos::eos_wrapper & eos) {
+  single<double>::accessor<ro> particle_mass_a,
+  const double gamma) {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
@@ -37,8 +38,7 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
-  // auto const gamma = *gamma_a;
-  // auto const particle_mass = *particle_mass_a;
+  auto const particle_mass = *particle_mass_a;
 
   // Parse input parameters
   YAML::Node config = YAML::LoadFile(opt::config.value());
@@ -59,13 +59,16 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
 
   // Note : assuming ideal gas EOS
 
-  const double fluid_internal_energy_density = 1.0; // TODO: fix
-  //  mass_density_v * constants::cgs::boltzmann_constant * fluid_temperature /
-  //  ((gamma - 1.0) * particle_mass);
+  using constants::cgs::boltzmann_constant;
+  using constants::cgs::radiation_constant;
+  using spec::utils::sqr;
+
+  const double fluid_internal_energy_density =
+    mass_density_v * boltzmann_constant * fluid_temperature /
+    ((gamma - 1.0) * particle_mass);
 
   const double radiation_energy_density_v =
-    constants::cgs::radiation_constant *
-    spec::utils::sqr(spec::utils::sqr(radiation_temperature));
+    radiation_constant * sqr(sqr(radiation_temperature));
 
   if constexpr(Dim == 1) {
     for(auto i : m.template cells<ax::x, dm::quantities>()) {

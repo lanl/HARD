@@ -2,7 +2,6 @@
 #define HARD_TASKS_RADROOT_HH
 
 #include "../constants.hh"
-#include "app/state.hh"
 #include "utils.hh"
 #include <spec/utils.hh>
 
@@ -99,19 +98,19 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       const double en = rE(i, j) - ke; // internal energy
 
       temperature(i, j) = eos.tRhoSie(r(i, j), en);
-      double TempFour = pow(temperature(i, j), 4.0);
 
       const double En = radiation_energy_density(i, j); // radiation energy
       assert(En >= 0);
 
-      // FIXME: Do not forget to use the correct temperature
-      // Update En with the formula and en with conservation of energy
-      const double up_En{get_up_En(temperature(i, j), En)};
+      // Find the next temperature with root finding
+      const double up_Tn{tasks::util::find_temp(
+        eos, r(i, j), en, temperature(i, j), kappa, En, dt_weighted)};
+
+      const double up_En{get_up_En(up_Tn, En)};
       const double up_en{en - (up_En - En)};
       radiation_energy_density(i, j) = up_En;
       rE(i, j) = up_en + ke;
-      // FIXME: Add temperature here
-      // temperature(i, j) = up_Tn;
+      temperature(i, j) = up_Tn;
     }; // forall
   }
   else {
@@ -128,19 +127,19 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       const double en = rE(i, j, k) - ke; // internal energy
 
       temperature(i, j, k) = eos.tRhoSie(r(i, j, k), en);
-      double TempFour = pow(temperature(i, j, k), 4.0);
 
       const double En = radiation_energy_density(i, j, k); // radiation energy
       assert(En >= 0);
 
-      // FIXME: Do not forget to use the correct temperature
-      // Update En with the formula and en with conservation of energy
-      const double up_En{get_up_En(temperature(i, j, k), En)};
+      // Find the next temperature with root finding
+      const double up_Tn{tasks::util::find_temp(
+        eos, r(i, j, k), en, temperature(i, j, k), kappa, En, dt_weighted)};
+
+      const double up_En{get_up_En(up_Tn, En)};
       const double up_en{en - (up_En - En)};
       radiation_energy_density(i, j, k) = up_En;
       rE(i, j, k) = up_en + ke;
-      // FIXME: Add temperature here
-      // temperature(i, j, k) = up_Tn;
+      temperature(i, j, k) = up_Tn;
     };
   }
 }
