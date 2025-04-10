@@ -1,5 +1,6 @@
 ---
 problem: rankine-hugoniot
+eos: ideal
 gamma: 1.4
 kappa: 1.0e-100
 mean_molecular_weight: 1.0
