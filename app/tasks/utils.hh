@@ -115,6 +115,58 @@ print_conserved(typename mesh<D>::template accessor<ro> m,
 
 template<dm::domain DM, std::size_t D>
 inline void
+print_vec_field(typename mesh<D>::template accessor<ro> m,
+  typename field<vec<D>>::template accessor<ro, ro> u_a) {
+  std::stringstream ss;
+
+  if constexpr(D == 1) {
+    auto u = m.template mdcolex<is::cells>(u_a);
+    for(auto i : m.template cells<ax::x, DM>()) {
+      ss << u(i) << " ";
+    } // for
+    ss << std::endl;
+  }
+  else if constexpr(D == 2) {
+    auto u = m.template mdcolex<is::cells>(u_a);
+    for(auto j : m.template cells<ax::y, DM>()) {
+      for(auto i : m.template cells<ax::x, DM>()) {
+        ss << u(i, j) << " ";
+      } // for
+      ss << std::endl;
+    }
+  }
+
+  flog(info) << ss.str() << std::endl;
+} // print_vec_field
+
+template<dm::domain DM, std::size_t D>
+inline void
+print_scal_field(typename mesh<D>::template accessor<ro> m,
+  field<double>::accessor<ro, ro> u_a) {
+  std::stringstream ss;
+
+  if constexpr(D == 1) {
+    auto u = m.template mdcolex<is::cells>(u_a);
+    for(auto i : m.template cells<ax::x, DM>()) {
+      ss << u(i) << " ";
+    } // for
+    ss << std::endl;
+  }
+  else if constexpr(D == 2) {
+    auto u = m.template mdcolex<is::cells>(u_a);
+    for(auto j : m.template cells<ax::y, DM>()) {
+      for(auto i : m.template cells<ax::x, DM>()) {
+        ss << u(i, j) << " ";
+      } // for
+      ss << std::endl;
+    }
+  }
+
+  flog(info) << ss.str() << std::endl;
+} // print_scal_field
+
+template<dm::domain DM, std::size_t D>
+inline void
 print_primitives(typename mesh<D>::template accessor<ro> m,
   typename field<vec<D>>::template accessor<ro, ro> u_a,
   field<double>::accessor<ro, ro> p_a,
@@ -145,7 +197,7 @@ print_primitives(typename mesh<D>::template accessor<ro> m,
 
     flog(info) << ss.str() << std::endl;
   }
-} // print_conserved
+} // print_primitives
 
 template<class M, typename IT>
 FLECSI_INLINE_TARGET auto
