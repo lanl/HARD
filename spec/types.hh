@@ -28,20 +28,12 @@ struct vec<1> {
 
   constexpr static std::size_t Dim = 1;
 
-  FLECSI_INLINE_TARGET vec<1>() {}
-
-  FLECSI_INLINE_TARGET vec<1>(double v) {
-    x = v;
-  }
-
-  FLECSI_INLINE_TARGET vec<1>(const vec<1> & v) {
-    x = v.x;
-  }
+  FLECSI_INLINE_TARGET vec<1>() : x(0) {}
+  FLECSI_INLINE_TARGET vec<1>(double v) : x(v) {}
 
   FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
     return components[d];
   }
-
   FLECSI_INLINE_TARGET double operator[](std::size_t d) const noexcept {
     return components[d];
   }
@@ -86,20 +78,8 @@ struct vec<2> {
 
   FLECSI_INLINE_TARGET vec<2>() {}
 
-  FLECSI_INLINE_TARGET vec<2>(double v) {
-    x = v;
-    y = v;
-  }
-
-  FLECSI_INLINE_TARGET vec<2>(double x, double y) {
-    x = x;
-    y = y;
-  }
-
-  FLECSI_INLINE_TARGET vec<2>(const vec<2> & v) {
-    x = v.x;
-    y = v.y;
-  }
+  FLECSI_INLINE_TARGET vec<2>(double v) : x(v), y(v) {}
+  FLECSI_INLINE_TARGET vec<2>(double x, double y) : x(x), y(y) {}
 
   FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
     return components[d];
@@ -142,23 +122,10 @@ struct vec<3> {
 
   FLECSI_INLINE_TARGET vec<3>() {}
 
-  FLECSI_INLINE_TARGET vec<3>(double v) {
-    x = v;
-    y = v;
-    z = v;
-  }
+  FLECSI_INLINE_TARGET vec<3>(double v) : x(v), y(v), z(v) {}
 
-  FLECSI_INLINE_TARGET vec<3>(double x, double y, double z) {
-    x = x;
-    y = y;
-    z = z;
-  }
-
-  FLECSI_INLINE_TARGET vec<3>(const vec<3> & v) {
-    x = v.x;
-    y = v.y;
-    z = v.z;
-  }
+  FLECSI_INLINE_TARGET vec<3>(double x, double y, double z)
+    : x(x), y(y), z(z) {}
 
   FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
     return components[d];
