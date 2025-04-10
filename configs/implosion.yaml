@@ -5,12 +5,13 @@ problem: implosion
 
 problem_parameters:
   fluid_mass_density: 0.0004426672160078688 # g/cm^3, DT_Gas
-  fluid_temperature: 18.92999988994724 # K 
+  fluid_temperature: 18.92999988994724 # K
   radiation_temperature: 18.92999988994724 # K
 
 kappa: 1.0
 gamma: 1.666666
 mean_molecular_weight: 1.0
+eos: ideal
 temperature_units: eV # Change eV to Kelvin
 
 t0: 0.0

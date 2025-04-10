@@ -224,18 +224,22 @@ fluxes_terms(control_policy<state, D> & cp) {
 
   for(std::size_t axis = 0; axis < D; axis++) {
     // clang-format off
-    flecsi::execute<tasks::hydro::reconstruct<D, limiter>, flecsi::default_accelerator>(axis,
+    flecsi::execute<tasks::hydro::reconstruct<D, limiter>,
+      flecsi::default_accelerator>(axis,
       s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m),
       s.specific_internal_energy(s.m),
       s.sound_speed(s.m),
       s.radiation_energy_density(s.m),
       s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-     s.pTail(s.m), s.pHead(s.m),  s.eTail(s.m), s.eHead(s.m),  s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+      s.pTail(s.m), s.pHead(s.m),  s.eTail(s.m), s.eHead(s.m),  s.cTail(s.m),
+      s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
       s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m));
 
-    flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
+    flecsi::execute<tasks::hydro::compute_interface_fluxes<D>,
+      flecsi::default_accelerator>(axis, s.m,
       s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-      s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+      s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m),
+      s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
       s.ruTail(s.m), s.ruHead(s.m),
       s.rETail(s.m), s.rEHead(s.m),
       s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
