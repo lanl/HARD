@@ -14,6 +14,13 @@ namespace hard::tasks::initial_data {
 //
 // This is only 1D problem for ICP-mockup type
 
+struct implosion {
+  static constexpr double ri = 1.0;
+  static constexpr double pi = 1.0;
+  static constexpr double ui = 1.0;
+  static constexpr double Ti = 1.0;
+}; // struct implosion
+
 template<std::size_t Dim>
 auto
 implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
@@ -22,8 +29,8 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> total_energy_density_a,
   field<double>::accessor<wo, na> radiation_energy_density_a,
   field<double>::accessor<ro> temperature_boundary_a,
-  single<double>::accessor<ro> gamma_a,
-  single<double>::accessor<ro> particle_mass_a) {
+  single<double>::accessor<ro> particle_mass_a,
+  const double gamma) {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
@@ -31,7 +38,6 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
-  auto const gamma = *gamma_a;
   auto const particle_mass = *particle_mass_a;
 
   // Parse input parameters
@@ -52,12 +58,17 @@ implosion_forced_T(typename mesh<Dim>::template accessor<ro> m,
             << std::endl;
 
   // Note : assuming ideal gas EOS
+
+  using constants::cgs::boltzmann_constant;
+  using constants::cgs::radiation_constant;
+  using spec::utils::sqr;
+
   const double fluid_internal_energy_density =
-    mass_density_v * constants::cgs::boltzmann_constant * fluid_temperature /
+    mass_density_v * boltzmann_constant * fluid_temperature /
     ((gamma - 1.0) * particle_mass);
+
   const double radiation_energy_density_v =
-    constants::cgs::radiation_constant *
-    spec::utils::sqr(spec::utils::sqr(radiation_temperature));
+    radiation_constant * sqr(sqr(radiation_temperature));
 
   if constexpr(Dim == 1) {
     for(auto i : m.template cells<ax::x, dm::quantities>()) {
