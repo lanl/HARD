@@ -8,13 +8,13 @@ kappa: 1.0e-100
 mean_molecular_weight: 1.0
 t0: 0.0
 tf: 1.0
-max_steps: 5000
+max_steps: 2
 cfl: 0.3
 max_dt: 1.0
-log_frequency: 1000
-output_frequency: 1000
-levels: [10, 5, 5]
-lowest_level: 10
+log_frequency: 1
+output_frequency: 10
+levels: [3, 3, 3]
+lowest_level: 3
 coords:
   - [0.0, 0.0, 0.0]
   - [1.0, 1.0, 1.0]
