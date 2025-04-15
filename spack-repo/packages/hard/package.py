@@ -16,17 +16,19 @@ class Hard(CMakePackage):
     variant("catalyst", default=False, description="Enable catalyst for paraview interface")
     variant("radiation", default=True, description="Enable support for radiation physics")
     variant("tests", default=False, description="Enable unit tests")
+    variant("format", default=False, description="Enable format target")
 
-    depends_on("flecsi@2.3.0: +flog")
+    depends_on("flecsi@2.3.0 +flog")
     depends_on("libcatalyst", when="+catalyst")
     depends_on("yaml-cpp@0.8:")
     depends_on("singularity-eos@main +hdf5 +spiner +eospac build_extra=sesame")
+    depends_on("llvm@13.0.0", type="build", when="+format")
 
     def cmake_args(self):
         options = [
             self.define_from_variant("ENABLE_UNIT_TESTS", "tests"),
             self.define_from_variant("ENABLE_CATALYST", "catalyst"),
-            self.define("DISABLE_RADIATION", self.spec.satisfies("~radiation")),
+            self.define_from_variant("ENABLE_RADIATION", "radiation"),
         ]
 
         return options
