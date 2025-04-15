@@ -437,10 +437,11 @@ explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
       // energy density in each cell. See Eq(34) in Moens2022.
       dt_radiation_energy_density(i) += -P_tensor(i).xx * gradV(i).xx;
 
-      // TODO add the radiation temperature source
+      // TODO:
       // Add the source from the temperature
-      /* dt_radiation_energy_density(i) += -P_tensor(i).xx * gradV(i).xx + */
-      /*   radiation_constant * pow(T_source(i), 4); */
+      // NOTE: Isn't this already in the rad_root part?
+      // dt_radiation_energy_density(i) +=
+      //   constants::cgs::radiation_constant * pow(T_source(i), 4);
     };
   }
   else if constexpr(D == 2) {

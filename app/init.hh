@@ -293,19 +293,30 @@ initialize(control_policy<state, D> & cp) {
       particle_mass(s.gt),
       config["gamma"].as<double>());
   }
-#if 0
-  else if(config["problem"].as<std::string>() == "rad-rh") {
-    execute<tasks::initial_data::
-        rad_RH<tasks::initial_data::rad_shock::rad_rankine_hugoniot, D>>(s.m,
+  else if(config["problem"].as<std::string>() == "sedov") {
+    execute<tasks::initial_data::sedov_blast<D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
-      gamma(s.gt),
-      particle_mass(s.gt));
+      particle_mass(s.gt),
+      config["gamma"].as<double>());
   }
-  else if(config["problem"].as<std::string>() == "sedov") {
-    execute<tasks::initial_data::sedov_blast<D>>(s.m,
+  else if(config["problem"].as<std::string>() == "implosion") {
+    execute<tasks::initial_data::implosion_forced_T<D>>(s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m),
+      temperature_boundary(s.dense_topology),
+      particle_mass(s.gt),
+      config["gamma"].as<double>());
+    s.mg = true;
+  }
+#if 0
+  else if(config["problem"].as<std::string>() == "rad-rh") {
+    execute<tasks::initial_data::
+        rad_RH<tasks::initial_data::rad_shock::rad_rankine_hugoniot, D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
@@ -320,17 +331,6 @@ initialize(control_policy<state, D> & cp) {
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
       gamma(s.gt));
-  }
-  else if(config["problem"].as<std::string>() == "implosion") {
-    execute<tasks::initial_data::implosion_forced_T<D>>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
-      temperature_boundary(s.dense_topology),
-      gamma(s.gt),
-      particle_mass(s.gt));
-    s.mg = true;
   }
 #endif
   else {
