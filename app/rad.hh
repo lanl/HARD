@@ -19,7 +19,8 @@ vcycle(state<D> & s, std::size_t index) {
   if(level == s.lowest_level) {
 
     // FIXME: Remove when finished with debugging
-    // flog(warn) << "Direct solve level(index): " << level << "(" << index << ")"
+    // flog(warn) << "Direct solve level(index): " << level << "(" << index <<
+    // ")"
     //            << std::endl;
 
     // Direct solve for a single interior point
