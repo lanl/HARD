@@ -15,9 +15,7 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> dt_mass_density_a,
   typename field<vec<Dim>>::template accessor<wo, na> dt_momentum_density_a,
   field<double>::accessor<wo, na> dt_total_energy_density_a,
-  field<double>::accessor<wo, na> dt_radiation_energy_density_a,
-  field<double>::accessor<wo, na> dt_total_energy_density_implicit_a,
-  field<double>::accessor<wo, na> dt_radiation_energy_density_implicit_a) {
+  field<double>::accessor<wo, na> dt_radiation_energy_density_a) {
 
   auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
   auto dt_momentum_density =
@@ -26,10 +24,6 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
     m.template mdcolex<is::cells>(dt_total_energy_density_a);
   auto dt_radiation_energy_density =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
-  auto dt_total_energy_density_implicit =
-    m.template mdcolex<is::cells>(dt_total_energy_density_implicit_a);
-  auto dt_radiation_energy_density_implicit =
-    m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
 
   using hard::tasks::util::get_mdiota_policy;
   if constexpr(Dim == 1) {
@@ -39,8 +33,6 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
       dt_momentum_density(i).x = 0.0;
       dt_total_energy_density(i) = 0.0;
       dt_radiation_energy_density(i) = 0.0;
-      dt_total_energy_density_implicit(i) = 0.0;
-      dt_radiation_energy_density_implicit(i) = 0.0;
     }; // forall
   }
   else if constexpr(Dim == 2) {
@@ -56,8 +48,6 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
       dt_total_energy_density(i, j) = 0.0;
 #ifdef ENABLE_RADIATION
       dt_radiation_energy_density(i, j) = 0.0;
-      dt_total_energy_density_implicit(i, j) = 0.0;
-      dt_radiation_energy_density_implicit(i, j) = 0.0;
 #endif
 
     }; // forall
@@ -77,8 +67,6 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
       dt_total_energy_density(i, j, k) = 0.0;
 #ifdef ENABLE_RADIATION
       dt_radiation_energy_density(i, j, k) = 0.0;
-      dt_total_energy_density_implicit(i, j, k) = 0.0;
-      dt_radiation_energy_density_implicit(i, j, k) = 0.0;
 #endif
     }; // forall
   }
@@ -254,28 +242,22 @@ compute_u_after_implicit_solve(typename mesh<Dim>::template accessor<ro> m,
 }
 
 //
-// Used for the RK substep 2 and the final update
+// Used for the RK substeps
 //
-//  - If (Stage == Second), prepare an intermediate state
-//      U^n + E(U^1) + (1 - 2g) * I(U^1)
-//
-//  - If (Stage == Update), perform the time update
-//      U^{n+1} = U^n + 0.5 * (E(U^1) + E(U^2) + I(U^1) + I(U^2))
-//
-template<std::size_t Dim, time_stepper::rk_stage Stage>
+template<std::size_t Dim>
 void
 update_u(single<double>::accessor<ro> dt_a,
   typename mesh<Dim>::template accessor<ro> m,
-  // U^n
-  field<double>::accessor<ro, na> mass_density_n_a,
-  typename field<vec<Dim>>::template accessor<ro, na> momentum_density_n_a,
-  field<double>::accessor<ro, na> total_energy_density_n_a,
-  field<double>::accessor<ro, na>
+  // U^n we want to update
+  field<double>::accessor<rw, na> mass_density_a,
+  typename field<vec<Dim>>::template accessor<rw, na> momentum_density_a,
+  field<double>::accessor<rw, na> total_energy_density_a,
+  field<double>::accessor<rw, na>
 #ifdef ENABLE_RADIATION
-    radiation_energy_density_n_a
+    radiation_energy_density_a
 #endif
   ,
-  // explicit & implicit time derivatives for the state U^1
+  // Time derivatives for the state U^1
   field<double>::accessor<ro, na> dt_mass_density_a,
   typename field<vec<Dim>>::template accessor<ro, na> dt_momentum_density_a,
   field<double>::accessor<ro, na> dt_total_energy_density_a,
@@ -284,44 +266,15 @@ update_u(single<double>::accessor<ro> dt_a,
     dt_radiation_energy_density_a
 #endif
   ,
-  field<double>::accessor<ro, na> dt_total_energy_density_implicit_a,
-  field<double>::accessor<ro, na>
-#ifdef ENABLE_RADIATION
-    dt_radiation_energy_density_implicit_a
-#endif
-  ,
-  // explicit & implicit time derivatives for the state U^2
-  field<double>::accessor<ro, na> dt_mass_density_2_a,
-  typename field<vec<Dim>>::template accessor<ro, na> dt_momentum_density_2_a,
-  field<double>::accessor<ro, na> dt_total_energy_density_2_a,
-  field<double>::accessor<ro, na>
-#ifdef ENABLE_RADIATION
-    dt_radiation_energy_density_2_a
-#endif
-  ,
-  field<double>::accessor<ro, na> dt_total_energy_density_implicit_2_a,
-  field<double>::accessor<ro, na>
-#ifdef ENABLE_RADIATION
-    dt_radiation_energy_density_implicit_2_a
-#endif
-  ,
-  // write U^n+1 into following arguments
-  field<double>::accessor<wo, na> mass_density_a,
-  typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
-  field<double>::accessor<wo, na> total_energy_density_a,
-  field<double>::accessor<wo, na>
-#ifdef ENABLE_RADIATION
-    radiation_energy_density_a
-#endif
-) {
+  const double coefficient) {
 
-  auto mass_density_n = m.template mdcolex<is::cells>(mass_density_n_a);
-  auto momentum_density_n = m.template mdcolex<is::cells>(momentum_density_n_a);
-  auto total_energy_density_n =
-    m.template mdcolex<is::cells>(total_energy_density_n_a);
+  auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
+  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
+  auto total_energy_density =
+    m.template mdcolex<is::cells>(total_energy_density_a);
 #ifdef ENABLE_RADIATION
-  auto radiation_energy_density_n =
-    m.template mdcolex<is::cells>(radiation_energy_density_n_a);
+  auto radiation_energy_density =
+    m.template mdcolex<is::cells>(radiation_energy_density_a);
 #endif
 
   auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
@@ -333,96 +286,19 @@ update_u(single<double>::accessor<ro> dt_a,
   auto dt_radiation_energy_density =
     m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
 #endif
-  auto dt_total_energy_density_implicit =
-    m.template mdcolex<is::cells>(dt_total_energy_density_implicit_a);
-#ifdef ENABLE_RADIATION
-  auto dt_radiation_energy_density_implicit =
-    m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
-#endif
 
-  auto dt_mass_density_2 = m.template mdcolex<is::cells>(dt_mass_density_2_a);
-  auto dt_momentum_density_2 =
-    m.template mdcolex<is::cells>(dt_momentum_density_2_a);
-  auto dt_total_energy_density_2 =
-    m.template mdcolex<is::cells>(dt_total_energy_density_2_a);
-#ifdef ENABLE_RADIATION
-  auto dt_radiation_energy_density_2 =
-    m.template mdcolex<is::cells>(dt_radiation_energy_density_2_a);
-#endif
-  auto dt_total_energy_density_implicit_2 =
-    m.template mdcolex<is::cells>(dt_total_energy_density_implicit_2_a);
-#ifdef ENABLE_RADIATION
-  auto dt_radiation_energy_density_implicit_2 =
-    m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_2_a);
-#endif
-
-  auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
-  auto total_energy_density =
-    m.template mdcolex<is::cells>(total_energy_density_a);
-#ifdef ENABLE_RADIATION
-  auto radiation_energy_density =
-    m.template mdcolex<is::cells>(radiation_energy_density_a);
-#endif
+  auto h = *dt_a * coefficient;
   using hard::tasks::util::get_mdiota_policy;
+
   if constexpr(Dim == 1) {
     forall(i, (m.template cells<ax::x, dm::quantities>()), "update_u_1d") {
-      // Weights
-      auto dt = *dt_a;
-      const double one_minus_2gamma_dt =
-        time_stepper::one_minus_2_time_stepper_gamma * dt;
-
-      if constexpr(Stage == time_stepper::rk_stage::Second) {
-
-        mass_density(i) = mass_density_n(i) + (dt * dt_mass_density(i));
-
-        momentum_density(i) =
-          momentum_density_n(i) + (dt * dt_momentum_density(i));
-
-        total_energy_density(i) =
-          total_energy_density_n(i) + (dt * dt_total_energy_density(i)) +
-          (one_minus_2gamma_dt * dt_total_energy_density_implicit(i));
+      mass_density(i) += h * dt_mass_density(i);
+      momentum_density(i) += h * dt_momentum_density(i);
+      total_energy_density(i) += h * dt_total_energy_density(i);
 
 #ifdef ENABLE_RADIATION
-        radiation_energy_density(i) =
-          radiation_energy_density_n(i) +
-          (dt * dt_radiation_energy_density(i)) +
-          (one_minus_2gamma_dt * dt_radiation_energy_density_implicit(i));
-        // radiation_energy_density_n(i) +
-        //(dt * dt_radiation_energy_density(i)) +
-        //(dt_with_const * radiation_constant* pow(radiation_temperature_n,4.0)
-        //+ dt_radiation_energy_density_implicit(i))/one_plus_dt_with_constant;
+      radiation_energy_density(i) += h * dt_radiation_energy_density(i);
 #endif
-      }
-      else if constexpr(Stage == time_stepper::rk_stage::Update) {
-
-        mass_density(i) =
-          mass_density_n(i) +
-          0.5 * dt * (dt_mass_density(i) + dt_mass_density_2(i));
-
-        momentum_density(i) =
-          momentum_density_n(i) +
-          0.5 * dt * (dt_momentum_density(i) + dt_momentum_density_2(i));
-
-        total_energy_density(i) =
-          total_energy_density_n(i) +
-          0.5 * dt *
-            (dt_total_energy_density(i) + dt_total_energy_density_2(i) +
-              dt_total_energy_density_implicit(i) +
-              dt_total_energy_density_implicit_2(i));
-
-#ifdef ENABLE_RADIATION
-        radiation_energy_density(i) =
-          radiation_energy_density_n(i) +
-          0.5 * dt *
-            (dt_radiation_energy_density(i) + dt_radiation_energy_density_2(i) +
-              dt_radiation_energy_density_implicit(i) +
-              dt_radiation_energy_density_implicit_2(i));
-#endif
-      }
-      else {
-        flog_fatal("Incorrect call of update_u()");
-      }
     }; // forall
   }
   else if constexpr(Dim == 2) {
@@ -433,59 +309,12 @@ update_u(single<double>::accessor<ro> dt_a,
     forall(ji, mdpolicy_qq, "update_u_2d") {
       auto [j, i] = ji;
       // Weights
-      auto dt = *dt_a;
-      const double one_minus_2gamma_dt =
-        time_stepper::one_minus_2_time_stepper_gamma * dt;
-
-      if constexpr(Stage == time_stepper::rk_stage::Second) {
-
-        mass_density(i, j) =
-          mass_density_n(i, j) + (dt * dt_mass_density(i, j));
-
-        momentum_density(i, j) =
-          momentum_density_n(i, j) + (dt * dt_momentum_density(i, j));
-
-        total_energy_density(i, j) =
-          total_energy_density_n(i, j) + (dt * dt_total_energy_density(i, j)) +
-          (one_minus_2gamma_dt * dt_total_energy_density_implicit(i, j));
-
+      mass_density(i, j) += h * dt_mass_density(i, j);
+      momentum_density(i, j) += h * dt_momentum_density(i, j);
+      total_energy_density(i, j) += h * dt_total_energy_density(i, j);
 #ifdef ENABLE_RADIATION
-        radiation_energy_density(i, j) =
-          radiation_energy_density_n(i, j) +
-          (dt * dt_radiation_energy_density(i, j)) +
-          (one_minus_2gamma_dt * dt_radiation_energy_density_implicit(i, j));
+      radiation_energy_density(i, j) += h * dt_radiation_energy_density(i, j);
 #endif
-      }
-      else if constexpr(Stage == time_stepper::rk_stage::Update) {
-
-        mass_density(i, j) =
-          mass_density_n(i, j) +
-          0.5 * dt * (dt_mass_density(i, j) + dt_mass_density_2(i, j));
-
-        momentum_density(i, j) =
-          momentum_density_n(i, j) +
-          0.5 * dt * (dt_momentum_density(i, j) + dt_momentum_density_2(i, j));
-
-        total_energy_density(i, j) =
-          total_energy_density_n(i, j) +
-          0.5 * dt *
-            (dt_total_energy_density(i, j) + dt_total_energy_density_2(i, j) +
-              dt_total_energy_density_implicit(i, j) +
-              dt_total_energy_density_implicit_2(i, j));
-
-#ifdef ENABLE_RADIATION
-        radiation_energy_density(i, j) =
-          radiation_energy_density_n(i, j) +
-          0.5 * dt *
-            (dt_radiation_energy_density(i, j) +
-              dt_radiation_energy_density_2(i, j) +
-              dt_radiation_energy_density_implicit(i, j) +
-              dt_radiation_energy_density_implicit_2(i, j));
-#endif
-      }
-      else {
-        flog_fatal("Incorrect call of update_u()");
-      }
     }; // forall
   }
   else {
@@ -496,61 +325,14 @@ update_u(single<double>::accessor<ro> dt_a,
 
     forall(kji, mdpolicy_qqq, "update_u_3d") {
       auto [k, j, i] = kji;
-      // Weights
-      auto dt = *dt_a;
-      const double one_minus_2gamma_dt =
-        time_stepper::one_minus_2_time_stepper_gamma * dt;
 
-      if constexpr(Stage == time_stepper::rk_stage::Second) {
-        mass_density(i, j, k) =
-          mass_density_n(i, j, k) + (dt * dt_mass_density(i, j, k));
-
-        momentum_density(i, j, k) =
-          momentum_density_n(i, j, k) + (dt * dt_momentum_density(i, j, k));
-
-        total_energy_density(i, j, k) =
-          total_energy_density_n(i, j, k) +
-          (dt * dt_total_energy_density(i, j, k)) +
-          (one_minus_2gamma_dt * dt_total_energy_density_implicit(i, j, k));
-
+      mass_density(i, j, k) += h * dt_mass_density(i, j, k);
+      momentum_density(i, j, k) += h * dt_momentum_density(i, j, k);
+      total_energy_density(i, j, k) += h * dt_total_energy_density(i, j, k);
 #ifdef ENABLE_RADIATION
-        radiation_energy_density(i, j, k) =
-          radiation_energy_density_n(i, j, k) +
-          (dt * dt_radiation_energy_density(i, j, k)) +
-          (one_minus_2gamma_dt * dt_radiation_energy_density_implicit(i, j, k));
+      radiation_energy_density(i, j, k) +=
+        h * dt_radiation_energy_density(i, j, k);
 #endif
-      }
-      else if constexpr(Stage == time_stepper::rk_stage::Update) {
-        mass_density(i, j, k) =
-          mass_density_n(i, j, k) +
-          0.5 * dt * (dt_mass_density(i, j, k) + dt_mass_density_2(i, j, k));
-
-        momentum_density(i, j, k) =
-          momentum_density_n(i, j, k) +
-          0.5 * dt *
-            (dt_momentum_density(i, j, k) + dt_momentum_density_2(i, j, k));
-
-        total_energy_density(i, j, k) =
-          total_energy_density_n(i, j, k) +
-          0.5 * dt *
-            (dt_total_energy_density(i, j, k) +
-              dt_total_energy_density_2(i, j, k) +
-              dt_total_energy_density_implicit(i, j, k) +
-              dt_total_energy_density_implicit_2(i, j, k));
-
-#ifdef ENABLE_RADIATION
-        radiation_energy_density(i, j, k) =
-          radiation_energy_density_n(i, j, k) +
-          0.5 * dt *
-            (dt_radiation_energy_density(i, j, k) +
-              dt_radiation_energy_density_2(i, j, k) +
-              dt_radiation_energy_density_implicit(i, j, k) +
-              dt_radiation_energy_density_implicit_2(i, j, k));
-#endif
-      }
-      else {
-        flog_fatal("Incorrect call of update_u()");
-      }
     }; // forall
   }
 }
