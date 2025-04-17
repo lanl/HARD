@@ -18,6 +18,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<rw, na> r_a,
   typename field<vec<D>>::template accessor<rw, ro> v_a,
   field<double>::accessor<rw, ro> p_a,
+  field<double>::accessor<rw, ro> sie_a,
   field<double>::accessor<rw, ro> Erad_a,
   // conservative variables
   typename field<vec<D>>::template accessor<rw, ro> ru_a,
@@ -27,6 +28,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
   auto r = m.template mdcolex<is::cells>(r_a);
   auto v = m.template mdcolex<is::cells>(v_a);
   auto p = m.template mdcolex<is::cells>(p_a);
+  auto sie = m.template mdcolex<is::cells>(sie_a);
   auto Erad = m.template mdcolex<is::cells>(Erad_a);
 
   auto ru = m.template mdcolex<is::cells>(ru_a);
@@ -47,6 +49,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             r(m) = r(ghost_zone_size);
             v(m) = v(ghost_zone_size);
             p(m) = p(ghost_zone_size);
+            sie(m) = sie(ghost_zone_size);
 
             ru(m) = ru(ghost_zone_size);
             rE(m) = rE(ghost_zone_size);
@@ -58,6 +61,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             r(m) = r(2 * ghost_zone_size - 1 - m);
             v(m).x = -v(2 * ghost_zone_size - 1 - m).x;
             p(m) = p(2 * ghost_zone_size - 1 - m);
+            sie(m) = sie(2 * ghost_zone_size - 1 - m);
 
             ru(m).x = -ru(2 * ghost_zone_size - 1 - m).x;
             rE(m) = rE(2 * ghost_zone_size - 1 - m);
@@ -75,6 +79,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             r(m, j) = r(ghost_zone_size, j);
             v(m, j) = v(ghost_zone_size, j);
             p(m, j) = p(ghost_zone_size, j);
+            sie(m, j) = sie(ghost_zone_size, j);
 
             ru(m, j) = ru(ghost_zone_size, j);
             rE(m, j) = rE(ghost_zone_size, j);
@@ -87,6 +92,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             v(m, j).x = -v(2 * ghost_zone_size - 1 - m, j).x;
             v(m, j).y = v(2 * ghost_zone_size - 1 - m, j).y;
             p(m, j) = p(2 * ghost_zone_size - 1 - m, j);
+            sie(m, j) = sie(2 * ghost_zone_size - 1 - m, j);
 
             ru(m, j).x = -ru(2 * ghost_zone_size - 1 - m, j).x;
             ru(m, j).y = ru(2 * ghost_zone_size - 1 - m, j).y;
@@ -110,6 +116,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             r(m, j, k) = r(ghost_zone_size, j, k);
             v(m, j, k) = v(ghost_zone_size, j, k);
             p(m, j, k) = p(ghost_zone_size, j, k);
+            sie(m, j, k) = sie(ghost_zone_size, j, k);
 
             ru(m, j, k) = ru(ghost_zone_size, j, k);
             rE(m, j, k) = rE(ghost_zone_size, j, k);
@@ -123,6 +130,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             v(m, j, k).y = v(2 * ghost_zone_size - 1 - m, j, k).y;
             v(m, j, k).z = v(2 * ghost_zone_size - 1 - m, j, k).z;
             p(m, j, k) = p(2 * ghost_zone_size - 1 - m, j, k);
+            sie(m, j, k) = sie(2 * ghost_zone_size - 1 - m, j, k);
 
             ru(m, j, k).x = -ru(2 * ghost_zone_size - 1 - m, j, k).x;
             ru(m, j, k).y = ru(2 * ghost_zone_size - 1 - m, j, k).y;
@@ -148,6 +156,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             r(i - 1 - m) = r(i - 1 - ghost_zone_size);
             v(i - 1 - m) = v(i - 1 - ghost_zone_size);
             p(i - 1 - m) = p(i - 1 - ghost_zone_size);
+            sie(i - 1 - m) = sie(i - 1 - ghost_zone_size);
 
             ru(i - 1 - m) = ru(i - 1 - ghost_zone_size);
             rE(i - 1 - m) = rE(i - 1 - ghost_zone_size);
@@ -159,6 +168,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             r(i - 1 - m) = r(i - 2 * ghost_zone_size + m);
             v(i - 1 - m) = v(i - 2 * ghost_zone_size + m);
             p(i - 1 - m) = p(i - 2 * ghost_zone_size + m);
+            sie(i - 1 - m) = sie(i - 2 * ghost_zone_size + m);
 
             ru(i - 1 - m) = ru(i - 2 * ghost_zone_size + m);
             rE(i - 1 - m) = rE(i - 2 * ghost_zone_size + m);
@@ -176,6 +186,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             r(i - 1 - m, j) = r(i - 1 - ghost_zone_size, j);
             v(i - 1 - m, j) = v(i - 1 - ghost_zone_size, j);
             p(i - 1 - m, j) = p(i - 1 - ghost_zone_size, j);
+            sie(i - 1 - m, j) = sie(i - 1 - ghost_zone_size, j);
 
             ru(i - 1 - m, j) = ru(i - 1 - ghost_zone_size, j);
             rE(i - 1 - m, j) = rE(i - 1 - ghost_zone_size, j);
@@ -188,6 +199,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             v(i - 1 - m, j).x = -v(i - 2 * ghost_zone_size + m, j).x;
             v(i - 1 - m, j).y = v(i - 2 * ghost_zone_size + m, j).y;
             p(i - 1 - m, j) = p(i - 2 * ghost_zone_size + m, j);
+            sie(i - 1 - m, j) = sie(i - 2 * ghost_zone_size + m, j);
 
             ru(i - 1 - m, j).x = -ru(i - 2 * ghost_zone_size + m, j).x;
             ru(i - 1 - m, j).y = ru(i - 2 * ghost_zone_size + m, j).y;
@@ -211,6 +223,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             r(i - 1 - m, j, k) = r(i - 1 - ghost_zone_size, j, k);
             v(i - 1 - m, j, k) = v(i - 1 - ghost_zone_size, j, k);
             p(i - 1 - m, j, k) = p(i - 1 - ghost_zone_size, j, k);
+            sie(i - 1 - m, j, k) = sie(i - 1 - ghost_zone_size, j, k);
 
             ru(i - 1 - m, j, k) = ru(i - 1 - ghost_zone_size, j, k);
             rE(i - 1 - m, j, k) = rE(i - 1 - ghost_zone_size, j, k);
@@ -224,6 +237,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             v(i - 1 - m, j, k).y = v(i - 2 * ghost_zone_size + m, j, k).y;
             v(i - 1 - m, j, k).z = v(i - 2 * ghost_zone_size + m, j, k).z;
             p(i - 1 - m, j, k) = p(i - 2 * ghost_zone_size + m, j, k);
+            sie(i - 1 - m, j, k) = sie(i - 2 * ghost_zone_size + m, j, k);
 
             ru(i - 1 - m, j, k).x = -ru(i - 2 * ghost_zone_size + m, j, k).x;
             ru(i - 1 - m, j, k).y = ru(i - 2 * ghost_zone_size + m, j, k).y;
@@ -248,6 +262,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
               r(i, m) = r(i, ghost_zone_size);
               v(i, m) = v(i, ghost_zone_size);
               p(i, m) = p(i, ghost_zone_size);
+              sie(i, m) = sie(i, ghost_zone_size);
 
               ru(i, m) = ru(i, ghost_zone_size);
               rE(i, m) = rE(i, ghost_zone_size);
@@ -260,6 +275,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
               v(i, m).x = v(i, 2 * ghost_zone_size - 1 - m).x;
               v(i, m).y = -v(i, 2 * ghost_zone_size - 1 - m).y;
               p(i, m) = p(i, 2 * ghost_zone_size - 1 - m);
+              sie(i, m) = sie(i, 2 * ghost_zone_size - 1 - m);
 
               ru(i, m).x = ru(i, 2 * ghost_zone_size - 1 - m).x;
               ru(i, m).y = -ru(i, 2 * ghost_zone_size - 1 - m).y;
@@ -283,6 +299,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
               r(i, m, k) = r(i, ghost_zone_size, k);
               v(i, m, k) = v(i, ghost_zone_size, k);
               p(i, m, k) = p(i, ghost_zone_size, k);
+              sie(i, m, k) = sie(i, ghost_zone_size, k);
 
               ru(i, m, k) = ru(i, ghost_zone_size, k);
               rE(i, m, k) = rE(i, ghost_zone_size, k);
@@ -296,6 +313,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
               v(i, m, k).y = -v(i, 2 * ghost_zone_size - 1 - m, k).y;
               v(i, m, k).z = v(i, 2 * ghost_zone_size - 1 - m, k).z;
               p(i, m, k) = p(i, 2 * ghost_zone_size - 1 - m, k);
+              sie(i, m, k) = sie(i, 2 * ghost_zone_size - 1 - m, k);
 
               ru(i, m, k).x = ru(i, 2 * ghost_zone_size - 1 - m, k).x;
               ru(i, m, k).y = -ru(i, 2 * ghost_zone_size - 1 - m, k).y;
@@ -318,6 +336,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
               r(i, j - 1 - m) = r(i, j - 1 - ghost_zone_size);
               v(i, j - 1 - m) = v(i, j - 1 - ghost_zone_size);
               p(i, j - 1 - m) = p(i, j - 1 - ghost_zone_size);
+              sie(i, j - 1 - m) = sie(i, j - 1 - ghost_zone_size);
 
               ru(i, j - 1 - m) = ru(i, j - 1 - ghost_zone_size);
               rE(i, j - 1 - m) = rE(i, j - 1 - ghost_zone_size);
@@ -330,6 +349,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
               v(i, j - 1 - m).x = v(i, j - 2 * ghost_zone_size + m).x;
               v(i, j - 1 - m).y = -v(i, j - 2 * ghost_zone_size + m).y;
               p(i, j - 1 - m) = p(i, j - 2 * ghost_zone_size + m);
+              sie(i, j - 1 - m) = sie(i, j - 2 * ghost_zone_size + m);
 
               ru(i, j - 1 - m).x = ru(i, j - 2 * ghost_zone_size + m).x;
               ru(i, j - 1 - m).y = -ru(i, j - 2 * ghost_zone_size + m).y;
@@ -352,6 +372,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
               r(i, j - 1 - m, k) = r(i, j - 1 - ghost_zone_size, k);
               v(i, j - 1 - m, k) = v(i, j - 1 - ghost_zone_size, k);
               p(i, j - 1 - m, k) = p(i, j - 1 - ghost_zone_size, k);
+              sie(i, j - 1 - m, k) = sie(i, j - 1 - ghost_zone_size, k);
 
               ru(i, j - 1 - m, k) = ru(i, j - 1 - ghost_zone_size, k);
               rE(i, j - 1 - m, k) = rE(i, j - 1 - ghost_zone_size, k);
@@ -365,6 +386,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
               v(i, j - 1 - m, k).y = -v(i, j - 2 * ghost_zone_size + m, k).y;
               v(i, j - 1 - m, k).z = v(i, j - 2 * ghost_zone_size + m, k).z;
               p(i, j - 1 - m, k) = p(i, j - 2 * ghost_zone_size + m, k);
+              sie(i, j - 1 - m, k) = sie(i, j - 2 * ghost_zone_size + m, k);
 
               ru(i, j - 1 - m, k).x = ru(i, j - 2 * ghost_zone_size + m, k).x;
               ru(i, j - 1 - m, k).y = -ru(i, j - 2 * ghost_zone_size + m, k).y;
@@ -391,6 +413,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             r(i, j, m) = r(i, j, ghost_zone_size);
             v(i, j, m) = v(i, j, ghost_zone_size);
             p(i, j, m) = p(i, j, ghost_zone_size);
+            sie(i, j, m) = sie(i, j, ghost_zone_size);
 
             ru(i, j, m) = ru(i, j, ghost_zone_size);
             rE(i, j, m) = rE(i, j, ghost_zone_size);
@@ -404,6 +427,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             v(i, j, m).y = v(i, j, 2 * ghost_zone_size - 1 - m).y;
             v(i, j, m).z = -v(i, j, 2 * ghost_zone_size - 1 - m).z;
             p(i, j, m) = p(i, j, 2 * ghost_zone_size - 1 - m);
+            sie(i, j, m) = sie(i, j, 2 * ghost_zone_size - 1 - m);
 
             ru(i, j, m).x = ru(i, j, 2 * ghost_zone_size - 1 - m).x;
             ru(i, j, m).y = ru(i, j, 2 * ghost_zone_size - 1 - m).y;
@@ -428,6 +452,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             r(i, j, k - 1 - m) = r(i, j, k - 1 - ghost_zone_size);
             v(i, j, k - 1 - m) = v(i, j, k - 1 - ghost_zone_size);
             p(i, j, k - 1 - m) = p(i, j, k - 1 - ghost_zone_size);
+            sie(i, j, k - 1 - m) = sie(i, j, k - 1 - ghost_zone_size);
 
             ru(i, j, k - 1 - m) = ru(i, j, k - 1 - ghost_zone_size);
             rE(i, j, k - 1 - m) = rE(i, j, k - 1 - ghost_zone_size);
@@ -442,6 +467,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             v(i, j, k - 1 - m).y = v(i, j, k - 2 * ghost_zone_size + m).y;
             v(i, j, k - 1 - m).z = -v(i, j, k - 2 * ghost_zone_size + m).z;
             p(i, j, k - 1 - m) = p(i, j, k - 2 * ghost_zone_size + m);
+            sie(i, j, k - 1 - m) = sie(i, j, k - 1 - ghost_zone_size);
 
             ru(i, j, k - 1 - m).x = ru(i, j, k - 2 * ghost_zone_size + m).x;
             ru(i, j, k - 1 - m).y = ru(i, j, k - 2 * ghost_zone_size + m).y;
