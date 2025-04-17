@@ -21,9 +21,14 @@ analyze(control_policy<state, D> & cp) {
   auto lm = data::launch::make(s.m);
 
 #ifndef HARD_BENCHMARK_MODE
+
+#if FLECSI_BACKEND == FLECSI_BACKEND_legion
   if(((cp.step() % cp.output_frequency()) == 0) or
      (cp.step() == cp.max_steps())) {
-
+#else
+  if(((cp.step() % cp.output_frequency()) == 0) or
+     (cp.step() == cp.max_steps()) or (cp.time() == cp.max_time())) {
+#endif
     execute<tasks::io::raw<D>, mpi>(spec::io::name{"output-"}
                                       << std::setfill('0') << std::setw(5)
                                       << cp.step(),
