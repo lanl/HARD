@@ -342,15 +342,6 @@ initialize(control_policy<state, D> & cp) {
     Initialize time advance.
    *--------------------------------------------------------------------------*/
 
-  execute<tasks::apply_boundaries<D>, flecsi::default_accelerator>(s.m,
-    s.bmap(s.gt),
-    s.mass_density(s.m),
-    s.velocity(s.m),
-    s.pressure(s.m),
-    s.radiation_energy_density(s.m),
-    s.momentum_density(s.m),
-    s.total_energy_density(s.m));
-
   if(s.mg) {
     // FIXME: figure out how not to use the hardcoded radiation temperature
     // boundary
@@ -380,6 +371,16 @@ initialize(control_policy<state, D> & cp) {
     s.sound_speed(s.m));
   s.dtmin_ =
     reduce<hard::task::rad::update_dtmin<D>, exec::fold::min>(s.m, lmax_f);
+
+  execute<tasks::apply_boundaries<D>, flecsi::default_accelerator>(s.m,
+    s.bmap(s.gt),
+    s.mass_density(s.m),
+    s.velocity(s.m),
+    s.pressure(s.m),
+    s.specific_internal_energy(s.m),
+    s.radiation_energy_density(s.m),
+    s.momentum_density(s.m),
+    s.total_energy_density(s.m));
 
   /*--------------------------------------------------------------------------*
     Initialize time to 0
