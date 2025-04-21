@@ -12,7 +12,7 @@ spack:
   - $spack/../systems/darwin/common/packages.yaml
   - $spack/../systems/darwin/common/upstreams.yaml
   specs:
-  - hard +radiation +tests
+  - hard +tests
   view: true
   concretizer:
     unify: true

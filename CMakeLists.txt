@@ -226,3 +226,39 @@ add_subdirectory(spec)
 #------------------------------------------------------------------------------#
 
 add_subdirectory(app)
+
+#------------------------------------------------------------------------------#
+# Add apps.
+#------------------------------------------------------------------------------#
+
+option(ENABLE_VERIFICATION "Enable exactpack verification" OFF)
+mark_as_advanced(ENABLE_FORMAT)
+
+if(ENABLE_VERIFICATION OR ENABLE_UNIT_TESTS)
+
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  # We need the exactpack package
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -c "import exactpack"
+    RESULT_VARIABLE EXACTPACK_FOUND
+    OUTPUT_QUIET
+    ERROR_QUIET
+  )
+
+  if(NOT EXACTPACK_FOUND EQUAL 0)
+    message(FATAL_ERROR "ExactPack Python module not found. Please install it (e.g., with 'pip install exactpack').")
+  endif()
+
+
+  set(CHECK_SCRIPT ${CMAKE_SOURCE_DIR}/tools/exactpack_verify.py)
+
+  if(CONFIG STREQUAL "")
+    set(CONFIG sod.yaml)
+  endif()
+
+  add_custom_target(verify
+    COMMAND ${Python3_EXECUTABLE} ${CHECK_SCRIPT} \$\(CONFIG\)
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    VERBATIM
+  )
+endif()
