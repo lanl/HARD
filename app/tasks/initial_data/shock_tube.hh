@@ -11,17 +11,17 @@ namespace hard::tasks::initial_data {
 namespace shock_tubes {
 
 struct rankine_hugoniot {
-  static constexpr double rL = 2.299156e-01;
-  static constexpr double uL = 1.270775e+00;
+  static constexpr double rL = 1.0;
+  static constexpr double uL = 0.0;
   static constexpr double vL = 0.0;
   static constexpr double wL = 0.0;
-  static constexpr double pL = 6.700238e-01;
+  static constexpr double pL = 1.0;
 
-  static constexpr double rR = 1.250000e-01;
-  static constexpr double uR = 0.000000e+00;
+  static constexpr double rR = 0.25;
+  static constexpr double uR = 0.0;
   static constexpr double vR = 0.0;
   static constexpr double wR = 0.0;
-  static constexpr double pR = 2.276638e-01;
+  static constexpr double pR = 0.1795;
 
   static constexpr double x0 = 0.5;
   static constexpr double y0 = 0.5;
@@ -43,6 +43,23 @@ struct sod {
   static constexpr double x0 = 0.5;
   static constexpr double y0 = 0.5;
 }; // struct sod
+
+struct leblanc {
+  static constexpr double rL = 1.0;
+  static constexpr double uL = 0.0;
+  static constexpr double vL = 0.0;
+  static constexpr double wL = 0.0;
+  static constexpr double pL = 0.1;
+
+  static constexpr double rR = 1.0e-3;
+  static constexpr double uR = 0.0;
+  static constexpr double vR = 0.0;
+  static constexpr double wR = 0.0;
+  static constexpr double pR = 1.0e-10;
+
+  static constexpr double x0 = 0.5;
+  static constexpr double y0 = 0.5;
+}; // struct leblanc
 
 } // namespace shock_tubes
 
