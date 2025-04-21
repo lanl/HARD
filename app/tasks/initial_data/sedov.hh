@@ -21,9 +21,7 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<rw, ro> mass_density_a,
   typename field<vec<Dim>>::template accessor<rw, ro> momentum_density_a,
   field<double>::accessor<rw, ro> total_energy_density_a,
-  field<double>::accessor<rw, ro> radiation_energy_density_a,
-  single<double>::accessor<ro> particle_mass_a,
-  const double gamma) {
+  field<double>::accessor<rw, ro> radiation_energy_density_a) {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
@@ -31,11 +29,6 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
-
-  // adiabatic index, assuming ideal gas EOS
-  // auto const gamma = *gamma_a;
-  auto const particle_mass = *particle_mass_a;
-  const double mult = 1.0 / (gamma - 1.0);
 
   // physical constants in cgs units
   const double & kb = hard::constants::cgs::boltzmann_constant;
@@ -52,11 +45,15 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
     config["problem_parameters"]["hotspot_position"][0][2].as<double>();
   const double radius =
     config["problem_parameters"]["hotspot_radius"].as<double>();
+  const double E_0 = config["problem_parameters"]["E_0"].as<double>();
 
   // some problem parameters: for now hardwired
-  const double density = 1.0e-2;
-  const double temperature_inside = 8.0e6;
-  const double temperature_outside = 1.0e2;
+  const double density = 1.0;
+
+  const double volume =
+    pow(radius, Dim) * (Dim > 1 ? M_PI : 1.) * (Dim > 2 ? 4. / 3. : 1.);
+  const double rE_inside = E_0 / volume;
+  const double rE_outside = 1.0e-5;
 
   using spec::utils::sqr;
 
@@ -69,14 +66,12 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
       mass_density(i) = density;
       momentum_density(i).x = 0.0; // velocity is zero.
       if(distance < radius) {
-        double pressure = kb * temperature_inside * density / (particle_mass);
-        total_energy_density(i) = mult * pressure;
-        radiation_energy_density(i) = a * sqr(sqr(temperature_inside));
+        total_energy_density(i) = rE_inside;
+        radiation_energy_density(i) = 0.0;
       }
       else {
-        double pressure = kb * temperature_outside * density / (particle_mass);
-        total_energy_density(i) = mult * pressure;
-        radiation_energy_density(i) = a * sqr(sqr(temperature_outside));
+        total_energy_density(i) = rE_outside;
+        radiation_energy_density(i) = 0.0;
       }
     }; // forall
   }
@@ -92,15 +87,12 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
         momentum_density(i, j).x = 0.0;
         momentum_density(i, j).y = 0.0;
         if(distance < radius) {
-          double pressure = kb * temperature_inside * density / (particle_mass);
-          total_energy_density(i, j) = mult * pressure;
-          radiation_energy_density(i, j) = a * sqr(sqr(temperature_inside));
+          total_energy_density(i, j) = rE_inside;
+          radiation_energy_density(i, j) = 0.0;
         }
         else {
-          double pressure =
-            kb * temperature_outside * density / (particle_mass);
-          total_energy_density(i, j) = mult * pressure;
-          radiation_energy_density(i, j) = a * sqr(sqr(temperature_outside));
+          total_energy_density(i, j) = rE_outside;
+          radiation_energy_density(i, j) = 0.0;
         }
       } // for
     }; // forall
@@ -121,18 +113,12 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
           momentum_density(i, j, k).y = 0.0;
           momentum_density(i, j, k).z = 0.0;
           if(distance < radius) {
-            double pressure =
-              kb * temperature_inside * density / (particle_mass);
-            total_energy_density(i, j, k) = mult * pressure;
-            radiation_energy_density(i, j, k) =
-              a * sqr(sqr(temperature_inside));
+            total_energy_density(i, j, k) = rE_inside;
+            radiation_energy_density(i, j, k) = 0.0;
           }
           else {
-            double pressure =
-              kb * temperature_outside * density / (particle_mass);
-            total_energy_density(i, j, k) = mult * pressure;
-            radiation_energy_density(i, j, k) =
-              a * sqr(sqr(temperature_outside));
+            total_energy_density(i, j, k) = rE_outside;
+            radiation_energy_density(i, j, k) = 0.0;
           }
         } // for
       }
