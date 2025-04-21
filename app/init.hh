@@ -266,6 +266,17 @@ initialize(control_policy<state, D> & cp) {
       s.radiation_energy_density(s.m),
       s.eos);
   }
+  else if(config["problem"].as<std::string>() == "leblanc") {
+    execute<
+      tasks::initial_data::shock<tasks::initial_data::shock_tubes::leblanc, D>,
+      flecsi::default_accelerator>(s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m),
+      s.eos);
+  }
+
   else if(config["problem"].as<std::string>() == "sine-wave") {
     execute<tasks::initial_data::sine_wave<D>, flecsi::default_accelerator>(s.m,
       s.mass_density(s.m),
