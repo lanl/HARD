@@ -5,24 +5,25 @@ kappa: 1.0e0
 mean_molecular_weight: 0.5
 eos: ideal
 t0: 0.0
-tf: 1.e1
-max_steps: 10
+tf: 0.5
+max_steps: 10000
 cfl: 0.3
-max_dt: 5.0e-08
-log_frequency: 1
-output_frequency: 1
-levels: [8, 8, 1]
-lowest_level: 8
+max_dt: 1.0
+log_frequency: 1000
+output_frequency: 1000
+levels: [10, 1, 1]
+lowest_level: 10
 problem_parameters:
+  E_0: 0.0673185
   hotspot_position:
-    - [2.0e5, 2.0e5, 0.0]
-  hotspot_radius: 2.0e4
+    - [0., 0., 0.]
+  hotspot_radius: 0.01
 coords:
   - [0.0, 0.0, 0.0]
-  - [4.0e5, 4.0e5, 1.0e4]
+  - [1.0, 1.0, 1.0]
 boundaries:
-  xlow: flow
-  xhigh: flow
+  xlow: reflecting
+  xhigh: reflecting
   ylow: flow
   yhigh: flow
   zlow: flow
