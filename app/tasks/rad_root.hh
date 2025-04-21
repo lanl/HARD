@@ -64,12 +64,13 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
 
       const double ke = 0.5 * r(i) * u(i).norm_squared(); // kinetic energy
       const double en = rE(i) - ke; // internal energy
+      assert(en >= 0 && "Internal energy is negative");
 
       // getting temperature from EOS, this should be inital guess
       temperature(i) = eos.tRhoSie(r(i), en);
 
       const double En = radiation_energy_density(i); // radiation energy
-      assert(En >= 0);
+      assert(En >= 0 && "Radiation energy is negative");
 
       // Find the next temperature with root finding
       const double up_Tn{tasks::util::find_temp(
@@ -77,7 +78,11 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
 
       // Update En with the formula and en with conservation of energy
       const double up_En{get_up_En(up_Tn, En)};
+      assert(up_En >= 0 && "Updated radiation energy is negative");
+
       const double up_en{en - (up_En - En)};
+      assert(up_en >= 0 && "Updated internal energy is negative");
+
       radiation_energy_density(i) = up_En;
       rE(i) = up_en + ke;
       temperature(i) = up_Tn;
@@ -96,18 +101,23 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       const double ke =
         0.5 * r(i, j) * u(i, j).norm_squared(); // kinetic energy
       const double en = rE(i, j) - ke; // internal energy
+      assert(en >= 0 && "Internal energy is negative");
 
       temperature(i, j) = eos.tRhoSie(r(i, j), en);
 
       const double En = radiation_energy_density(i, j); // radiation energy
-      assert(En >= 0);
+      assert(En >= 0 && "Radiation energy is negative");
 
       // Find the next temperature with root finding
       const double up_Tn{tasks::util::find_temp(
         eos, r(i, j), en, temperature(i, j), kappa, En, dt_weighted)};
 
       const double up_En{get_up_En(up_Tn, En)};
+      assert(up_En >= 0 && "Updated radiation energy is negative");
+
       const double up_en{en - (up_En - En)};
+      assert(up_en >= 0 && "Updated internal energy is negative");
+
       radiation_energy_density(i, j) = up_En;
       rE(i, j) = up_en + ke;
       temperature(i, j) = up_Tn;
@@ -125,18 +135,23 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       const double ke =
         0.5 * r(i, j, k) * u(i, j, k).norm_squared(); // kinetic energy
       const double en = rE(i, j, k) - ke; // internal energy
+      assert(en >= 0 && "Internal energy is negative");
 
       temperature(i, j, k) = eos.tRhoSie(r(i, j, k), en);
 
       const double En = radiation_energy_density(i, j, k); // radiation energy
-      assert(En >= 0);
+      assert(En >= 0 && "Radiation energy is negative");
 
       // Find the next temperature with root finding
       const double up_Tn{tasks::util::find_temp(
         eos, r(i, j, k), en, temperature(i, j, k), kappa, En, dt_weighted)};
 
       const double up_En{get_up_En(up_Tn, En)};
+      assert(up_En >= 0 && "Updated radiation energy is negative");
+
       const double up_en{en - (up_En - En)};
+      assert(up_en >= 0 && "Updated internal energy is negative");
+
       radiation_energy_density(i, j, k) = up_En;
       rE(i, j, k) = up_en + ke;
       temperature(i, j, k) = up_Tn;
