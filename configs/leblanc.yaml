@@ -1,5 +1,5 @@
 ---
-problem: sod
+problem: leblanc
 gamma: 1.4
 eos: ideal
 kappa: 1.0e-100
