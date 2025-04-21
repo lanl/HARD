@@ -467,7 +467,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
             v(i, j, k - 1 - m).y = v(i, j, k - 2 * ghost_zone_size + m).y;
             v(i, j, k - 1 - m).z = -v(i, j, k - 2 * ghost_zone_size + m).z;
             p(i, j, k - 1 - m) = p(i, j, k - 2 * ghost_zone_size + m);
-            sie(i, j, k - 1 - m) = sie(i, j, k - 1 - ghost_zone_size);
+            sie(i, j, k - 1 - m) = sie(i, j, k - 2 * ghost_zone_size + m);
 
             ru(i, j, k - 1 - m).x = ru(i, j, k - 2 * ghost_zone_size + m).x;
             ru(i, j, k - 1 - m).y = ru(i, j, k - 2 * ghost_zone_size + m).y;
