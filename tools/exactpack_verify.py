@@ -1,12 +1,13 @@
-import yaml
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
-import sys
-import os
 import glob
-import re
+import os
+import sys
 
+import matplotlib.pyplot as plt
+import numpy as np
+import yaml
+from acoustic_solution import Acoustic
+from numpy.typing import NDArray
+from scipy.interpolate import interp1d
 
 # Threshold for passing L2 error tests
 tolerance = 5.0e-1
@@ -21,23 +22,17 @@ def color_text(text, status):
         return text
 
 
-def find_latest_output(pattern="output-*-1D-0.raw"):
+def first_and_last_output(pattern="output-*-1D-0.raw"):
     files = glob.glob(pattern)
     if not files:
         print("No matching output files found.")
         return None
-    # Extract numeric ID from each filename
-    files_with_step = []
-    for f in files:
-        match = re.search(r"output-(\d+)-1D-0\.raw", f)
-        if match:
-            step = int(match.group(1))
-            files_with_step.append((step, f))
-    if not files_with_step:
-        print("No valid files matching pattern.")
-        return None
-    # Return file with max step number
-    return max(files_with_step)[1]
+
+    # Sort the files so they are in order
+    files.sort()
+
+    # Return first and last
+    return files[0], files[-1]
 
 
 def parse_config(yaml_file):
@@ -48,27 +43,6 @@ def parse_config(yaml_file):
     x1 = float(config['coords'][1][0])
     problem = config['problem']
     return problem, gamma, x0, x1
-
-
-def read_raw_output(raw_file):
-    with open(raw_file, 'r') as f:
-        lines = f.readlines()
-
-    data = []
-    for line in lines:
-        if line.startswith('#') or not line.strip():
-            continue
-        values = list(map(float, line.strip().split()))
-        data.append(values)
-
-    arr = np.array(data)
-    x = arr[:, 2]
-    dx = abs(x[0]-x[1])
-    density = arr[:, 3]
-    pressure = arr[:, 4]
-    velocity = arr[:, 5]
-    time = arr[0, 0]
-    return time, x, density, pressure, velocity, dx
 
 
 def sedov_analytic_solution(x, t, gamma):
@@ -98,8 +72,24 @@ def riemann_analytic_solution(x, t, gamma, left_state, right_state):
     return sol.density, sol.pressure, sol.velocity
 
 
-def compute_l2_error(numerical, analytical, dx):
-    return np.sqrt(dx * np.sum((numerical - analytical)** 2 ))
+def acoustic_analytic_solution(x, x_analytic, t, gamma, r0, p0, init_r, init_p,
+                               init_u):
+    """
+    Return the acoustic analytical solution
+    """
+
+    result = Acoustic(x, gamma, r0, p0, init_r, init_p, init_u)(x_analytic, t)
+
+    return result.density, result.pressure, result.velocity
+
+
+def compute_l2_error(numerical: NDArray | float, analytical: NDArray | float,
+                     dx: float, divide: bool = True) -> float:
+    if divide:
+        return np.sqrt(dx * np.sum(
+            ((numerical - analytical) / analytical) ** 2))
+    else:
+        return np.sqrt(dx * np.sum((numerical - analytical) ** 2))
 
 
 def plot_comparison(x_num, num_vals, x_exact, exact_vals,
@@ -127,7 +117,8 @@ def main():
         sys.exit(1)
 
     yaml_file = sys.argv[1]
-    raw_file = None
+    first_raw_file = None
+    last_raw_file = None
     make_plot = False
 
     for arg in sys.argv[2:]:
@@ -137,16 +128,19 @@ def main():
             make_plot = True
 
     # If no file is passed, select the latest available output
-    if raw_file is None:
-        raw_file = find_latest_output()
-        if raw_file is None:
+    if first_raw_file is None:
+        first_raw_file, last_raw_file = first_and_last_output()
+        if None in [first_raw_file, last_raw_file]:
             print("No raw file found and none provided.")
             sys.exit(1)
         else:
-            print(f"Auto-selected input file: {raw_file}")
+            print(f"Auto-selected input file: {last_raw_file}")
 
     problem, gamma, x0, x1 = parse_config(yaml_file)
-    time, x_num, rho_num, p_num, u_num, dx = read_raw_output(raw_file)
+    out_tuple = np.loadtxt(last_raw_file, usecols=(0, 2, 3, 4, 5)).T
+    t_arr, x_num, rho_num, p_num, u_num = out_tuple
+    time = t_arr[0]
+    dx = x_num[1] - x_num[0]
 
     x_analytic = np.linspace(x0, x1, 1000)
 
@@ -171,6 +165,14 @@ def main():
     elif problem == "sedov":
         rho_exact, p_exact, u_exact = sedov_analytic_solution(
             x_analytic, time, gamma)
+
+    elif problem == "acousitc-wave":
+        # Find initial configuration
+        out_tuple = np.loadtxt(first_raw_file, usecols=(0, 2, 3, 4, 5)).T
+        t_arr, x0, rho0, p0, u0 = out_tuple
+
+        rho_exact, p_exact, u_exact = acoustic_analytic_solution(
+            x0, x_analytic, time, gamma, 1.0, 1.0, rho0, p0, u0)
 
     else:
         print(f"Unsupported problem type '{problem}'")
