@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 from scipy.interpolate import interp1d
 
 # Threshold for passing L2 error tests
-tolerance = 5.0e-1
+tolerance = 1.0e-5
 
 
 def color_text(text, status):
@@ -136,8 +136,11 @@ def main():
         else:
             print(f"Auto-selected input file: {last_raw_file}")
 
+    # Read in the yaml file and the last raw file
     problem, gamma, x0, x1 = parse_config(yaml_file)
     out_tuple = np.loadtxt(last_raw_file, usecols=(0, 2, 3, 4, 5)).T
+
+    # Extract physical quantities from tuple
     t_arr, x_num, rho_num, p_num, u_num = out_tuple
     time = t_arr[0]
     dx = x_num[1] - x_num[0]
@@ -209,9 +212,9 @@ def main():
         u_ref = u_ref[mask]
 
     err_rho = compute_l2_error(rho_num, rho_ref, dx)
-    if problem == "leblanc":
-        # NOTE: The leblanc problem can have 0 pressure, so we do not
-        # use the relative L2 error in this case
+    if problem in ["leblanc", "sedov"]:
+        # NOTE: The leblanc and sedov problems can have 0 pressure,
+        # so we do not use the relative L2 error in this case
         err_p = compute_l2_error(p_num, p_ref, dx, divide=False)
     else:
         err_p = compute_l2_error(p_num, p_ref, dx)
@@ -232,7 +235,9 @@ def main():
     [{color_text(status_u, status_u)}]")
 
     if any(e > tolerance for e in (err_rho, err_p, err_u)):
-        print("Test FAILED: L2 error exceeds tolerance of "+str(tolerance))
+        s = "Test FAILED: relative L2 error exceeds tolerance of"
+        s += f" {tolerance:.2e}"
+        print(s)
         sys.exit(1)
     else:
         print("Test PASSED")
