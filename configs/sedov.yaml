@@ -6,7 +6,7 @@ mean_molecular_weight: 0.5
 eos: ideal
 t0: 0.0
 tf: 0.5
-max_steps: 10000
+max_steps: 500
 cfl: 0.3
 max_dt: 1.0
 log_frequency: 1000
