@@ -166,7 +166,7 @@ def main():
         rho_exact, p_exact, u_exact = sedov_analytic_solution(
             x_analytic, time, gamma)
 
-    elif problem == "acousitc-wave":
+    elif problem == "acoustic-wave":
         # Find initial configuration
         out_tuple = np.loadtxt(first_raw_file, usecols=(0, 2, 3, 4, 5)).T
         t_arr, x0, rho0, p0, u0 = out_tuple
@@ -178,12 +178,9 @@ def main():
         print(f"Unsupported problem type '{problem}'")
         sys.exit(1)
 
-    rho_interp = interp1d(x_analytic, rho_exact, bounds_error=False,
-                          fill_value="extrapolate")
-    p_interp = interp1d(x_analytic, p_exact, bounds_error=False,
-                        fill_value="extrapolate")
-    u_interp = interp1d(x_analytic, u_exact, bounds_error=False,
-                        fill_value="extrapolate")
+    rho_interp = interp1d(x_analytic, rho_exact, fill_value="extrapolate")
+    p_interp = interp1d(x_analytic, p_exact, fill_value="extrapolate")
+    u_interp = interp1d(x_analytic, u_exact, fill_value="extrapolate")
 
     rho_ref = rho_interp(x_num)
     p_ref = p_interp(x_num)
@@ -212,8 +209,13 @@ def main():
         u_ref = u_ref[mask]
 
     err_rho = compute_l2_error(rho_num, rho_ref, dx)
-    err_p = compute_l2_error(p_num, p_ref, dx)
-    err_u = compute_l2_error(u_num, u_ref, dx)
+    if problem == "leblanc":
+        # NOTE: The leblanc problem can have 0 pressure, so we do not
+        # use the relative L2 error in this case
+        err_p = compute_l2_error(p_num, p_ref, dx, divide=False)
+    else:
+        err_p = compute_l2_error(p_num, p_ref, dx)
+    err_u = compute_l2_error(u_num, u_ref, dx, divide=False)
 
     status_rho = "PASS" if err_rho <= tolerance else "FAIL"
     status_p = "PASS" if err_p <= tolerance else "FAIL"
