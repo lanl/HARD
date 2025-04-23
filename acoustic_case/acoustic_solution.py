@@ -14,6 +14,7 @@ class Acoustic(object):
 
     def __init__(self, grid: NDArray, gamma: float, r0: float, p0: float,
                  init_r: NDArray, init_p: NDArray, init_u: NDArray) -> None:
+        self.grid = grid
         self.gamma = gamma
         self.r0 = r0
         self.p0 = p0
@@ -38,14 +39,17 @@ class Acoustic(object):
 
         density = self.r0
         pressure = self.p0
+        edge_low = self.grid[0]
+        edge_high = self.grid[-1]
+        span = edge_high - edge_low
 
         # Positive movement
         x_init = x - self.cs * t
-        while np.min(x_init) < 0:
-            x_init = np.where(x_init < 0, x_init + 1, x_init)
+        while np.min(x_init) < edge_low:
+            x_init = np.where(x_init < edge_low, x_init + span, x_init)
 
         density += (self.init_r(x_init) - self.r0) * 0.5
-        pressure += (self.init_r(x_init) - self.r0) * 0.5 * self.gamma
+        pressure += (self.init_r(x_init) - self.r0) * 0.5 * self.cs ** 2
         velocity = self.init_u(x_init) * 0.5
 
         # Entropic mode (static density)
@@ -53,11 +57,11 @@ class Acoustic(object):
 
         # Negative movement
         x_init = x + self.cs * t
-        while np.max(x_init) > 1:
-            x_init = np.where(x_init > 1, x_init - 1, x_init)
+        while np.max(x_init) > edge_high:
+            x_init = np.where(x_init > edge_high, x_init - span, x_init)
 
         density += (self.r0 - self.init_r(x_init)) * 0.5
-        pressure += (self.r0 - self.init_r(x_init)) * 0.5 * self.gamma
+        pressure += (self.r0 - self.init_r(x_init)) * 0.5 * self.cs ** 2
         velocity += self.init_u(x_init) * 0.5
 
         return Solution(density, pressure, velocity)
