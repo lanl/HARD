@@ -76,6 +76,10 @@ if(ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
     COMMAND bash -c "rm -rf output*; ${CMAKE_BINARY_DIR}/app/hard ${CMAKE_SOURCE_DIR}/configs/sedov.yaml -d1 ; \
             make verify CONFIG=${CMAKE_SOURCE_DIR}/configs/sedov.yaml"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+  add_test(NAME accuracy_acoustic_1d
+    COMMAND bash -c "rm -rf output*; ${CMAKE_BINARY_DIR}/app/hard ${CMAKE_SOURCE_DIR}/configs/acoustic-wave.yaml -d1 ; \
+            make verify CONFIG=${CMAKE_SOURCE_DIR}/configs/acoustic-wave.yaml"
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
   add_test(NAME hard-distributed
     COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_distributed.sh
