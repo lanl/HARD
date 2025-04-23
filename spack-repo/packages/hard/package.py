@@ -23,6 +23,12 @@ class Hard(CMakePackage):
     depends_on("yaml-cpp@0.8:")
     depends_on("singularity-eos@main +hdf5 +spiner +eospac build_extra=sesame")
     depends_on("llvm@13.0.0", type="build", when="+format")
+    depends_on("python", when="+tests")
+    depends_on("py-numpy", when="+tests")
+    depends_on("py-yamlreader", when="+tests")
+    depends_on("py-scipy", when="+tests")
+    depends_on("py-exactpack", when="+tests")
+    depends_on("py-matplotlib", when="+tests")
 
     def cmake_args(self):
         options = [
