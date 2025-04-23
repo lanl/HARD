@@ -1,0 +1,33 @@
+---
+problem: acoustic-wave
+gamma: 1.4
+kappa: 1.0
+mean_molecular_weight: 1.0
+problem_parameters:
+  x0: 5e-1
+  sigma: 5e-2
+  amplitude: 1e-5
+eos: ideal
+t0: 0.0
+tf: 1.0
+max_steps: 100000
+cfl: 1e-2
+max_dt: 1.0
+log_frequency: 1
+output_frequency: 100
+levels: [8, 1, 1]
+lowest_level: 8
+coords:
+  - [0.0, 0.0, 0.0]
+  - [1.0, 1.0, 1.0]
+boundaries:
+  xlow: periodic
+  xhigh: periodic
+  ylow: flow
+  yhigh: flow
+  zlow: flow
+  zhigh: flow
+catalyst:
+  script: /path
+  implementation: paraview
+  implementation_directory: /path

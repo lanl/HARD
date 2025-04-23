@@ -285,6 +285,15 @@ initialize(control_policy<state, D> & cp) {
       s.radiation_energy_density(s.m),
       s.eos);
   }
+  else if(config["problem"].as<std::string>() == "acoustic-wave") {
+    execute<tasks::initial_data::acoustic_wave<D>, flecsi::default_accelerator>(
+      s.m,
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m),
+      s.eos);
+  }
   else if(config["problem"].as<std::string>() == "kh-test") {
     execute<tasks::initial_data::kh_instability<D>>(s.m,
       s.mass_density(s.m),
