@@ -64,8 +64,9 @@ struct control_policy : flecsi::run::control_base {
     double max_dt,
     std::size_t log_frequency,
     std::size_t output_frequency)
-    : t0_(t0), tf_(tf), max_steps_(max_steps), cfl_(cfl), max_dt_(max_dt),
-      log_frequency_(log_frequency), output_frequency_(output_frequency) {}
+    : t0_(t0), tf_(tf), t_(t0), max_steps_(max_steps), cfl_(cfl),
+      max_dt_(max_dt), log_frequency_(log_frequency),
+      output_frequency_(output_frequency) {}
 
   S<D> & state() {
     return state_;
@@ -83,6 +84,14 @@ struct control_policy : flecsi::run::control_base {
     return max_steps_;
   }
 
+  auto time() const {
+    return t_;
+  }
+
+  auto max_time() const {
+    return tf_;
+  }
+
   static void compute_dt(
     typename single<double>::template accessor<flecsi::wo> t,
     typename single<double>::template accessor<flecsi::wo> dt,
@@ -94,6 +103,20 @@ struct control_policy : flecsi::run::control_base {
     dt = t + dt > tf ? tf - t : dt;
     dt = std::min(*dt, max_dt);
     t += dt;
+  }
+
+  static std::tuple<double, double> compute_dt_mpi(
+    typename single<double>::template accessor<flecsi::wo> t,
+    typename single<double>::template accessor<flecsi::wo> dt,
+    flecsi::future<double> dtmin,
+    double tf,
+    double max_dt,
+    double cfl) {
+    dt = cfl * dtmin.get();
+    dt = t + dt > tf ? tf - t : dt;
+    dt = std::min(*dt, max_dt);
+    t += dt;
+    return std::make_tuple(t, dt);
   }
 
   static bool cycle_control(control_policy & cp) {
@@ -132,6 +155,8 @@ struct control_policy : flecsi::run::control_base {
     bool exec_cycle = cp.step_ < cp.max_steps_;
 
     auto & s = cp.state();
+
+#if FLECSI_BACKEND == FLECSI_BACKEND_legion
     flecsi::execute<compute_dt>(
       s.t(s.gt), s.dt(s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_);
 
@@ -139,6 +164,24 @@ struct control_policy : flecsi::run::control_base {
       flog(info) << "step: " << cp.step_ << "/" << cp.max_steps_ << std::endl;
       flecsi::flog::flush();
     } // if
+
+#else
+    auto [t, dt] = flecsi::execute<compute_dt_mpi>(
+      s.t(s.gt), s.dt(s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_)
+                     .get();
+    cp.t_ = t;
+
+    if((cp.step_ % cp.log_frequency_) == 0 || cp.step_ == cp.max_steps_ ||
+       cp.t_ == cp.tf_) {
+      flog(info) << "step: " << cp.step_ << " time: " << cp.t_ << " dt: " << dt
+                 << std::endl;
+      flecsi::flog::flush();
+    } // if
+
+    exec_cycle = exec_cycle && t <= cp.tf_ && dt != 0.0;
+
+#endif
+
     ++cp.step_;
     return exec_cycle;
   } // cycle_control
@@ -152,6 +195,7 @@ private:
   std::size_t step_{0};
   double t0_;
   double tf_;
+  double t_;
   std::size_t max_steps_;
   double cfl_;
   double max_dt_;

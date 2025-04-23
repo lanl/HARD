@@ -193,6 +193,7 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     s.mass_density(s.m),
     s.velocity(s.m),
     s.pressure(s.m),
+    s.specific_internal_energy(s.m),
     s.radiation_energy_density(s.m),
     s.momentum_density(s.m),
     s.total_energy_density(s.m));
@@ -362,6 +363,7 @@ radiation_advance(control_policy<state, D> & cp) {
     s.mass_density(s.m),
     s.velocity(s.m),
     s.pressure(s.m),
+    s.specific_internal_energy(s.m),
     s.radiation_energy_density(s.m),
     s.momentum_density(s.m),
     s.total_energy_density(s.m));
