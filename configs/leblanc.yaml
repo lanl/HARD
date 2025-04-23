@@ -6,7 +6,7 @@ kappa: 1.0e-100
 mean_molecular_weight: 1.0
 t0: 0.0
 tf: 0.2
-max_steps: 10000
+max_steps: 500
 cfl: 0.3
 max_dt: 1.0
 log_frequency: 500
