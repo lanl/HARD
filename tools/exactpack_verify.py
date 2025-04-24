@@ -1,15 +1,16 @@
-import yaml
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
-import sys
-import os
 import glob
-import re
+import os
+import sys
 
+import matplotlib.pyplot as plt
+import numpy as np
+import yaml
+from acoustic_solution import Acoustic
+from numpy.typing import NDArray
+from scipy.interpolate import interp1d
 
 # Threshold for passing L2 error tests
-tolerance = 5.0e-1
+tolerance = 1.0e-0
 
 
 def color_text(text, status):
@@ -21,23 +22,17 @@ def color_text(text, status):
         return text
 
 
-def find_latest_output(pattern="output-*-1D-0.raw"):
+def first_and_last_output(pattern="output-*-1D-0.raw"):
     files = glob.glob(pattern)
     if not files:
         print("No matching output files found.")
         return None
-    # Extract numeric ID from each filename
-    files_with_step = []
-    for f in files:
-        match = re.search(r"output-(\d+)-1D-0\.raw", f)
-        if match:
-            step = int(match.group(1))
-            files_with_step.append((step, f))
-    if not files_with_step:
-        print("No valid files matching pattern.")
-        return None
-    # Return file with max step number
-    return max(files_with_step)[1]
+
+    # Sort the files so they are in order
+    files.sort()
+
+    # Return first and last
+    return files[0], files[-1]
 
 
 def parse_config(yaml_file):
@@ -48,27 +43,6 @@ def parse_config(yaml_file):
     x1 = float(config['coords'][1][0])
     problem = config['problem']
     return problem, gamma, x0, x1
-
-
-def read_raw_output(raw_file):
-    with open(raw_file, 'r') as f:
-        lines = f.readlines()
-
-    data = []
-    for line in lines:
-        if line.startswith('#') or not line.strip():
-            continue
-        values = list(map(float, line.strip().split()))
-        data.append(values)
-
-    arr = np.array(data)
-    x = arr[:, 2]
-    dx = abs(x[0]-x[1])
-    density = arr[:, 3]
-    pressure = arr[:, 4]
-    velocity = arr[:, 5]
-    time = arr[0, 0]
-    return time, x, density, pressure, velocity, dx
 
 
 def sedov_analytic_solution(x, t, gamma):
@@ -98,8 +72,24 @@ def riemann_analytic_solution(x, t, gamma, left_state, right_state):
     return sol.density, sol.pressure, sol.velocity
 
 
-def compute_l2_error(numerical, analytical, dx):
-    return np.sqrt(dx * np.sum((numerical - analytical)** 2 ))
+def acoustic_analytic_solution(x, x_analytic, t, gamma, r0, p0, init_r, init_p,
+                               init_u):
+    """
+    Return the acoustic analytical solution
+    """
+
+    result = Acoustic(x, gamma, r0, p0, init_r, init_p, init_u)(x_analytic, t)
+
+    return result.density, result.pressure, result.velocity
+
+
+def compute_l2_error(numerical: NDArray | float, analytical: NDArray | float,
+                     dx: float, divide: bool = True) -> float:
+    if divide:
+        return np.sqrt(dx * np.sum(
+            ((numerical - analytical) / analytical) ** 2))
+    else:
+        return np.sqrt(dx * np.sum((numerical - analytical) ** 2))
 
 
 def plot_comparison(x_num, num_vals, x_exact, exact_vals,
@@ -127,7 +117,8 @@ def main():
         sys.exit(1)
 
     yaml_file = sys.argv[1]
-    raw_file = None
+    first_raw_file = None
+    last_raw_file = None
     make_plot = False
 
     for arg in sys.argv[2:]:
@@ -137,16 +128,22 @@ def main():
             make_plot = True
 
     # If no file is passed, select the latest available output
-    if raw_file is None:
-        raw_file = find_latest_output()
-        if raw_file is None:
+    if first_raw_file is None:
+        first_raw_file, last_raw_file = first_and_last_output()
+        if None in [first_raw_file, last_raw_file]:
             print("No raw file found and none provided.")
             sys.exit(1)
         else:
-            print(f"Auto-selected input file: {raw_file}")
+            print(f"Auto-selected input file: {last_raw_file}")
 
+    # Read in the yaml file and the last raw file
     problem, gamma, x0, x1 = parse_config(yaml_file)
-    time, x_num, rho_num, p_num, u_num, dx = read_raw_output(raw_file)
+    out_tuple = np.loadtxt(last_raw_file, usecols=(0, 2, 3, 4, 5)).T
+
+    # Extract physical quantities from tuple
+    t_arr, x_num, rho_num, p_num, u_num = out_tuple
+    time = t_arr[0]
+    dx = x_num[1] - x_num[0]
 
     x_analytic = np.linspace(x0, x1, 1000)
 
@@ -172,16 +169,21 @@ def main():
         rho_exact, p_exact, u_exact = sedov_analytic_solution(
             x_analytic, time, gamma)
 
+    elif problem == "acoustic-wave":
+        # Find initial configuration
+        out_tuple = np.loadtxt(first_raw_file, usecols=(0, 2, 3, 4, 5)).T
+        t_arr, x0, rho0, p0, u0 = out_tuple
+
+        rho_exact, p_exact, u_exact = acoustic_analytic_solution(
+            x0, x_analytic, time, gamma, 1.0, 1.0, rho0, p0, u0)
+
     else:
         print(f"Unsupported problem type '{problem}'")
         sys.exit(1)
 
-    rho_interp = interp1d(x_analytic, rho_exact, bounds_error=False,
-                          fill_value="extrapolate")
-    p_interp = interp1d(x_analytic, p_exact, bounds_error=False,
-                        fill_value="extrapolate")
-    u_interp = interp1d(x_analytic, u_exact, bounds_error=False,
-                        fill_value="extrapolate")
+    rho_interp = interp1d(x_analytic, rho_exact, fill_value="extrapolate")
+    p_interp = interp1d(x_analytic, p_exact, fill_value="extrapolate")
+    u_interp = interp1d(x_analytic, u_exact, fill_value="extrapolate")
 
     rho_ref = rho_interp(x_num)
     p_ref = p_interp(x_num)
@@ -210,8 +212,13 @@ def main():
         u_ref = u_ref[mask]
 
     err_rho = compute_l2_error(rho_num, rho_ref, dx)
-    err_p = compute_l2_error(p_num, p_ref, dx)
-    err_u = compute_l2_error(u_num, u_ref, dx)
+    if problem in ["leblanc", "sedov"]:
+        # NOTE: The leblanc and sedov problems can have 0 pressure,
+        # so we do not use the relative L2 error in this case
+        err_p = compute_l2_error(p_num, p_ref, dx, divide=False)
+    else:
+        err_p = compute_l2_error(p_num, p_ref, dx)
+    err_u = compute_l2_error(u_num, u_ref, dx, divide=False)
 
     status_rho = "PASS" if err_rho <= tolerance else "FAIL"
     status_p = "PASS" if err_p <= tolerance else "FAIL"
@@ -228,7 +235,9 @@ def main():
     [{color_text(status_u, status_u)}]")
 
     if any(e > tolerance for e in (err_rho, err_p, err_u)):
-        print("Test FAILED: L2 error exceeds tolerance of "+str(tolerance))
+        s = "Test FAILED: relative L2 error exceeds tolerance of"
+        s += f" {tolerance:.2e}"
+        print(s)
         sys.exit(1)
     else:
         print("Test PASSED")
