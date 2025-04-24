@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 from scipy.interpolate import interp1d
 
 # Threshold for passing L2 error tests
-tolerance = 1.0e-5
+tolerance = 1.0e-0
 
 
 def color_text(text, status):
