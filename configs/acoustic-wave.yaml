@@ -19,7 +19,7 @@ levels: [8, 1, 1]
 lowest_level: 8
 coords:
   - [0.0, 0.0, 0.0]
-  - [1.0, 1.0, 1.0]
+  - [10.0, 1.0, 1.0]
 boundaries:
   xlow: periodic
   xhigh: periodic
