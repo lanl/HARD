@@ -337,6 +337,98 @@ update_u(single<double>::accessor<ro> dt_a,
   }
 }
 
+template<std::size_t Dim>
+void
+add_k1_k2(typename mesh<Dim>::template accessor<ro> m,
+  // K1
+  field<double>::accessor<rw, na> dt_mass_density_a,
+  typename field<vec<Dim>>::template accessor<rw, na> dt_momentum_density_a,
+  field<double>::accessor<rw, na> dt_total_energy_density_a,
+  field<double>::accessor<rw, na>
+#ifdef ENABLE_RADIATION
+    dt_radiation_energy_density_a
+#endif
+  ,
+  // K2
+  field<double>::accessor<ro, na> dt_mass_density_2_a,
+  typename field<vec<Dim>>::template accessor<ro, na> dt_momentum_density_2_a,
+  field<double>::accessor<ro, na> dt_total_energy_density_2_a,
+  field<double>::accessor<ro, na>
+#ifdef ENABLE_RADIATION
+    dt_radiation_energy_density_2_a
+#endif
+) {
+  // K1
+  auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
+  auto dt_momentum_density =
+    m.template mdcolex<is::cells>(dt_momentum_density_a);
+  auto dt_total_energy_density =
+    m.template mdcolex<is::cells>(dt_total_energy_density_a);
+#ifdef ENABLE_RADIATION
+  auto dt_radiation_energy_density =
+    m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
+#endif
+
+  // K2
+  auto dt_mass_density_2 = m.template mdcolex<is::cells>(dt_mass_density_2_a);
+  auto dt_momentum_density_2 =
+    m.template mdcolex<is::cells>(dt_momentum_density_2_a);
+  auto dt_total_energy_density_2 =
+    m.template mdcolex<is::cells>(dt_total_energy_density_2_a);
+#ifdef ENABLE_RADIATION
+  auto dt_radiation_energy_density_2 =
+    m.template mdcolex<is::cells>(dt_radiation_energy_density_2_a);
+#endif
+
+  using hard::tasks::util::get_mdiota_policy;
+
+  if constexpr(Dim == 1) {
+    forall(i, (m.template cells<ax::x, dm::quantities>()), "update_k1_1d") {
+      dt_mass_density(i) += dt_mass_density_2(i);
+      dt_momentum_density(i) += dt_momentum_density_2(i);
+      dt_total_energy_density(i) += dt_total_energy_density_2(i);
+
+#ifdef ENABLE_RADIATION
+      dt_radiation_energy_density(i) += dt_radiation_energy_density_2(i);
+#endif
+    }; // forall
+  }
+  else if constexpr(Dim == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(dt_mass_density,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    forall(ji, mdpolicy_qq, "update_k1_2d") {
+      auto [j, i] = ji;
+      // Weights
+      dt_mass_density(i, j) += dt_mass_density_2(i, j);
+      dt_momentum_density(i, j) += dt_momentum_density_2(i, j);
+      dt_total_energy_density(i, j) += dt_total_energy_density_2(i, j);
+#ifdef ENABLE_RADIATION
+      dt_radiation_energy_density(i, j) += dt_radiation_energy_density_2(i, j);
+#endif
+    }; // forall
+  }
+  else {
+    auto mdpolicy_qqq = get_mdiota_policy(dt_mass_density,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    forall(kji, mdpolicy_qqq, "update_u_3d") {
+      auto [k, j, i] = kji;
+
+      dt_mass_density(i, j, k) += dt_mass_density_2(i, j, k);
+      dt_momentum_density(i, j, k) += dt_momentum_density_2(i, j, k);
+      dt_total_energy_density(i, j, k) += dt_total_energy_density_2(i, j, k);
+#ifdef ENABLE_RADIATION
+      dt_radiation_energy_density(i, j, k) +=
+        dt_radiation_energy_density_2(i, j, k);
+#endif
+    }; // forall
+  }
+}
+
 } // namespace hard::tasks
 
 #endif // HARD_TIME_DERIVATIVE_HH
