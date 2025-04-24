@@ -50,7 +50,7 @@ struct vec<1> {
     return x * x;
   }
   FLECSI_INLINE_TARGET double norm() const {
-    return x;
+    return std::abs(x);
   }
   FLECSI_INLINE_TARGET double & get(const size_t idx) {
     assert(idx == 0 && "Invalid access for 1d vector");

@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "acoustic_wave.hh"
 #include "heating_and_cooling.hh"
 #include "implosion_forced_T.hh"
 #include "kelvin_helm.hh"
