@@ -128,9 +128,6 @@ compute_interface_fluxes(std::size_t face_axis,
       const double LminH{uHead(i).x - cH};
       const double LmaxH{uHead(i).x + cH};
 
-      // Maximum characteristic speed in the zone
-      const double sMax{std::max(LmaxH, LmaxT)};
-
       // Fluxes from left and right state
       const double f_r_T{ruTail(i - 1).x};
       const double f_r_H{ruHead(i).x};
