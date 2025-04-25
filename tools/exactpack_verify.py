@@ -123,7 +123,7 @@ def main():
 
     for arg in sys.argv[2:]:
         if arg.endswith(".raw"):
-            raw_file = arg
+            last_raw_file = arg
         elif arg == "--plot":
             make_plot = True
 
@@ -190,7 +190,7 @@ def main():
     u_ref = u_interp(x_num)
 
     if make_plot:
-        tag = os.path.splitext(os.path.basename(raw_file))[0].replace(
+        tag = os.path.splitext(os.path.basename(last_raw_file))[0].replace(
             "output-", "").replace(".raw", "")
         plot_comparison(x_num, rho_num, x_analytic, rho_exact,
                         "Density", time, tag)
