@@ -148,6 +148,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m));
 
     if(Stage == time_stepper::rk_stage::First) {
+      // Calculate K1 and save it to dt_U
       flecsi::execute<tasks::hydro::compute_interface_fluxes<D>,
         flecsi::default_accelerator>(axis, s.m,
         s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
@@ -162,6 +163,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
         s.dt_radiation_energy_density(s.m));
     }
     else if(Stage == time_stepper::rk_stage::Second) {
+      // Calculate K2 and save it to dt_U_2
       flecsi::execute<tasks::hydro::compute_interface_fluxes<D>,
         flecsi::default_accelerator>(axis, s.m,
         s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
@@ -186,7 +188,8 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
   auto & s = cp.state();
 
   if(Stage == time_stepper::rk_stage::Second) {
-    const double coefficient{1};
+    // Apply K1 to U with a Forward Euler step, so we can use U for the
+    // K2 calculation in the next RK advance
     flecsi::execute<tasks::update_u<D>, flecsi::default_accelerator>(s.dt(s.gt),
       s.m,
       //
@@ -198,11 +201,10 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.dt_mass_density(s.m),
       s.dt_momentum_density(s.m),
       s.dt_total_energy_density(s.m),
-      s.dt_radiation_energy_density(s.m),
-      coefficient);
+      s.dt_radiation_energy_density(s.m));
   }
   else if(Stage == time_stepper::rk_stage::Update) {
-    // First compute K1' = K1 + K2
+    // First compute K1' = (K1 + K2) * 0.5
     flecsi::execute<tasks::add_k1_k2<D>, flecsi::default_accelerator>(s.m,
       //
       s.dt_mass_density(s.m),
@@ -215,8 +217,7 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.dt_total_energy_density_2(s.m),
       s.dt_radiation_energy_density_2(s.m));
 
-    // Now get u1 = u0 + h * K1' * 0.5
-    const double coefficient{0.5};
+    // Now get U_n(+1) = U_n + h * K1'
     flecsi::execute<tasks::update_u<D>, flecsi::default_accelerator>(s.dt(s.gt),
       s.m,
       //
@@ -228,10 +229,9 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.dt_mass_density(s.m),
       s.dt_momentum_density(s.m),
       s.dt_total_energy_density(s.m),
-      s.dt_radiation_energy_density(s.m),
-      coefficient);
+      s.dt_radiation_energy_density(s.m));
 
-    // Finish by updating the values
+    // Finish by updating the values stored in U_n to U
     flecsi::execute<tasks::store_current_state<D>, flecsi::default_accelerator>(
       s.m,
       s.mass_density_n(s.m),
