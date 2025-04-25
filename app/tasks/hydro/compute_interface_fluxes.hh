@@ -119,14 +119,14 @@ compute_interface_fluxes(std::size_t face_axis,
     forall(i, (m.template cells<ax::x, dm::corrector>()), "compute_flux_1d") {
       // min/max characteristic speeds on left
 
-      const double cT = cTail(i - 1);
-      const double LminT = uTail(i - 1).x - cT;
-      const double LmaxT = uTail(i - 1).x + cT;
+      const double cT{cTail(i - 1)};
+      const double LminT{uTail(i - 1).x - cT};
+      const double LmaxT{uTail(i - 1).x + cT};
 
       // min/max characteristic speeds on right
-      const double cH = cHead(i);
-      const double LminH = uHead(i).x - cH;
-      const double LmaxH = uHead(i).x + cH;
+      const double cH{cHead(i)};
+      const double LminH{uHead(i).x - cH};
+      const double LmaxH{uHead(i).x + cH};
 
       // Fluxes from left and right state
       const double f_r_T{ruTail(i - 1).x};
