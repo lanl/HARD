@@ -41,6 +41,11 @@ initialize_time_derivative(control_policy<state, D> & cp) {
     s.dt_momentum_density(s.m),
     s.dt_total_energy_density(s.m),
     s.dt_radiation_energy_density(s.m));
+  flecsi::execute<tasks::set_dudt_to_zero<D>, flecsi::default_accelerator>(s.m,
+    s.dt_mass_density_2(s.m),
+    s.dt_momentum_density_2(s.m),
+    s.dt_total_energy_density_2(s.m),
+    s.dt_radiation_energy_density_2(s.m));
 
   // Store the current state of evolved variables (U^n) before performing a time
   // step
@@ -63,7 +68,7 @@ initialize_time_derivative(control_policy<state, D> & cp) {
 
 template<std::size_t D>
 void
-RK_advance(control_policy<state, D> & cp) {
+RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
 
   auto & s = cp.state();
 
@@ -96,42 +101,82 @@ RK_advance(control_policy<state, D> & cp) {
   flecsi::execute<task::rad::getGradV<D>, flecsi::default_accelerator>(
     s.m, s.velocity_gradient(s.m), s.velocity(s.m));
 
-  flecsi::execute<task::rad::explicitSourceUpdate<D>,
-    flecsi::default_accelerator>(s.m,
-    s.velocity(s.m),
-    s.radiation_force(s.m),
-    s.radiation_pressure_tensor(s.m),
-    s.velocity_gradient(s.m),
-    //
-    s.dt_momentum_density(s.m),
-    s.dt_total_energy_density(s.m),
-    s.dt_radiation_energy_density(s.m));
+  if(Stage == time_stepper::rk_stage::First) {
+    flecsi::execute<task::rad::explicitSourceUpdate<D>,
+      flecsi::default_accelerator>(s.m,
+      s.velocity(s.m),
+      s.radiation_force(s.m),
+      s.radiation_pressure_tensor(s.m),
+      s.velocity_gradient(s.m),
+      //
+      s.dt_momentum_density(s.m),
+      s.dt_total_energy_density(s.m),
+      s.dt_radiation_energy_density(s.m));
+  }
+  else if(Stage == time_stepper::rk_stage::Second) {
+    flecsi::execute<task::rad::explicitSourceUpdate<D>,
+      flecsi::default_accelerator>(s.m,
+      s.velocity(s.m),
+      s.radiation_force(s.m),
+      s.radiation_pressure_tensor(s.m),
+      s.velocity_gradient(s.m),
+      //
+      s.dt_momentum_density_2(s.m),
+      s.dt_total_energy_density_2(s.m),
+      s.dt_radiation_energy_density_2(s.m));
+  }
 #endif
 
-  using limiter = spec::limiters::ppm4;
+  //
+  // Perform reconstruction on cell faces, compute face fluxes with a Riemann
+  // solver, and add the summation of dF^i/dx^i into (dU_dt)_explicit
+  //
+
+  using limiter = spec::limiters::weno5z;
 
   for(std::size_t axis = 0; axis < D; axis++) {
     // clang-format off
-    flecsi::execute<tasks::hydro::reconstruct<D, limiter>, flecsi::default_accelerator>(axis,
+    flecsi::execute<tasks::hydro::reconstruct<D, limiter>,
+      flecsi::default_accelerator>(axis,
       s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m),
       s.specific_internal_energy(s.m),
       s.sound_speed(s.m),
       s.radiation_energy_density(s.m),
       s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-      s.pTail(s.m), s.pHead(s.m),  s.eTail(s.m), s.eHead(s.m),  s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+      s.pTail(s.m), s.pHead(s.m),  s.eTail(s.m), s.eHead(s.m),  s.cTail(s.m),
+      s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
       s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m));
 
-    flecsi::execute<tasks::hydro::compute_interface_fluxes<D>, flecsi::default_accelerator>(axis, s.m,
-      s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-      s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m), s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
-      s.ruTail(s.m), s.ruHead(s.m),
-      s.rETail(s.m), s.rEHead(s.m),
-      s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
-      s.dt_mass_density(s.m),
-      s.dt_momentum_density(s.m),
-      s.dt_total_energy_density(s.m),
-      s.dt_radiation_energy_density(s.m));
-
+    if(Stage == time_stepper::rk_stage::First) {
+      // Calculate K1 and save it to dt_U
+      flecsi::execute<tasks::hydro::compute_interface_fluxes<D>,
+        flecsi::default_accelerator>(axis, s.m,
+        s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
+        s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m),
+        s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+        s.ruTail(s.m), s.ruHead(s.m),
+        s.rETail(s.m), s.rEHead(s.m),
+        s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
+        s.dt_mass_density(s.m),
+        s.dt_momentum_density(s.m),
+        s.dt_total_energy_density(s.m),
+        s.dt_radiation_energy_density(s.m));
+    }
+    else if(Stage == time_stepper::rk_stage::Second) {
+      // Calculate K2 and save it to dt_U_2
+      flecsi::execute<tasks::hydro::compute_interface_fluxes<D>,
+        flecsi::default_accelerator>(axis, s.m,
+        s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
+        s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m),
+        s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
+        s.ruTail(s.m), s.ruHead(s.m),
+        s.rETail(s.m), s.rEHead(s.m),
+        s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
+        s.dt_mass_density_2(s.m),
+        s.dt_momentum_density_2(s.m),
+        s.dt_total_energy_density_2(s.m),
+        s.dt_radiation_energy_density_2(s.m));
+    }
     // clang-format on
   }
 } // RK_advance
@@ -143,7 +188,8 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
   auto & s = cp.state();
 
   if(Stage == time_stepper::rk_stage::Second) {
-    const double coefficient{1};
+    // Apply K1 to U with a Forward Euler step, so we can use U for the
+    // K2 calculation in the next RK advance
     flecsi::execute<tasks::update_u<D>, flecsi::default_accelerator>(s.dt(s.gt),
       s.m,
       //
@@ -155,11 +201,23 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.dt_mass_density(s.m),
       s.dt_momentum_density(s.m),
       s.dt_total_energy_density(s.m),
-      s.dt_radiation_energy_density(s.m),
-      coefficient);
+      s.dt_radiation_energy_density(s.m));
   }
   else if(Stage == time_stepper::rk_stage::Update) {
-    const double coefficient{0.5};
+    // First compute K1' = (K1 + K2) * 0.5
+    flecsi::execute<tasks::add_k1_k2<D>, flecsi::default_accelerator>(s.m,
+      //
+      s.dt_mass_density(s.m),
+      s.dt_momentum_density(s.m),
+      s.dt_total_energy_density(s.m),
+      s.dt_radiation_energy_density(s.m),
+      //
+      s.dt_mass_density_2(s.m),
+      s.dt_momentum_density_2(s.m),
+      s.dt_total_energy_density_2(s.m),
+      s.dt_radiation_energy_density_2(s.m));
+
+    // Now get U_n(+1) = U_n + h * K1'
     flecsi::execute<tasks::update_u<D>, flecsi::default_accelerator>(s.dt(s.gt),
       s.m,
       //
@@ -171,8 +229,20 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.dt_mass_density(s.m),
       s.dt_momentum_density(s.m),
       s.dt_total_energy_density(s.m),
-      s.dt_radiation_energy_density(s.m),
-      coefficient);
+      s.dt_radiation_energy_density(s.m));
+
+    // Finish by updating the values stored in U_n to U
+    flecsi::execute<tasks::store_current_state<D>, flecsi::default_accelerator>(
+      s.m,
+      s.mass_density_n(s.m),
+      s.momentum_density_n(s.m),
+      s.total_energy_density_n(s.m),
+      s.radiation_energy_density_n(s.m),
+      //
+      s.mass_density(s.m),
+      s.momentum_density(s.m),
+      s.total_energy_density(s.m),
+      s.radiation_energy_density(s.m));
   }
 
   // Perform primitive recovery
@@ -212,58 +282,18 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
 
 } // update_vars
 
-//
-// Perform reconstruction on cell faces, compute face fluxes with a Riemann
-// solver, and add the summation of dF^i/dx^i into (dU_dt)_explicit
-//
-template<std::size_t D>
-void
-fluxes_terms(control_policy<state, D> & cp) {
-  auto & s = cp.state();
-
-  using limiter = spec::limiters::ppm4;
-
-  for(std::size_t axis = 0; axis < D; axis++) {
-    // clang-format off
-    flecsi::execute<tasks::hydro::reconstruct<D, limiter>,
-      flecsi::default_accelerator>(axis,
-      s.m, s.mass_density(s.m), s.velocity(s.m), s.pressure(s.m),
-      s.specific_internal_energy(s.m),
-      s.sound_speed(s.m),
-      s.radiation_energy_density(s.m),
-      s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-      s.pTail(s.m), s.pHead(s.m),  s.eTail(s.m), s.eHead(s.m),  s.cTail(s.m),
-      s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
-      s.ruTail(s.m), s.ruHead(s.m), s.rETail(s.m), s.rEHead(s.m));
-
-    flecsi::execute<tasks::hydro::compute_interface_fluxes<D>,
-      flecsi::default_accelerator>(axis, s.m,
-      s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-      s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m),
-      s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
-      s.ruTail(s.m), s.ruHead(s.m),
-      s.rETail(s.m), s.rEHead(s.m),
-      s.rF(s.m), s.ruF(s.m), s.rEF(s.m), s.EradF(s.m),
-      s.dt_mass_density(s.m),
-      s.dt_momentum_density(s.m),
-      s.dt_total_energy_density(s.m),
-      s.dt_radiation_energy_density(s.m));
-    // clang-format on
-  }
-} // fluxes_terms
-
 template<std::size_t D>
 void
 advection_advance(control_policy<state, D> & cp) {
 
-  // First RK advance
-  RK_advance<D>(cp);
+  // First RK advance (this gives us K1)
+  RK_advance<D>(cp, time_stepper::rk_stage::First);
 
-  // Update variable for second advance
+  // Update variable for second advance (this is u0 + h * K1)
   update_vars(cp, time_stepper::rk_stage::Second);
 
-  // Second RK advance
-  RK_advance<D>(cp);
+  // Second RK advance (this gives us K2)
+  RK_advance<D>(cp, time_stepper::rk_stage::Second);
 
   // Final variable update
   update_vars(cp, time_stepper::rk_stage::Update);
@@ -373,8 +403,8 @@ radiation_advance(control_policy<state, D> & cp) {
 } // radiation_advance
 
 // -----------------------------------------------------------------------------
-//  Compute max characteristic speeds, and determine dt_min() for the next time
-//  step.
+//  Compute max characteristic speeds, and determine dt_min() for the next
+//  time step.
 // -----------------------------------------------------------------------------
 template<std::size_t D>
 void
