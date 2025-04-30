@@ -105,9 +105,7 @@ export SYSTEM_NAME=$1
 export SPACK_ENV_NAME=$2
 
 if [[ "$SYSTEM_NAME" == "darwin" || "$SYSTEM_NAME" == "rocinante" ]]; then
-    PROJECT_SPACK_ENV=${PROJECT_SPACK_ENV:-/usr/projects/ngc/shared/ristra-spack-env/${PROJECT_SPACK_ENV_VERSION}}
-elif [[ "$SYSTEM_NAME" == "rzadams" || "${SYSTEM_NAME}" == "rzansel" || "$SYSTEM_NAME" == "rzvernal" ]]; then
-    PROJECT_SPACK_ENV=${PROJECT_SPACK_ENV:-/usr/workspace/ristra-ec/shared/ristra-spack-env/${PROJECT_SPACK_ENV_VERSION}}
+    PROJECT_SPACK_ENV=${PROJECT_SPACK_ENV:-/usr/projects/cdss2024/shared/spack-env-jl/${PROJECT_SPACK_ENV_VERSION}}
 else
     echo "Unkown system '${SYSTEM_NAME}'"
     false
@@ -217,7 +215,7 @@ cmake_build() {
     section start "cmake_build[collapsed=false]" "CMake Build"
     (
         source ${BUILD_ENV}
-        cmake -DCMAKE_VERBOSE_MAKEFILE=off -DCMAKE_CXX_FLAGS="-Wno-unknown-cuda-version" -DCMAKE_INSTALL_PREFIX=$PWD/${BUILD_DIR}/install $@ ${BUILD_DIR}
+        cmake -DCMAKE_VERBOSE_MAKEFILE=off -DCMAKE_INSTALL_PREFIX=$PWD/${BUILD_DIR}/install $@ ${BUILD_DIR}
         if ${BUILD_WITH_CTEST}; then
             ctest -VV -S .gitlab/build_and_test.cmake,Configure,Build,$REPORT_ERRORS
         else
@@ -275,7 +273,7 @@ activate_build_env() {
     spack build-env ${PROJECT_NAME} bash
 
     # HACK: add a mirror so it does not fail building
-    spack mirror add upstream /usr/projects/ngc/shared/ristra-spack-env/2025-01-06/spack_mirror
+    spack mirror add upstream /usr/projects/cdss2024/shared/spack-env-jl/2025-04-29/spack_mirror/
 }
 
 ###############################################################################
