@@ -21,7 +21,7 @@ class Hard(CMakePackage):
     depends_on("flecsi@2.3.0 +flog")
     depends_on("libcatalyst", when="+catalyst")
     depends_on("yaml-cpp@0.8:")
-    depends_on("singularity-eos@main +hdf5 +spiner +eospac build_extra=sesame")
+    depends_on("singularity-eos@1.9.2 +hdf5 +spiner +eospac build_extra=sesame")
     depends_on("llvm@13.0.0", type="build", when="+format")
     depends_on("python", when="+tests")
     depends_on("py-numpy", when="+tests")
