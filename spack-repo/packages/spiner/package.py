@@ -15,25 +15,7 @@ class Spiner(CMakePackage):
 
     maintainers = ["rbberger"]
 
-    version("main", branch="main")
-    version("1.6.2", sha256="91fb403ce3b151fbdf8b6ff5aed0d8dde1177749f5633951027b100ebc7080d3")
-    version("1.6.1", sha256="52774322571d3b9b0dc3c6b255257de9af0e8e6170834360f2252c1ac272cbe7")
-    version("1.6.0", sha256="afa5526d87c78c1165ead06c09c5c2b9e4a913687443e5adff7b709ea4dd7edf")
-    version(
-        "1.5.1",
-        sha256="dd1cada84446443e8925438b8da53ab5a6cb9f373f1a993905ef0bf51f48223c",
-        deprecated=True,
-    )
-    version(
-        "1.5.0",
-        sha256="b27ddabc0d21870b845444c24307d3a0c1b175483e72cc138139d6e0dd29b244",
-        deprecated=True,
-    )
-    version(
-        "1.4.0",
-        sha256="c3801b9eab26feabec33ff8c59e4056f384287f407d23faba010d354766f3ac5",
-        deprecated=True,
-    )
+    version("1.6.3", commit="c379f5d2cce9625a60b149192ec43c8cff7b74b1")
 
     # When overriding/overloading varaints, the last variant is always used, except for
     # "when" clauses. Therefore, call the whens FIRST then the non-whens.
@@ -53,7 +35,7 @@ class Spiner(CMakePackage):
 
     depends_on("cmake@3.12:", when="@:1.5.1")
     depends_on("cmake@3.19:", when="@1.6.0:")
-    depends_on("catch2@3.0.1:", when="@main +test")
+    depends_on("catch2@3.0.1:", when="@1.6.3: +test")
     depends_on("catch2@2.13.4:2.13.9", when="@:1.6.2 +test")
     depends_on("ports-of-call@1.2.0:", when="@:1.5.1")
     depends_on("ports-of-call@1.5.1:", when="@1.6.0:")
