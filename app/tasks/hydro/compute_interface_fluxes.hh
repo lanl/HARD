@@ -224,7 +224,7 @@ compute_interface_fluxes(std::size_t face_axis,
 
         // clang-format off
         EradF(i, j) = numerical_algorithms::advect_conserved<double>(
-          EradTail(i - 1, j), EradHead(i), f_Erad_T, f_Erad_H, LminT,
+          EradTail(i - 1, j), EradHead(i, j), f_Erad_T, f_Erad_H, LminT,
             LmaxT, LminH, LmaxH);
         // clang-format on
 #endif
@@ -298,7 +298,7 @@ compute_interface_fluxes(std::size_t face_axis,
 
         // clang-format off
         EradF(i, j) = numerical_algorithms::advect_conserved<double>(
-          EradTail(i, j - 1), EradHead(i), f_Erad_T, f_Erad_H,
+          EradTail(i, j - 1), EradHead(i, j), f_Erad_T, f_Erad_H,
             LminT, LmaxT, LminH, LmaxH);
         // clang-format on
 #endif
@@ -381,7 +381,7 @@ compute_interface_fluxes(std::size_t face_axis,
 
         // clang-format off
         EradF(i, j, k) = numerical_algorithms::advect_conserved<double>(
-          EradTail(i - 1, j, k), EradHead(i), f_Erad_T, f_Erad_H,
+          EradTail(i - 1, j, k), EradHead(i, j, k), f_Erad_T, f_Erad_H,
             LminT, LmaxT, LminH, LmaxH);
         // clang-format on
 #endif
@@ -461,7 +461,7 @@ compute_interface_fluxes(std::size_t face_axis,
 
         // clang-format off
         EradF(i, j, k) = numerical_algorithms::advect_conserved<double>(
-          EradTail(i, j - 1, k), EradHead(i), f_Erad_T, f_Erad_H, LminT,
+          EradTail(i, j - 1, k), EradHead(i, j, k), f_Erad_T, f_Erad_H, LminT,
             LmaxT, LminH, LmaxH);
         // clang-format on
 #endif
@@ -540,7 +540,7 @@ compute_interface_fluxes(std::size_t face_axis,
 
         // clang-format off
         EradF(i, j, k) = numerical_algorithms::advect_conserved<double>(
-          EradTail(i, j, k - 1), EradHead(i), f_Erad_T, f_Erad_H,
+          EradTail(i, j, k - 1), EradHead(i, j, k), f_Erad_T, f_Erad_H,
             LminT, LmaxT, LminH, LmaxH);
         // clang-format on
 #endif

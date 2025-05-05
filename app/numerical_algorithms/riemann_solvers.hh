@@ -19,12 +19,10 @@ advect_conserved(const T left,
   const double LminH,
   const double LmaxH) {
 
-  const double l_max = std::max(0.0, std::max(LmaxT, LmaxH));
-  const double l_min = std::min(0.0, std::min(LminT, LminH));
+  const double Lmax = std::max(0.0, std::max(LmaxT, LmaxH));
+  const double Lmin = std::min(0.0, std::min(LminT, LminH));
 
-  const double ll = l_max * l_min;
-
-  return (l_max * flux_left - l_min * flux_right + ll * (right - left)) /
-         (l_max - l_min);
+  return (Lmax * flux_left - Lmin * flux_right + Lmax * Lmin * (right - left)) /
+         (Lmax - Lmin);
 }
 } // namespace hard::numerical_algorithms
