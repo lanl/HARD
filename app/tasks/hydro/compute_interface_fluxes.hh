@@ -136,20 +136,25 @@ compute_interface_fluxes(std::size_t face_axis,
       const double f_rE_T{(rETail(i - 1) + pTail(i - 1)) * uTail(i - 1).x};
       const double f_rE_H{(rEHead(i) + pHead(i)) * uHead(i).x};
 
+      // Advect conserved quantities
       // clang-format off
-      const auto hll_fluxes = numerical_algorithms::hll_hydro(
-        rTail(i - 1), rHead(i), ruTail(i - 1), ruHead(i), rETail(i - 1), rEHead(i),
-        f_r_T, f_r_H, f_ru_T, f_ru_H, f_rE_T, f_rE_H,
-        LminT, LmaxT, LminH, LmaxH);
+      rF(i) = numerical_algorithms::advect_conserved<double>(
+        rTail(i - 1), rHead(i), f_r_T, f_r_H, LminT, LmaxT, LminH, LmaxH);
+      ruF(i) = numerical_algorithms::advect_conserved<vec<1>>(
+        ruTail(i - 1), ruHead(i), f_ru_T, f_ru_H, LminT, LmaxT, LminH, LmaxH);
+      rEF(i) = numerical_algorithms::advect_conserved<double>(
+        rETail(i - 1), rEHead(i), f_rE_T, f_rE_H, LminT, LmaxT, LminH, LmaxH);
       // clang-format on
 
-      rF(i) = get<0>(hll_fluxes);
-      ruF(i) = get<1>(hll_fluxes);
-      rEF(i) = get<2>(hll_fluxes);
-
 #ifdef ENABLE_RADIATION
-      EradF(i) = numerical_algorithms::advect_Erad(
-        EradTail(i - 1), EradHead(i), uTail(i - 1).x, uHead(i).x);
+      const double f_Erad_T{EradTail(i - 1) * uTail(i - 1).x};
+      const double f_Erad_H{EradHead(i) * uHead(i).x};
+
+      // clang-format off
+      EradF(i) = numerical_algorithms::advect_conserved<double>(
+        EradTail(i - 1), EradHead(i), f_Erad_T, f_Erad_H,
+        LminT, LmaxT, LminH, LmaxH);
+      // clang-format on
 #endif
     }; // forall
 
@@ -200,21 +205,28 @@ compute_interface_fluxes(std::size_t face_axis,
           (rETail(i - 1, j) + pTail(i - 1, j)) * uTail(i - 1, j).x};
         const double f_rE_H{(rEHead(i, j) + pHead(i, j)) * uHead(i, j).x};
 
+        // Advect conserved quantities
         // clang-format off
-          const auto hll_fluxes =
-            numerical_algorithms::hll_hydro(
-              rTail(i - 1, j), rHead(i, j), ruTail(i - 1, j), ruHead(i, j), rETail(i - 1, j), rEHead(i, j),
-              f_r_T, f_r_H, f_ru_T, f_ru_H, f_rE_T, f_rE_H,
-              LminT, LmaxT, LminH, LmaxH);
+        rF(i, j) =
+          numerical_algorithms::advect_conserved<double>(rTail(i - 1, j),
+            rHead(i, j), f_r_T, f_r_H, LminT, LmaxT, LminH, LmaxH);
+        ruF(i, j) =
+          numerical_algorithms::advect_conserved<vec<2>>(ruTail(i - 1, j),
+            ruHead(i, j), f_ru_T, f_ru_H, LminT, LmaxT, LminH, LmaxH);
+        rEF(i, j) =
+          numerical_algorithms::advect_conserved<double>(rETail(i - 1, j),
+            rEHead(i, j), f_rE_T, f_rE_H, LminT, LmaxT, LminH, LmaxH);
         // clang-format on
 
-        rF(i, j) = get<0>(hll_fluxes);
-        ruF(i, j) = get<1>(hll_fluxes);
-        rEF(i, j) = get<2>(hll_fluxes);
-
 #ifdef ENABLE_RADIATION
-        EradF(i, j) = numerical_algorithms::advect_Erad(
-          EradTail(i - 1, j), EradHead(i, j), uTail(i - 1, j).x, uHead(i, j).x);
+        const double f_Erad_T{EradTail(i - 1, j) * uTail(i - 1, j).x};
+        const double f_Erad_H{EradHead(i, j) * uHead(i, j).x};
+
+        // clang-format off
+        EradF(i, j) = numerical_algorithms::advect_conserved<double>(
+          EradTail(i - 1, j), EradHead(i), f_Erad_T, f_Erad_H, LminT,
+            LmaxT, LminH, LmaxH);
+        // clang-format on
 #endif
 
       }; // forall
@@ -267,21 +279,28 @@ compute_interface_fluxes(std::size_t face_axis,
           (rETail(i, j - 1) + pTail(i, j - 1)) * uTail(i, j - 1).y};
         const double f_rE_H{(rEHead(i, j) + pHead(i, j)) * uHead(i, j).y};
 
+        // Advect conserved quantities
         // clang-format off
-          const auto hll_fluxes =
-            numerical_algorithms::hll_hydro(
-              rTail(i, j - 1), rHead(i, j), ruTail(i, j - 1), ruHead(i, j), rETail(i, j - 1), rEHead(i, j),
-              f_r_T, f_r_H, f_ru_T, f_ru_H, f_rE_T, f_rE_H,
-              LminT, LmaxT, LminH, LmaxH);
+        rF(i, j) =
+          numerical_algorithms::advect_conserved<double>(rTail(i, j - 1),
+            rHead(i, j), f_r_T, f_r_H, LminT, LmaxT, LminH, LmaxH);
+        ruF(i, j) =
+          numerical_algorithms::advect_conserved<vec<2>>(ruTail(i, j - 1),
+            ruHead(i, j), f_ru_T, f_ru_H, LminT, LmaxT, LminH, LmaxH);
+        rEF(i, j) =
+          numerical_algorithms::advect_conserved<double>(rETail(i, j - 1),
+            rEHead(i, j), f_rE_T, f_rE_H, LminT, LmaxT, LminH, LmaxH);
         // clang-format on
 
-        rF(i, j) = get<0>(hll_fluxes);
-        ruF(i, j) = get<1>(hll_fluxes);
-        rEF(i, j) = get<2>(hll_fluxes);
-
 #ifdef ENABLE_RADIATION
-        EradF(i, j) = numerical_algorithms::advect_Erad(
-          EradTail(i, j - 1), EradHead(i, j), uTail(i, j - 1).y, uHead(i, j).y);
+        const double f_Erad_T{EradTail(i, j - 1) * uTail(i, j - 1).y};
+        const double f_Erad_H{EradHead(i, j) * uHead(i, j).y};
+
+        // clang-format off
+        EradF(i, j) = numerical_algorithms::advect_conserved<double>(
+          EradTail(i, j - 1), EradHead(i), f_Erad_T, f_Erad_H,
+            LminT, LmaxT, LminH, LmaxH);
+        // clang-format on
 #endif
 
       }; // forall
@@ -343,26 +362,28 @@ compute_interface_fluxes(std::size_t face_axis,
         const double f_rE_H{
           (rEHead(i, j, k) + pHead(i, j, k)) * uHead(i, j, k).x};
 
+        // Advect conserved quantities
         // clang-format off
-            const auto hll_fluxes =
-              numerical_algorithms::hll_hydro(
-                rTail(i - 1, j, k), rHead(i, j, k),
-                ruTail(i - 1, j, k), ruHead(i, j, k),
-                rETail(i - 1, j, k), rEHead(i, j, k),
-                f_r_T, f_r_H, f_ru_T, f_ru_H, f_rE_T, f_rE_H,
-                LminT, LmaxT, LminH, LmaxH);
+        rF(i, j, k) =
+          numerical_algorithms::advect_conserved<double>(rTail(i - 1, j, k),
+            rHead(i, j, k), f_r_T, f_r_H, LminT, LmaxT, LminH, LmaxH);
+        ruF(i, j, k) =
+          numerical_algorithms::advect_conserved<vec<3>>(ruTail(i - 1, j, k),
+            ruHead(i, j, k), f_ru_T, f_ru_H, LminT, LmaxT, LminH, LmaxH);
+        rEF(i, j, k) =
+          numerical_algorithms::advect_conserved<double>(rETail(i - 1, j, k),
+            rEHead(i, j, k), f_rE_T, f_rE_H, LminT, LmaxT, LminH, LmaxH);
         // clang-format on
 
-        rF(i, j, k) = get<0>(hll_fluxes);
-        ruF(i, j, k) = get<1>(hll_fluxes);
-        rEF(i, j, k) = get<2>(hll_fluxes);
-
 #ifdef ENABLE_RADIATION
-        EradF(i, j, k) =
-          numerical_algorithms::advect_Erad(EradTail(i - 1, j, k),
-            EradHead(i, j, k),
-            uTail(i - 1, j, k).x,
-            uHead(i, j, k).x);
+        const double f_Erad_T{EradTail(i - 1, j, k) * uTail(i - 1, j, k).y};
+        const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).y};
+
+        // clang-format off
+        EradF(i, j, k) = numerical_algorithms::advect_conserved<double>(
+          EradTail(i - 1, j, k), EradHead(i), f_Erad_T, f_Erad_H,
+            LminT, LmaxT, LminH, LmaxH);
+        // clang-format on
 #endif
 
       }; // forall
@@ -421,26 +442,28 @@ compute_interface_fluxes(std::size_t face_axis,
         const double f_rE_H{
           (rEHead(i, j, k) + pHead(i, j, k)) * uHead(i, j, k).y};
 
+        // Advect conserved quantities
         // clang-format off
-            const auto hll_fluxes =
-              numerical_algorithms::hll_hydro(
-                rTail(i, j - 1, k), rHead(i, j, k),
-                ruTail(i, j - 1, k), ruHead(i, j, k),
-                rETail(i, j - 1, k), rEHead(i, j, k),
-                f_r_T, f_r_H, f_ru_T, f_ru_H, f_rE_T, f_rE_H,
-                LminT, LmaxT, LminH, LmaxH);
+        rF(i, j, k) =
+          numerical_algorithms::advect_conserved<double>(rTail(i, j - 1, k),
+            rHead(i, j, k), f_r_T, f_r_H, LminT, LmaxT, LminH, LmaxH);
+        ruF(i, j, k) =
+          numerical_algorithms::advect_conserved<vec<3>>(ruTail(i, j - 1, k),
+            ruHead(i, j, k), f_ru_T, f_ru_H, LminT, LmaxT, LminH, LmaxH);
+        rEF(i, j, k) =
+          numerical_algorithms::advect_conserved<double>(rETail(i, j - 1, k),
+            rEHead(i, j, k), f_rE_T, f_rE_H, LminT, LmaxT, LminH, LmaxH);
         // clang-format on
 
-        rF(i, j, k) = get<0>(hll_fluxes);
-        ruF(i, j, k) = get<1>(hll_fluxes);
-        rEF(i, j, k) = get<2>(hll_fluxes);
-
 #ifdef ENABLE_RADIATION
-        EradF(i, j, k) =
-          numerical_algorithms::advect_Erad(EradTail(i, j - 1, k),
-            EradHead(i, j, k),
-            uTail(i, j - 1, k).y,
-            uHead(i, j, k).y);
+        const double f_Erad_T{EradTail(i, j - 1, k) * uTail(i, j - 1, k).y};
+        const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).y};
+
+        // clang-format off
+        EradF(i, j, k) = numerical_algorithms::advect_conserved<double>(
+          EradTail(i, j - 1, k), EradHead(i), f_Erad_T, f_Erad_H, LminT,
+            LmaxT, LminH, LmaxH);
+        // clang-format on
 #endif
 
       }; // forall
@@ -498,26 +521,28 @@ compute_interface_fluxes(std::size_t face_axis,
         const double f_rE_H{
           (rEHead(i, j, k) + pHead(i, j, k)) * uHead(i, j, k).z};
 
+        // Advect conserved quantities
         // clang-format off
-            const auto hll_fluxes =
-              numerical_algorithms::hll_hydro(
-                rTail(i, j, k - 1), rHead(i, j, k),
-                ruTail(i, j, k - 1), ruHead(i, j, k),
-                rETail(i, j, k - 1), rEHead(i, j, k),
-                f_r_T, f_r_H, f_ru_T, f_ru_H, f_rE_T, f_rE_H,
-                LminT, LmaxT, LminH, LmaxH);
+        rF(i, j, k) =
+          numerical_algorithms::advect_conserved<double>(rTail(i, j, k - 1),
+            rHead(i, j, k), f_r_T, f_r_H, LminT, LmaxT, LminH, LmaxH);
+        ruF(i, j, k) =
+          numerical_algorithms::advect_conserved<vec<3>>(ruTail(i, j, k - 1),
+            ruHead(i, j, k), f_ru_T, f_ru_H, LminT, LmaxT, LminH, LmaxH);
+        rEF(i, j, k) =
+          numerical_algorithms::advect_conserved<double>(rETail(i, j, k - 1),
+            rEHead(i, j, k), f_rE_T, f_rE_H, LminT, LmaxT, LminH, LmaxH);
         // clang-format on
 
-        rF(i, j, k) = get<0>(hll_fluxes);
-        ruF(i, j, k) = get<1>(hll_fluxes);
-        rEF(i, j, k) = get<2>(hll_fluxes);
-
 #ifdef ENABLE_RADIATION
-        EradF(i, j, k) =
-          numerical_algorithms::advect_Erad(EradTail(i, j, k - 1),
-            EradHead(i, j, k),
-            uTail(i, j, k - 1).z,
-            uHead(i, j, k).z);
+        const double f_Erad_T{EradTail(i, j, k - 1) * uTail(i, j, k - 1).y};
+        const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).y};
+
+        // clang-format off
+        EradF(i, j, k) = numerical_algorithms::advect_conserved<double>(
+          EradTail(i, j, k - 1), EradHead(i), f_Erad_T, f_Erad_H,
+            LminT, LmaxT, LminH, LmaxH);
+        // clang-format on
 #endif
 
       }; // forall
