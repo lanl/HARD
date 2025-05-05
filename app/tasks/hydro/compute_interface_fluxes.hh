@@ -376,8 +376,8 @@ compute_interface_fluxes(std::size_t face_axis,
         // clang-format on
 
 #ifdef ENABLE_RADIATION
-        const double f_Erad_T{EradTail(i - 1, j, k) * uTail(i - 1, j, k).y};
-        const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).y};
+        const double f_Erad_T{EradTail(i - 1, j, k) * uTail(i - 1, j, k).x};
+        const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).x};
 
         // clang-format off
         EradF(i, j, k) = numerical_algorithms::advect_conserved<double>(
@@ -535,8 +535,8 @@ compute_interface_fluxes(std::size_t face_axis,
         // clang-format on
 
 #ifdef ENABLE_RADIATION
-        const double f_Erad_T{EradTail(i, j, k - 1) * uTail(i, j, k - 1).y};
-        const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).y};
+        const double f_Erad_T{EradTail(i, j, k - 1) * uTail(i, j, k - 1).z};
+        const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).z};
 
         // clang-format off
         EradF(i, j, k) = numerical_algorithms::advect_conserved<double>(
