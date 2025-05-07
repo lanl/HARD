@@ -1,0 +1,13 @@
+diff --git a/singularity-eos/base/fast-math/logs.hpp b/singularity-eos/base/fast-math/logs.hpp
+index 28849233..c311c27b 100644
+--- a/singularity-eos/base/fast-math/logs.hpp
++++ b/singularity-eos/base/fast-math/logs.hpp
+@@ -59,6 +59,8 @@
+ // TODO(JMM): All the math here is all assuming inputs are
+ // doubles. Should add single-precision overloads.
+ 
++#undef TRUE
++
+ namespace singularity {
+ namespace FastMath {
+ 
