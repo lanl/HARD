@@ -4,22 +4,25 @@ gamma: 1.4
 kappa: 1.0
 mean_molecular_weight: 1.0
 problem_parameters:
-  x0: 5
-  sigma: 5e-2
+  x0: 5e-1
+  sigma: 1e-2
   amplitude: 1e-5
+  init: gaussian
+  r0: 1.0
+  p0: 1.0
 eos: ideal
 t0: 0.0
-tf: 1.0
-max_steps: 310
-cfl: 0.1
+tf: 0.01
+max_steps: 100
+cfl: 0.5
 max_dt: 1.0
 log_frequency: 1
 output_frequency: 1
-levels: [8, 1, 1]
-lowest_level: 8
+levels: [12, 1, 1]
+lowest_level: 12
 coords:
   - [0.0, 0.0, 0.0]
-  - [10.0, 1.0, 1.0]
+  - [1.0, 1.0, 1.0]
 boundaries:
   xlow: periodic
   xhigh: periodic

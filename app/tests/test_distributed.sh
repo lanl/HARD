@@ -40,7 +40,7 @@ else
 fi
 
 # Clean up temporary files
-#rm *.raw
+rm *.raw
 
 # Exit with the status from diff (0 for no differences, 1 for differences)
 exit $exit_status
