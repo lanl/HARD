@@ -60,31 +60,50 @@ if(ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
     ${CMAKE_BINARY_DIR}/tests/sod_3d
   )
 
+  # Accuracy tests 
   add_test(NAME accuracy_rk_1d
-    COMMAND bash -c "rm -rf output* ; ${CMAKE_BINARY_DIR}/app/hard ${CMAKE_SOURCE_DIR}/configs/rk.yaml -d1 ; \
-            make verify CONFIG=${CMAKE_SOURCE_DIR}/configs/rk.yaml"
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/rk.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
   add_test(NAME accuracy_sod_1d
-    COMMAND bash -c "rm -rf output*; ${CMAKE_BINARY_DIR}/app/hard ${CMAKE_SOURCE_DIR}/configs/sod.yaml -d1 ; \
-            make verify CONFIG=${CMAKE_SOURCE_DIR}/configs/sod.yaml"
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
   add_test(NAME accuracy_leblanc_1d
-    COMMAND bash -c "rm -rf output*; ${CMAKE_BINARY_DIR}/app/hard ${CMAKE_SOURCE_DIR}/configs/leblanc.yaml -d1 ; \
-            make verify CONFIG=${CMAKE_SOURCE_DIR}/configs/leblanc.yaml"
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/leblanc.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
   add_test(NAME accuracy_sedov_1d
-    COMMAND bash -c "rm -rf output*; ${CMAKE_BINARY_DIR}/app/hard ${CMAKE_SOURCE_DIR}/configs/sedov.yaml -d1 ; \
-            make verify CONFIG=${CMAKE_SOURCE_DIR}/configs/sedov.yaml"
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
   add_test(NAME accuracy_acoustic_1d
-    COMMAND bash -c "rm -rf output*; ${CMAKE_BINARY_DIR}/app/hard ${CMAKE_SOURCE_DIR}/configs/acoustic-wave.yaml -d1 ; \
-            make verify CONFIG=${CMAKE_SOURCE_DIR}/configs/acoustic-wave.yaml"
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
 
+  # Distributed tests 
   add_test(NAME hard-distributed
     COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_distributed.sh
-    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard 
-    ${CMAKE_SOURCE_DIR}/configs/distr-rk.yaml -d1)
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.yaml -d1)
+
+  # Convergence tests
+  add_test(NAME convergence_testing
+    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_convergence.sh
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+    7 12
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_convergence.yaml -d1)
 
 endif()
 

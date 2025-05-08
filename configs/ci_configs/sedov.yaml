@@ -1,0 +1,34 @@
+---
+problem: sedov
+gamma: 1.4
+kappa: 1.0e0
+mean_molecular_weight: 0.5
+eos: ideal
+t0: 0.0
+tf: 0.5
+max_steps: 500
+cfl: 0.3
+max_dt: 1.0
+log_frequency: 1000
+output_frequency: 1000
+levels: [10, 1, 1]
+lowest_level: 10
+problem_parameters:
+  E_0: 0.0673185
+  hotspot_position:
+    - [0., 0., 0.]
+  hotspot_radius: 0.01
+coords:
+  - [0.0, 0.0, 0.0]
+  - [1.0, 1.0, 1.0]
+boundaries:
+  xlow: reflecting
+  xhigh: reflecting
+  ylow: flow
+  yhigh: flow
+  zlow: flow
+  zhigh: flow
+catalyst:
+  script:
+  implementation: paraview
+  implementation_directory:
