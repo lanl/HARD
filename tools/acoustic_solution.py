@@ -1,7 +1,6 @@
 from collections import namedtuple
 
 import numpy as np
-import scipy as scp
 from numpy.typing import NDArray
 
 Solution = namedtuple("Solution", ["density", "pressure", "velocity"])
@@ -12,19 +11,34 @@ class Acoustic(object):
     Class for acoustic wave solution
     """
 
-    def __init__(self, grid: NDArray, gamma: float, r0: float, p0: float,
-                 init_r: NDArray, init_p: NDArray, init_u: NDArray) -> None:
-        self.grid = grid
+    def __init__(self, gamma: float, x0: float, x1: float,
+                 problem_dict: dict[str, str]) -> None:
+
         self.gamma = gamma
-        self.r0 = r0
-        self.p0 = p0
-        self.cs = np.sqrt(gamma * p0 / r0)
-        self.init_r = scp.interpolate.interp1d(
-            grid, init_r, fill_value="extrapolate")
-        self.init_p = scp.interpolate.interp1d(
-            grid, init_p, fill_value="extrapolate")
-        self.init_u = scp.interpolate.interp1d(
-            grid, init_u, fill_value="extrapolate")
+        self.x0 = x0
+        self.x1 = x1
+        self.problem_dict = problem_dict
+
+        self.r0 = float(self.problem_dict["r0"])
+        self.p0 = float(self.problem_dict["p0"])
+        self.cs = np.sqrt(gamma * self.p0 / self.r0)
+
+    def __perturbation(self):
+        """
+        Perturbation function shape
+        """
+
+        amplitude = float(self.problem_dict["amplitude"])
+
+        if self.problem_dict["init"] == "gaussian":
+            sigma = float(self.problem_dict["sigma"])
+            x0 = float(self.problem_dict["x0"])
+
+            return lambda x: np.exp(-0.5 * ((x - x0) / sigma) ** 2) * amplitude
+
+        elif self.problem_dict["init"] == "sine":
+
+            return lambda x: np.sin(2 * np.pi * x) * amplitude
 
     def __call__(self, x: NDArray | float, t: float) -> Solution:
         """
@@ -37,31 +51,27 @@ class Acoustic(object):
         # Take the initial solution and transport it by cs * t, assuming
         # periodic boundary conditions
 
+        perturbation = self.__perturbation()
+        span = abs(self.x1 - self.x0)
+
         density = self.r0
         pressure = self.p0
-        edge_low = self.grid[0]
-        edge_high = self.grid[-1]
-        span = edge_high - edge_low
 
         # Positive movement
-        x_init = x - self.cs * t
-        while np.min(x_init) < edge_low:
-            x_init = np.where(x_init < edge_low, x_init + span, x_init)
+        x_init = (x - self.cs * t - self.x0) % span + self.x0
 
-        density += (self.init_r(x_init) - self.r0) * 0.5
-        pressure += (self.init_r(x_init) - self.r0) * 0.5 * self.cs ** 2
-        velocity = self.init_u(x_init) * 0.5
+        density += perturbation(x_init) * 0.5
+        pressure += perturbation(x_init) * 0.5 * self.cs ** 2
+        velocity = perturbation(x_init) * 0.5 * self.cs
 
         # Entropic mode (static density)
-        density += self.init_r(x) - self.r0
+        density += perturbation(x)
 
         # Negative movement
-        x_init = x + self.cs * t
-        while np.max(x_init) > edge_high:
-            x_init = np.where(x_init > edge_high, x_init - span, x_init)
+        x_init = (x + self.cs * t - self.x0) % span + self.x0
 
-        density += (self.r0 - self.init_r(x_init)) * 0.5
-        pressure += (self.r0 - self.init_r(x_init)) * 0.5 * self.cs ** 2
-        velocity += self.init_u(x_init) * 0.5
+        density -= perturbation(x_init) * 0.5
+        pressure -= perturbation(x_init) * 0.5 * self.cs ** 2
+        velocity += perturbation(x_init) * 0.5 * self.cs
 
         return Solution(density, pressure, velocity)

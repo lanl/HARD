@@ -120,19 +120,24 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
 
   // Find out how many levels we can have.
+  auto get_resolution = [&config](const int dim) {
+    return opt::resolution.value() == 0
+             ? config["levels"][dim].as<std::size_t>()
+             : opt::resolution.value();
+  };
 
   // Record lowest level
-  s.lowest_level = config["lowest_level"].as<std::size_t>();
+  s.lowest_level = opt::resolution.value() == 0
+                     ? config["lowest_level"].as<std::size_t>()
+                     : opt::resolution.value();
 
   // Find highest level
-  s.highest_level = config["levels"][0].as<std::size_t>();
+  s.highest_level = get_resolution(0);
   if(D == 2 || D == 3) {
-    s.highest_level =
-      std::min(s.highest_level, config["levels"][1].as<std::size_t>());
+    s.highest_level = get_resolution(1);
   } // if
   if(D == 3) {
-    s.highest_level =
-      std::min(s.highest_level, config["levels"][2].as<std::size_t>());
+    s.highest_level = get_resolution(2);
   } // if
   s.max_num_levels = s.highest_level - s.lowest_level + 1;
 
@@ -154,13 +159,14 @@ initialize(control_policy<state, D> & cp) {
      *------------------------------------------------------------------------*/
 
     for(std::size_t i{0}; i < s.max_num_levels; i++) {
+      auto opt_dx = opt::resolution.value();
       typename mesh<D>::gcoord axis_extents(D);
-      axis_extents[ax::x] = 1 << (config["levels"][0].as<std::size_t>() - i);
+      axis_extents[ax::x] = 1 << get_resolution(0) - i;
       if(D == 2 || D == 3) {
-        axis_extents[ax::y] = 1 << (config["levels"][1].as<std::size_t>() - i);
+        axis_extents[ax::y] = 1 << get_resolution(1) - i;
       } // if
       if(D == 3) {
-        axis_extents[ax::z] = 1 << (config["levels"][2].as<std::size_t>() - i);
+        axis_extents[ax::z] = 1 << get_resolution(2) - i;
       } // if
 
       // Add a new grid - the finest grid is already there
