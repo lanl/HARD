@@ -1,16 +1,45 @@
 import glob
+import itertools
 import os
 import sys
+from collections.abc import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.integrate import quad
 import yaml
 from acoustic_solution import Acoustic
 from numpy.typing import NDArray
-from scipy.interpolate import interp1d
 
 # Threshold for passing L2 error tests
 tolerance = 1.0e-0
+
+
+class wrapFunction(object):
+    def __init__(self, solver: Callable, extract: list[str]) -> None:
+        """
+        Create the wrapper for each attribute
+        """
+
+        for name in extract:
+            self.__doWrapping(solver, name)
+
+    def __doWrapping(self, f: Callable, name: str) -> None:
+        """
+        Transform the ExactPack array tuple into a Callable tuple
+        """
+
+        if isinstance(f, Acoustic):
+            def wrap(x, t):
+                return f(x, t)._asdict()[name]
+        else:
+            def wrap(x, t):
+                if type(x) in [float, int]:
+                    return f([x], t)[name]
+                else:
+                    return f(x, t)[name]
+
+        self.__dict__[name] = wrap
 
 
 def color_text(text, status):
@@ -47,8 +76,12 @@ def parse_config(yaml_file):
 
 def sedov_analytic_solution(x, t, gamma):
     from exactpack.solvers.sedov import Sedov
+
+    names = ["density", "pressure", "velocity"]
+
     solver = Sedov(gamma=gamma, geometry=1, eblast=0.0673185)
-    result = solver(x, t)
+    result = wrapFunction(solver, extract=names)
+
     return result.density, result.pressure, result.velocity
 
 
@@ -59,6 +92,8 @@ def riemann_analytic_solution(x, t, gamma, left_state, right_state):
         print("Error: ExactPack Riemann solver not found.")
         sys.exit(1)
 
+    names = ["density", "pressure", "velocity"]
+
     rho_l, u_l, p_l = left_state
     rho_r, u_r, p_r = right_state
 
@@ -68,28 +103,36 @@ def riemann_analytic_solution(x, t, gamma, left_state, right_state):
         xmin=min(x), xd0=0.5 * (min(x) + max(x)), xmax=max(x), t=t
     )
 
-    sol = solver(x, t)
+    sol = wrapFunction(solver, extract=names)
     return sol.density, sol.pressure, sol.velocity
 
 
 def acoustic_analytic_solution(x, x_analytic, t, gamma, r0, p0, init_r, init_p,
-                               init_u):
+                               init_u) -> tuple[Callable, Callable, Callable]:
     """
     Return the acoustic analytical solution
     """
 
-    result = Acoustic(x, gamma, r0, p0, init_r, init_p, init_u)(x_analytic, t)
+    names = ["density", "pressure", "velocity"]
+
+    result = wrapFunction(
+        Acoustic(x, gamma, r0, p0, init_r, init_p, init_u), extract=names)
 
     return result.density, result.pressure, result.velocity
 
 
-def compute_l2_error(numerical: NDArray | float, analytical: NDArray | float,
-                     dx: float, divide: bool = True) -> float:
-    if divide:
-        return np.sqrt(dx * np.sum(
-            ((numerical - analytical) / analytical) ** 2))
-    else:
-        return np.sqrt(dx * np.sum((numerical - analytical) ** 2))
+def compute_l2_error(x_num: NDArray, numerical: NDArray,
+                     analytical: Callable) -> float:
+
+    # For every cell, calculate the "volume" integral
+    dx = x_num[1] - x_num[0]
+    error = 0
+    for i, x in enumerate(x_num):
+        x0 = x[i] - dx * 0.5
+        x1 = x[i] + dx * 0.5
+        error += (numerical[i] - quad(analytical, x0, x1) / dx) ** 2
+
+    return np.sqrt(dx * error)
 
 
 def plot_comparison(x_num, num_vals, x_exact, exact_vals,
@@ -181,13 +224,9 @@ def main():
         print(f"Unsupported problem type '{problem}'")
         sys.exit(1)
 
-    rho_interp = interp1d(x_analytic, rho_exact, fill_value="extrapolate")
-    p_interp = interp1d(x_analytic, p_exact, fill_value="extrapolate")
-    u_interp = interp1d(x_analytic, u_exact, fill_value="extrapolate")
-
-    rho_ref = rho_interp(x_num)
-    p_ref = p_interp(x_num)
-    u_ref = u_interp(x_num)
+    rho_ref = rho_exact(x_num, time)
+    p_ref = p_exact(x_num, time)
+    u_ref = u_exact(x_num, time)
 
     if make_plot:
         tag = os.path.splitext(os.path.basename(last_raw_file))[0].replace(
