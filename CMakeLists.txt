@@ -251,6 +251,7 @@ if(ENABLE_VERIFICATION OR ENABLE_UNIT_TESTS)
 
 
   set(CHECK_SCRIPT ${CMAKE_SOURCE_DIR}/tools/exactpack_verify.py)
+  set(CONVERGENCE_SCRIPT ${CMAKE_SOURCE_DIR}/tools/convergence_verify.py)
 
   if(CONFIG STREQUAL "")
     set(CONFIG sod.yaml)
@@ -258,6 +259,12 @@ if(ENABLE_VERIFICATION OR ENABLE_UNIT_TESTS)
 
   add_custom_target(verify
     COMMAND ${Python3_EXECUTABLE} ${CHECK_SCRIPT} \$\(CONFIG\)
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    VERBATIM
+  )
+
+  add_custom_target(convergence
+    COMMAND ${Python3_EXECUTABLE} ${CONVERGENCE_SCRIPT} \$\(CONFIG\)
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     VERBATIM
   )
