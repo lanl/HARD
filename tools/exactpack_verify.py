@@ -123,10 +123,10 @@ def simple_quad(f: Callable, x0: float, x1: float, deg=6) -> float:
     Use a Gauss-Legendre quadrature of degree deg
     """
 
-    points, weights = np.polynomial.legendre.leggauss(deg)
-    def transform(x): return ((x1 - x0) * x + x1 + x0) * 0.5
+    nodes, weights = np.polynomial.legendre.leggauss(deg)
+    def x_of_u(u): return ((x1 - x0) * u + x1 + x0) * 0.5
 
-    return np.sum(f(transform(points)) * weights) * 0.5 * (x1 - x0)
+    return np.sum(f(x_of_u(nodes)) * weights) * 0.5 * (x1 - x0)
 
 
 def compute_l2_error(x_num: NDArray, numerical: NDArray,
