@@ -1,16 +1,42 @@
 import glob
 import os
 import sys
+from collections import namedtuple
+from collections.abc import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 from acoustic_solution import Acoustic
 from numpy.typing import NDArray
-from scipy.interpolate import interp1d
 
 # Threshold for passing L2 error tests
-tolerance = 1.0e-0
+Tolerance = namedtuple("Tolerance", ["rho", "p", "u"])
+tolerance = Tolerance(1e-2, 1e-2, 5e-1)
+
+
+class wrapFunction(object):
+    def __init__(self, solver: Callable, t: float, extract: list[str]) -> None:
+        """
+        Create the wrapper for each attribute
+        """
+
+        for name in extract:
+            self.__doWrapping(solver, t, name)
+
+    def __doWrapping(self, f: Callable, t: float, name: str) -> None:
+        """
+        Transform the ExactPack array tuple into a Callable tuple
+        """
+
+        if isinstance(f, Acoustic):
+            def wrap(x):
+                return f(x, t)._asdict()[name]
+        else:
+            def wrap(x):
+                return f(x, t)[name]
+
+        self.__dict__[name] = wrap
 
 
 def color_text(text, status):
@@ -47,8 +73,12 @@ def parse_config(yaml_file):
 
 def sedov_analytic_solution(x, t, gamma):
     from exactpack.solvers.sedov import Sedov
+
+    names = ["density", "pressure", "velocity"]
+
     solver = Sedov(gamma=gamma, geometry=1, eblast=0.0673185)
-    result = solver(x, t)
+    result = wrapFunction(solver, t, extract=names)
+
     return result.density, result.pressure, result.velocity
 
 
@@ -59,6 +89,8 @@ def riemann_analytic_solution(x, t, gamma, left_state, right_state):
         print("Error: ExactPack Riemann solver not found.")
         sys.exit(1)
 
+    names = ["density", "pressure", "velocity"]
+
     rho_l, u_l, p_l = left_state
     rho_r, u_r, p_r = right_state
 
@@ -68,28 +100,48 @@ def riemann_analytic_solution(x, t, gamma, left_state, right_state):
         xmin=min(x), xd0=0.5 * (min(x) + max(x)), xmax=max(x), t=t
     )
 
-    sol = solver(x, t)
+    sol = wrapFunction(solver, t, extract=names)
     return sol.density, sol.pressure, sol.velocity
 
 
 def acoustic_analytic_solution(x, x_analytic, t, gamma, r0, p0, init_r, init_p,
-                               init_u):
+                               init_u) -> tuple[Callable, Callable, Callable]:
     """
     Return the acoustic analytical solution
     """
 
-    result = Acoustic(x, gamma, r0, p0, init_r, init_p, init_u)(x_analytic, t)
+    names = ["density", "pressure", "velocity"]
+
+    result = wrapFunction(
+        Acoustic(x, gamma, r0, p0, init_r, init_p, init_u), t, extract=names)
 
     return result.density, result.pressure, result.velocity
 
 
-def compute_l2_error(numerical: NDArray | float, analytical: NDArray | float,
-                     dx: float, divide: bool = True) -> float:
-    if divide:
-        return np.sqrt(dx * np.sum(
-            ((numerical - analytical) / analytical) ** 2))
-    else:
-        return np.sqrt(dx * np.sum((numerical - analytical) ** 2))
+def simple_quad(f: Callable, x0: float, x1: float, deg=6) -> float:
+    """
+    Use a Gauss-Legendre quadrature of degree deg
+    """
+
+    nodes, weights = np.polynomial.legendre.leggauss(deg)
+    def x_of_u(u): return ((x1 - x0) * u + x1 + x0) * 0.5
+
+    return np.sum(f(x_of_u(nodes)) * weights) * 0.5 * (x1 - x0)
+
+
+def compute_l2_error(x_num: NDArray, numerical: NDArray,
+                     analytical: Callable) -> float:
+
+    # For every cell, calculate the "volume" integral
+    dx = x_num[1] - x_num[0]
+    error = 0
+
+    for i, x in enumerate(x_num):
+        x1 = x + dx * 0.5
+        x0 = x - dx * 0.5
+        error += (numerical[i] - simple_quad(analytical, x0, x1) / dx) ** 2
+
+    return np.sqrt(dx * error)
 
 
 def plot_comparison(x_num, num_vals, x_exact, exact_vals,
@@ -143,7 +195,6 @@ def main():
     # Extract physical quantities from tuple
     t_arr, x_num, rho_num, p_num, u_num = out_tuple
     time = t_arr[0]
-    dx = x_num[1] - x_num[0]
 
     x_analytic = np.linspace(x0, x1, 1000)
 
@@ -181,13 +232,9 @@ def main():
         print(f"Unsupported problem type '{problem}'")
         sys.exit(1)
 
-    rho_interp = interp1d(x_analytic, rho_exact, fill_value="extrapolate")
-    p_interp = interp1d(x_analytic, p_exact, fill_value="extrapolate")
-    u_interp = interp1d(x_analytic, u_exact, fill_value="extrapolate")
-
-    rho_ref = rho_interp(x_num)
-    p_ref = p_interp(x_num)
-    u_ref = u_interp(x_num)
+    rho_ref = rho_exact(x_num)
+    p_ref = p_exact(x_num)
+    u_ref = u_exact(x_num)
 
     if make_plot:
         tag = os.path.splitext(os.path.basename(last_raw_file))[0].replace(
@@ -211,18 +258,13 @@ def main():
         p_ref = p_ref[mask]
         u_ref = u_ref[mask]
 
-    err_rho = compute_l2_error(rho_num, rho_ref, dx)
-    if problem in ["leblanc", "sedov"]:
-        # NOTE: The leblanc and sedov problems can have 0 pressure,
-        # so we do not use the relative L2 error in this case
-        err_p = compute_l2_error(p_num, p_ref, dx, divide=False)
-    else:
-        err_p = compute_l2_error(p_num, p_ref, dx)
-    err_u = compute_l2_error(u_num, u_ref, dx, divide=False)
+    err_rho = compute_l2_error(x_num, rho_num, rho_exact)
+    err_p = compute_l2_error(x_num, p_num, p_exact)
+    err_u = compute_l2_error(x_num, u_num, u_exact)
 
-    status_rho = "PASS" if err_rho <= tolerance else "FAIL"
-    status_p = "PASS" if err_p <= tolerance else "FAIL"
-    status_u = "PASS" if err_u <= tolerance else "FAIL"
+    status_rho = "PASS" if err_rho <= tolerance.rho else "FAIL"
+    status_p = "PASS" if err_p <= tolerance.p else "FAIL"
+    status_u = "PASS" if err_u <= tolerance.u else "FAIL"
 
     print(f"Problem type: {problem}")
     print(f"Compared solution at t = {time:.4f}")
@@ -234,7 +276,9 @@ def main():
     print(f"  Velocity : {err_u:.6e} \
     [{color_text(status_u, status_u)}]")
 
-    if any(e > tolerance for e in (err_rho, err_p, err_u)):
+    if any(e > t for e, t in zip((err_rho, err_p, err_u),
+                                 (tolerance.rho, tolerance.p, tolerance.u))):
+
         s = "Test FAILED: relative L2 error exceeds tolerance of"
         s += f" {tolerance:.2e}"
         print(s)
