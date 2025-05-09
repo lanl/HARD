@@ -1,43 +1,40 @@
 import glob
-import itertools
 import os
 import sys
+from collections import namedtuple
 from collections.abc import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.integrate import quad
 import yaml
 from acoustic_solution import Acoustic
 from numpy.typing import NDArray
 
 # Threshold for passing L2 error tests
-tolerance = 1.0e-0
+Tolerance = namedtuple("Tolerance", ["rho", "p", "u"])
+tolerance = Tolerance(1e-2, 1e-2, 5e-1)
 
 
 class wrapFunction(object):
-    def __init__(self, solver: Callable, extract: list[str]) -> None:
+    def __init__(self, solver: Callable, t: float, extract: list[str]) -> None:
         """
         Create the wrapper for each attribute
         """
 
         for name in extract:
-            self.__doWrapping(solver, name)
+            self.__doWrapping(solver, t, name)
 
-    def __doWrapping(self, f: Callable, name: str) -> None:
+    def __doWrapping(self, f: Callable, t: float, name: str) -> None:
         """
         Transform the ExactPack array tuple into a Callable tuple
         """
 
         if isinstance(f, Acoustic):
-            def wrap(x, t):
+            def wrap(x):
                 return f(x, t)._asdict()[name]
         else:
-            def wrap(x, t):
-                if type(x) in [float, int]:
-                    return f([x], t)[name]
-                else:
-                    return f(x, t)[name]
+            def wrap(x):
+                return f(x, t)[name]
 
         self.__dict__[name] = wrap
 
@@ -80,7 +77,7 @@ def sedov_analytic_solution(x, t, gamma):
     names = ["density", "pressure", "velocity"]
 
     solver = Sedov(gamma=gamma, geometry=1, eblast=0.0673185)
-    result = wrapFunction(solver, extract=names)
+    result = wrapFunction(solver, t, extract=names)
 
     return result.density, result.pressure, result.velocity
 
@@ -103,7 +100,7 @@ def riemann_analytic_solution(x, t, gamma, left_state, right_state):
         xmin=min(x), xd0=0.5 * (min(x) + max(x)), xmax=max(x), t=t
     )
 
-    sol = wrapFunction(solver, extract=names)
+    sol = wrapFunction(solver, t, extract=names)
     return sol.density, sol.pressure, sol.velocity
 
 
@@ -116,9 +113,20 @@ def acoustic_analytic_solution(x, x_analytic, t, gamma, r0, p0, init_r, init_p,
     names = ["density", "pressure", "velocity"]
 
     result = wrapFunction(
-        Acoustic(x, gamma, r0, p0, init_r, init_p, init_u), extract=names)
+        Acoustic(x, gamma, r0, p0, init_r, init_p, init_u), t, extract=names)
 
     return result.density, result.pressure, result.velocity
+
+
+def simple_quad(f: Callable, x0: float, x1: float, deg=6) -> float:
+    """
+    Use a Gauss-Legendre quadrature of degree deg
+    """
+
+    points, weights = np.polynomial.legendre.leggauss(deg)
+    def transform(x): return ((x1 - x0) * x + x1 + x0) * 0.5
+
+    return np.sum(f(transform(points)) * weights) * 0.5 * (x1 - x0)
 
 
 def compute_l2_error(x_num: NDArray, numerical: NDArray,
@@ -127,10 +135,11 @@ def compute_l2_error(x_num: NDArray, numerical: NDArray,
     # For every cell, calculate the "volume" integral
     dx = x_num[1] - x_num[0]
     error = 0
+
     for i, x in enumerate(x_num):
-        x0 = x[i] - dx * 0.5
-        x1 = x[i] + dx * 0.5
-        error += (numerical[i] - quad(analytical, x0, x1) / dx) ** 2
+        x1 = x + dx * 0.5
+        x0 = x - dx * 0.5
+        error += (numerical[i] - simple_quad(analytical, x0, x1) / dx) ** 2
 
     return np.sqrt(dx * error)
 
@@ -186,7 +195,6 @@ def main():
     # Extract physical quantities from tuple
     t_arr, x_num, rho_num, p_num, u_num = out_tuple
     time = t_arr[0]
-    dx = x_num[1] - x_num[0]
 
     x_analytic = np.linspace(x0, x1, 1000)
 
@@ -224,9 +232,9 @@ def main():
         print(f"Unsupported problem type '{problem}'")
         sys.exit(1)
 
-    rho_ref = rho_exact(x_num, time)
-    p_ref = p_exact(x_num, time)
-    u_ref = u_exact(x_num, time)
+    rho_ref = rho_exact(x_num)
+    p_ref = p_exact(x_num)
+    u_ref = u_exact(x_num)
 
     if make_plot:
         tag = os.path.splitext(os.path.basename(last_raw_file))[0].replace(
@@ -250,18 +258,13 @@ def main():
         p_ref = p_ref[mask]
         u_ref = u_ref[mask]
 
-    err_rho = compute_l2_error(rho_num, rho_ref, dx)
-    if problem in ["leblanc", "sedov"]:
-        # NOTE: The leblanc and sedov problems can have 0 pressure,
-        # so we do not use the relative L2 error in this case
-        err_p = compute_l2_error(p_num, p_ref, dx, divide=False)
-    else:
-        err_p = compute_l2_error(p_num, p_ref, dx)
-    err_u = compute_l2_error(u_num, u_ref, dx, divide=False)
+    err_rho = compute_l2_error(x_num, rho_num, rho_exact)
+    err_p = compute_l2_error(x_num, p_num, p_exact)
+    err_u = compute_l2_error(x_num, u_num, u_exact)
 
-    status_rho = "PASS" if err_rho <= tolerance else "FAIL"
-    status_p = "PASS" if err_p <= tolerance else "FAIL"
-    status_u = "PASS" if err_u <= tolerance else "FAIL"
+    status_rho = "PASS" if err_rho <= tolerance.rho else "FAIL"
+    status_p = "PASS" if err_p <= tolerance.p else "FAIL"
+    status_u = "PASS" if err_u <= tolerance.u else "FAIL"
 
     print(f"Problem type: {problem}")
     print(f"Compared solution at t = {time:.4f}")
@@ -273,7 +276,9 @@ def main():
     print(f"  Velocity : {err_u:.6e} \
     [{color_text(status_u, status_u)}]")
 
-    if any(e > tolerance for e in (err_rho, err_p, err_u)):
+    if any(e > t for e, t in zip((err_rho, err_p, err_u),
+                                 (tolerance.rho, tolerance.p, tolerance.u))):
+
         s = "Test FAILED: relative L2 error exceeds tolerance of"
         s += f" {tolerance:.2e}"
         print(s)
