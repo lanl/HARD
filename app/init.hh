@@ -253,6 +253,11 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
 
   if(config["problem"].as<std::string>() == "sod") {
+
+#ifdef ENABLE_RADIATION
+  flog_fatal("Sod must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<
       tasks::initial_data::shock<tasks::initial_data::shock_tubes::sod, D>,
       flecsi::default_accelerator>(s.m,
@@ -263,6 +268,11 @@ initialize(control_policy<state, D> & cp) {
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "rankine-hugoniot") {
+
+#ifdef ENABLE_RADIATION
+  flog_fatal("Rankine-Hugoniot must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<tasks::initial_data::
               shock<tasks::initial_data::shock_tubes::rankine_hugoniot, D>,
       flecsi::default_accelerator>(s.m,
@@ -273,18 +283,14 @@ initialize(control_policy<state, D> & cp) {
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "leblanc") {
+
+#ifdef ENABLE_RADIATION
+  flog_fatal("Leblanc must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<
       tasks::initial_data::shock<tasks::initial_data::shock_tubes::leblanc, D>,
       flecsi::default_accelerator>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
-      s.eos);
-  }
-
-  else if(config["problem"].as<std::string>() == "sine-wave") {
-    execute<tasks::initial_data::sine_wave<D>, flecsi::default_accelerator>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
