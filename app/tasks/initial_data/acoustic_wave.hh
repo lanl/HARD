@@ -6,6 +6,7 @@
 #include "../utils.hh"
 #include <cmath>
 #include <cstddef>
+#include <cstring>
 #include <yaml-cpp/yaml.h>
 
 namespace hard::tasks::initial_data {
@@ -33,8 +34,10 @@ acoustic_wave(typename mesh<Dim>::template accessor<ro> m,
 
   // Problem parameters
   // Equilibrium values
-  const double r0{1.0};
-  const double p0{1.0};
+  const double r0{
+    config["problem_parameters"]["r0"].as<double>()}; // Equilibrium density
+  const double p0{
+    config["problem_parameters"]["p0"].as<double>()}; // Equilibrium pressure
 
   // Perturbation amplitudes
   const double rA{
@@ -56,14 +59,16 @@ acoustic_wave(typename mesh<Dim>::template accessor<ro> m,
 
   // NOTE: Allow for choice between gaussian and sine
   auto & initial_shape = gaussian;
+  const std::string init{
+    config["problem_parameters"]["init"].as<std::string>()};
 
   //
   // Only 1D version has been implemented.
   //
   if constexpr(Dim == 1) {
     forall(i, (m.template cells<ax::x, dm::quantities>()), "init_acoustic_1d") {
-      const auto x = m.template center<ax::x>(i);
-      const double ux{cs * uA * initial_shape(x)};
+      const auto x{m.template center<ax::x>(i)};
+      const double ux{cs * uA * (init == "gaussian" ? gaussian(x) : sine(x))};
 
       mass_density(i) = r0 * (1 + rA * initial_shape(x));
       momentum_density(i).x = mass_density(i) * ux;

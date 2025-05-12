@@ -1,17 +1,19 @@
 ---
-problem: rankine-hugoniot
-kappa: 0.0
-mean_molecular_weight: 1.0
-output_frequency: 10
-lowest_level: 9
-gamma: 1.4
+problem: sod
+eos: spiner
+spiner_file: air.sp5
+spiner_matid: 5030
+kappa: 1.0e-100
+mean_molecular_weight: 28.96
 t0: 0.0
 tf: 1.0
-max_steps: 5
-cfl: 0.6
+max_steps: 100
+cfl: 0.3
 max_dt: 1.0
-log_frequency: 5
-levels: [9, 9, 9]
+log_frequency: 1
+output_frequency: 1
+levels: [5, 3, 3]
+lowest_level: 5
 coords:
   - [0.0, 0.0, 0.0]
   - [1.0, 1.0, 1.0]

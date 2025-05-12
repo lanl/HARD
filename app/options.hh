@@ -31,6 +31,11 @@ inline flecsi::program_option<unsigned int> dimension("Hard Options",
   "Specify the dimension of the solver (default: 3).",
   {{flecsi::option_default, 3}});
 
+inline flecsi::program_option<unsigned int> resolution("Hard Options",
+  "resolution,r",
+  "Specify the lowest level resolution for the grid.",
+  {{flecsi::option_default, 0}});
+
 inline flecsi::program_option<std::string> source_fds("Hard Options",
   "fds_file",
   "Specify where the file lives (default: source_fds.txt)",
