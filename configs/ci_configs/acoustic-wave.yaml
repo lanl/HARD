@@ -1,23 +1,31 @@
 ---
-problem: rankine-hugoniot
+problem: acoustic-wave
 gamma: 1.4
 kappa: 1.0
 mean_molecular_weight: 1.0
+problem_parameters:
+  x0: 5e-1
+  sigma: 1e-1
+  amplitude: 1e-5
+  init: gaussian
+  r0: 1.0
+  p0: 1.0
+eos: ideal
 t0: 0.0
 tf: 1.0
-max_steps: 2
-cfl: 0.3
+max_steps: 100
+cfl: 0.5
 max_dt: 1.0
-log_frequency: 1
-output_frequency: 2
-levels: [5, 5, 5]
-lowest_level: 5
+log_frequency: 100
+output_frequency: 100
+levels: [12, 1, 1]
+lowest_level: 12
 coords:
   - [0.0, 0.0, 0.0]
   - [1.0, 1.0, 1.0]
 boundaries:
-  xlow: reflecting
-  xhigh: reflecting
+  xlow: periodic
+  xhigh: periodic
   ylow: flow
   yhigh: flow
   zlow: flow
