@@ -31,7 +31,7 @@ def main() -> None:
         pattern = os.path.join(out_dir, "output_*")
 
     dirs = glob.glob(pattern)
-    dirs.sort()
+    dirs.sort(key=lambda x: int(x.split("_")[-1]), reverse=True)
     dx = []
     l2err = []
 
