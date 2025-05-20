@@ -255,7 +255,7 @@ initialize(control_policy<state, D> & cp) {
   if(config["problem"].as<std::string>() == "sod") {
 
 #ifdef ENABLE_RADIATION
-  flog_fatal("Sod must be built with ENABLE_RADIATION=OFF");
+    flog_fatal("Sod must be built with ENABLE_RADIATION=OFF");
 #endif
 
     execute<
@@ -270,7 +270,7 @@ initialize(control_policy<state, D> & cp) {
   else if(config["problem"].as<std::string>() == "rankine-hugoniot") {
 
 #ifdef ENABLE_RADIATION
-  flog_fatal("Rankine-Hugoniot must be built with ENABLE_RADIATION=OFF");
+    flog_fatal("Rankine-Hugoniot must be built with ENABLE_RADIATION=OFF");
 #endif
 
     execute<tasks::initial_data::
@@ -285,7 +285,7 @@ initialize(control_policy<state, D> & cp) {
   else if(config["problem"].as<std::string>() == "leblanc") {
 
 #ifdef ENABLE_RADIATION
-  flog_fatal("Leblanc must be built with ENABLE_RADIATION=OFF");
+    flog_fatal("Leblanc must be built with ENABLE_RADIATION=OFF");
 #endif
 
     execute<
