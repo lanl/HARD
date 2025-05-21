@@ -297,6 +297,11 @@ initialize(control_policy<state, D> & cp) {
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "acoustic-wave") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal("Acoustic wave must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<tasks::initial_data::acoustic_wave<D>, flecsi::default_accelerator>(
       s.m,
       s.mass_density(s.m),

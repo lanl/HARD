@@ -30,10 +30,6 @@ acoustic_wave(typename mesh<Dim>::template accessor<ro> m,
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
 
-#ifdef ENABLE_RADIATION
-  flog_fatal("Acoustic wave must be built with ENABLE_RADIATION=OFF");
-#endif
-
   YAML::Node config = YAML::LoadFile(opt::config.value());
 
   // Problem parameters
