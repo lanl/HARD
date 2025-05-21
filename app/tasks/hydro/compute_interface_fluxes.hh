@@ -22,8 +22,6 @@ compute_interface_fluxes(std::size_t face_axis,
   typename field<vec<Dim>>::template accessor<wo, ro> uHead_a,
   field<double>::accessor<wo, ro> pTail_a,
   field<double>::accessor<wo, ro> pHead_a,
-  field<double>::accessor<wo, ro> eTail_a,
-  field<double>::accessor<wo, ro> eHead_a,
   field<double>::accessor<wo, ro> cTail_a,
   field<double>::accessor<wo, ro> cHead_a,
   field<double>::accessor<wo, ro>
@@ -65,8 +63,6 @@ compute_interface_fluxes(std::size_t face_axis,
   auto uHead = m.template mdcolex<is::cells>(uHead_a);
   auto pTail = m.template mdcolex<is::cells>(pTail_a);
   auto pHead = m.template mdcolex<is::cells>(pHead_a);
-  auto eTail = m.template mdcolex<is::cells>(eTail_a);
-  auto eHead = m.template mdcolex<is::cells>(eHead_a);
   auto cTail = m.template mdcolex<is::cells>(cTail_a);
   auto cHead = m.template mdcolex<is::cells>(cHead_a);
 
