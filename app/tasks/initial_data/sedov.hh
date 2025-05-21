@@ -30,10 +30,6 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
 
-  // physical constants in cgs units
-  const double & kb = hard::constants::cgs::boltzmann_constant;
-  const double & a = hard::constants::cgs::radiation_constant;
-
   // Parse input parameters
   YAML::Node config = YAML::LoadFile(opt::config.value());
 

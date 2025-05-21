@@ -28,6 +28,7 @@ inline control<state, 2>::action<initialize_time_derivative<2>, cp::advance>
 inline control<state, 3>::action<initialize_time_derivative<3>, cp::advance>
   initialize_time_derivative_3d;
 
+#ifdef ENABLE_RADIATION
 // ----------------------------------------------------------------------------
 //              Solve radiation diffusion and source-sink terms
 // ----------------------------------------------------------------------------
@@ -44,6 +45,7 @@ inline const auto dep_radiation_advance_2d =
   radiation_advance_2d.add(initialize_time_derivative_2d);
 inline const auto dep_radiation_advance_3d =
   radiation_advance_3d.add(initialize_time_derivative_3d);
+#endif
 
 // ----------------------------------------------------------------------------
 //              Solve advection
@@ -55,13 +57,21 @@ inline control<state, 2>::action<advection_advance<2>, cp::advance>
   advection_advance_2d;
 inline control<state, 3>::action<advection_advance<3>, cp::advance>
   advection_advance_3d;
+#ifdef ENABLE_RADIATION
 inline const auto dep_advection_advance_1d =
   advection_advance_1d.add(radiation_advance_1d);
 inline const auto dep_advection_advance_2d =
   advection_advance_2d.add(radiation_advance_2d);
 inline const auto dep_advection_advance_3d =
   advection_advance_3d.add(radiation_advance_3d);
-
+#else
+inline const auto dep_advection_advance_1d =
+  advection_advance_1d.add(initialize_time_derivative_1d);
+inline const auto dep_advection_advance_2d =
+  advection_advance_2d.add(initialize_time_derivative_2d);
+inline const auto dep_advection_advance_3d =
+  advection_advance_3d.add(initialize_time_derivative_3d);
+#endif
 // --------------------------------------------------------------------
 //              Update for next cycle
 // --------------------------------------------------------------------

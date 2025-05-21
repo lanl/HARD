@@ -159,14 +159,13 @@ initialize(control_policy<state, D> & cp) {
      *------------------------------------------------------------------------*/
 
     for(std::size_t i{0}; i < s.max_num_levels; i++) {
-      auto opt_dx = opt::resolution.value();
       typename mesh<D>::gcoord axis_extents(D);
-      axis_extents[ax::x] = 1 << get_resolution(0) - i;
+      axis_extents[ax::x] = 1 << (get_resolution(0) - i);
       if(D == 2 || D == 3) {
-        axis_extents[ax::y] = 1 << get_resolution(1) - i;
+        axis_extents[ax::y] = 1 << (get_resolution(1) - i);
       } // if
       if(D == 3) {
-        axis_extents[ax::z] = 1 << get_resolution(2) - i;
+        axis_extents[ax::z] = 1 << (get_resolution(2) - i);
       } // if
 
       // Add a new grid - the finest grid is already there
@@ -394,11 +393,8 @@ initialize(control_policy<state, D> & cp) {
     s.sound_speed(s.m),
     s.eos);
   auto lmax_f = execute<tasks::hydro::update_max_characteristic_speed<D>,
-    flecsi::default_accelerator>(s.m,
-    s.mass_density(s.m),
-    s.velocity(s.m),
-    s.pressure(s.m),
-    s.sound_speed(s.m));
+    flecsi::default_accelerator>(
+    s.m, s.mass_density(s.m), s.velocity(s.m), s.sound_speed(s.m));
   s.dtmin_ =
     reduce<hard::task::rad::update_dtmin<D>, exec::fold::min>(s.m, lmax_f);
 
