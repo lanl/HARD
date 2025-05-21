@@ -43,17 +43,16 @@ struct rad_rankine_hugoniot {
 template<typename T, std::size_t D>
 auto
 rad_RH(typename mesh<D>::template accessor<ro> m,
-  field<double>::accessor<rw, ro> r_a,
-  typename field<vec<D>>::template accessor<rw, ro> ru_a,
-  field<double>::accessor<rw, ro> rE_a,
-  field<double>::accessor<rw, ro> Erad_a,
-  single<double>::accessor<ro> gamma_a,
+  field<double>::accessor<wo, ro> r_a,
+  typename field<vec<D>>::template accessor<wo, ro> ru_a,
+  field<double>::accessor<wo, ro> rE_a,
+  field<double>::accessor<wo, ro> Erad_a,
+  const double gamma,
   single<double>::accessor<ro> particle_mass_a) {
   auto r = m.template mdcolex<is::cells>(r_a);
   auto ru = m.template mdcolex<is::cells>(ru_a);
   auto rE = m.template mdcolex<is::cells>(rE_a);
   auto Erad = m.template mdcolex<is::cells>(Erad_a);
-  auto const gamma = *gamma_a;
   auto const particle_mass = *particle_mass_a;
   const double mult = 1.0 / (gamma - 1.0);
 
