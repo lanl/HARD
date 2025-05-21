@@ -8,6 +8,10 @@ config_file="$3"
 additional_args="$4"
 
 $mpi_executable -np 1 $hard_executable $config_file $additional_args && \
-  make verify CONFIG=$config_file
+  make verify CONFIG="$config_file"
 rm -rf *.raw
 
+if [ -d ./artifacts ]; then
+# Save the plots as artifacts
+    mv *.png ./artifacts
+fi
