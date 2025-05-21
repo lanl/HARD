@@ -311,6 +311,12 @@ initialize(control_policy<state, D> & cp) {
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "kh-test") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal(
+      "Kelvin-Helmholtz instability must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<tasks::initial_data::kh_instability<D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
@@ -330,6 +336,11 @@ initialize(control_policy<state, D> & cp) {
       config["gamma"].as<double>());
   }
   else if(config["problem"].as<std::string>() == "sedov") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal("Sedov blast must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<tasks::initial_data::sedov_blast<D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
@@ -359,6 +370,11 @@ initialize(control_policy<state, D> & cp) {
       particle_mass(s.gt));
   }
   else if(config["problem"].as<std::string>() == "lw-implosion") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal("Liska-Wendroff implosion must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<tasks::initial_data::lw_implosion<D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
