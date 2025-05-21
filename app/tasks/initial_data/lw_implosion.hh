@@ -1,6 +1,6 @@
-
 #pragma once
 
+#include "../../types.hh"
 #include <cmath>
 #include <cstddef>
 
@@ -17,11 +17,11 @@ namespace hard::tasks::initial_data {
 template<std::size_t Dim>
 auto
 lw_implosion(typename mesh<Dim>::template accessor<ro> m,
-  field<double>::accessor<rw, ro> mass_density_a,
-  typename field<vec<Dim>>::template accessor<rw, ro> momentum_density_a,
-  field<double>::accessor<rw, ro> total_energy_density_a,
-  field<double>::accessor<rw, ro> radiation_energy_density_a,
-  single<double>::accessor<ro> gamma_a) {
+  field<double>::accessor<wo, ro> mass_density_a,
+  typename field<vec<Dim>>::template accessor<wo, ro> momentum_density_a,
+  field<double>::accessor<wo, ro> total_energy_density_a,
+  field<double>::accessor<wo, ro> radiation_energy_density_a,
+  const double gamma) {
 
   if constexpr(Dim == 2) {
 
@@ -32,7 +32,6 @@ lw_implosion(typename mesh<Dim>::template accessor<ro> m,
     auto radiation_energy_density =
       m.template mdcolex<is::cells>(radiation_energy_density_a);
 
-    auto const gamma = *gamma_a;
     const double mult = 1.0 / (gamma - 1.0);
 
     forall(j, (m.template cells<ax::y, dm::quantities>()), "init_sedov_2d") {
