@@ -3,6 +3,7 @@ problem: lw-implosion
 gamma: 1.4
 kappa: 1.0e-100
 mean_molecular_weight: 1.0
+eos: ideal
 t0: 0.0
 tf: 10.0
 max_steps: 20000
