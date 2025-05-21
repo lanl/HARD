@@ -34,6 +34,12 @@ darwin_hard_test_mpi:
   variables:
     SPACK_ENV_NAME: "custom-file"
     SPACK_ENV_FILE: ${CI_PROJECT_DIR}/spack-repo/custom/hard_spack_mpi.yaml
+  artifacts:
+    name: "plots-$CI_JOB_ID"      # visible label in the UI
+    paths:
+      - ./build/artifacts/        # grab everything under that folder
+    when: always                  # even if the tests fail, keep the files
+    expire_in: 1 week             # or 'never' if you want to keep them forever
 
 darwin_hard_radiation_test_mpi:
   stage: mpi

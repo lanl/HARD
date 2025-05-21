@@ -28,7 +28,7 @@ export UCX_MEMTYPE_CACHE=n
 
 if ${SUBMIT_TO_CDASH}; then
     UNTIL=${UNTIL:-submit}
-    
+
 else
     UNTIL=${UNTIL:-install}
 fi
@@ -234,6 +234,7 @@ cmake_test() {
     (
         source ${BUILD_ENV}
         export CTEST_OUTPUT_ON_FAILURE=1
+        mkdir ${BUILD_DIR}/artifacts
         if ${BUILD_WITH_CTEST}; then
             ctest -V -S .gitlab/build_and_test.cmake,Test,$REPORT_ERRORS
         else
