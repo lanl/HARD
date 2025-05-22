@@ -30,10 +30,6 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
 
-  // physical constants in cgs units
-  const double & kb = hard::constants::cgs::boltzmann_constant;
-  const double & a = hard::constants::cgs::radiation_constant;
-
   // Parse input parameters
   YAML::Node config = YAML::LoadFile(opt::config.value());
 
@@ -65,13 +61,12 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
 
       mass_density(i) = density;
       momentum_density(i).x = 0.0; // velocity is zero.
+      radiation_energy_density(i) = 0.0;
       if(distance < radius) {
         total_energy_density(i) = rE_inside;
-        radiation_energy_density(i) = 0.0;
       }
       else {
         total_energy_density(i) = rE_outside;
-        radiation_energy_density(i) = 0.0;
       }
     }; // forall
   }
@@ -86,13 +81,12 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
         mass_density(i, j) = density;
         momentum_density(i, j).x = 0.0;
         momentum_density(i, j).y = 0.0;
+        radiation_energy_density(i, j) = 0.0;
         if(distance < radius) {
           total_energy_density(i, j) = rE_inside;
-          radiation_energy_density(i, j) = 0.0;
         }
         else {
           total_energy_density(i, j) = rE_outside;
-          radiation_energy_density(i, j) = 0.0;
         }
       } // for
     }; // forall
@@ -112,13 +106,12 @@ sedov_blast(typename mesh<Dim>::template accessor<ro> m,
           momentum_density(i, j, k).x = 0.0;
           momentum_density(i, j, k).y = 0.0;
           momentum_density(i, j, k).z = 0.0;
+          radiation_energy_density(i, j, k) = 0.0;
           if(distance < radius) {
             total_energy_density(i, j, k) = rE_inside;
-            radiation_energy_density(i, j, k) = 0.0;
           }
           else {
             total_energy_density(i, j, k) = rE_outside;
-            radiation_energy_density(i, j, k) = 0.0;
           }
         } // for
       }

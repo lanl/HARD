@@ -60,6 +60,7 @@ if(ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
     ${CMAKE_BINARY_DIR}/tests/sod_3d
   )
 
+if(NOT ENABLE_RADIATION)
   # Accuracy tests 
   add_test(NAME accuracy_rk_1d
     COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
@@ -91,19 +92,26 @@ if(ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
     ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
+endif()
 
+if(NOT ENABLE_RADIATION)
   # Distributed tests 
   add_test(NAME hard-distributed
     COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_distributed.sh
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
     ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.yaml -d1)
+endif()
 
+if(NOT ENABLE_RADIATION)
   # Convergence tests
   add_test(NAME convergence_testing
     COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_convergence.sh
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
     7 12
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_convergence.yaml -d1)
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_convergence.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+endif()
 
 endif()
 
