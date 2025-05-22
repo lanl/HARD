@@ -48,29 +48,27 @@ acoustic_wave(typename mesh<Dim>::template accessor<ro> m,
   // Sound speed
   const double cs{sqrt(config["gamma"].as<double>() * p0 / r0)};
 
-  // Define the gaussian lambda
-  const double sigma{config["problem_parameters"]["sigma"].as<double>()};
-  const double x0{config["problem_parameters"]["x0"].as<double>()};
-  auto gaussian = [sigma, x0](
-                    double x) { return exp(-0.5 * pow((x - x0) / sigma, 2)); };
+  // Define the inverse of the wave number
+  const double scale{config["problem_parameters"]["scale"].as<double>()};
 
-  const double k{2.0 * M_PI};
-  auto sine = [k](double x) { return sin(k * x); };
-
-  // NOTE: Allow for choice between gaussian and sine
-  auto & initial_shape = gaussian;
-  const std::string init{
-    config["problem_parameters"]["init"].as<std::string>()};
+  // sine_quad is the volume average of the sine per cell,
+  // for sine wave fvm initialization
+  const double k{2 * M_PI * scale};
+  auto sine_quad = [k](double x0, double x1) {
+    return (cos(k * x0) - cos(k * x1)) / (k * (x1 - x0));
+  };
 
   //
   // Only 1D version has been implemented.
   //
   if constexpr(Dim == 1) {
     forall(i, (m.template cells<ax::x, dm::quantities>()), "init_acoustic_1d") {
+      const auto x0{m.template head<ax::x>(i)};
+      const auto x1{m.template tail<ax::x>(i)};
       const auto x{m.template center<ax::x>(i)};
-      const double ux{cs * uA * (init == "gaussian" ? gaussian(x) : sine(x))};
+      const double ux{cs * uA * sine_quad(x0, x1)};
+      mass_density(i) = r0 * (1 + rA * sine_quad(x0, x1));
 
-      mass_density(i) = r0 * (1 + rA * initial_shape(x));
       momentum_density(i).x = mass_density(i) * ux;
       const double e = util::find_sie(eos, mass_density(i), p0);
       total_energy_density(i) =

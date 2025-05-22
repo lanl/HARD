@@ -4,10 +4,8 @@ gamma: 1.4
 kappa: 1.0
 mean_molecular_weight: 1.0
 problem_parameters:
-  x0: 5e-1
-  sigma: 1e-1
+  scale: 1
   amplitude: 1e-5
-  init: gaussian
   r0: 1.0
   p0: 1.0
 eos: ideal
