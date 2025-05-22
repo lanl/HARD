@@ -13,52 +13,37 @@ namespace shock_tubes {
 struct rankine_hugoniot {
   static constexpr double rL = 1.0;
   static constexpr double uL = 0.0;
-  static constexpr double vL = 0.0;
-  static constexpr double wL = 0.0;
   static constexpr double pL = 1.0;
 
   static constexpr double rR = 0.25;
   static constexpr double uR = 0.0;
-  static constexpr double vR = 0.0;
-  static constexpr double wR = 0.0;
   static constexpr double pR = 0.1795;
 
   static constexpr double x0 = 0.5;
-  static constexpr double y0 = 0.5;
 }; // struct rankine_hugoniot
 
 struct sod {
   static constexpr double rL = 1.0;
   static constexpr double uL = 0.0;
-  static constexpr double vL = 0.0;
-  static constexpr double wL = 0.0;
   static constexpr double pL = 1.0;
 
   static constexpr double rR = 0.125;
   static constexpr double uR = 0.0;
-  static constexpr double vR = 0.0;
-  static constexpr double wR = 0.0;
   static constexpr double pR = 0.1;
 
   static constexpr double x0 = 0.5;
-  static constexpr double y0 = 0.5;
 }; // struct sod
 
 struct leblanc {
   static constexpr double rL = 1.0;
   static constexpr double uL = 0.0;
-  static constexpr double vL = 0.0;
-  static constexpr double wL = 0.0;
   static constexpr double pL = 0.1;
 
   static constexpr double rR = 1.0e-3;
   static constexpr double uR = 0.0;
-  static constexpr double vR = 0.0;
-  static constexpr double wR = 0.0;
   static constexpr double pR = 1.0e-10;
 
   static constexpr double x0 = 0.5;
-  static constexpr double y0 = 0.5;
 }; // struct leblanc
 
 } // namespace shock_tubes
@@ -113,23 +98,16 @@ shock(typename mesh<D>::template accessor<ro> m,
     forall(ji, mdpolicy_yx, "init_shock") {
       auto [j, i] = ji;
       const auto x = m.template head<ax::x>(i);
-      const auto y = m.template head<ax::y>(j);
 
-      double radius =
-        sqrt((x - T::x0) * (x - T::x0) + (y - T::y0) * (y - T::y0));
-
-      // if(x < T::x0) {
-      if(radius < 0.2) {
+      if(x < T::x0) {
         mass_density(i, j) = T::rL;
-        momentum_density(i, j).x = T::rL * T::uL;
-        momentum_density(i, j).y = T::rL * T::vL;
+        momentum_density(i, j) = vec<D>(T::rL * T::uL);
         const double e = util::find_sie(eos, T::rL, T::pL);
         total_energy_density(i, j) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
         mass_density(i, j) = T::rR;
-        momentum_density(i, j).x = T::rR * T::uR;
-        momentum_density(i, j).y = T::rR * T::vR;
+        momentum_density(i, j) = vec<D>(T::rR * T::uR);
         const double e = util::find_sie(eos, T::rR, T::pR);
         total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
@@ -149,18 +127,14 @@ shock(typename mesh<D>::template accessor<ro> m,
 
       if(x < T::x0) {
         mass_density(i, j, k) = T::rL;
-        momentum_density(i, j, k).x = T::rL * T::uL;
-        momentum_density(i, j, k).y = T::rL * T::vL;
-        momentum_density(i, j, k).z = T::rL * T::wL;
+        momentum_density(i, j, k) = vec<D>(T::rL * T::uL);
         const double e = util::find_sie(eos, T::rL, T::pL);
         total_energy_density(i, j, k) =
           T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
         mass_density(i, j, k) = T::rR;
-        momentum_density(i, j, k).x = T::rR * T::uR;
-        momentum_density(i, j, k).y = T::rR * T::vR;
-        momentum_density(i, j, k).z = T::rR * T::wR;
+        momentum_density(i, j, k) = vec<D>(T::rR * T::uR);
         const double e = util::find_sie(eos, T::rR, T::pR);
         total_energy_density(i, j, k) =
           T::rR * e + 0.5 * T::rR * (T::uR * T::uR);

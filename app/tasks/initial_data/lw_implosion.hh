@@ -1,6 +1,6 @@
-
 #pragma once
 
+#include "../../types.hh"
 #include <cmath>
 #include <cstddef>
 
@@ -14,16 +14,16 @@ namespace hard::tasks::initial_data {
 // < 0.15, density=0.125 and pressure=0.14. Otherwise denisty and pressure are
 // both set to 1.0. Initial velocity is zero everywhere.
 //
-template<std::size_t Dim>
+template<std::size_t D>
 auto
-lw_implosion(typename mesh<Dim>::template accessor<ro> m,
-  field<double>::accessor<rw, ro> mass_density_a,
-  typename field<vec<Dim>>::template accessor<rw, ro> momentum_density_a,
-  field<double>::accessor<rw, ro> total_energy_density_a,
-  field<double>::accessor<rw, ro> radiation_energy_density_a,
-  single<double>::accessor<ro> gamma_a) {
+lw_implosion(typename mesh<D>::template accessor<ro> m,
+  field<double>::accessor<wo, ro> mass_density_a,
+  typename field<vec<D>>::template accessor<wo, ro> momentum_density_a,
+  field<double>::accessor<wo, ro> total_energy_density_a,
+  field<double>::accessor<wo, ro> radiation_energy_density_a,
+  const double gamma) {
 
-  if constexpr(Dim == 2) {
+  if constexpr(D == 2) {
 
     auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
     auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
@@ -32,7 +32,6 @@ lw_implosion(typename mesh<Dim>::template accessor<ro> m,
     auto radiation_energy_density =
       m.template mdcolex<is::cells>(radiation_energy_density_a);
 
-    auto const gamma = *gamma_a;
     const double mult = 1.0 / (gamma - 1.0);
 
     forall(j, (m.template cells<ax::y, dm::quantities>()), "init_sedov_2d") {
@@ -49,9 +48,7 @@ lw_implosion(typename mesh<Dim>::template accessor<ro> m,
           total_energy_density(i, j) = mult * 0.14;
         }
 
-        momentum_density(i, j).x = 0.0;
-        momentum_density(i, j).y = 0.0;
-
+        momentum_density(i, j) = vec<D>(0.0);
         radiation_energy_density(i, j) = 0.0;
 
       } // for
