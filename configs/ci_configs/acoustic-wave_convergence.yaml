@@ -4,20 +4,18 @@ gamma: 1.4
 kappa: 1.0
 mean_molecular_weight: 1.0
 problem_parameters:
-  x0: 5e-1
-  sigma: 1e-2
-  amplitude: 1e-7
-  init: gaussian
+  scale: 5
+  amplitude: 1e-8
   r0: 1.0
   p0: 1.0
 eos: ideal
 t0: 0.0
-tf: 0.01
-max_steps: 100
+tf: 0.1
+max_steps: 300
 cfl: 0.5
 max_dt: 1.0
-log_frequency: 100
-output_frequency: 100
+log_frequency: 500
+output_frequency: 500
 levels: [12, 1, 1]
 lowest_level: 12
 coords:
