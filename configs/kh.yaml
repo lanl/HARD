@@ -3,6 +3,7 @@ problem: kh-test
 gamma: 1.6667
 kappa: 0.0
 mean_molecular_weight: 1.0
+eos: ideal
 t0: 0.0
 tf: 1.0
 max_steps: 10000
