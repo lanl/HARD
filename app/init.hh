@@ -373,7 +373,8 @@ initialize(control_policy<state, D> & cp) {
   else if(config["problem"].as<std::string>() == "lw-implosion") {
 
 #ifdef ENABLE_RADIATION
-    flog_fatal("Liska-Wendroff implosion must be built with ENABLE_RADIATION=OFF");
+    flog_fatal(
+      "Liska-Wendroff implosion must be built with ENABLE_RADIATION=OFF");
 #endif
 
     execute<tasks::initial_data::lw_implosion<D>>(s.m,
