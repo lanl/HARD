@@ -52,11 +52,12 @@ struct vec<1> {
   FLECSI_INLINE_TARGET double norm() const {
     return std::abs(x);
   }
-  FLECSI_INLINE_TARGET double & get(const size_t idx) {
+  FLECSI_INLINE_TARGET double & get([[maybe_unused]] const size_t idx) {
     assert(idx == 0 && "Invalid access for 1d vector");
     return x;
   }
-  FLECSI_INLINE_TARGET const double & get(const size_t idx) const {
+  FLECSI_INLINE_TARGET const double & get(
+    [[maybe_unused]] const size_t idx) const {
     assert(idx == 0 && "Invalid access for 1d vector");
     return x;
   }
