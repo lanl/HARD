@@ -358,7 +358,7 @@ initialize(control_policy<state, D> & cp) {
       config["gamma"].as<double>());
     s.mg = true;
   }
-#if 0
+  // FIXME: This problem has not been tested for correctness
   else if(config["problem"].as<std::string>() == "rad-rh") {
     execute<tasks::initial_data::
         rad_RH<tasks::initial_data::rad_shock::rad_rankine_hugoniot, D>>(s.m,
@@ -366,13 +366,15 @@ initialize(control_policy<state, D> & cp) {
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
-      gamma(s.gt),
+      config["gamma"].as<double>(),
       particle_mass(s.gt));
   }
+  // FIXME: This problem has not been tested for correctness
   else if(config["problem"].as<std::string>() == "lw-implosion") {
 
 #ifdef ENABLE_RADIATION
-    flog_fatal("Liska-Wendroff implosion must be built with ENABLE_RADIATION=OFF");
+    flog_fatal(
+      "Liska-Wendroff implosion must be built with ENABLE_RADIATION=OFF");
 #endif
 
     execute<tasks::initial_data::lw_implosion<D>>(s.m,
@@ -380,9 +382,8 @@ initialize(control_policy<state, D> & cp) {
       s.momentum_density(s.m),
       s.total_energy_density(s.m),
       s.radiation_energy_density(s.m),
-      gamma(s.gt));
+      config["gamma"].as<double>());
   }
-#endif
   else {
     flog_fatal(
       "unsupported problem(" << config["problem"].as<std::string>() << ")");

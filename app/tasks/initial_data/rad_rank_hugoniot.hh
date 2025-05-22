@@ -43,17 +43,16 @@ struct rad_rankine_hugoniot {
 template<typename T, std::size_t D>
 auto
 rad_RH(typename mesh<D>::template accessor<ro> m,
-  field<double>::accessor<rw, ro> r_a,
-  typename field<vec<D>>::template accessor<rw, ro> ru_a,
-  field<double>::accessor<rw, ro> rE_a,
-  field<double>::accessor<rw, ro> Erad_a,
-  single<double>::accessor<ro> gamma_a,
+  field<double>::accessor<wo, ro> r_a,
+  typename field<vec<D>>::template accessor<wo, ro> ru_a,
+  field<double>::accessor<wo, ro> rE_a,
+  field<double>::accessor<wo, ro> Erad_a,
+  const double gamma,
   single<double>::accessor<ro> particle_mass_a) {
   auto r = m.template mdcolex<is::cells>(r_a);
   auto ru = m.template mdcolex<is::cells>(ru_a);
   auto rE = m.template mdcolex<is::cells>(rE_a);
   auto Erad = m.template mdcolex<is::cells>(Erad_a);
-  auto const gamma = *gamma_a;
   auto const particle_mass = *particle_mass_a;
   const double mult = 1.0 / (gamma - 1.0);
 
@@ -74,11 +73,9 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
       else {
         r(i) = T::rR;
         ru(i).x = T::rR * T::uR;
-        // rE(i) = T::ER;
         rE(i) = mult * kb * T::TR * T::rR / (particle_mass) +
                 (0.5 * T::rR * T::uR * T::uR);
         Erad(i) = a * T::TR * T::TR * T::TR * T::TR;
-        // Erad(i) = T::EradR;
       } // if
       if(rE(i) <= 0) {
         std::cout << "TotalE is negative for i = " << i << std::endl;
@@ -94,8 +91,6 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
           r(i, j) = T::rL;
           ru(i, j).x = T::rL * T::uL;
           ru(i, j).y = T::rL * T::vL;
-          // rE(i, j) = T::EL;
-          // Erad(i, j) = T::EradL;
           rE(i, j) = mult * kb * T::TL * T::rL / (particle_mass) +
                      (0.5 * T::rL * T::uL * T::uL);
           Erad(i, j) = a * T::TL * T::TL * T::TL * T::TL;
@@ -104,8 +99,6 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
           r(i, j) = T::rR;
           ru(i, j).x = T::rR * T::uR;
           ru(i, j).y = T::rR * T::vR;
-          // rE(i, j) = T::ER;
-          // Erad(i, j) = T::EradR;
           rE(i, j) = mult * kb * T::TR * T::rR / (particle_mass) +
                      (0.5 * T::rR * T::uR * T::uR);
           Erad(i, j) = a * T::TR * T::TR * T::TR * T::TR;
@@ -124,8 +117,6 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
             ru(i, j, k).x = T::rL * T::uL;
             ru(i, j, k).y = T::rL * T::vL;
             ru(i, j, k).z = T::rL * T::wL;
-            // rE(i, j, k) = T::EL;
-            // Erad(i, j, k) = T::EradL;
             rE(i, j, k) = mult * kb * T::TL * T::rL / (particle_mass) +
                           (0.5 * T::rL * T::uL * T::uL);
             Erad(i, j, k) = a * T::TL * T::TL * T::TL * T::TL;
@@ -135,8 +126,6 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
             ru(i, j, k).x = T::rR * T::uR;
             ru(i, j, k).y = T::rR * T::vR;
             ru(i, j, k).z = T::rR * T::wR;
-            // rE(i, j, k) = T::ER;
-            // Erad(i, j, k) = T::EradR;
             rE(i, j, k) = mult * kb * T::TR * T::rR / (particle_mass) +
                           (0.5 * T::rR * T::uR * T::uR);
             Erad(i, j, k) = a * T::TR * T::TR * T::TR * T::TR;
