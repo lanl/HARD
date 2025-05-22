@@ -23,22 +23,15 @@ class Acoustic(object):
         self.p0 = float(self.problem_dict["p0"])
         self.cs = np.sqrt(gamma * self.p0 / self.r0)
 
+        self.amplitude = float(self.problem_dict["amplitude"])
+        self.scale = 2 * np.pi * float(self.problem_dict["scale"])
+
     def __perturbation(self):
         """
         Perturbation function shape
         """
 
-        amplitude = float(self.problem_dict["amplitude"])
-
-        if self.problem_dict["init"] == "gaussian":
-            sigma = float(self.problem_dict["sigma"])
-            x0 = float(self.problem_dict["x0"])
-
-            return lambda x: np.exp(-0.5 * ((x - x0) / sigma) ** 2) * amplitude
-
-        elif self.problem_dict["init"] == "sine":
-
-            return lambda x: np.sin(2 * np.pi * x) * amplitude
+        return lambda x: np.sin(self.scale * x) * self.amplitude
 
     def __call__(self, x: NDArray | float, t: float) -> Solution:
         """
