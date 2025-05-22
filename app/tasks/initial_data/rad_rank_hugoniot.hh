@@ -73,11 +73,9 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
       else {
         r(i) = T::rR;
         ru(i).x = T::rR * T::uR;
-        // rE(i) = T::ER;
         rE(i) = mult * kb * T::TR * T::rR / (particle_mass) +
                 (0.5 * T::rR * T::uR * T::uR);
         Erad(i) = a * T::TR * T::TR * T::TR * T::TR;
-        // Erad(i) = T::EradR;
       } // if
       if(rE(i) <= 0) {
         std::cout << "TotalE is negative for i = " << i << std::endl;
@@ -93,8 +91,6 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
           r(i, j) = T::rL;
           ru(i, j).x = T::rL * T::uL;
           ru(i, j).y = T::rL * T::vL;
-          // rE(i, j) = T::EL;
-          // Erad(i, j) = T::EradL;
           rE(i, j) = mult * kb * T::TL * T::rL / (particle_mass) +
                      (0.5 * T::rL * T::uL * T::uL);
           Erad(i, j) = a * T::TL * T::TL * T::TL * T::TL;
@@ -103,8 +99,6 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
           r(i, j) = T::rR;
           ru(i, j).x = T::rR * T::uR;
           ru(i, j).y = T::rR * T::vR;
-          // rE(i, j) = T::ER;
-          // Erad(i, j) = T::EradR;
           rE(i, j) = mult * kb * T::TR * T::rR / (particle_mass) +
                      (0.5 * T::rR * T::uR * T::uR);
           Erad(i, j) = a * T::TR * T::TR * T::TR * T::TR;
@@ -123,8 +117,6 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
             ru(i, j, k).x = T::rL * T::uL;
             ru(i, j, k).y = T::rL * T::vL;
             ru(i, j, k).z = T::rL * T::wL;
-            // rE(i, j, k) = T::EL;
-            // Erad(i, j, k) = T::EradL;
             rE(i, j, k) = mult * kb * T::TL * T::rL / (particle_mass) +
                           (0.5 * T::rL * T::uL * T::uL);
             Erad(i, j, k) = a * T::TL * T::TL * T::TL * T::TL;
@@ -134,8 +126,6 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
             ru(i, j, k).x = T::rR * T::uR;
             ru(i, j, k).y = T::rR * T::vR;
             ru(i, j, k).z = T::rR * T::wR;
-            // rE(i, j, k) = T::ER;
-            // Erad(i, j, k) = T::EradR;
             rE(i, j, k) = mult * kb * T::TR * T::rR / (particle_mass) +
                           (0.5 * T::rR * T::uR * T::uR);
             Erad(i, j, k) = a * T::TR * T::TR * T::TR * T::TR;
