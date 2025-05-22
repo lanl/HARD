@@ -19,7 +19,6 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<rw, na> rE_a,
   field<double>::accessor<rw, na> radiation_energy_density_a,
   single<double>::accessor<ro> kappa_a,
-  single<double>::accessor<ro> particle_mass_a,
   single<double>::accessor<ro> dt_a,
   eos::eos_wrapper const & eos) {
 
@@ -32,7 +31,6 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
   auto const kappa = *kappa_a;
-  auto const particle_mass = *particle_mass_a;
   auto & dt_weighted = *dt_a;
 
   // Timestep constant for energy update

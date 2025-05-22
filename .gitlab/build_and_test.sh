@@ -28,7 +28,7 @@ export UCX_MEMTYPE_CACHE=n
 
 if ${SUBMIT_TO_CDASH}; then
     UNTIL=${UNTIL:-submit}
-    
+
 else
     UNTIL=${UNTIL:-install}
 fi
@@ -214,8 +214,9 @@ spack_cmake_configure() {
 cmake_build() {
     section start "cmake_build[collapsed=false]" "CMake Build"
     (
+        CMAKE_OPTIONS="-Wall -Wundef -W -Werror -Wvla"
         source ${BUILD_ENV}
-        cmake -DCMAKE_VERBOSE_MAKEFILE=off -DCMAKE_INSTALL_PREFIX=$PWD/${BUILD_DIR}/install $@ ${BUILD_DIR}
+        cmake -DCMAKE_VERBOSE_MAKEFILE=off -DCMAKE_CXX_FLAGS="${CMAKE_OPTIONS}" -DCMAKE_INSTALL_PREFIX=$PWD/${BUILD_DIR}/install $@ ${BUILD_DIR}
         if ${BUILD_WITH_CTEST}; then
             ctest -VV -S .gitlab/build_and_test.cmake,Configure,Build,$REPORT_ERRORS
         else
@@ -233,6 +234,7 @@ cmake_test() {
     (
         source ${BUILD_ENV}
         export CTEST_OUTPUT_ON_FAILURE=1
+        mkdir ${BUILD_DIR}/artifacts
         if ${BUILD_WITH_CTEST}; then
             ctest -V -S .gitlab/build_and_test.cmake,Test,$REPORT_ERRORS
         else

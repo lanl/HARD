@@ -60,18 +60,18 @@ def riemann_analytic_solution(x: NDArray, t: float, gamma: float,
 
 
 def plot_comparison(x: NDArray, num_vals: NDArray, exact_vals: NDArray,
-                    quantity: str, time: float, tag: str) -> None:
+                    quantity: str, time: float, tag: str, problem: str) -> None:
     plt.figure()
     plt.plot(x, exact_vals, label="Analytic", linestyle="--")
     plt.plot(x, num_vals, label="Simulation", marker='o',
              linestyle='none', markersize=4)
     plt.xlabel("x")
     plt.ylabel(quantity)
-    plt.title(f"{quantity} at t = {time:.4f}")
+    plt.title(f"{problem}: {quantity} at t = {time:.4f}")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    filename = f"{quantity.lower()}_comparison_{tag}.png"
+    filename = f"{problem}_{quantity.lower()}_comparison_{tag}.png"
     plt.savefig(filename)
     plt.close()
     print(f"Saved plot: {filename}")
@@ -129,9 +129,9 @@ def main() -> None:
         assert raw_file is not None
         tag = os.path.splitext(os.path.basename(raw_file))[0].replace(
             "output-", "").replace(".raw", "")
-        plot_comparison(x_arr, rho_num, rho_ref, "Density", time, tag)
-        plot_comparison(x_arr, p_num, p_ref, "Pressure", time, tag)
-        plot_comparison(x_arr, u_num, u_ref, "Velocity", time, tag)
+        plot_comparison(x_arr, rho_num, rho_ref, "Density", time, tag, problem)
+        plot_comparison(x_arr, p_num, p_ref, "Pressure", time, tag, problem)
+        plot_comparison(x_arr, u_num, u_ref, "Velocity", time, tag, problem)
 
     # For Sedov: only compare for x > 0.1
     if problem == "sedov":
