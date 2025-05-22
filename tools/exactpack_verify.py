@@ -67,7 +67,7 @@ def plot_comparison(x: NDArray, num_vals: NDArray, exact_vals: NDArray,
              linestyle='none', markersize=4)
     plt.xlabel("x")
     plt.ylabel(quantity)
-    plt.title(f"{quantity} at t = {time:.4f}")
+    plt.title(f"{problem}: {quantity} at t = {time:.4f}")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
