@@ -152,7 +152,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       flecsi::execute<tasks::hydro::compute_interface_fluxes<D>,
         flecsi::default_accelerator>(axis, s.m,
         s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-        s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m),
+        s.pTail(s.m), s.pHead(s.m), s.cTail(s.m),
         s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
         s.ruTail(s.m), s.ruHead(s.m),
         s.rETail(s.m), s.rEHead(s.m),
@@ -167,7 +167,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       flecsi::execute<tasks::hydro::compute_interface_fluxes<D>,
         flecsi::default_accelerator>(axis, s.m,
         s.rTail(s.m), s.rHead(s.m), s.uTail(s.m), s.uHead(s.m),
-        s.pTail(s.m), s.pHead(s.m), s.eTail(s.m), s.eHead(s.m), s.cTail(s.m),
+        s.pTail(s.m), s.pHead(s.m), s.cTail(s.m),
         s.cHead(s.m), s.EradTail(s.m), s.EradHead(s.m),
         s.ruTail(s.m), s.ruHead(s.m),
         s.rETail(s.m), s.rEHead(s.m),
@@ -308,8 +308,6 @@ template<std::size_t D>
 void
 radiation_advance(control_policy<state, D> & cp) {
 
-#ifdef ENABLE_RADIATION
-
   using namespace flecsi;
   auto & s = cp.state();
 
@@ -321,7 +319,6 @@ radiation_advance(control_policy<state, D> & cp) {
     s.total_energy_density(s.m),
     s.radiation_energy_density(s.m),
     kappa(s.gt),
-    particle_mass(s.gt),
     s.dt_weighted(s.gt),
     s.eos);
 
@@ -397,9 +394,6 @@ radiation_advance(control_policy<state, D> & cp) {
     s.radiation_energy_density(s.m),
     s.momentum_density(s.m),
     s.total_energy_density(s.m));
-
-#endif
-
 } // radiation_advance
 
 // -----------------------------------------------------------------------------
@@ -413,11 +407,8 @@ update_time_step_size(control_policy<state, D> & cp) {
 
   auto lmax_f =
     flecsi::execute<tasks::hydro::update_max_characteristic_speed<D>,
-      flecsi::default_accelerator>(s.m,
-      s.mass_density(s.m),
-      s.velocity(s.m),
-      s.pressure(s.m),
-      s.sound_speed(s.m));
+      flecsi::default_accelerator>(
+      s.m, s.mass_density(s.m), s.velocity(s.m), s.sound_speed(s.m));
 
   s.dtmin_ =
     flecsi::reduce<hard::task::rad::update_dtmin<D>, flecsi::exec::fold::min>(

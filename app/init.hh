@@ -159,14 +159,13 @@ initialize(control_policy<state, D> & cp) {
      *------------------------------------------------------------------------*/
 
     for(std::size_t i{0}; i < s.max_num_levels; i++) {
-      auto opt_dx = opt::resolution.value();
       typename mesh<D>::gcoord axis_extents(D);
-      axis_extents[ax::x] = 1 << get_resolution(0) - i;
+      axis_extents[ax::x] = 1 << (get_resolution(0) - i);
       if(D == 2 || D == 3) {
-        axis_extents[ax::y] = 1 << get_resolution(1) - i;
+        axis_extents[ax::y] = 1 << (get_resolution(1) - i);
       } // if
       if(D == 3) {
-        axis_extents[ax::z] = 1 << get_resolution(2) - i;
+        axis_extents[ax::z] = 1 << (get_resolution(2) - i);
       } // if
 
       // Add a new grid - the finest grid is already there
@@ -253,6 +252,11 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
 
   if(config["problem"].as<std::string>() == "sod") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal("Sod must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<
       tasks::initial_data::shock<tasks::initial_data::shock_tubes::sod, D>,
       flecsi::default_accelerator>(s.m,
@@ -263,6 +267,11 @@ initialize(control_policy<state, D> & cp) {
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "rankine-hugoniot") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal("Rankine-Hugoniot must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<tasks::initial_data::
               shock<tasks::initial_data::shock_tubes::rankine_hugoniot, D>,
       flecsi::default_accelerator>(s.m,
@@ -273,6 +282,11 @@ initialize(control_policy<state, D> & cp) {
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "leblanc") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal("Leblanc must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<
       tasks::initial_data::shock<tasks::initial_data::shock_tubes::leblanc, D>,
       flecsi::default_accelerator>(s.m,
@@ -282,16 +296,12 @@ initialize(control_policy<state, D> & cp) {
       s.radiation_energy_density(s.m),
       s.eos);
   }
-
-  else if(config["problem"].as<std::string>() == "sine-wave") {
-    execute<tasks::initial_data::sine_wave<D>, flecsi::default_accelerator>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
-      s.eos);
-  }
   else if(config["problem"].as<std::string>() == "acoustic-wave") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal("Acoustic wave must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<tasks::initial_data::acoustic_wave<D>, flecsi::default_accelerator>(
       s.m,
       s.mass_density(s.m),
@@ -301,6 +311,12 @@ initialize(control_policy<state, D> & cp) {
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "kh-test") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal(
+      "Kelvin-Helmholtz instability must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<tasks::initial_data::kh_instability<D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
@@ -320,6 +336,11 @@ initialize(control_policy<state, D> & cp) {
       config["gamma"].as<double>());
   }
   else if(config["problem"].as<std::string>() == "sedov") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal("Sedov blast must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<tasks::initial_data::sedov_blast<D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
@@ -349,6 +370,11 @@ initialize(control_policy<state, D> & cp) {
       particle_mass(s.gt));
   }
   else if(config["problem"].as<std::string>() == "lw-implosion") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal("Liska-Wendroff implosion must be built with ENABLE_RADIATION=OFF");
+#endif
+
     execute<tasks::initial_data::lw_implosion<D>>(s.m,
       s.mass_density(s.m),
       s.momentum_density(s.m),
@@ -388,11 +414,8 @@ initialize(control_policy<state, D> & cp) {
     s.sound_speed(s.m),
     s.eos);
   auto lmax_f = execute<tasks::hydro::update_max_characteristic_speed<D>,
-    flecsi::default_accelerator>(s.m,
-    s.mass_density(s.m),
-    s.velocity(s.m),
-    s.pressure(s.m),
-    s.sound_speed(s.m));
+    flecsi::default_accelerator>(
+    s.m, s.mass_density(s.m), s.velocity(s.m), s.sound_speed(s.m));
   s.dtmin_ =
     reduce<hard::task::rad::update_dtmin<D>, exec::fold::min>(s.m, lmax_f);
 

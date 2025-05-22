@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Path to the executable
 mpi_executable="$1"
@@ -19,7 +20,4 @@ done
 make convergence CONFIG=$config_file
 
 rm -rf output*
-
-# Exit with the status from diff (0 for no differences, 1 for differences)
-exit $exit_status
 
