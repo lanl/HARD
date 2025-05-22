@@ -6,10 +6,10 @@ from collections.abc import Callable
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import NDArray
-from verify_lib import (acoustic_analytic_solution, compute_l2_error,
+from verify_lib import (acoustic_analytic_solution, compute_l1_error_fvm,
                         parse_cli, parse_config, wrapFunction)
 
-# Threshold for passing L2 error tests
+# Threshold for passing L1 error tests
 Tolerance = namedtuple("Tolerance", ["rho", "p", "u"])
 tolerance = Tolerance(1e-2, 1e-2, 5e-1)
 
@@ -145,9 +145,9 @@ def main() -> None:
         p_ref = p_ref[mask]
         u_ref = u_ref[mask]
 
-    err_rho = compute_l2_error(x_arr, rho_num, rho_exact)
-    err_p = compute_l2_error(x_arr, p_num, p_exact)
-    err_u = compute_l2_error(x_arr, u_num, u_exact)
+    err_rho = compute_l1_error_fvm(x_arr, rho_num, rho_exact)
+    err_p = compute_l1_error_fvm(x_arr, p_num, p_exact)
+    err_u = compute_l1_error_fvm(x_arr, u_num, u_exact)
 
     status_rho = "PASS" if err_rho <= tolerance.rho else "FAIL"
     status_p = "PASS" if err_p <= tolerance.p else "FAIL"
@@ -155,7 +155,7 @@ def main() -> None:
 
     print(f"Problem type: {problem}")
     print(f"Compared solution at t = {time:.4f}")
-    print("L2 Errors and Status:")
+    print("L1 Errors and Status:")
     print(f"  Density  : {err_rho:.6e} \
     [{color_text(status_rho, status_rho)}]")
     print(f"  Pressure : {err_p:.6e} \
@@ -166,8 +166,7 @@ def main() -> None:
     if any(e > t for e, t in zip((err_rho, err_p, err_u),
                                  (tolerance.rho, tolerance.p, tolerance.u))):
 
-        s = "Test FAILED: relative L2 error exceeds tolerance of"
-        s += f" {tolerance:.2e}"
+        s = f"Test FAILED: L1 error exceeds tolerance of {tolerance:.2e}"
         sys.exit(s)
     else:
         print("Test PASSED")
