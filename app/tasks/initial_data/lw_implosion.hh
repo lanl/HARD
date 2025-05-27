@@ -16,7 +16,8 @@ namespace hard::tasks::initial_data {
 //
 template<std::size_t D>
 auto
-lw_implosion(typename mesh<D>::template accessor<ro> m,
+lw_implosion(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, ro> mass_density_a,
   typename field<vec<D>>::template accessor<wo, ro> momentum_density_a,
   field<double>::accessor<wo, ro> total_energy_density_a,
@@ -34,7 +35,7 @@ lw_implosion(typename mesh<D>::template accessor<ro> m,
 
     const double mult = 1.0 / (gamma - 1.0);
 
-    forall(j, (m.template cells<ax::y, dm::quantities>()), "init_sedov_2d") {
+    s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);

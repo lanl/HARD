@@ -54,7 +54,8 @@ struct leblanc {
 
 template<typename T, std::size_t D>
 auto
-shock(typename mesh<D>::template accessor<ro> m,
+shock(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<rw, ro> mass_density_a,
   typename field<vec<D>>::template accessor<rw, ro> momentum_density_a,
   field<double>::accessor<rw, ro> total_energy_density_a,
@@ -70,7 +71,7 @@ shock(typename mesh<D>::template accessor<ro> m,
     m.template mdcolex<is::cells>(radiation_energy_density_a);
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "init_1d") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const auto x = m.template head<ax::x>(i);
 
       if(x < T::x0) {
@@ -95,7 +96,7 @@ shock(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_yx, "init_shock") {
+    s.executor().forall(ji, mdpolicy_yx) {
       auto [j, i] = ji;
       const auto x = m.template head<ax::x>(i);
 
@@ -121,7 +122,7 @@ shock(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_zyx, "init_shock") {
+    s.executor().forall(kji, mdpolicy_zyx) {
       auto [k, j, i] = kji;
       const auto x = m.template head<ax::x>(i);
 

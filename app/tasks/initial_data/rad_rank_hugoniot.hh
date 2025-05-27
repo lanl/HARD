@@ -42,7 +42,8 @@ struct rad_rankine_hugoniot {
 
 template<typename T, std::size_t D>
 auto
-rad_RH(typename mesh<D>::template accessor<ro> m,
+rad_RH(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, ro> r_a,
   typename field<vec<D>>::template accessor<wo, ro> ru_a,
   field<double>::accessor<wo, ro> rE_a,
@@ -60,7 +61,7 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
   const double a = hard::constants::cgs::radiation_constant;
 
   if constexpr(D == 1) {
-    for(auto i : m.template cells<ax::x, dm::quantities>()) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const auto x = m.template center<ax::x>(i);
 
       if(x < T::x0) {
@@ -80,10 +81,10 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
       if(rE(i) <= 0) {
         std::cout << "TotalE is negative for i = " << i << std::endl;
       }
-    } // for
+    }; // for
   }
   else if constexpr(D == 2) {
-    for(auto j : m.template cells<ax::y, dm::quantities>()) {
+    s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x = m.template center<ax::x>(i);
 
@@ -104,10 +105,10 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
           Erad(i, j) = a * T::TR * T::TR * T::TR * T::TR;
         } // if
       } // for
-    } // for
+    }; // for
   }
   else /* D == 3 */ {
-    for(auto k : m.template cells<ax::z, dm::quantities>()) {
+    s.executor().forall(k, (m.template cells<ax::z, dm::quantities>())) {
       for(auto j : m.template cells<ax::y, dm::quantities>()) {
         for(auto i : m.template cells<ax::x, dm::quantities>()) {
           const auto x = m.template center<ax::x>(i);
@@ -132,7 +133,7 @@ rad_RH(typename mesh<D>::template accessor<ro> m,
           } // if
         } // for
       } // for
-    } // for
+    }; // for
   } // if
 } // rad_RH
 
