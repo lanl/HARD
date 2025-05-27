@@ -28,6 +28,8 @@ void
 initialize(control_policy<state, D> & cp) {
   using namespace flecsi;
   auto & s = cp.state();
+  auto & sc = cp.scheduler();
+
   YAML::Node config = YAML::LoadFile(opt::config.value());
 
   /*--------------------------------------------------------------------------*
@@ -60,12 +62,12 @@ initialize(control_policy<state, D> & cp) {
     n_lines++;
   }
 
-  s.dense_topology.allocate(n_lines);
+  sc.allocate(s.dense_topology, n_lines);
 
-  s.gt.allocate({});
   const auto num_colors =
-    opt::colors.value() == 0 ? flecsi::processes() : opt::colors.value();
-  s.ct.allocate(num_colors);
+    opt::colors.value() == 0 ? sc.runtime().processes() : opt::colors.value();
+  // sc.allocate(s.gt, num_colors);
+  // sc.allocate(s.ct, {num_colors});
 
   /*--------------------------------------------------------------------------*
     Set boundaries.
@@ -89,31 +91,33 @@ initialize(control_policy<state, D> & cp) {
       utils::mesh_boundary<D>(config["boundaries"]["zhigh"].as<std::string>());
   } // if
 
-  auto bf = execute<tasks::init::boundaries<D>>(s.bmap(s.gt), bnds);
+  auto bf =
+    execute<tasks::init::boundaries<D>>(flecsi::exec::on, s.bmap(*s.gt), bnds);
 
   /*--------------------------------------------------------------------------*
     T boundary.
    *--------------------------------------------------------------------------*/
 
-  execute<tasks::init::set_t_boundary>(time_boundary(s.dense_topology), time);
   execute<tasks::init::set_t_boundary>(
-    temperature_boundary(s.dense_topology), temperature);
+    flecsi::exec::on, time_boundary(*s.dense_topology), time);
+  execute<tasks::init::set_t_boundary>(
+    flecsi::exec::on, temperature_boundary(*s.dense_topology), temperature);
   if(config["problem"].as<std::string>() == "implosion")
-    execute<tasks::init::convert_temperature>(
-      temperature_boundary(s.dense_topology),
+    execute<tasks::init::convert_temperature>(flecsi::exec::on,
+      temperature_boundary(*s.dense_topology),
       config["temperature_units"].as<std::string>());
 
     /*--------------------------------------------------------------------------*
       Kappa.
      *--------------------------------------------------------------------------*/
 #ifdef ENABLE_RADIATION
-  execute<tasks::init::kappa>(kappa(s.gt), config["kappa"].as<double>());
+  execute<tasks::init::kappa>(kappa(*s.gt), config["kappa"].as<double>());
 #endif
   /*--------------------------------------------------------------------------*
     Particle mass
    *--------------------------------------------------------------------------*/
   execute<tasks::init::particle_mass>(
-    particle_mass(s.gt), config["mean_molecular_weight"].as<double>());
+    particle_mass(*s.gt), config["mean_molecular_weight"].as<double>());
 
   /*--------------------------------------------------------------------------*
     Mesh topology allocation.
@@ -170,50 +174,15 @@ initialize(control_policy<state, D> & cp) {
 
       // Add a new grid - the finest grid is already there
       if(i > 0) {
-        s.mh.emplace_back(std::make_unique<typename mesh<D>::slot>());
+        s.mh.emplace_back(std::make_unique<typename mesh<D>::ptr>());
       } // if
 
       // Allocate the grid
-      s.mh[i]->allocate(
-        typename mesh<D>::mpi_coloring{num_colors, axis_extents, bf.get()},
-        geom);
+      // sc.allocate(s.mh[i],
+      //  typename mesh<D>::mpi_coloring{num_colors, axis_extents, bf.get()},
+      //  geom);
     } // for
   } // scope
-
-  /*--------------------------------------------------------------------------*
-    Fake initialization to avoid legion warnings.
-   *--------------------------------------------------------------------------*/
-
-  // clang-format off
-  execute<tasks::init::touch<D>>(s.m,
-    s.mass_density(s.m), s.momentum_density(s.m), s.total_energy_density(s.m),
-    s.velocity(s.m), s.pressure(s.m),
-    s.rTail(s.m), s.ruTail(s.m), s.rETail(s.m), s.uTail(s.m), s.pTail(s.m), 
-    s.rHead(s.m), s.ruHead(s.m), s.rEHead(s.m), s.uHead(s.m), s.pHead(s.m),
-    s.rF(s.m), s.ruF(s.m), s.rEF(s.m)
-#ifdef ENABLE_RADIATION
-    , s.radiation_energy_density(s.m), s.EradTail(s.m), s.EradHead(s.m), s.EradF(s.m),
-    s.Esf(s.m), s.Ef(s.m), s.Ew(s.m), s.Diff(s.m), s.Resf(s.m), s.Errf(s.m),
-    s.gradient_rad_energy(s.m), s.magnitude_gradient_rad_energy(s.m),
-    s.radiation_force(s.m), s.R_value(s.m), s.lambda_bridge(s.m),
-    s.velocity_gradient(s.m)
-#endif
-    );
-  execute<tasks::init::touch1<D>>(s.m,
-    s.mass_density(s.m), s.momentum_density(s.m), s.total_energy_density(s.m),
-    s.velocity(s.m), s.pressure(s.m),
-    s.rTail(s.m), s.ruTail(s.m), s.rETail(s.m), s.uTail(s.m), s.pTail(s.m), 
-    s.rHead(s.m), s.ruHead(s.m), s.rEHead(s.m), s.uHead(s.m), s.pHead(s.m),
-    s.rF(s.m), s.ruF(s.m), s.rEF(s.m)
-#ifdef ENABLE_RADIATION
-    , s.radiation_energy_density(s.m), s.EradTail(s.m), s.EradHead(s.m), s.EradF(s.m),
-    s.Esf(s.m), s.Ef(s.m), s.Ew(s.m), s.Diff(s.m), s.Resf(s.m), s.Errf(s.m),
-    s.gradient_rad_energy(s.m), s.magnitude_gradient_rad_energy(s.m),
-    s.radiation_force(s.m), s.R_value(s.m), s.lambda_bridge(s.m),
-    s.velocity_gradient(s.m)
-#endif
-    );
-  // clang-format on
 
   /*--------------------------------------------------------------------------*
     Equation of State
@@ -258,12 +227,13 @@ initialize(control_policy<state, D> & cp) {
 #endif
 
     execute<
-      tasks::initial_data::shock<tasks::initial_data::shock_tubes::sod, D>,
-      flecsi::default_accelerator>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
+      tasks::initial_data::shock<tasks::initial_data::shock_tubes::sod, D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "rankine-hugoniot") {
@@ -273,12 +243,13 @@ initialize(control_policy<state, D> & cp) {
 #endif
 
     execute<tasks::initial_data::
-              shock<tasks::initial_data::shock_tubes::rankine_hugoniot, D>,
-      flecsi::default_accelerator>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
+        shock<tasks::initial_data::shock_tubes::rankine_hugoniot, D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "leblanc") {
@@ -288,12 +259,13 @@ initialize(control_policy<state, D> & cp) {
 #endif
 
     execute<
-      tasks::initial_data::shock<tasks::initial_data::shock_tubes::leblanc, D>,
-      flecsi::default_accelerator>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
+      tasks::initial_data::shock<tasks::initial_data::shock_tubes::leblanc, D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "acoustic-wave") {
@@ -302,12 +274,12 @@ initialize(control_policy<state, D> & cp) {
     flog_fatal("Acoustic wave must be built with ENABLE_RADIATION=OFF");
 #endif
 
-    execute<tasks::initial_data::acoustic_wave<D>, flecsi::default_accelerator>(
-      s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
+    execute<tasks::initial_data::acoustic_wave<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "kh-test") {
@@ -317,22 +289,24 @@ initialize(control_policy<state, D> & cp) {
       "Kelvin-Helmholtz instability must be built with ENABLE_RADIATION=OFF");
 #endif
 
-    execute<tasks::initial_data::kh_instability<D>>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
+    execute<tasks::initial_data::kh_instability<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
       s.eos);
   }
   else if(config["problem"].as<std::string>() == "heating_and_cooling") {
     if(config["eos"].as<std::string>() != "ideal")
       flog_fatal("Heating and cooling test only supports Ideal Gas eos");
-    execute<tasks::initial_data::heating_and_cooling<D>>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
-      particle_mass(s.gt),
+    execute<tasks::initial_data::heating_and_cooling<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
+      particle_mass(*s.gt),
       config["gamma"].as<double>());
   }
   else if(config["problem"].as<std::string>() == "sedov") {
@@ -341,33 +315,37 @@ initialize(control_policy<state, D> & cp) {
     flog_fatal("Sedov blast must be built with ENABLE_RADIATION=OFF");
 #endif
 
-    execute<tasks::initial_data::sedov_blast<D>>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m));
+    execute<tasks::initial_data::sedov_blast<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m));
   }
   else if(config["problem"].as<std::string>() == "implosion") {
-    execute<tasks::initial_data::implosion_forced_T<D>>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
-      temperature_boundary(s.dense_topology),
-      particle_mass(s.gt),
+    execute<tasks::initial_data::implosion_forced_T<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
+      temperature_boundary(*s.dense_topology),
+      particle_mass(*s.gt),
       config["gamma"].as<double>());
     s.mg = true;
   }
   // FIXME: This problem has not been tested for correctness
   else if(config["problem"].as<std::string>() == "rad-rh") {
     execute<tasks::initial_data::
-        rad_RH<tasks::initial_data::rad_shock::rad_rankine_hugoniot, D>>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
+        rad_RH<tasks::initial_data::rad_shock::rad_rankine_hugoniot, D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
       config["gamma"].as<double>(),
-      particle_mass(s.gt));
+      particle_mass(*s.gt));
   }
   // FIXME: This problem has not been tested for correctness
   else if(config["problem"].as<std::string>() == "lw-implosion") {
@@ -377,11 +355,12 @@ initialize(control_policy<state, D> & cp) {
       "Liska-Wendroff implosion must be built with ENABLE_RADIATION=OFF");
 #endif
 
-    execute<tasks::initial_data::lw_implosion<D>>(s.m,
-      s.mass_density(s.m),
-      s.momentum_density(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m),
+    execute<tasks::initial_data::lw_implosion<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
       config["gamma"].as<double>());
   }
   else {
@@ -397,53 +376,60 @@ initialize(control_policy<state, D> & cp) {
     // FIXME: figure out how not to use the hardcoded radiation temperature
     // boundary
     auto radiation_boundary_f =
-      flecsi::execute<task::rad::interp_e_boundary>(s.t(s.gt),
-        time_boundary(s.dense_topology),
-        temperature_boundary(s.dense_topology));
-    flecsi::execute<tasks::apply_radiation_boundary<D>,
-      flecsi::default_accelerator>(
-      s.m, s.radiation_energy_density(s.m), radiation_boundary_f);
+      flecsi::execute<task::rad::interp_e_boundary>(flecsi::exec::on,
+        s.t(*s.gt),
+        time_boundary(*s.dense_topology),
+        temperature_boundary(*s.dense_topology));
+    flecsi::execute<tasks::apply_radiation_boundary<D>>(flecsi::exec::on,
+      *s.m,
+      s.radiation_energy_density(*s.m),
+      radiation_boundary_f);
   }
-  execute<tasks::hydro::conservative_to_primitive<D>,
-    flecsi::default_accelerator>(s.m,
-    s.mass_density(s.m),
-    s.momentum_density(s.m),
-    s.total_energy_density(s.m),
-    s.velocity(s.m),
-    s.pressure(s.m),
-    s.specific_internal_energy(s.m),
-    s.sound_speed(s.m),
+  execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
+    *s.m,
+    s.mass_density(*s.m),
+    s.momentum_density(*s.m),
+    s.total_energy_density(*s.m),
+    s.velocity(*s.m),
+    s.pressure(*s.m),
+    s.specific_internal_energy(*s.m),
+    s.sound_speed(*s.m),
     s.eos);
-  auto lmax_f = execute<tasks::hydro::update_max_characteristic_speed<D>,
-    flecsi::default_accelerator>(
-    s.m, s.mass_density(s.m), s.velocity(s.m), s.sound_speed(s.m));
-  s.dtmin_ =
-    reduce<hard::task::rad::update_dtmin<D>, exec::fold::min>(s.m, lmax_f);
+  auto lmax_f =
+    execute<tasks::hydro::update_max_characteristic_speed<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.velocity(*s.m),
+      s.sound_speed(*s.m));
+  s.dtmin_ = reduce<hard::task::rad::update_dtmin<D>, exec::fold::min>(
+    flecsi::exec::on, *s.m, lmax_f);
 
-  execute<tasks::apply_boundaries<D>, flecsi::default_accelerator>(s.m,
-    s.bmap(s.gt),
-    s.mass_density(s.m),
-    s.velocity(s.m),
-    s.pressure(s.m),
-    s.specific_internal_energy(s.m),
-    s.radiation_energy_density(s.m),
-    s.momentum_density(s.m),
-    s.total_energy_density(s.m));
+  execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
+    *s.m,
+    s.bmap(*s.gt),
+    s.mass_density(*s.m),
+    s.velocity(*s.m),
+    s.pressure(*s.m),
+    s.specific_internal_energy(*s.m),
+    s.radiation_energy_density(*s.m),
+    s.momentum_density(*s.m),
+    s.total_energy_density(*s.m));
 
   /*--------------------------------------------------------------------------*
     Initialize time to 0
    *--------------------------------------------------------------------------*/
-  flecsi::execute<tasks::init::init_time>(s.t(s.gt), config["t0"].as<double>());
+  flecsi::execute<tasks::init::init_time>(
+    flecsi::exec::on, s.t(*s.gt), config["t0"].as<double>());
 
   /*--------------------------------------------------------------------------*
     Save raw data after initialization, at t=t_i
   *--------------------------------------------------------------------------*/
 #ifndef HARD_BENCHMARK_MODE
 
-  auto lm = data::launch::make(s.m);
-  execute<tasks::io::raw<D>, mpi>(
+  auto lm = data::launch::make(sc, *s.m);
+  execute<tasks::io::raw<D>, mpi>(flecsi::exec::on,
     spec::io::name{"output-"} << std::setfill('0') << std::setw(5) << cp.step(),
-    s.t(s.gt),
+    s.t(*s.gt),
     lm,
     s.mass_density(lm),
     s.pressure(lm),
@@ -463,15 +449,15 @@ initialize(control_policy<state, D> & cp) {
 #ifdef USE_CATALYST
   if constexpr(D == 3) {
     // Initialize catalyst
-    execute<tasks::external::initialize, mpi>();
+    execute<tasks::external::initialize, mpi>(flecsi::exec::on);
 
     // Initialize lattice
-    execute<tasks::external::get_lattice_size<D>, mpi>(s.m);
+    execute<tasks::external::get_lattice_size<D>, mpi>(flecsi::exec::on, s.m);
     flog(info) << "init action, catalyst: got lattice dimensions from hard: "
                << number_vertices[0] << " x " << number_vertices[1] << " x "
                << number_vertices[2] << " vertices." << std::endl;
 
-    execute<tasks::external::get_color_data<D>, mpi>(s.m);
+    execute<tasks::external::get_color_data<D>, mpi>(flecsi::exec::on, s.m);
     flog(info) << "init action, catalyst: got color dimensions from hard: "
                << number_colors[0] << " x " << number_colors[1] << " x "
                << number_colors[2] << " color blocks." << std::endl;

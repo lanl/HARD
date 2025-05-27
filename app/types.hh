@@ -56,8 +56,8 @@ NS_WARN_SUPPRESS(bd, bd::low);
   More concise privileges.
  *----------------------------------------------------------------------------*/
 
-inline constexpr flecsi::partition_privilege_t na = spec::na, ro = spec::ro,
-                                               wo = spec::wo, rw = spec::rw;
+inline constexpr flecsi::privilege na = spec::na, ro = spec::ro, wo = spec::wo,
+                                   rw = spec::rw;
 
 /*----------------------------------------------------------------------------*
   Dual field.

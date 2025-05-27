@@ -13,7 +13,8 @@ namespace hard::tasks::initial_data {
 
 template<std::size_t D>
 auto
-kh_instability(typename mesh<D>::template accessor<ro> m,
+kh_instability(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
@@ -44,7 +45,7 @@ kh_instability(typename mesh<D>::template accessor<ro> m,
       "Kelvin-Helmholtz instability problem for D == 1 is not implemented")
   }
   else if constexpr(D == 2) {
-    forall(j, (m.template cells<ax::y, dm::quantities>()), "init_kh_2d") {
+    s.executor().forall(j, (m.template cells<ax::x, dm::quantities>())) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);

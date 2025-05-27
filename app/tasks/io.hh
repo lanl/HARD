@@ -10,7 +10,8 @@
 namespace hard::tasks::io {
 
 template<std::size_t D>
-void inline raw(spec::io::name const & base,
+void inline raw(flecsi::exec::cpu s,
+  spec::io::name const & base,
   single<double>::accessor<ro> time,
   multi<typename mesh<D>::template accessor<ro>> mm,
   multi<field<double>::accessor<ro, ro>> r_ma,
@@ -45,7 +46,7 @@ void inline raw(spec::io::name const & base,
 
     if constexpr(D == 1) {
       std::ofstream file(
-        base.str() + "-1D-" + std::to_string(flecsi::process()) + ".raw");
+        base.str() + "-1D-" + std::to_string(s.launch().index) + ".raw");
 
       file << "#" << m.template size<ax::x, dm::quantities>() << std::endl;
       file << "#" << m.template size<ax::x, dm::global>() << std::endl;
@@ -82,7 +83,7 @@ void inline raw(spec::io::name const & base,
     }
     else if constexpr(D == 2) {
       std::ofstream file(
-        base.str() + "-2D-" + std::to_string(flecsi::process()) + ".raw");
+        base.str() + "-2D-" + std::to_string(s.launch().index) + ".raw");
 
       file << "#" << m.template size<ax::x, dm::quantities>() << " "
            << m.template size<ax::y, dm::quantities>() << std::endl;
@@ -117,7 +118,7 @@ void inline raw(spec::io::name const & base,
     }
     else /* D == 3 */ {
       std::ofstream file(
-        base.str() + "-" + std::to_string(flecsi::process()) + ".raw");
+        base.str() + "-" + std::to_string(s.launch().index) + ".raw");
 
       file << m.template size<ax::x, dm::quantities>() << " "
            << m.template size<ax::y, dm::quantities>() << " "
