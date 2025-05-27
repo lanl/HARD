@@ -290,10 +290,11 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
     Color Task.
    *--------------------------------------------------------------------------*/
 
-  static coloring
-  color(std::size_t num_colors, gcoord axis_extents, periodic_axes p) {
+  template<typename T>
+  index_definition
+  index_colors(T & num, gcoord & axis_extents, periodic_axes & p) {
     index_definition idef;
-    idef.axes = mesh::base::make_axes(num_colors, axis_extents);
+    idef.axes = mesh::base::make_axes(num, axis_extents);
     std::size_t ai{0};
 
     for(auto & a : idef.axes) {
@@ -303,6 +304,17 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
     } // for
 
     return {{idef}};
+  }
+
+  static coloring
+  color(flecsi::Color num_colors, gcoord axis_extents, periodic_axes p) {
+    return {{index_colors(num_colors, axis_extents, p)}};
+  }
+
+  static coloring color(mesh::base::colors const & color_distribution,
+    gcoord axis_extents,
+    periodic_axes p) {
+    return {{index_colors(color_distribution, axis_extents, p)}};
   } // color
 
   /*--------------------------------------------------------------------------*
