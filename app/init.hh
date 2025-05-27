@@ -12,6 +12,7 @@
 #include "tasks/io.hh"
 #include "tasks/rad.hh"
 #include "types.hh"
+#include "utils.hh"
 
 #ifdef USE_CATALYST
 #include "tasks/catalyst.hh"
@@ -145,6 +146,17 @@ initialize(control_policy<state, D> & cp) {
   } // if
   s.max_num_levels = s.highest_level - s.lowest_level + 1;
 
+  std::optional<color_distribution> cd;
+  if(config["color_distribution"]) {
+    cd = [&sc,
+           cdcfg = config["color_distribution"].as<color_distribution>()]() {
+      return (FLECSI_BACKEND == FLECSI_BACKEND_legion) ||
+                 util::axes_colors<D>(cdcfg) == sc.runtime().processes()
+               ? std::optional<color_distribution>(cdcfg)
+               : std::nullopt;
+    }();
+  } // if
+
   {
     typename mesh<D>::grect geom;
     geom[0][0] = config["coords"][0][0].as<double>();
@@ -177,10 +189,16 @@ initialize(control_policy<state, D> & cp) {
         s.mh.emplace_back(std::make_unique<typename mesh<D>::ptr>());
       } // if
 
-      // Allocate the grid
-      // sc.allocate(s.mh[i],
-      //  typename mesh<D>::mpi_coloring{num_colors, axis_extents, bf.get()},
-      //  geom);
+      if(cd.has_value()) {
+        // s.mh[i]->allocate(
+        //     typename mesh<D>::mpi_coloring{cd.value(), axis_extents,
+        //     bf.get()}, geom);
+      }
+      else {
+        // s.mh[i]->allocate(
+        //     typename mesh<D>::mpi_coloring{colors, axis_extents, bf.get()},
+        //     geom);
+      }
     } // for
   } // scope
 
