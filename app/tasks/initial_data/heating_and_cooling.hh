@@ -22,7 +22,8 @@ namespace hard::tasks::initial_data {
 //
 template<std::size_t Dim>
 auto
-heating_and_cooling(typename mesh<Dim>::template accessor<ro> m,
+heating_and_cooling(flecsi::exec::cpu s,
+  typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
@@ -57,13 +58,13 @@ heating_and_cooling(typename mesh<Dim>::template accessor<ro> m,
     spec::utils::sqr(spec::utils::sqr(radiation_temperature));
 
   if constexpr(Dim == 1) {
-    for(auto i : m.template cells<ax::x, dm::quantities>()) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       mass_density(i) = mass_density_v;
       momentum_density(i).x = 0.0;
 
       total_energy_density(i) = fluid_internal_energy_density;
       radiation_energy_density(i) = radiation_energy_density_v;
-    }
+    };
   }
   else {
     flog_fatal(

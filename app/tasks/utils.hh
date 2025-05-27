@@ -67,7 +67,8 @@ find_temp(E const & eos,
 
 template<dm::domain DM, std::size_t D>
 inline void
-print_conserved(typename mesh<D>::template accessor<ro> m,
+print_conserved(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, ro> r_a,
   typename field<vec<D>>::template accessor<ro, ro> ru_a,
   field<double>::accessor<ro, ro> rE_a,
@@ -115,7 +116,8 @@ print_conserved(typename mesh<D>::template accessor<ro> m,
 
 template<dm::domain DM, std::size_t D>
 inline void
-print_vec_field(typename mesh<D>::template accessor<ro> m,
+print_vec_field(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro> m,
   typename field<vec<D>>::template accessor<ro, ro> u_a) {
   std::stringstream ss;
 
@@ -141,7 +143,8 @@ print_vec_field(typename mesh<D>::template accessor<ro> m,
 
 template<dm::domain DM, std::size_t D>
 inline void
-print_scal_field(typename mesh<D>::template accessor<ro> m,
+print_scal_field(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, ro> u_a) {
   std::stringstream ss;
 
@@ -167,7 +170,8 @@ print_scal_field(typename mesh<D>::template accessor<ro> m,
 
 template<dm::domain DM, std::size_t D>
 inline void
-print_primitives(typename mesh<D>::template accessor<ro> m,
+print_primitives(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro> m,
   typename field<vec<D>>::template accessor<ro, ro> u_a,
   field<double>::accessor<ro, ro> p_a,
   flecsi::util::id zslice) {

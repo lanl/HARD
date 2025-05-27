@@ -158,7 +158,7 @@ struct control_policy : flecsi::run::control_base {
 
 #if FLECSI_BACKEND == FLECSI_BACKEND_legion
     flecsi::execute<compute_dt>(
-      s.t(s.gt), s.dt(s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_);
+      s.t(*s.gt), s.dt(*s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_);
 
     if((cp.step_ % cp.log_frequency_) == 0 || cp.step_ == cp.max_steps_) {
       flog(info) << "step: " << cp.step_ << "/" << cp.max_steps_ << std::endl;
@@ -167,7 +167,7 @@ struct control_policy : flecsi::run::control_base {
 
 #else
     auto [t, dt] = flecsi::execute<compute_dt_mpi>(
-      s.t(s.gt), s.dt(s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_)
+      s.t(*s.gt), s.dt(*s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_)
                      .get();
     cp.t_ = t;
 

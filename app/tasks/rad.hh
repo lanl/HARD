@@ -11,7 +11,8 @@ namespace hard::task::rad {
 
 template<std::size_t D>
 double
-update_dtmin(typename mesh<D>::template accessor<ro> m,
+update_dtmin(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro> m,
   flecsi::future<double> lmax_f) {
 
   double lmax = lmax_f.get();
@@ -34,7 +35,8 @@ using hard::tasks::util::get_mdiota_policy;
 // Get the gradient of the velocity using a 5-point stencil.
 template<std::size_t D>
 void
-getGradV(typename mesh<D>::template accessor<ro> m,
+getGradV(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
     na> gradV_a,
   typename field<vec<D>>::template accessor<ro, ro> u_a) {
@@ -45,7 +47,7 @@ getGradV(typename mesh<D>::template accessor<ro> m,
   if constexpr(D == 1) {
     const double one_over_12dx = 1.0 / (12.0 * m.template delta<ax::x>());
 
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "getGradV") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       gradV(i).xx =
         (u(i - 2).x - 8.0 * u(i - 1).x + 8.0 * u(i + 1).x - u(i + 2).x) *
         one_over_12dx;
@@ -59,7 +61,7 @@ getGradV(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "getGradV") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
       gradV(i, j).xx = (u(i - 2, j).x - 8.0 * u(i - 1, j).x +
@@ -87,7 +89,7 @@ getGradV(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "getGradV") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       gradV(i, j, k).xx = (u(i - 2, j, k).x - 8.0 * u(i - 1, j, k).x +
                             8.0 * u(i + 1, j, k).x - u(i + 2, j, k).x) *
@@ -125,7 +127,8 @@ getGradV(typename mesh<D>::template accessor<ro> m,
 // Get the radiation pressure tensor P
 template<std::size_t D>
 void
-getTensorP(typename mesh<D>::template accessor<ro> m,
+getTensorP(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
     na> P_tensor_a,
   field<double>::accessor<ro, na> Esf_a,
@@ -149,7 +152,7 @@ getTensorP(typename mesh<D>::template accessor<ro> m,
   };
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "getTensorP") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const double f = compute_eddington_factor(lambda(i), R(i));
       P_tensor(i).xx = (0.5 * (1 - f) + 0.5 * (3 * f - 1)) * Esf(i);
     };
@@ -159,7 +162,7 @@ getTensorP(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "getTensorP") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
       const double nx = gradEsf(i, j).x / (gradE_mag(i, j) + eps);
@@ -181,7 +184,7 @@ getTensorP(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "getTensorP") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       const double nx = gradEsf(i, j, k).x / (gradE_mag(i, j, k) + eps);
@@ -213,7 +216,8 @@ getTensorP(typename mesh<D>::template accessor<ro> m,
 // for the Legion tracing so I am using `<wo, ro>` for now.
 template<std::size_t D>
 void
-getGradE(typename mesh<D>::template accessor<ro> m,
+getGradE(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, ro> Esf_a,
   typename field<vec<D>>::template accessor<wo, ro> gradEsf_a) {
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
@@ -223,7 +227,7 @@ getGradE(typename mesh<D>::template accessor<ro> m,
     const double one_over_12dx = 1.0 / (12.0 * m.template delta<ax::x>());
 
     // Application of the 5-stencil central differencing:
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "getGradE") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       gradEsf(i).x =
         (Esf(i - 2) - 8.0 * Esf(i - 1) + 8.0 * Esf(i + 1) - Esf(i + 2)) *
         one_over_12dx;
@@ -237,7 +241,7 @@ getGradE(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "getGradE") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
       // Application of the 5-stencil central differencing:
@@ -259,7 +263,7 @@ getGradE(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "getGradE") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       // Application of the 5-stencil central differencing:
@@ -287,7 +291,8 @@ getGradE(typename mesh<D>::template accessor<ro> m,
 //
 template<std::size_t D>
 void
-getLambda(typename mesh<D>::template accessor<ro> m,
+getLambda(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
   field<double>::accessor<ro, na> Esf_a,
   typename field<vec<D>>::template accessor<ro, na> gradEsf_a,
@@ -306,7 +311,7 @@ getLambda(typename mesh<D>::template accessor<ro> m,
   auto lambda = m.template mdcolex<is::cells>(lambda_a);
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "getLambda") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       auto const kappa = *kappa_a;
       const double eps = 1.0e-30;
 
@@ -319,7 +324,7 @@ getLambda(typename mesh<D>::template accessor<ro> m,
     auto mdpolicy_qq = get_mdiota_policy(Esf,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
-    forall(ji, mdpolicy_qq, "getLambda") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto const kappa = *kappa_a;
       const double eps = 1.0e-30;
 
@@ -335,7 +340,7 @@ getLambda(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
-    forall(kji, mdpolicy_qqq, "getLambda") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto const kappa = *kappa_a;
       const double eps = 1.0e-30;
 
@@ -352,7 +357,8 @@ getLambda(typename mesh<D>::template accessor<ro> m,
 // Get the radiation force using the FLD approximation
 template<std::size_t D>
 void
-getRadForce(typename mesh<D>::template accessor<ro> m,
+getRadForce(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> lambda_a,
   typename field<vec<D>>::template accessor<ro, na> gradEsf_a,
   typename field<vec<D>>::template accessor<wo, na> fr_a) {
@@ -362,7 +368,7 @@ getRadForce(typename mesh<D>::template accessor<ro> m,
   auto fr = m.template mdcolex<is::cells>(fr_a);
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "getRadForce") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       fr(i).x = -lambda(i) * gradEsf(i).x;
     };
   }
@@ -371,7 +377,7 @@ getRadForce(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "getRadForce") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       fr(i, j).x = -lambda(i, j) * gradEsf(i, j).x;
       fr(i, j).y = -lambda(i, j) * gradEsf(i, j).y;
@@ -382,7 +388,7 @@ getRadForce(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
-    forall(kji, mdpolicy_qqq, "getRadForce") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       fr(i, j, k).x = -lambda(i, j, k) * gradEsf(i, j, k).x;
       fr(i, j, k).y = -lambda(i, j, k) * gradEsf(i, j, k).y;
@@ -395,7 +401,8 @@ getRadForce(typename mesh<D>::template accessor<ro> m,
 // Moens2022)
 template<std::size_t D>
 void
-explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
+explicitSourceUpdate(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   // Primitive variables
   typename field<vec<D>>::template accessor<ro, na> velocity_a,
   // Terms required for computing radiation force and photon tiring
@@ -422,8 +429,7 @@ explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
   // const double radiation_constant = hard::constants::cgs::radiation_constant;
 
   if constexpr(D == 1) {
-    forall(
-      i, (m.template cells<ax::x, dm::quantities>()), "explicitSourceUpdate") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
 
       // Explicitly updating conservative variables with S_ex
       // Adding the radiation force term to the momentum density
@@ -449,7 +455,7 @@ explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "explicitSourceUpdate") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
       // Explicitly updating conservative variables with S_ex
@@ -476,7 +482,7 @@ explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "explicitSourceUpdate") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       // Explicitly updating conservative variables with S_ex
@@ -508,7 +514,8 @@ explicitSourceUpdate(typename mesh<D>::template accessor<ro> m,
 // Compute the diffusion coefficients D
 template<std::size_t D>
 void
-getDiff(typename mesh<D>::template accessor<ro> m,
+getDiff(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
   field<double>::accessor<ro, na> lambda_a,
   field<double>::accessor<wo, na> Diff_a,
@@ -519,7 +526,7 @@ getDiff(typename mesh<D>::template accessor<ro> m,
   auto Diff = m.template mdcolex<is::cells>(Diff_a);
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "getDiff") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       auto const kappa = *kappa_a;
       const double clight = hard::constants::cgs::speed_of_light;
       Diff(i) = clight * lambda(i) / (kappa * r(i));
@@ -530,7 +537,7 @@ getDiff(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_aa, "getDiff") {
+    s.executor().forall(ji, mdpolicy_aa) {
       auto const kappa = *kappa_a;
       const double clight = hard::constants::cgs::speed_of_light;
       auto [j, i] = ji;
@@ -543,7 +550,7 @@ getDiff(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_aaa, "getDiff") {
+    s.executor().forall(kji, mdpolicy_aaa) {
       auto const kappa = *kappa_a;
       const double clight = hard::constants::cgs::speed_of_light;
       auto [k, j, i] = kji;
@@ -555,7 +562,8 @@ getDiff(typename mesh<D>::template accessor<ro> m,
 // Compute the radiation diffusion coefficients D on faces
 template<std::size_t D>
 void
-diffusion_init(typename mesh<D>::template accessor<ro> m,
+diffusion_init(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> Diff_a,
   typename field<double>::template accessor<wo, na> Df_xa,
   typename field<double>::template accessor<wo, na> Df_ya,
@@ -567,7 +575,7 @@ diffusion_init(typename mesh<D>::template accessor<ro> m,
   auto Df_z = m.template mdcolex<is::cells>(Df_za);
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::corrector>()), "diffusion_init") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
       Df_x(i) = 2 * Diff(i) * Diff(i - 1) / (Diff(i) + Diff(i - 1));
     };
   }
@@ -577,7 +585,7 @@ diffusion_init(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::corrector>(),
       m.template cells<ax::x, dm::corrector>());
 
-    forall(ji, mdpolicy_cc, "explicitSourceUpdate") {
+    s.executor().forall(ji, mdpolicy_cc) {
       auto [j, i] = ji;
       Df_x(i, j) =
         2 * Diff(i, j) * Diff(i - 1, j) / (Diff(i, j) + Diff(i - 1, j));
@@ -591,7 +599,7 @@ diffusion_init(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::corrector>(),
       m.template cells<ax::x, dm::corrector>());
 
-    forall(kji, mdpolicy_ccc, "diffusion_init") {
+    s.executor().forall(kji, mdpolicy_ccc) {
       auto [k, j, i] = kji;
       Df_x(i, j, k) = 2 * Diff(i, j, k) * Diff(i - 1, j, k) /
                       (Diff(i, j, k) + Diff(i - 1, j, k));
@@ -605,14 +613,15 @@ diffusion_init(typename mesh<D>::template accessor<ro> m,
 
 template<std::size_t D>
 void
-const_init(typename mesh<D>::template accessor<ro> m,
+const_init(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<wo, na> f_a,
   double w) {
 
   auto f = m.template mdcolex<is::cells>(f_a);
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "const_init") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       f(i) = w;
     }; // for
   }
@@ -621,7 +630,7 @@ const_init(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_aa, "const_init") {
+    s.executor().forall(ji, mdpolicy_aa) {
       auto [j, i] = ji;
       f(i, j) = w;
     };
@@ -633,7 +642,7 @@ const_init(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_aaa, "const_init") {
+    s.executor().forall(kji, mdpolicy_aaa) {
       auto [k, j, i] = kji;
       f(i, j, k) = w;
     };
@@ -642,7 +651,8 @@ const_init(typename mesh<D>::template accessor<ro> m,
 
 template<std::size_t D>
 void
-initialize_Ef(typename mesh<D>::template accessor<ro> m,
+initialize_Ef(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, na> Erad_a,
   typename field<double>::template accessor<wo, na> Ef_a) {
 
@@ -650,7 +660,7 @@ initialize_Ef(typename mesh<D>::template accessor<ro> m,
   auto Ef = m.template mdcolex<is::cells>(Ef_a);
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "initialize_Ef") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       Ef(i) = Erad(i);
     }; // forall
   }
@@ -659,7 +669,7 @@ initialize_Ef(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "initialize_Ef") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       Ef(i, j) = Erad(i, j);
     }; // forall
@@ -670,7 +680,7 @@ initialize_Ef(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "initialize_Ef") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       Ef(i, j, k) = Erad(i, j, k);
     }; // forall
@@ -679,60 +689,8 @@ initialize_Ef(typename mesh<D>::template accessor<ro> m,
 
 template<std::size_t D>
 void
-store_du_dt_implicit_from_diffusion(typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, na> Esf_a,
-  typename field<double>::template accessor<ro, na> Ef_a,
-  single<double>::accessor<ro> dtw_a,
-  typename field<double>::template accessor<rw, na>
-    dt_radiation_energy_density_implicit_a) {
-
-  auto Esf = m.template mdcolex<is::cells>(Esf_a);
-  auto Ef = m.template mdcolex<is::cells>(Ef_a);
-  auto dt_radiation_energy_density_implicit =
-    m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
-
-  if constexpr(D == 1) {
-    forall(i,
-      (m.template cells<ax::x, dm::quantities>()),
-      "store_du_dt_implicit_from_diffusion") {
-      auto & dt_weighted = *dtw_a;
-      const double one_over_aii_dt{1.0 / dt_weighted};
-      dt_radiation_energy_density_implicit(i) +=
-        (Esf(i) - Ef(i)) * one_over_aii_dt;
-    }; // for
-  }
-  else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(Ef,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    forall(ji, mdpolicy_qq, "initialize_Ef") {
-      auto [j, i] = ji;
-      auto & dt_weighted = *dtw_a;
-      const double one_over_aii_dt{1.0 / dt_weighted};
-      dt_radiation_energy_density_implicit(i, j) +=
-        (Esf(i, j) - Ef(i, j)) * one_over_aii_dt;
-    }; // for
-  }
-  else if constexpr(D == 3) {
-    auto mdpolicy_qqq = get_mdiota_policy(Ef,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    forall(kji, mdpolicy_qqq, "initialize_Ef") {
-      auto [k, j, i] = kji;
-      auto & dt_weighted = *dtw_a;
-      const double one_over_aii_dt{1.0 / dt_weighted};
-      dt_radiation_energy_density_implicit(i, j, k) +=
-        (Esf(i, j, k) - Ef(i, j, k)) * one_over_aii_dt;
-    }; // for
-  }
-} // copy_esf_into_ef
-
-template<std::size_t D>
-void
-stencil_init(typename mesh<D>::template accessor<ro> m,
+stencil_init(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> Df_xa,
   typename field<double>::template accessor<ro, ro> Df_ya,
   typename field<double>::template accessor<ro, ro> Df_za,
@@ -748,7 +706,7 @@ stencil_init(typename mesh<D>::template accessor<ro> m,
   if constexpr(D == 1) {
     const double dx{m.template delta<ax::x>()};
 
-    forall(i, (m.template cells<ax::x, dm::corrector>()), "stencil_init") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
       auto const dt = *dt_a;
       const double wx{dt / pow(dx, 2)};
       Ew(i)[dirs::c] = 1.0 + wx * (Df_x(i + 1) + Df_x(i));
@@ -763,7 +721,7 @@ stencil_init(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::corrector>(),
       m.template cells<ax::x, dm::corrector>());
 
-    forall(ji, mdpolicy_qq, "explicitSourceUpdate") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       auto const dt = *dt_a;
       const double wx{dt / pow(dx, 2)};
@@ -784,7 +742,7 @@ stencil_init(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::corrector>(),
       m.template cells<ax::x, dm::corrector>());
 
-    forall(kji, mdpolicy_qqq, "stencil_init") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       auto const dt = *dt_a;
       const double wx{dt / pow(dx, 2)};
@@ -802,24 +760,8 @@ stencil_init(typename mesh<D>::template accessor<ro> m,
 
 template<std::size_t D>
 void
-apply_BC(typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, wo> E_a) {
-
-  auto E = m.template mdcolex<is::cells>(E_a);
-  // TODO: Other D?
-  if constexpr(D == 1) {
-    const std::size_t i = m.template size<ax::x, dm::all>();
-    // periodic boundary for 1D
-    E(0) = E(i - 4);
-    E(1) = E(i - 3);
-    E(i - 2) = E(2);
-    E(i - 1) = E(3);
-  }
-} // apply_BC
-
-template<std::size_t D>
-void
-full_weighting(typename mesh<D>::template accessor<ro> mf,
+full_weighting(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> mf,
   typename mesh<D>::template accessor<ro> mc,
   typename field<double>::template accessor<ro, ro> rfa,
   typename field<double>::template accessor<wo, ro> fca) {
@@ -829,7 +771,7 @@ full_weighting(typename mesh<D>::template accessor<ro> mf,
   auto fc = mc.template mdcolex<is::cells>(fca);
 
   if constexpr(D == 1) {
-    forall(i, (mc.template cells<ax::x, dm::quantities>()), "full_weighting") {
+    s.executor().forall(i, (mc.template cells<ax::x, dm::quantities>())) {
       auto fi = 2 * i;
       fc(i) = 0.125 * (3.0 * (rf(fi - 2) + rf(fi - 1)) + rf(fi - 3) + rf(fi));
     }; // for
@@ -839,7 +781,7 @@ full_weighting(typename mesh<D>::template accessor<ro> mf,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "full_weighting") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       auto fj = 2 * j;
       auto fi = 2 * i;
@@ -861,7 +803,7 @@ full_weighting(typename mesh<D>::template accessor<ro> mf,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "full_weighting") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       auto fk = 2 * k;
       auto fj = 2 * j;
@@ -913,7 +855,8 @@ full_weighting(typename mesh<D>::template accessor<ro> mf,
 
 template<std::size_t D>
 void
-nlinear_interpolation(typename mesh<D>::template accessor<ro> mc,
+nlinear_interpolation(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> mc,
   typename mesh<D>::template accessor<ro> mf,
   typename field<double>::template accessor<ro, ro> cfa,
   typename field<double>::template accessor<wo, ro> ffa) {
@@ -923,9 +866,7 @@ nlinear_interpolation(typename mesh<D>::template accessor<ro> mc,
   auto ff = mf.template mdcolex<is::cells>(ffa);
 
   if constexpr(D == 1) {
-    forall(i,
-      (mf.template cells<ax::x, dm::quantities>()),
-      "nlinear_interpolation") {
+    s.executor().forall(i, (mf.template cells<ax::x, dm::quantities>())) {
       auto ci = i / 2 + 1;
       auto di = +1;
       if((i + 1) % 2) {
@@ -939,7 +880,7 @@ nlinear_interpolation(typename mesh<D>::template accessor<ro> mc,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "full_weighting") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       auto cj = j / 2 + 1;
       auto dj = 1;
@@ -961,7 +902,7 @@ nlinear_interpolation(typename mesh<D>::template accessor<ro> mc,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "full_weighting") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       auto ck = k / 2 + 1;
       auto dk = 1;
@@ -990,7 +931,8 @@ nlinear_interpolation(typename mesh<D>::template accessor<ro> mc,
 
 template<std::size_t D>
 void
-damped_jacobi(typename mesh<D>::template accessor<ro> m,
+damped_jacobi(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
   typename field<double>::template accessor<rw, ro> ua_new,
   typename field<double>::template accessor<ro, ro> ua_old,
@@ -1003,7 +945,7 @@ damped_jacobi(typename mesh<D>::template accessor<ro> m,
   auto f = m.template mdcolex<is::cells>(fa);
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "damped_jacobi") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const double z = (Ew(i)[dirs::w] * u_old(i - 1) +
                          Ew(i + 1)[dirs::w] * u_old(i + 1) + f(i)) /
                        Ew(i)[dirs::c];
@@ -1016,7 +958,7 @@ damped_jacobi(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "damped_jacobi") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       const double z = (Ew(i, j)[dirs::w] * u_old(i - 1, j) +
                          Ew(i + 1, j)[dirs::w] * u_old(i + 1, j) +
@@ -1033,7 +975,7 @@ damped_jacobi(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "damped_jacobi") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       const double z =
         (Ew(i, j, k)[dirs::w] * u_old(i - 1, j, k) +
@@ -1049,198 +991,10 @@ damped_jacobi(typename mesh<D>::template accessor<ro> m,
   } // if
 } // damped_jacobi
 
-// Gauss-Seidel
 template<std::size_t D>
 void
-gauss_seidel(typename mesh<D>::template accessor<ro> m,
-  typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
-  typename field<double>::template accessor<rw, ro> ua,
-  typename field<double>::template accessor<ro, ro> fa) {
-
-  // TODO: Parallelize Gauss seidel
-
-  auto Ew = m.template mdcolex<is::cells>(Ew_a);
-  auto u = m.template mdcolex<is::cells>(ua);
-  auto f = m.template mdcolex<is::cells>(fa);
-
-  if constexpr(D == 1) {
-    for(auto i : m.template cells<ax::x, dm::quantities>()) {
-      u(i) =
-        (Ew(i)[dirs::w] * u(i - 1) + Ew(i + 1)[dirs::w] * u(i + 1) + f(i)) /
-        Ew(i)[dirs::c];
-
-    } // for
-  }
-  else if constexpr(D == 2) {
-    for(auto j : m.template cells<ax::y, dm::quantities>()) {
-      for(auto i : m.template cells<ax::x, dm::quantities>()) {
-        u(i, j) = (Ew(i, j)[dirs::w] * u(i - 1, j) +
-                    Ew(i + 1, j)[dirs::w] * u(i + 1, j) +
-                    Ew(i, j)[dirs::s] * u(i, j - 1) +
-                    Ew(i, j + 1)[dirs::s] * u(i, j + 1) + f(i, j)) /
-                  Ew(i, j)[dirs::c];
-
-      } // for
-    } // for
-  }
-  else /* D == 3 */ {
-    for(auto k : m.template cells<ax::z, dm::quantities>()) {
-      for(auto j : m.template cells<ax::y, dm::quantities>()) {
-        for(auto i : m.template cells<ax::x, dm::quantities>()) {
-          u(i, j, k) =
-            (Ew(i, j, k)[dirs::w] * u(i - 1, j, k) +
-              Ew(i + 1, j, k)[dirs::w] * u(i + 1, j, k) +
-              Ew(i, j, k)[dirs::s] * u(i, j - 1, k) +
-              Ew(i, j + 1, k)[dirs::s] * u(i, j + 1, k) +
-              Ew(i, j, k)[dirs::d] * u(i, j, k - 1) +
-              Ew(i, j, k + 1)[dirs::d] * u(i, j, k + 1) + f(i, j, k)) /
-            Ew(i, j, k)[dirs::c];
-
-        } // for
-      } // for
-    } // for
-  } // if
-} // gauss_seidel
-
-// Red Gauss-Seidel
-template<std::size_t D>
-void
-red_gauss_seidel(typename mesh<D>::template accessor<ro> m,
-  typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
-  typename field<double>::template accessor<rw, ro> ua,
-  typename field<double>::template accessor<ro, ro> fa) {
-
-  auto Ew = m.template mdcolex<is::cells>(Ew_a);
-  auto u = m.template mdcolex<is::cells>(ua);
-  auto f = m.template mdcolex<is::cells>(fa);
-
-  if constexpr(D == 1) {
-    for(auto i : m.template cells<ax::x, dm::quantities>()) {
-
-      unsigned int id_i = i;
-
-      if((id_i % 2) == 0) {
-        u(i) =
-          (Ew(i)[dirs::w] * u(i - 1) + Ew(i + 1)[dirs::w] * u(i + 1) + f(i)) /
-          Ew(i)[dirs::c];
-      }
-
-    } // for
-  }
-  else if constexpr(D == 2) {
-    for(auto j : m.template cells<ax::y, dm::quantities>()) {
-      for(auto i : m.template cells<ax::x, dm::quantities>()) {
-
-        unsigned int id_i = i;
-        unsigned int id_j = j;
-
-        if(((id_i + id_j) % 2) == 0) {
-          u(i, j) = (Ew(i, j)[dirs::w] * u(i - 1, j) +
-                      Ew(i + 1, j)[dirs::w] * u(i + 1, j) +
-                      Ew(i, j)[dirs::s] * u(i, j - 1) +
-                      Ew(i, j + 1)[dirs::s] * u(i, j + 1) + f(i, j)) /
-                    Ew(i, j)[dirs::c];
-        }
-
-      } // for
-    } // for
-  }
-  else /* D == 3 */ {
-    for(auto k : m.template cells<ax::z, dm::quantities>()) {
-      for(auto j : m.template cells<ax::y, dm::quantities>()) {
-        for(auto i : m.template cells<ax::x, dm::quantities>()) {
-
-          unsigned int id_i = i;
-          unsigned int id_j = j;
-          unsigned int id_k = k;
-
-          if(((id_i + id_j + id_k) % 2) == 0) {
-            u(i, j, k) =
-              (Ew(i, j, k)[dirs::w] * u(i - 1, j, k) +
-                Ew(i + 1, j, k)[dirs::w] * u(i + 1, j, k) +
-                Ew(i, j, k)[dirs::s] * u(i, j - 1, k) +
-                Ew(i, j + 1, k)[dirs::s] * u(i, j + 1, k) +
-                Ew(i, j, k)[dirs::d] * u(i, j, k - 1) +
-                Ew(i, j, k + 1)[dirs::d] * u(i, j, k + 1) + f(i, j, k)) /
-              Ew(i, j, k)[dirs::c];
-          }
-
-        } // for
-      } // for
-    } // for
-  } // if
-} // red_gauss_seidel
-
-// Black Gauss-Seidel
-template<std::size_t D>
-void
-black_gauss_seidel(typename mesh<D>::template accessor<ro> m,
-  typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
-  typename field<double>::template accessor<rw, ro> ua,
-  typename field<double>::template accessor<ro, ro> fa) {
-
-  auto Ew = m.template mdcolex<is::cells>(Ew_a);
-  auto u = m.template mdcolex<is::cells>(ua);
-  auto f = m.template mdcolex<is::cells>(fa);
-
-  if constexpr(D == 1) {
-    for(auto i : m.template cells<ax::x, dm::quantities>()) {
-
-      unsigned int id_i = i;
-
-      if((id_i % 2) == 1) {
-        u(i) =
-          (Ew(i)[dirs::w] * u(i - 1) + Ew(i + 1)[dirs::w] * u(i + 1) + f(i)) /
-          Ew(i)[dirs::c];
-      }
-
-    } // for
-  }
-  else if constexpr(D == 2) {
-    for(auto j : m.template cells<ax::y, dm::quantities>()) {
-      for(auto i : m.template cells<ax::x, dm::quantities>()) {
-
-        unsigned int id_i = i;
-        unsigned int id_j = j;
-
-        if(((id_i + id_j) % 2) == 1) {
-          u(i, j) = (Ew(i, j)[dirs::w] * u(i - 1, j) +
-                      Ew(i + 1, j)[dirs::w] * u(i + 1, j) +
-                      Ew(i, j)[dirs::s] * u(i, j - 1) +
-                      Ew(i, j + 1)[dirs::s] * u(i, j + 1) + f(i, j)) /
-                    Ew(i, j)[dirs::c];
-        }
-      } // for
-    } // for
-  }
-  else /* D == 3 */ {
-    for(auto k : m.template cells<ax::z, dm::quantities>()) {
-      for(auto j : m.template cells<ax::y, dm::quantities>()) {
-        for(auto i : m.template cells<ax::x, dm::quantities>()) {
-
-          unsigned int id_i = i;
-          unsigned int id_j = j;
-          unsigned int id_k = k;
-
-          if(((id_i + id_j + id_k) % 2) == 1) {
-            u(i, j, k) =
-              (Ew(i, j, k)[dirs::w] * u(i - 1, j, k) +
-                Ew(i + 1, j, k)[dirs::w] * u(i + 1, j, k) +
-                Ew(i, j, k)[dirs::s] * u(i, j - 1, k) +
-                Ew(i, j + 1, k)[dirs::s] * u(i, j + 1, k) +
-                Ew(i, j, k)[dirs::d] * u(i, j, k - 1) +
-                Ew(i, j, k + 1)[dirs::d] * u(i, j, k + 1) + f(i, j, k)) /
-              Ew(i, j, k)[dirs::c];
-          }
-        } // for
-      } // for
-    } // for
-  } // if
-} // black_gauss_seidel
-
-template<std::size_t D>
-void
-residual(typename mesh<D>::template accessor<ro> m,
+residual(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
   typename field<double>::template accessor<ro, ro> ua,
   typename field<double>::template accessor<ro, ro> fa,
@@ -1253,7 +1007,7 @@ residual(typename mesh<D>::template accessor<ro> m,
   auto r = m.template mdcolex<is::cells>(ra);
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "residual") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       r(i) = f(i) - (Ew(i)[dirs::c] * u(i) - Ew(i)[dirs::w] * u(i - 1) -
                       Ew(i + 1)[dirs::w] * u(i + 1));
     };
@@ -1263,7 +1017,7 @@ residual(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "residual") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       r(i, j) = f(i, j) -
                 (Ew(i, j)[dirs::c] * u(i, j) - Ew(i, j)[dirs::w] * u(i - 1, j) -
@@ -1278,7 +1032,7 @@ residual(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "residual") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       r(i, j, k) = f(i, j, k) - (Ew(i, j, k)[dirs::c] * u(i, j, k) -
                                   Ew(i, j, k)[dirs::w] * u(i - 1, j, k) -
@@ -1293,7 +1047,8 @@ residual(typename mesh<D>::template accessor<ro> m,
 
 template<std::size_t D>
 void
-correction(typename mesh<D>::template accessor<ro> m,
+correction(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<rw, ro> ua,
   typename field<double>::template accessor<wo, ro> ea) {
   // TODO: Looks like ea should be <ro, na>
@@ -1302,7 +1057,7 @@ correction(typename mesh<D>::template accessor<ro> m,
   auto e = m.template mdcolex<is::cells>(ea);
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "correction") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       u(i) += e(i);
     }; // for
   }
@@ -1311,7 +1066,7 @@ correction(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "full_weighting") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       u(i, j) += e(i, j);
     }; // for
@@ -1322,7 +1077,7 @@ correction(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "full_weighting") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       u(i, j, k) += e(i, j, k);
     }; // for
@@ -1331,7 +1086,8 @@ correction(typename mesh<D>::template accessor<ro> m,
 
 // Linear interpolation for boundary temperature
 double
-interp_e_boundary(typename single<double>::accessor<flecsi::ro> t,
+interp_e_boundary(flecsi::exec::cpu,
+  typename single<double>::accessor<flecsi::ro> t,
   typename field<double>::accessor<flecsi::ro> time_boundary,
   typename field<double>::accessor<flecsi::ro> temperature_boundary) {
 

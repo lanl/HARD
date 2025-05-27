@@ -18,7 +18,8 @@ void
 analyze(control_policy<state, D> & cp) {
   using namespace flecsi;
   auto & s = cp.state();
-  auto lm = data::launch::make(s.m);
+  auto & sc = cp.scheduler();
+  auto lm = data::launch::make(sc, *s.m);
 
 #ifndef HARD_BENCHMARK_MODE
 
@@ -29,10 +30,10 @@ analyze(control_policy<state, D> & cp) {
   if(((cp.step() % cp.output_frequency()) == 0) or
      (cp.step() == cp.max_steps()) or (cp.time() == cp.max_time())) {
 #endif
-    execute<tasks::io::raw<D>, mpi>(spec::io::name{"output-"}
-                                      << std::setfill('0') << std::setw(5)
-                                      << cp.step(),
-      s.t(s.gt),
+    execute<tasks::io::raw<D>, mpi>(flecsi::exec::on,
+      spec::io::name{"output-"} << std::setfill('0') << std::setw(5)
+                                << cp.step(),
+      s.t(*s.gt),
       lm,
       s.mass_density(lm),
       s.pressure(lm),
@@ -49,18 +50,19 @@ analyze(control_policy<state, D> & cp) {
       // First update fields (catalyst_attributes) for catalysts pipeline
       flog(info) << "analyze action: prepare catalyst data" << std::endl;
       execute<tasks::external::update_attributes<D>, mpi>(catalyst_data(pt),
-        s.t(s.gt),
-        s.m,
-        s.mass_density(s.m),
-        s.velocity(s.m),
-        s.pressure(s.m),
-        s.total_energy_density(s.m),
-        s.radiation_energy_density(s.m)); // <<< add variables here for catalyst
+        s.t(*s.gt),
+        *s.m,
+        s.mass_density(*s.m),
+        s.velocity(*s.m),
+        s.pressure(*s.m),
+        s.total_energy_density(*s.m),
+        s.radiation_energy_density(
+          *s.m)); // <<< add variables here for catalyst
 
       // Then pass catalyst_data to catalyst pipeline
       flog(info) << "analyze action: execute catalyst" << std::endl;
       execute<tasks::external::execute_catalyst, mpi>(
-        catalyst_data(pt), cp.step(), s.t(s.gt), lattice);
+        catalyst_data(pt), cp.step(), s.t(*s.gt), lattice);
     }
     else {
       /* Do nothing, catalyst/paraview visualization only for 3D */

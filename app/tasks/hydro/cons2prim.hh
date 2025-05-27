@@ -10,7 +10,8 @@ namespace hard::tasks::hydro {
 
 template<std::size_t Dim>
 void
-conservative_to_primitive(typename mesh<Dim>::template accessor<ro> m,
+conservative_to_primitive(flecsi::exec::cpu s,
+  typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<ro, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<ro, na> momentum_density_a,
   field<double>::accessor<ro, na> total_energy_density_a,
@@ -32,7 +33,7 @@ conservative_to_primitive(typename mesh<Dim>::template accessor<ro> m,
   auto soundspeed = m.template mdcolex<is::cells>(soundspeed_a);
 
   if constexpr(Dim == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "conv2prim") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       velocity(i) = momentum_density(i) / mass_density(i);
       specific_internal_energy(i) =
         (total_energy_density(i) -
@@ -47,7 +48,7 @@ conservative_to_primitive(typename mesh<Dim>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_yx, "conv2prim") {
+    s.executor().forall(ji, mdpolicy_yx) {
       auto [j, i] = ji;
       velocity(i, j) = momentum_density(i, j) / mass_density(i, j);
       specific_internal_energy(i, j) =
@@ -65,7 +66,7 @@ conservative_to_primitive(typename mesh<Dim>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_zyx, "conv2prim") {
+    s.executor().forall(kji, mdpolicy_zyx) {
       auto [k, j, i] = kji;
       velocity(i, j, k) = momentum_density(i, j, k) / mass_density(i, j, k);
       specific_internal_energy(i, j, k) =

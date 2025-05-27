@@ -7,7 +7,8 @@
 namespace hard::tasks::hydro {
 template<std::size_t D>
 double
-update_max_characteristic_speed(typename mesh<D>::template accessor<ro> m,
+update_max_characteristic_speed(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
   typename field<vec<D>>::template accessor<ro, na> u_a,
   field<double>::accessor<ro, na> c_a) {
@@ -19,12 +20,8 @@ update_max_characteristic_speed(typename mesh<D>::template accessor<ro> m,
   auto soundspeed = m.template mdcolex<is::cells>(c_a);
 
   if constexpr(D == 1) {
-    return reduceall(i,
-      up,
-      (m.template cells<ax::x, dm::quantities>()),
-      fold::max,
-      double,
-      "max_char_1d") {
+    return s.executor().reduceall(
+      i, up, (m.template cells<ax::x, dm::quantities>()), fold::max, double) {
       up(velocity(i).norm() + soundspeed(i));
     };
   }
@@ -33,7 +30,7 @@ update_max_characteristic_speed(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    return reduceall(ji, up, mdpolicy_qq, fold::max, double, "max_char_2d") {
+    return s.executor().reduceall(ji, up, mdpolicy_qq, fold::max, double) {
       auto [j, i] = ji;
       up(velocity(i, j).norm() + soundspeed(i, j));
     };
@@ -44,7 +41,7 @@ update_max_characteristic_speed(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    return reduceall(kji, up, mdpolicy_qqq, fold::max, double, "max_char_3d") {
+    return s.executor().reduceall(kji, up, mdpolicy_qqq, fold::max, double) {
       auto [k, j, i] = kji;
       up(velocity(i, j, k).norm() + soundspeed(i, j, k));
     };
