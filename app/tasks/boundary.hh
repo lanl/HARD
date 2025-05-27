@@ -12,7 +12,8 @@ namespace hard::tasks {
 
 template<std::size_t D>
 void
-apply_boundaries(typename mesh<D>::template accessor<ro> m,
+apply_boundaries(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
   // primitive variables
   field<double>::accessor<rw, na> r_a,
@@ -39,7 +40,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
   if(m.template is_low<ax::x>()) { // NOTE: true only for boundary colors
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
-      forall(x, policy, "bd_x") {
+      s.executor().forall(x, policy) {
         (void)x; // remove compiler warning for unused
 
         const typename mesh<D>::bmap & bm = *bmap_a;
@@ -71,7 +72,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
       };
     }
     else if constexpr(D == 2) {
-      forall(j, (m.template cells<ax::y, dm::quantities>()), "bd_x") {
+      s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xlow = bm[0][LOW];
         if(xlow == bd::flow) {
@@ -107,7 +108,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         m.template cells<ax::z, dm::quantities>(),
         m.template cells<ax::y, dm::quantities>());
 
-      forall(kj, mdpolicy_zy, "flow_x_3d") {
+      s.executor().forall(kj, mdpolicy_zy) {
         auto [k, j] = kj;
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xlow = bm[0][LOW];
@@ -146,7 +147,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
     const std::size_t i = m.template size<ax::x, dm::all>();
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
-      forall(x, policy, "flow_x_1d") {
+      s.executor().forall(x, policy) {
         (void)x; // remove compiler warning for unused
 
         const typename mesh<D>::bmap & bm = *bmap_a;
@@ -178,7 +179,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
       };
     }
     else if constexpr(D == 2) {
-      forall(j, (m.template cells<ax::y, dm::quantities>()), "flow") {
+      s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xhigh = bm[0][HIGH];
         if(xhigh == bd::flow) {
@@ -214,7 +215,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         m.template cells<ax::z, dm::quantities>(),
         m.template cells<ax::y, dm::quantities>());
 
-      forall(kj, mdpolicy_kj, "flow_3d") {
+      s.executor().forall(kj, mdpolicy_kj) {
         auto [k, j] = kj;
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xhigh = bm[0][HIGH];
@@ -254,7 +255,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
   if constexpr(D == 2 || D == 3) {
     if(m.template is_low<ax::y>()) {
       if constexpr(D == 2) {
-        forall(i, (m.template cells<ax::x, dm::quantities>()), "flow_y") {
+        s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
           const typename mesh<D>::bmap & bm = *bmap_a;
           const auto ylow = bm[1][LOW];
           if(ylow == bd::flow) {
@@ -289,7 +290,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         auto mdpolicy_zx = get_mdiota_policy(r,
           m.template cells<ax::z, dm::quantities>(),
           m.template cells<ax::x, dm::quantities>());
-        forall(ki, mdpolicy_zx, "flow_y") {
+        s.executor().forall(ki, mdpolicy_zx) {
           auto [k, i] = ki;
 
           const typename mesh<D>::bmap & bm = *bmap_a;
@@ -328,7 +329,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
     if(m.template is_high<ax::y>()) {
       const std::size_t j = m.template size<ax::y, dm::all>();
       if constexpr(D == 2) {
-        forall(i, (m.template cells<ax::x, dm::quantities>()), "flow_y_high") {
+        s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
           const typename mesh<D>::bmap & bm = *bmap_a;
           const auto yhigh = bm[1][HIGH];
           if(yhigh == bd::flow) {
@@ -363,7 +364,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
         auto mdpolicy_zx = get_mdiota_policy(r,
           m.template cells<ax::z, dm::quantities>(),
           m.template cells<ax::x, dm::quantities>());
-        forall(ki, mdpolicy_zx, "flow_y_high") {
+        s.executor().forall(ki, mdpolicy_zx) {
           auto [k, i] = ki;
           const typename mesh<D>::bmap & bm = *bmap_a;
           const auto yhigh = bm[1][HIGH];
@@ -404,7 +405,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
       auto mdpolicy_yx = get_mdiota_policy(r,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
-      forall(ji, mdpolicy_yx, "flow_z_low") {
+      s.executor().forall(ji, mdpolicy_yx) {
         auto [j, i] = ji;
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto zlow = bm[2][LOW];
@@ -443,7 +444,7 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
       auto mdpolicy_yx = get_mdiota_policy(r,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
-      forall(ji, mdpolicy_yx, "flow_3d_high") {
+      s.executor().forall(ji, mdpolicy_yx) {
         auto [j, i] = ji;
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto zhigh = bm[2][HIGH];
@@ -484,7 +485,8 @@ apply_boundaries(typename mesh<D>::template accessor<ro> m,
 // TODO: Undo the hardcoded boundary
 template<std::size_t D>
 void
-apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
+apply_radiation_boundary(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<rw, na> r_a,
   flecsi::future<double> radiation_boundary_f) {
   using hard::tasks::util::get_mdiota_policy;
@@ -497,7 +499,7 @@ apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
     const std::size_t i = m.template size<ax::x, dm::all>();
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
-      forall(x, policy, "dirichlet_x_high_1D") {
+      s.executor().forall(x, policy) {
         (void)x;
         for(size_t m = 0; m < ghost_zone_size; ++m) {
           r(i - 1 - m) = radiation_boundary;
@@ -505,8 +507,7 @@ apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
       }; // forall
     }
     else if constexpr(D == 2) {
-      forall(
-        j, (m.template cells<ax::y, dm::quantities>()), "dirichlet_x_high_2D") {
+      s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
         for(size_t m = 0; m < ghost_zone_size; ++m) {
           r(i - 1 - m, j) = radiation_boundary;
         }
@@ -517,7 +518,7 @@ apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
         m.template cells<ax::z, dm::quantities>(),
         m.template cells<ax::y, dm::quantities>());
 
-      forall(kj, mdpolicy_zy, "dirichlet_x_high_3D") {
+      s.executor().forall(kj, mdpolicy_zy) {
         auto [k, j] = kj;
         for(size_t m = 0; m < ghost_zone_size; ++m) {
           r(i - 1 - m, j, k) = radiation_boundary;
@@ -530,7 +531,8 @@ apply_radiation_boundary(typename mesh<D>::template accessor<ro> m,
 // TODO: Refactor. apply_boundary overload for just one field.
 template<std::size_t D>
 void
-apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
+apply_boundary_single_field(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
   field<double>::accessor<rw, na> r_a) {
   using hard::tasks::util::get_mdiota_policy;
@@ -541,7 +543,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
   if(m.template is_low<ax::x>()) {
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
-      forall(x, policy, "bd_x") {
+      s.executor().forall(x, policy) {
         (void)x; // remove compiler warning for unused
 
         const typename mesh<D>::bmap & bm = *bmap_a;
@@ -559,7 +561,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
       };
     }
     else if constexpr(D == 2) {
-      forall(j, (m.template cells<ax::y, dm::quantities>()), "bd_x") {
+      s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xlow = bm[0][LOW];
         if(xlow == bd::flow) {
@@ -579,7 +581,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         m.template cells<ax::z, dm::quantities>(),
         m.template cells<ax::y, dm::quantities>());
 
-      forall(kj, mdpolicy_zy, "flow_x_3d") {
+      s.executor().forall(kj, mdpolicy_zy) {
         auto [k, j] = kj;
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xlow = bm[0][LOW];
@@ -600,7 +602,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
     const std::size_t i = m.template size<ax::x, dm::all>();
     if constexpr(D == 1) {
       flecsi::util::iota_view policy{0, 1}; // default execution space
-      forall(x, policy, "flow_x_1d") {
+      s.executor().forall(x, policy) {
         (void)x; // remove compiler warning for unused
 
         const typename mesh<D>::bmap & bm = *bmap_a;
@@ -618,7 +620,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
       };
     }
     else if constexpr(D == 2) {
-      forall(j, (m.template cells<ax::y, dm::quantities>()), "flow") {
+      s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xhigh = bm[0][HIGH];
         if(xhigh == bd::flow) {
@@ -638,7 +640,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         m.template cells<ax::z, dm::quantities>(),
         m.template cells<ax::y, dm::quantities>());
 
-      forall(kj, mdpolicy_kj, "flow_3d") {
+      s.executor().forall(kj, mdpolicy_kj) {
         auto [k, j] = kj;
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto xhigh = bm[0][HIGH];
@@ -659,7 +661,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
   if constexpr(D == 2 || D == 3) {
     if(m.template is_low<ax::y>()) {
       if constexpr(D == 2) {
-        forall(i, (m.template cells<ax::x, dm::quantities>()), "flow_y") {
+        s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
           const typename mesh<D>::bmap & bm = *bmap_a;
           const auto ylow = bm[1][LOW];
           if(ylow == bd::flow) {
@@ -678,7 +680,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         auto mdpolicy_zx = get_mdiota_policy(r,
           m.template cells<ax::z, dm::quantities>(),
           m.template cells<ax::x, dm::quantities>());
-        forall(ki, mdpolicy_zx, "flow_y") {
+        s.executor().forall(ki, mdpolicy_zx) {
           auto [k, i] = ki;
 
           const typename mesh<D>::bmap & bm = *bmap_a;
@@ -699,7 +701,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
     if(m.template is_high<ax::y>()) {
       const std::size_t j = m.template size<ax::y, dm::all>();
       if constexpr(D == 2) {
-        forall(i, (m.template cells<ax::x, dm::quantities>()), "flow_y_high") {
+        s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
           const typename mesh<D>::bmap & bm = *bmap_a;
           const auto yhigh = bm[1][HIGH];
           if(yhigh == bd::flow) {
@@ -718,7 +720,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
         auto mdpolicy_zx = get_mdiota_policy(r,
           m.template cells<ax::z, dm::quantities>(),
           m.template cells<ax::x, dm::quantities>());
-        forall(ki, mdpolicy_zx, "flow_y_high") {
+        s.executor().forall(ki, mdpolicy_zx) {
           auto [k, i] = ki;
           const typename mesh<D>::bmap & bm = *bmap_a;
           const auto yhigh = bm[1][HIGH];
@@ -741,7 +743,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
       auto mdpolicy_yx = get_mdiota_policy(r,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
-      forall(ji, mdpolicy_yx, "flow_z_low") {
+      s.executor().forall(ji, mdpolicy_yx) {
         auto [j, i] = ji;
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto zlow = bm[2][LOW];
@@ -762,7 +764,7 @@ apply_boundary_single_field(typename mesh<D>::template accessor<ro> m,
       auto mdpolicy_yx = get_mdiota_policy(r,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
-      forall(ji, mdpolicy_yx, "flow_3d_high") {
+      s.executor().forall(ji, mdpolicy_yx) {
         auto [j, i] = ji;
         const typename mesh<D>::bmap & bm = *bmap_a;
         const auto zhigh = bm[2][HIGH];

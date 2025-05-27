@@ -17,7 +17,8 @@ namespace hard::tasks::initial_data {
 //
 template<std::size_t D>
 auto
-sedov_blast(typename mesh<D>::template accessor<ro> m,
+sedov_blast(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<rw, ro> mass_density_a,
   typename field<vec<D>>::template accessor<rw, ro> momentum_density_a,
   field<double>::accessor<rw, ro> total_energy_density_a,
@@ -54,7 +55,7 @@ sedov_blast(typename mesh<D>::template accessor<ro> m,
   using spec::utils::sqr;
 
   if constexpr(D == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "init_sedov_1d") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const auto x = m.template center<ax::x>(i);
       double distance = std::abs(x - x0);
       mass_density(i) = density;
@@ -64,7 +65,7 @@ sedov_blast(typename mesh<D>::template accessor<ro> m,
     }; // forall
   }
   else if constexpr(D == 2) {
-    forall(j, (m.template cells<ax::y, dm::quantities>()), "init_sedov_2d") {
+    s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);
@@ -77,7 +78,7 @@ sedov_blast(typename mesh<D>::template accessor<ro> m,
     }; // forall
   }
   else if constexpr(D == 3) {
-    forall(k, (m.template cells<ax::z, dm::quantities>()), "init_sedov_3d") {
+    s.executor().forall(k, (m.template cells<ax::z, dm::quantities>())) {
       for(auto j : m.template cells<ax::y, dm::quantities>()) {
         for(auto i : m.template cells<ax::x, dm::quantities>()) {
           const auto x = m.template center<ax::x>(i);
