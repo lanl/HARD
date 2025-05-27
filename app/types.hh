@@ -17,6 +17,7 @@ using control = flecsi::run::control<spec::control_policy<S, D>>;
 
 template<template<std::size_t> typename S, std::size_t D>
 using control_policy = spec::control_policy<S, D>;
+using color_distribution = flecsi::topo::narray_impl::colors;
 
 using cp = spec::cp;
 template<std::size_t D>
