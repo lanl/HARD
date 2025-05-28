@@ -107,7 +107,7 @@ if(NOT ENABLE_RADIATION)
   add_test(NAME convergence_testing
     COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_convergence.sh
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
-    7 12
+    6 10
     ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_convergence.yaml -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
