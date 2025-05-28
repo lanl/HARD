@@ -97,8 +97,8 @@ def simple_quad(f: Callable, x0: float, x1: float, deg=6) -> float:
     return np.sum(f(transform(points)) * weights) * 0.5 * (x1 - x0)
 
 
-def compute_l2_error(x_num: NDArray, numerical: NDArray,
-                     analytical: Callable) -> float:
+def compute_l1_error_fvm(x_num: NDArray, numerical: NDArray,
+                         analytical: Callable) -> float:
 
     # For every cell, calculate the "volume" integral
     dx = x_num[1] - x_num[0]
@@ -107,9 +107,10 @@ def compute_l2_error(x_num: NDArray, numerical: NDArray,
     for i, x in enumerate(x_num):
         x1 = x + dx * 0.5
         x0 = x - dx * 0.5
-        error += (numerical[i] - simple_quad(analytical, x0, x1) / dx) ** 2
 
-    return np.sqrt(dx * error)
+        error += abs(dx * numerical[i] - simple_quad(analytical, x0, x1))
+
+    return error
 
 
 def find_last_output(pattern: str = "output-*-1D-0.raw",
