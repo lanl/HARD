@@ -1,9 +1,8 @@
 # HARD: Hydrodynamics And Radiative Diffusion
 
-HARD is a radiation-hydrodynamics solver suite for the study of
-astrophysical phenomena.
+HARD is a radiation-hydrodynamics solver suite for the study of astrophysical phenomena.
 
-HARD is based on the FleCSI framework and implemented on top of FleCSI-SP (FleCSI Specialization project). 
+HARD is based on the FleCSI framework and implemented on top of FleCSI-SP (FleCSI Specialization project).
 
 # Copyright
 © 2024. Triad National Security, LLC. All rights reserved.
@@ -37,33 +36,19 @@ Next, create a spack *environment* for HARD and activate it:
 $ spack env create hard
 $ spacktivate hard
 ```
-
-Once you are in the *hard* environment, you need to edit the
-environment config and replace the contents with the following, where
-*PATH-TO-HARD-CLONE* is the path to your clone of HARD:
+Once you are in the *hard* environment, you can specify the repository:
 ```
-spack:
-  specs:
-  - flecsi@2.3+flog+graphviz++hdf5++kokkos backend=mpi
-  - graphviz+libgd
-  - yaml-cpp
-  view: true
-  concretizer:
-    unify: true
-  repos:
-  - /PATH-TO-HARD-CLONE/spack-repo
+$ spack repo add /PATH-TO-HARD-CLONE/spack-repo
 ```
-
-To edit the environment config, execute the following, which will open
-an editor session (you can cut and paste the replacement contents
-from above):
+You can see the different options available for *hard* by using:
 ```
-$ spack config edit
+$ spack info hard
 ```
-**Note: You must be in an activated spack environment for this to
-work.**
-
-Save and quit your editor session. The next step is to *concretize* the
+And add *hard* to the environment:
+```
+$ spack add hard
+```
+The next step is to *concretize* the
 new environment. Concretization solves an optimization problem that
 takes all of the package dependencies in an environment and reconciles
 version and subdependency compatibility:
@@ -78,16 +63,16 @@ up-to-date config information.
 To finish up the spack portion of the build, we just need to *install*
 the packages:
 ```
-$ spack install
+$ spack install --only dependencies
 ```
-This will fetch all of the HARD dependencies and build them in your
+This will fetch all of the *hard* dependencies and build them in your
 local spack tree (under *$HOME/.spack/opt* to be precise). This step
 will take some time.
 
 # Build
 
 Now that we have setup our spack environment, the rest of the build is
-really easy. First, change directory into your HARD clone and create
+really easy. First, change directory into your *hard* clone and create
 a build directory:
 ```
 $ cd PATH-TO-HARD-CLONE
