@@ -86,7 +86,7 @@ def parse_cli(get_file: bool = True) -> tuple[
     return yaml_file, out_dir, raw_file, make_plot
 
 
-def simple_quad(f: Callable, x0: float, x1: float, deg=6) -> float:
+def simple_quad(f: Callable, x0: float, x1: float, deg=10) -> float:
     """
     Use a Gauss-Legendre quadrature of degree deg
     """
