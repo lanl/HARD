@@ -1,6 +1,5 @@
 import os
 import sys
-from collections import namedtuple
 from collections.abc import Callable
 
 import matplotlib.pyplot as plt
@@ -9,167 +8,269 @@ from numpy.typing import NDArray
 from verify_lib import (acoustic_analytic_solution, compute_l1_error_fvm,
                         parse_cli, parse_config, wrapFunction)
 
-# Threshold for passing L1 error tests
-Tolerance = namedtuple("Tolerance", ["rho", "p", "u"])
-tolerance = Tolerance(1e-2, 1e-2, 5e-1)
+
+class ProblemData(object):
+    """
+    Define the quantities for each problem
+    """
+
+    def __init__(self, name: str):
+        """
+        name - problem name
+        """
+
+        # Define names for Riemann problems
+        self.riemann_problems = ["sod", "leblanc", "rankine-hugoniot"]
+
+        # Default values
+        self.name = name
+        self.usecols = [0, 2, 3, 4, 5]
+        self.extract = ["density", "pressure", "velocity"]
+        self.labels = ["Density", "Pressure", "Velocity"]
+        self.tolerances = [1e-2, 1e-2, 5e-1]
+        self.function: Callable
+
+        # Define specifics per problem and analytical solutions
+        if self.name in self.riemann_problems:
+            self.function = self.__riemann_analytic_solution
+        elif self.name == "sedov":
+            self.function = self.__sedov_analytic_solution
+        elif self.name == "acoustic-wave":
+            self.function = acoustic_analytic_solution
+        else:
+            sys.exit(f"Unsupported problem type '{name}'")
+
+        # For riemann problems, define left and right states
+        if self.name in self.riemann_problems:
+            if self.name == "sod":
+                self.left_state = (1.0, 0.0, 1.0)
+                self.right_state = (0.125, 0.0, 0.1)
+            elif self.name == "leblanc":
+                self.left_state = (1.0, 0.0, 0.1)
+                self.right_state = (1e-3, 0.0, 1e-10)
+            elif self.name == "rankine-hugoniot":
+                self.left_state = (1.0, 0.0, 1.0)
+                self.right_state = (0.25, 0.0, 0.1795)
+
+    def __sedov_analytic_solution(self, x: NDArray, t: float, gamma: float
+                                  ) -> tuple[Callable, Callable, Callable]:
+
+        from exactpack.solvers.sedov import Sedov
+
+        solver = Sedov(gamma=gamma, geometry=1, eblast=0.0673185)
+        result = wrapFunction(solver, t)
+
+        return result.density, result.pressure, result.velocity
+
+    def __riemann_analytic_solution(self, x: NDArray, t: float, gamma: float,
+                                    left_state: tuple[float, float, float],
+                                    right_state: tuple[float, float, float]
+                                    ) -> tuple[Callable, Callable, Callable]:
+
+        try:
+            from exactpack.solvers.riemann.ep_riemann import IGEOS_Solver
+        except ImportError:
+            sys.exit("Error: ExactPack Riemann solver not found.")
+
+        rho_l, u_l, p_l = left_state
+        rho_r, u_r, p_r = right_state
+
+        solver = IGEOS_Solver(
+            rl=rho_l, ul=u_l, pl=p_l, gl=gamma,
+            rr=rho_r, ur=u_r, pr=p_r, gr=gamma,
+            xmin=min(x), xd0=0.5 * (min(x) + max(x)), xmax=max(x), t=t
+        )
+
+        sol = wrapFunction(solver, t)
+        return sol.density, sol.pressure, sol.velocity
 
 
-def color_text(text: str, status: str) -> str:
-    if status == "PASS":
-        return f"\033[92m{text}\033[0m"  # green
-    elif status == "FAIL":
-        return f"\033[91m{text}\033[0m"  # red
-    else:
-        return text
+class Problem(object):
+    """
+    Class to hold each type of problem parameters
+    """
 
+    def __init__(self, yaml_file: str) -> None:
+        """
+        yaml_file - the yaml_file with the problem configuration
+        """
 
-def sedov_analytic_solution(x: NDArray, t: float, gamma: float) -> tuple[
-    Callable,
-    Callable,
-    Callable
-]:
-    from exactpack.solvers.sedov import Sedov
+        name, gamma, x0, x1, problem_dict = parse_config(yaml_file)
 
-    solver = Sedov(gamma=gamma, geometry=1, eblast=0.0673185)
-    result = wrapFunction(solver, t)
+        self.name = name
+        self.gamma = gamma
+        self.x0 = x0
+        self.x1 = x1
+        self.problem_dict = problem_dict
 
-    return result.density, result.pressure, result.velocity
+        # Initialize quantities
+        self.data = ProblemData(self.name)
 
+        # Variables to be defined later
+        self.time: float
+        self.x_arr: NDArray
+        self.numerical: list[NDArray]
+        self.references: list[NDArray]
+        self.analytical: list[Callable]
+        self.errors: list[float]
+        self.status: list[str]
 
-def riemann_analytic_solution(x: NDArray, t: float, gamma: float,
-                              left_state: tuple[float, float, float],
-                              right_state: tuple[float, float, float]
-                              ) -> tuple[Callable, Callable, Callable]:
+    def load_raw_file(self, raw_file: str) -> None:
+        """
+        Load the last raw file
+        """
 
-    try:
-        from exactpack.solvers.riemann.ep_riemann import IGEOS_Solver
-    except ImportError:
-        sys.exit("Error: ExactPack Riemann solver not found.")
+        self.raw_file = raw_file
+        raw_out = np.loadtxt(raw_file, usecols=self.data.usecols).T
 
-    rho_l, u_l, p_l = left_state
-    rho_r, u_r, p_r = right_state
+        # Extract time and x_arr
+        t_index = self.data.usecols.index(0)
+        x_index = self.data.usecols.index(2)
+        self.time = raw_out[t_index][0]
+        self.x_arr = raw_out[x_index]
 
-    solver = IGEOS_Solver(
-        rl=rho_l, ul=u_l, pl=p_l, gl=gamma,
-        rr=rho_r, ur=u_r, pr=p_r, gr=gamma,
-        xmin=min(x), xd0=0.5 * (min(x) + max(x)), xmax=max(x), t=t
-    )
+        # Extract the other quantities
+        self.numerical = [x for i, x in enumerate(
+            raw_out) if i not in [t_index, x_index]]
 
-    sol = wrapFunction(solver, t)
-    return sol.density, sol.pressure, sol.velocity
+    def get_exact_solutions(self) -> None:
+        """
+        Get the exact solutions depending on the problem
+        """
 
+        assert self.x_arr is not None
+        assert self.time is not None
 
-def plot_comparison(x: NDArray, num_vals: NDArray, exact_vals: NDArray,
-                    quantity: str, time: float, tag: str, problem: str) -> None:
-    plt.figure()
-    plt.plot(x, exact_vals, label="Analytic", linestyle="--")
-    plt.plot(x, num_vals, label="Simulation", marker='o',
-             linestyle='none', markersize=4)
-    plt.xlabel("x")
-    plt.ylabel(quantity)
-    plt.title(f"{problem}: {quantity} at t = {time:.4f}")
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    filename = f"{problem}_{quantity.lower()}_comparison_{tag}.png"
-    plt.savefig(filename)
-    plt.close()
-    print(f"Saved plot: {filename}")
+        # Create input interator
+        if self.name in self.data.riemann_problems:
+            input = [self.x_arr, self.time, self.gamma,
+                     self.data.left_state, self.data.right_state]
+        elif self.name == "sedov":
+            input = [self.x_arr, self.time, self.gamma]
+        elif self.name == "acoustic-wave":
+            input = [self.gamma, self.time,
+                     self.x0, self.x1, self.problem_dict]
+        elif self.name == "su-olson":
+            input = [self.x_arr, self.time, self.data.extract]
+
+        # Save the exact output functions
+        self.analytical = self.data.function(*input)
+        self.references = [f(self.x_arr) for f in self.analytical]
+
+    def __plot_comparison(self, num_vals: NDArray, exact_vals: NDArray,
+                          label: str, tag: str) -> None:
+        """
+        Plot the numerical output and the reference
+        """
+
+        plt.figure()
+        plt.plot(self.x_arr, exact_vals, label="Analytic", linestyle="--")
+        plt.plot(self.x_arr, num_vals, label="Simulation", marker='o',
+                 linestyle='none', markersize=4)
+
+        plt.xlabel("x")
+        plt.ylabel(label)
+        plt.title(f"{label} at t = {self.time:.4f}")
+
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+
+        filename = f"{label.lower()}_comparison_{tag}.png"
+        plt.savefig(filename)
+        plt.close()
+
+        print(f"Saved plot: {filename}")
+
+    def make_plot(self) -> None:
+        """
+        Create plot with references
+        """
+
+        # Return the references
+        tag = os.path.splitext(os.path.basename(self.raw_file))[0].replace(
+            "output-", "").replace(".raw", "")
+
+        for lab, num, ref in zip(self.data.labels, self.numerical,
+                                 self.references):
+            self.__plot_comparison(num, ref, lab, tag)
+
+    def sedov_cutoff(self, cutoff: float = 0.2) -> None:
+        """
+        Remove the values up to cutoff for the sedov solution
+        """
+
+        mask = self.x_arr > cutoff
+        self.x_arr = self.x_arr[mask]
+        self.numerical = [x[mask] for x in self.numerical]
+        self.references = [x[mask] for x in self.references]
+
+    def compute_errors(self) -> None:
+        """
+        Compute all the errors
+        """
+
+        self.errors = [compute_l1_error_fvm(self.x_arr, num, exact)
+                       for num, exact in zip(self.numerical, self.analytical)]
+
+    def __color_text(self, text: str, status: str) -> str:
+        if status == "PASS":
+            return f"\033[92m{text}\033[0m"  # green
+        elif status == "FAIL":
+            return f"\033[91m{text}\033[0m"  # red
+        else:
+            return text
+
+    def check_error_status(self) -> None:
+        """
+        Get status for every error
+        """
+
+        tols = self.data.tolerances
+        failed = [False if x < y else True for x, y in zip(self.errors, tols)]
+        statuses = ["FAIL" if x else "PASS" for x in failed]
+
+        print(f"Problem type: {self.name}")
+        print(f"Compared solution at t = {self.time:.4f}")
+        print("L1 Errors and Status:")
+        for label, err, stat in zip(self.data.labels, self.errors, statuses):
+            print(f"  {label}  : {err:.6e} [{self.__color_text(stat, stat)}]")
+
+        if any(failed):
+            s = "Test FAILED: relative L1 error exceeds tolerance of "
+            s += " ".join([f"{tol:.2e}" for tol in tols])
+            sys.exit(s)
+        else:
+            print("Test PASSED")
 
 
 def main() -> None:
 
     # Get the values
-    yaml_file, out_dir, raw_file, make_plot = parse_cli()
+    yaml_file, _, raw_file, make_plot = parse_cli()
     assert raw_file is not None
 
-    problem, gamma, x0, x1, problem_dict = parse_config(yaml_file)
+    # Instantiate problem object
+    problem = Problem(yaml_file)
 
-    # Read in the last raw file
-    out_tuple = np.loadtxt(raw_file, usecols=(0, 2, 3, 4, 5)).T
+    # Load raw file
+    problem.load_raw_file(raw_file)
 
-    # Extract physical quantities from tuple
-    t_arr, x_arr, rho_num, p_num, u_num = out_tuple
-    time = t_arr[0]
-
-    if problem == "sod":
-        left_state = (1.0, 0.0, 1.0)
-        right_state = (0.125, 0.0, 0.1)
-        rho_exact, p_exact, u_exact = riemann_analytic_solution(
-            x_arr, time, gamma, left_state, right_state)
-
-    elif problem == "leblanc":
-        left_state = (1.0, 0.0, 0.1)
-        right_state = (1e-3, 0.0, 1e-10)
-        rho_exact, p_exact, u_exact = riemann_analytic_solution(
-            x_arr, time, gamma, left_state, right_state)
-
-    elif problem == "rankine-hugoniot":
-        left_state = (1.0, 0.0, 1.0)
-        right_state = (0.25, 0.0, 0.1795)
-        rho_exact, p_exact, u_exact = riemann_analytic_solution(
-            x_arr, time, gamma, left_state, right_state)
-
-    elif problem == "sedov":
-        rho_exact, p_exact, u_exact = sedov_analytic_solution(
-            x_arr, time, gamma)
-
-    elif problem == "acoustic-wave":
-        rho_exact, p_exact, u_exact = acoustic_analytic_solution(
-            gamma, time, x0, x1, problem_dict)
-
-    else:
-        sys.exit(f"Unsupported problem type '{problem}'")
-
-    rho_ref = rho_exact(x_arr)
-    p_ref = p_exact(x_arr)
-    u_ref = u_exact(x_arr)
+    # Get exact solutions
+    problem.get_exact_solutions()
 
     if make_plot:
-        assert raw_file is not None
-        tag = os.path.splitext(os.path.basename(raw_file))[0].replace(
-            "output-", "").replace(".raw", "")
-        plot_comparison(x_arr, rho_num, rho_ref, "Density", time, tag, problem)
-        plot_comparison(x_arr, p_num, p_ref, "Pressure", time, tag, problem)
-        plot_comparison(x_arr, u_num, u_ref, "Velocity", time, tag, problem)
+        problem.make_plot()
 
-    # For Sedov: only compare for x > 0.1
+    # For Sedov: only compare for x > 0.2
     if problem == "sedov":
-        sedov_cutoff = 0.2
-        mask = x_arr > sedov_cutoff
-        x_arr = x_arr[mask]
-        rho_num = rho_num[mask]
-        p_num = p_num[mask]
-        u_num = u_num[mask]
-        rho_ref = rho_ref[mask]
-        p_ref = p_ref[mask]
-        u_ref = u_ref[mask]
+        problem.sedov_cutoff(cutoff=0.2)
 
-    err_rho = compute_l1_error_fvm(x_arr, rho_num, rho_exact)
-    err_p = compute_l1_error_fvm(x_arr, p_num, p_exact)
-    err_u = compute_l1_error_fvm(x_arr, u_num, u_exact)
+    # Compute errors
+    problem.compute_errors()
 
-    status_rho = "PASS" if err_rho <= tolerance.rho else "FAIL"
-    status_p = "PASS" if err_p <= tolerance.p else "FAIL"
-    status_u = "PASS" if err_u <= tolerance.u else "FAIL"
-
-    print(f"Problem type: {problem}")
-    print(f"Compared solution at t = {time:.4f}")
-    print("L1 Errors and Status:")
-    print(f"  Density  : {err_rho:.6e} \
-    [{color_text(status_rho, status_rho)}]")
-    print(f"  Pressure : {err_p:.6e} \
-    [{color_text(status_p, status_p)}]")
-    print(f"  Velocity : {err_u:.6e} \
-    [{color_text(status_u, status_u)}]")
-
-    if any(e > t for e, t in zip((err_rho, err_p, err_u),
-                                 (tolerance.rho, tolerance.p, tolerance.u))):
-
-        s = f"Test FAILED: L1 error exceeds tolerance of {tolerance:.2e}"
-        sys.exit(s)
-    else:
-        print("Test PASSED")
+    # Error status
+    problem.check_error_status()
 
 
 if __name__ == "__main__":
