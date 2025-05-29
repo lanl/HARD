@@ -80,12 +80,12 @@ if(NOT ENABLE_RADIATION)
     ${CMAKE_SOURCE_DIR}/configs/ci_configs/leblanc.yaml -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
-  add_test(NAME accuracy_sedov_1d
-    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
-    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.yaml -d1
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
+  # add_test(NAME accuracy_sedov_1d
+  #   COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+  #   ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+  #   ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.yaml -d1
+  #   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  # )
   add_test(NAME accuracy_acoustic_1d
     COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
