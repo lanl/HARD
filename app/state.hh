@@ -91,7 +91,7 @@ struct state {
   static inline const field<double>::definition<mesh<D>, is::cells>
     sound_speed; // c
   static inline const field<double>::definition<mesh<D>, is::cells>
-    temperature; // c
+    temperature; // t
 
   // Faces.
   static inline const field<double>::definition<mesh<D>, is::cells> eTail;
