@@ -8,13 +8,27 @@ HARD is based on the FleCSI framework and implemented on top of FleCSI-SP (FleCS
 © 2024. Triad National Security, LLC. All rights reserved.
 This program was produced under U.S. Government contract 89233218CNA000001 for Los Alamos National Laboratory (LANL), which is operated by Triad National Security, LLC for the U.S. Department of Energy/National Nuclear Security Administration. All rights in the program are reserved by Triad National Security, LLC, and the U.S. Department of Energy/National Nuclear Security Administration. The Government is granted for itself and others acting on its behalf a nonexclusive, paid-up, irrevocable worldwide license in this material to reproduce, prepare. derivative works, distribute copies to the public, perform publicly and display publicly, and to permit others to do so (Copyright request O4795).
 
-# Spack
+# Spack, Darwin build
 
-The easiest way to build HARD is to use *spack*:
+Get a `scaling` node on Darwin:
 
-Clone the spack repo and initialize:
+```
+$ salloc -p scaling -t 01:00:00
+```
+
+You can load the following compilers/mpi:
+
+```
+$ module load openmpi/5.0.2-gcc_13.2.0
+```
+
+The easiest way to build HARD is to use *spack*.
+
+Clone the spack repo, pick the right version, and initialize:
 ```
 $ git clone git@github.com:spack/spack.git $HOME/.spack
+$ cd $HOME/.spack
+$ git checkout v0.23.1
 $ source $HOME/.spack/share/spack/setup-env.sh
 ```
 
@@ -40,6 +54,25 @@ Once you are in the *hard* environment, you can specify the repository:
 ```
 $ spack repo add /PATH-TO-HARD-CLONE/spack-repo
 ```
+You can find the compiler we loaded earlier using:
+```
+$ spack compiler find
+```
+You can add the openmpi by adding it in the `package.py` file:
+
+``` shell
+$ vim ~/.spack/packages.py
+```
+And add:
+
+``` yaml
+packages:
+  openmpi:
+    externals:
+    - spec: openmpi@5.0.2
+      prefix: /projects/opt/rhel8/x86_64/openmpi/5.0.2-gcc_13.2.0/
+```
+
 You can see the different options available for *hard* by using:
 ```
 $ spack info hard
