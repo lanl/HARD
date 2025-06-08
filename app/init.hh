@@ -67,8 +67,8 @@ initialize(control_policy<state, D> & cp) {
 
   const auto num_colors =
     opt::colors.value() == 0 ? sc.runtime().processes() : opt::colors.value();
-  // sc.allocate(s.gt, num_colors);
-  // sc.allocate(s.ct, {num_colors});
+  sc.allocate(s.gt, num_colors);
+  sc.allocate(s.ct, {num_colors});
 
   /*--------------------------------------------------------------------------*
     Set boundaries.
@@ -151,6 +151,7 @@ initialize(control_policy<state, D> & cp) {
     cd = [&sc,
            cdcfg = config["color_distribution"].as<color_distribution>()]() {
       return (FLECSI_BACKEND == FLECSI_BACKEND_legion) ||
+
                  util::axes_colors<D>(cdcfg) == sc.runtime().processes()
                ? std::optional<color_distribution>(cdcfg)
                : std::nullopt;
@@ -186,18 +187,20 @@ initialize(control_policy<state, D> & cp) {
 
       // Add a new grid - the finest grid is already there
       if(i > 0) {
-        s.mh.emplace_back(std::make_unique<typename mesh<D>::ptr>());
+        s.mh.emplace_back(typename mesh<D>::ptr());
       } // if
 
       if(cd.has_value()) {
-        // s.mh[i]->allocate(
-        //     typename mesh<D>::mpi_coloring{cd.value(), axis_extents,
-        //     bf.get()}, geom);
+        sc.allocate(s.mh[i],
+          typename mesh<D>::mpi_coloring(
+            sc, cd.value(), axis_extents, bf.get()),
+          geom);
       }
       else {
-        // s.mh[i]->allocate(
-        //     typename mesh<D>::mpi_coloring{colors, axis_extents, bf.get()},
-        //     geom);
+        sc.allocate(s.mh[i],
+          typename mesh<D>::mpi_coloring(
+            sc, sc.runtime().processes(), axis_extents, bf.get()),
+          geom);
       }
     } // for
   } // scope
