@@ -43,11 +43,10 @@ struct state {
   flecsi::topo::global::ptr dense_topology;
 
   // Vector for meshes in multigrid
-  std::vector<std::unique_ptr<typename mesh<D>::ptr>> mh;
+  std::vector<typename mesh<D>::ptr> mh;
 
   // Define the fine grid
-  typename mesh<D>::ptr & m =
-    *mh.emplace_back(std::make_unique<typename mesh<D>::ptr>());
+  typename mesh<D>::ptr & m = mh.emplace_back(typename mesh<D>::ptr());
 
   /*--------------------------------------------------------------------------*
     Global parameters.

@@ -27,6 +27,6 @@ axes_colors(color_distribution const & cd) {
   }
 } // colors
 
-} // hard::util
+} // namespace hard::util
 
 #endif // HARD_UTILS_HH
