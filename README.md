@@ -10,18 +10,6 @@ This program was produced under U.S. Government contract 89233218CNA000001 for L
 
 # Spack, Darwin build
 
-Get a `scaling` node on Darwin:
-
-```
-$ salloc -p scaling -t 01:00:00
-```
-
-You can load the following compilers/mpi:
-
-```
-$ module load openmpi/5.0.2-gcc_13.2.0
-```
-
 The easiest way to build HARD is to use *spack*.
 
 Clone the spack repo, pick the right version, and initialize:
@@ -57,20 +45,6 @@ $ spack repo add /PATH-TO-HARD-CLONE/spack-repo
 You can find the compiler we loaded earlier using:
 ```
 $ spack compiler find
-```
-You can add the openmpi by adding it in the `package.py` file:
-
-``` shell
-$ vim ~/.spack/packages.py
-```
-And add:
-
-``` yaml
-packages:
-  openmpi:
-    externals:
-    - spec: openmpi@5.0.2
-      prefix: /projects/opt/rhel8/x86_64/openmpi/5.0.2-gcc_13.2.0/
 ```
 
 You can see the different options available for *hard* by using:
