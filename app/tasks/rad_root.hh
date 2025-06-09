@@ -12,7 +12,8 @@ namespace hard::task::rad_root {
 //
 template<std::size_t D>
 void
-update_energy_density(typename mesh<D>::template accessor<ro> m,
+update_energy_density(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
   typename field<vec<D>>::template accessor<ro, na> u_a,
   field<double>::accessor<rw, na> temperature_a,
@@ -49,8 +50,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       Compute the updated gas energy and raditaion energy.
      *------------------------------------------------------------------------*/
 
-    forall(
-      i, (m.template cells<ax::x, dm::quantities>()), "upd_energy_density") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       auto & dt_weighted = *dt_a;
       // NOTE: a1 and a2 are constants defined in the paper Moens et al (2022)
       // FIXME: The variables "a1" and "a2" do not exist, remove comment
@@ -92,7 +92,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "upd_energy_density") {
+    s.executor().forall(ji, mdpolicy_qq) {
 
       auto [j, i] = ji;
 
@@ -127,7 +127,7 @@ update_energy_density(typename mesh<D>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "upd_energy_density") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       const double ke =

@@ -16,9 +16,9 @@ SHOW_HELP_MESSAGE=${SHOW_HELP_MESSAGE:-true}
 DEFAULT_TEST_TIMEOUT=${DEFAULT_TEST_TIMEOUT:-600}
 AVAILABLE_CLUSTERS=darwin,rocinante,chicoma,rzvernal,rzadams
 
-flecsi_MAIN_VERSION="2.3"
+flecsi_MAIN_VERSION="2.4.0"
 
-flecsi_MAIN_BRANCH="2.3"
+flecsi_MAIN_BRANCH="2.4.0"
 legion_MAIN_BRANCH="master"
 hard_MAIN_BRANCH="main"
 

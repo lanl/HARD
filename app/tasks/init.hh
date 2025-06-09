@@ -10,14 +10,15 @@ namespace hard {
 
 namespace tasks::init {
 
-void inline compute_dt_weighted(single<double>::accessor<ro> dt,
+void inline compute_dt_weighted(flecsi::exec::cpu,
+  single<double>::accessor<ro> dt,
   single<double>::accessor<wo> dt_w,
   double tsg) {
   dt_w = *dt * tsg;
 }
 
 inline void
-init_time(single<double>::accessor<wo> time, double vtime) {
+init_time(flecsi::exec::cpu, single<double>::accessor<wo> time, double vtime) {
   *time = vtime;
 }
 
@@ -25,7 +26,8 @@ init_time(single<double>::accessor<wo> time, double vtime) {
   Temperature boundaries.
  *----------------------------------------------------------------------------*/
 
-void inline set_t_boundary(field<double>::accessor<wo> t_boundary,
+void inline set_t_boundary(flecsi::exec::cpu,
+  field<double>::accessor<wo> t_boundary,
   std::vector<double> copy_values) {
 
   for(std::size_t i{0}; i < t_boundary.span().size(); i++) {
@@ -37,7 +39,8 @@ void inline set_t_boundary(field<double>::accessor<wo> t_boundary,
   Temperature unit conversion from eV (or other) to Kelvin
  *----------------------------------------------------------------------------*/
 
-void inline convert_temperature(field<double>::accessor<rw> temperature,
+void inline convert_temperature(flecsi::exec::cpu,
+  field<double>::accessor<rw> temperature,
   std::string const & unit) {
 
   assert((unit == "Kelvin" || unit == "eV") && "Unsupported temperature unit");
@@ -197,7 +200,7 @@ touch1(typename mesh<D>::template accessor<ro>, // m,
 
 template<std::size_t D>
 mesh<D>::periodic_axes
-boundaries(
+boundaries(flecsi::exec::cpu,
   typename single<typename mesh<D>::bmap>::template accessor<wo> bmap_a,
   std::array<std::array<bd::boundary_type, 2>, D> bnds) {
   auto & bmap = *bmap_a;

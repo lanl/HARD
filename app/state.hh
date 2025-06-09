@@ -38,16 +38,15 @@ struct state {
   /*--------------------------------------------------------------------------*
     Topology slots.
    *--------------------------------------------------------------------------*/
-  index::slot ct; /* Color topology. */
-  flecsi::topo::global::slot gt;
-  flecsi::topo::global::slot dense_topology;
+  flecsi::topo::index::ptr ct; /* Color topology. */
+  flecsi::topo::global::ptr gt;
+  flecsi::topo::global::ptr dense_topology;
 
   // Vector for meshes in multigrid
-  std::vector<std::unique_ptr<typename mesh<D>::slot>> mh;
+  std::vector<typename mesh<D>::ptr> mh;
 
   // Define the fine grid
-  typename mesh<D>::slot & m =
-    *mh.emplace_back(std::make_unique<typename mesh<D>::slot>());
+  typename mesh<D>::ptr & m = mh.emplace_back(typename mesh<D>::ptr());
 
   /*--------------------------------------------------------------------------*
     Global parameters.
