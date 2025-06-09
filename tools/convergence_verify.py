@@ -52,7 +52,8 @@ def main() -> None:
         # Instantiate our solution class in the first loop
         if first_loop:
             acoustic_instance = wrapFunction(
-                Acoustic(gamma, x0, x1, problem_dict), time)
+                Acoustic(gamma, x0, x1, problem_dict), time,
+                ["density", "pressure", "velocity"])
             u_exact = acoustic_instance.velocity
 
             first_loop = False
