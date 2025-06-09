@@ -5,21 +5,17 @@ from collections.abc import Callable
 
 import numpy as np
 import yaml
-from acoustic_solution import Acoustic
 from numpy.typing import NDArray
 
 
 class wrapFunction(object):
 
-    # Declaring the attributes to provide mypy
-    # with enough information
+    # Declaring the attributes to provide mypy with enough information
     density: Callable
     pressure: Callable
     velocity: Callable
 
-    def __init__(self, solver: Callable, t: float,
-                 extract: list[str] = ["density", "pressure", "velocity"]
-                 ) -> None:
+    def __init__(self, solver: Callable, t: float, extract: list[str]) -> None:
         """
         Create the wrapper for each attribute
         """
@@ -32,12 +28,8 @@ class wrapFunction(object):
         Transform the ExactPack array tuple into a Callable tuple
         """
 
-        if isinstance(f, Acoustic):
-            def wrap(x):
-                return f(x, t)._asdict()[name]
-        else:
-            def wrap(x):
-                return f(x, t)[name]
+        def wrap(x):
+            return f(x, t)[name]
 
         self.__dict__[name] = wrap
 
@@ -142,20 +134,3 @@ def parse_config(yaml_file: str
     problem_dict = config.get("problem_parameters")
 
     return problem, gamma, x0, x1, problem_dict
-
-
-def acoustic_analytic_solution(gamma: float, t: float, x0: float, x1: float,
-                               problem_dict: dict[str, str]) -> tuple[Callable,
-                                                                      Callable,
-                                                                      Callable
-                                                                      ]:
-    """
-    Return the acoustic analytical solution
-    """
-
-    names = ["density", "pressure", "velocity"]
-
-    result = wrapFunction(
-        Acoustic(gamma, x0, x1, problem_dict), t, extract=names)
-
-    return result.density, result.pressure, result.velocity
