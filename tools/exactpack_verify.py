@@ -4,9 +4,10 @@ from collections.abc import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
+from acoustic_solution import Acoustic
 from numpy.typing import NDArray
-from verify_lib import (acoustic_analytic_solution, compute_l1_error_fvm,
-                        parse_cli, parse_config, wrapFunction)
+from verify_lib import (compute_l1_error_fvm, parse_cli, parse_config,
+                        wrapFunction)
 
 
 class ProblemData(object):
@@ -36,7 +37,7 @@ class ProblemData(object):
         elif self.name == "sedov":
             self.function = self.__sedov_analytic_solution
         elif self.name == "acoustic-wave":
-            self.function = acoustic_analytic_solution
+            self.function = self.__acoustic_analytic_solution
         else:
             sys.exit(f"Unsupported problem type '{name}'")
 
@@ -52,13 +53,25 @@ class ProblemData(object):
                 self.left_state = (1.0, 0.0, 1.0)
                 self.right_state = (0.25, 0.0, 0.1795)
 
+    def __acoustic_analytic_solution(self, gamma: float, t: float, x0: float,
+                                     x1: float, problem_dict: dict[str, str]
+                                     ) -> tuple[Callable, Callable, Callable]:
+        """
+        Return the acoustic analytical solution
+        """
+
+        result = wrapFunction(
+            Acoustic(gamma, x0, x1, problem_dict), t, self.extract)
+
+        return result.density, result.pressure, result.velocity
+
     def __sedov_analytic_solution(self, x: NDArray, t: float, gamma: float
                                   ) -> tuple[Callable, Callable, Callable]:
 
         from exactpack.solvers.sedov import Sedov
 
         solver = Sedov(gamma=gamma, geometry=1, eblast=0.0673185)
-        result = wrapFunction(solver, t)
+        result = wrapFunction(solver, t, self.extract)
 
         return result.density, result.pressure, result.velocity
 
@@ -81,7 +94,7 @@ class ProblemData(object):
             xmin=min(x), xd0=0.5 * (min(x) + max(x)), xmax=max(x), t=t
         )
 
-        sol = wrapFunction(solver, t)
+        sol = wrapFunction(solver, t, self.extract)
         return sol.density, sol.pressure, sol.velocity
 
 

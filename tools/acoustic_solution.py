@@ -1,9 +1,5 @@
-from collections import namedtuple
-
 import numpy as np
 from numpy.typing import NDArray
-
-Solution = namedtuple("Solution", ["density", "pressure", "velocity"])
 
 
 class Acoustic(object):
@@ -33,7 +29,7 @@ class Acoustic(object):
 
         return lambda x: np.sin(self.scale * x) * self.amplitude
 
-    def __call__(self, x: NDArray | float, t: float) -> Solution:
+    def __call__(self, x: NDArray | float, t: float) -> dict[str, NDArray]:
         """
         Return named tuple with what the density, pressure and velocity are at
         time t
@@ -67,4 +63,10 @@ class Acoustic(object):
         pressure -= perturbation(x_init) * 0.5 * self.cs ** 2
         velocity += perturbation(x_init) * 0.5 * self.cs
 
-        return Solution(density, pressure, velocity)
+        solution = {
+            "density": density,
+            "pressure": pressure,
+            "velocity": velocity
+        }
+
+        return solution
