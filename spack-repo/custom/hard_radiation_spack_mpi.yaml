@@ -16,6 +16,6 @@ spack:
     mpi:
       require: "openmpi"
     flecsi:
-      require: "%gcc@11.3.0 +flog+hdf5+kokkos+graphviz backend=mpi"
+      require: "%gcc@13.2.0 +flog+hdf5+kokkos backend=mpi"
     hard:
       require: "+tests +radiation"

@@ -21,7 +21,7 @@ spack:
     hard:
       require: "+format -radiation"
     flecsi:
-      require: "%gcc@11.3.0 +flog+hdf5+kokkos backend=mpi"
+      require: "%gcc@13.2.0 +flog+hdf5+kokkos backend=mpi"
     kokkos:
       require: "+shared"
     llvm:

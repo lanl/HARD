@@ -17,6 +17,7 @@ using control = flecsi::run::control<spec::control_policy<S, D>>;
 
 template<template<std::size_t> typename S, std::size_t D>
 using control_policy = spec::control_policy<S, D>;
+using color_distribution = flecsi::topo::narray_impl::colors;
 
 using cp = spec::cp;
 template<std::size_t D>
@@ -56,8 +57,8 @@ NS_WARN_SUPPRESS(bd, bd::low);
   More concise privileges.
  *----------------------------------------------------------------------------*/
 
-inline constexpr flecsi::partition_privilege_t na = spec::na, ro = spec::ro,
-                                               wo = spec::wo, rw = spec::rw;
+inline constexpr flecsi::privilege na = spec::na, ro = spec::ro, wo = spec::wo,
+                                   rw = spec::rw;
 
 /*----------------------------------------------------------------------------*
   Dual field.
