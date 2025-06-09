@@ -16,7 +16,8 @@ namespace hard::tasks::initial_data {
 //
 template<std::size_t Dim>
 auto
-acoustic_wave(typename mesh<Dim>::template accessor<ro> m,
+acoustic_wave(flecsi::exec::cpu s,
+  typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<rw, ro> mass_density_a,
   typename field<vec<Dim>>::template accessor<rw, ro> momentum_density_a,
   field<double>::accessor<rw, ro> total_energy_density_a,
@@ -62,10 +63,9 @@ acoustic_wave(typename mesh<Dim>::template accessor<ro> m,
   // Only 1D version has been implemented.
   //
   if constexpr(Dim == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "init_acoustic_1d") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const auto x0{m.template head<ax::x>(i)};
       const auto x1{m.template tail<ax::x>(i)};
-      const auto x{m.template center<ax::x>(i)};
       const double ux{cs * uA * sine_quad(x0, x1)};
       mass_density(i) = r0 * (1 + rA * sine_quad(x0, x1));
 

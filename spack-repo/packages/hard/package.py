@@ -18,7 +18,7 @@ class Hard(CMakePackage):
     variant("tests", default=False, description="Enable unit tests")
     variant("format", default=False, description="Enable format target")
 
-    depends_on("flecsi@2.3.0 +flog")
+    depends_on("flecsi@2.4.0 +flog +kokkos")
     depends_on("libcatalyst", when="+catalyst")
     depends_on("yaml-cpp@0.8:")
     depends_on("singularity-eos@1.9.2 +hdf5 +spiner +eospac build_extra=sesame")

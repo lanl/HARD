@@ -11,7 +11,8 @@ namespace hard::tasks {
 
 template<std::size_t Dim>
 void
-set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
+set_dudt_to_zero(flecsi::exec::cpu s,
+  typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> dt_mass_density_a,
   typename field<vec<Dim>>::template accessor<wo, na> dt_momentum_density_a,
   field<double>::accessor<wo, na> dt_total_energy_density_a,
@@ -27,8 +28,7 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
 
   using hard::tasks::util::get_mdiota_policy;
   if constexpr(Dim == 1) {
-    forall(
-      i, (m.template cells<ax::x, dm::quantities>()), "set_dudt_to_zero_1d") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       dt_mass_density(i) = 0.0;
       dt_momentum_density(i).x = 0.0;
       dt_total_energy_density(i) = 0.0;
@@ -40,7 +40,7 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "set_dudt_to_zero_2d") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       dt_mass_density(i, j) = 0.0;
       dt_momentum_density(i, j).x = 0.0;
@@ -58,7 +58,7 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "set_dudt_to_zero_3d") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       dt_mass_density(i, j, k) = 0.0;
       dt_momentum_density(i, j, k).x = 0.0;
@@ -78,7 +78,8 @@ set_dudt_to_zero(typename mesh<Dim>::template accessor<ro> m,
 //
 template<std::size_t Dim>
 void
-store_current_state(typename mesh<Dim>::template accessor<ro> m,
+store_current_state(flecsi::exec::cpu s,
+  typename mesh<Dim>::template accessor<ro> m,
   // Copied from
   field<double>::accessor<ro, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<ro, na> momentum_density_a,
@@ -115,7 +116,7 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
 
   using hard::tasks::util::get_mdiota_policy;
   if constexpr(Dim == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "store_state_1d") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       mass_density_n(i) = mass_density(i);
       momentum_density_n(i) = momentum_density(i);
       total_energy_density_n(i) = total_energy_density(i);
@@ -129,7 +130,7 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "store_state_2d") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       mass_density_n(i, j) = mass_density(i, j);
       momentum_density_n(i, j) = momentum_density(i, j);
@@ -146,7 +147,7 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "store_state_3d") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       mass_density_n(i, j, k) = mass_density(i, j, k);
       momentum_density_n(i, j, k) = momentum_density(i, j, k);
@@ -160,93 +161,12 @@ store_current_state(typename mesh<Dim>::template accessor<ro> m,
 }
 
 //
-// Prepare evolved variables to U^1 or U^2 after implicit steps (radiative
-// heating / diffusion) and storing (dU_dt)_implicit have been done.
-//
-template<std::size_t Dim>
-void
-compute_u_after_implicit_solve(typename mesh<Dim>::template accessor<ro> m,
-  single<double>::accessor<ro> dtw_a,
-  field<double>::accessor<rw, na> total_energy_density_a,
-  field<double>::accessor<rw, na>
-#ifdef ENABLE_RADIATION
-    radiation_energy_density_a
-#endif
-  ,
-  field<double>::accessor<ro, na> dt_total_energy_density_implicit_a,
-  field<double>::accessor<ro, na>
-#ifdef ENABLE_RADIATION
-    dt_radiation_energy_density_implicit_a
-#endif
-) {
-
-  auto total_energy_density =
-    m.template mdcolex<is::cells>(total_energy_density_a);
-#ifdef ENABLE_RADIATION
-
-  auto radiation_energy_density =
-    m.template mdcolex<is::cells>(radiation_energy_density_a);
-#endif
-  auto dt_total_energy_density_implicit =
-    m.template mdcolex<is::cells>(dt_total_energy_density_implicit_a);
-#ifdef ENABLE_RADIATION
-  auto dt_radiation_energy_density_implicit =
-    m.template mdcolex<is::cells>(dt_radiation_energy_density_implicit_a);
-#endif
-
-  using hard::tasks::util::get_mdiota_policy;
-  if constexpr(Dim == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "compute_u_1d") {
-      auto & dt_weighted = *dtw_a;
-      total_energy_density(i) +=
-        dt_weighted * dt_total_energy_density_implicit(i);
-#ifdef ENABLE_RADIATION
-      radiation_energy_density(i) +=
-        dt_weighted * dt_radiation_energy_density_implicit(i);
-#endif
-    }; // forall
-  }
-  else if constexpr(Dim == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(total_energy_density,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    forall(ji, mdpolicy_qq, "compute_u_2d") {
-      auto [j, i] = ji;
-      auto & dt_weighted = *dtw_a;
-      total_energy_density(i, j) +=
-        dt_weighted * dt_total_energy_density_implicit(i, j);
-#ifdef ENABLE_RADIATION
-      radiation_energy_density(i, j) +=
-        dt_weighted * dt_radiation_energy_density_implicit(i, j);
-#endif
-    }; // forall
-  }
-  else {
-    auto mdpolicy_qqq = get_mdiota_policy(total_energy_density,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    forall(kji, mdpolicy_qqq, "compute_u_3d") {
-      auto [k, j, i] = kji;
-      auto & dt_weighted = *dtw_a;
-      total_energy_density(i, j, k) +=
-        dt_weighted * dt_total_energy_density_implicit(i, j, k);
-#ifdef ENABLE_RADIATION
-      radiation_energy_density(i, j, k) +=
-        dt_weighted * dt_radiation_energy_density_implicit(i, j, k);
-#endif
-    }; // forall
-  }
-}
-
-//
 // Used for the RK substeps
 //
 template<std::size_t Dim>
 void
-update_u(single<double>::accessor<ro> dt_a,
+update_u(flecsi::exec::cpu s,
+  single<double>::accessor<ro> dt_a,
   typename mesh<Dim>::template accessor<ro> m,
   // U^n we want to update
   field<double>::accessor<rw, na> mass_density_a,
@@ -290,7 +210,7 @@ update_u(single<double>::accessor<ro> dt_a,
   using hard::tasks::util::get_mdiota_policy;
 
   if constexpr(Dim == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "update_u_1d") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       mass_density(i) += h * dt_mass_density(i);
       momentum_density(i) += h * dt_momentum_density(i);
       total_energy_density(i) += h * dt_total_energy_density(i);
@@ -305,7 +225,7 @@ update_u(single<double>::accessor<ro> dt_a,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "update_u_2d") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       // Weights
       mass_density(i, j) += h * dt_mass_density(i, j);
@@ -322,7 +242,7 @@ update_u(single<double>::accessor<ro> dt_a,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "update_u_3d") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       mass_density(i, j, k) += h * dt_mass_density(i, j, k);
@@ -338,7 +258,8 @@ update_u(single<double>::accessor<ro> dt_a,
 
 template<std::size_t Dim>
 void
-add_k1_k2(typename mesh<Dim>::template accessor<ro> m,
+add_k1_k2(flecsi::exec::cpu s,
+  typename mesh<Dim>::template accessor<ro> m,
   // K1
   field<double>::accessor<rw, na> dt_mass_density_a,
   typename field<vec<Dim>>::template accessor<rw, na> dt_momentum_density_a,
@@ -376,7 +297,7 @@ add_k1_k2(typename mesh<Dim>::template accessor<ro> m,
   using hard::tasks::util::get_mdiota_policy;
 
   if constexpr(Dim == 1) {
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "update_k1_1d") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       dt_r(i) = (dt_r(i) + dt_r2(i)) * 0.5;
       dt_ru(i) = (dt_ru(i) + dt_ru2(i)) * 0.5;
       dt_te(i) = (dt_te(i) + dt_te2(i)) * 0.5;
@@ -391,7 +312,7 @@ add_k1_k2(typename mesh<Dim>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(ji, mdpolicy_qq, "update_k1_2d") {
+    s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       // Weights
       dt_r(i, j) = (dt_r(i, j) + dt_r2(i, j)) * 0.5;
@@ -408,7 +329,7 @@ add_k1_k2(typename mesh<Dim>::template accessor<ro> m,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    forall(kji, mdpolicy_qqq, "update_u_3d") {
+    s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       dt_r(i, j, k) = (dt_r(i, j, k) + dt_r2(i, j, k)) * 0.5;

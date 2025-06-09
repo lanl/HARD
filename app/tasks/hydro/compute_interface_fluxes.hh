@@ -14,7 +14,8 @@ namespace hard::tasks::hydro {
 //
 template<std::size_t Dim>
 void
-compute_interface_fluxes(std::size_t face_axis,
+compute_interface_fluxes(flecsi::exec::cpu s,
+  std::size_t face_axis,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, ro> rTail_a,
   field<double>::accessor<wo, ro> rHead_a,
@@ -112,7 +113,7 @@ compute_interface_fluxes(std::size_t face_axis,
       flog_fatal("1D executable can only compute fluxes along X axis");
     }
 #endif
-    forall(i, (m.template cells<ax::x, dm::corrector>()), "compute_flux_1d") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
       // min/max characteristic speeds on left
 
       const double cT{cTail(i - 1)};
@@ -155,7 +156,7 @@ compute_interface_fluxes(std::size_t face_axis,
     }; // forall
 
     // Store dF^x/dx into du_dt
-    forall(i, (m.template cells<ax::x, dm::quantities>()), "update_flux_1d") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       dt_mass_density(i) += one_over_dx_i[0] * (rF(i) - rF(i + 1));
       dt_momentum_density(i) += one_over_dx_i[0] * (ruF(i) - ruF(i + 1));
       dt_total_energy_density(i) += one_over_dx_i[0] * (rEF(i) - rEF(i + 1));
@@ -176,7 +177,7 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::corrector>());
 
-      forall(ji, mdpolicy_qc, "compute_flux_2dx") {
+      s.executor().forall(ji, mdpolicy_qc) {
 
         auto [j, i] = ji;
         // min/max characteristic speeds on left
@@ -232,7 +233,7 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      forall(ji, mdpolicy_qq, "update_flux_2dx") {
+      s.executor().forall(ji, mdpolicy_qq) {
         auto [j, i] = ji;
         dt_mass_density(i, j) += one_over_dx_i[0] * (rF(i, j) - rF(i + 1, j));
         dt_momentum_density(i, j) +=
@@ -251,7 +252,7 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::y, dm::corrector>(),
         m.template cells<ax::x, dm::quantities>());
 
-      forall(ji, mdpolicy_cq, "compute_flux_2dy") {
+      s.executor().forall(ji, mdpolicy_cq) {
 
         auto [j, i] = ji;
         // min/max characteristic speeds on left
@@ -306,7 +307,7 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      forall(ji, mdpolicy_qq, "update_flux_2dy") {
+      s.executor().forall(ji, mdpolicy_qq) {
         auto [j, i] = ji;
         dt_mass_density(i, j) += one_over_dx_i[1] * (rF(i, j) - rF(i, j + 1));
         dt_momentum_density(i, j) +=
@@ -329,7 +330,7 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::corrector>());
 
-      forall(kji, mdpolicy_qqc, "compute_flux_3dx") {
+      s.executor().forall(kji, mdpolicy_qqc) {
 
         auto [k, j, i] = kji;
         // min/max characteristic speeds on left
@@ -391,7 +392,7 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      forall(kji, mdpolicy_qqq, "update_flux_3dx") {
+      s.executor().forall(kji, mdpolicy_qqq) {
         auto [k, j, i] = kji;
         dt_mass_density(i, j, k) +=
           one_over_dx_i[0] * (rF(i, j, k) - rF(i + 1, j, k));
@@ -411,7 +412,7 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::y, dm::corrector>(),
         m.template cells<ax::x, dm::quantities>());
 
-      forall(kji, mdpolicy_qcq, "compute_flux_3dy") {
+      s.executor().forall(kji, mdpolicy_qcq) {
 
         auto [k, j, i] = kji;
         // min/max characteristic speeds on left
@@ -470,7 +471,7 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      forall(kji, mdpolicy_qqq, "update_flux_3dy") {
+      s.executor().forall(kji, mdpolicy_qqq) {
         auto [k, j, i] = kji;
         dt_mass_density(i, j, k) +=
           one_over_dx_i[1] * (rF(i, j, k) - rF(i, j + 1, k));
@@ -490,7 +491,7 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      forall(kji, mdpolicy_cqq, "compute_flux_3dz") {
+      s.executor().forall(kji, mdpolicy_cqq) {
 
         auto [k, j, i] = kji;
         // min/max characteristic speeds on left
@@ -549,7 +550,7 @@ compute_interface_fluxes(std::size_t face_axis,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      forall(kji, mdpolicy_qqq, "update_flux_3dz") {
+      s.executor().forall(kji, mdpolicy_qqq) {
         auto [k, j, i] = kji;
         dt_mass_density(i, j, k) +=
           one_over_dx_i[2] * (rF(i, j, k) - rF(i, j, k + 1));

@@ -64,7 +64,8 @@ struct stencil {
 //
 template<std::size_t Dim, typename Limiter>
 void
-reconstruct(std::size_t reconstruction_axis,
+reconstruct(flecsi::exec::cpu s,
+  std::size_t reconstruction_axis,
   typename mesh<Dim>::template accessor<ro> m,
   // cell-centered primitive varibles
   field<double>::accessor<ro, ro> mass_density_a,
@@ -141,7 +142,7 @@ reconstruct(std::size_t reconstruction_axis,
 
   if constexpr(Dim == 1) {
 
-    forall(i, (m.template cells<ax::x, dm::predictor>()), "reconstruct_1d") {
+    s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
 
       std::tie(rHead(i), rTail(i)) = stencil<Limiter>()(i, mass_density);
       std::tie(uHead(i), uTail(i)) = stencil<Limiter>()(i, velocity);
@@ -169,7 +170,7 @@ reconstruct(std::size_t reconstruction_axis,
       m.template cells<ax::y, dm::predictor>(),
       m.template cells<ax::x, dm::predictor>());
 
-    forall(ji, mdpolicy_pp, "reconstruct_2d") {
+    s.executor().forall(ji, mdpolicy_pp) {
 
       auto [j, i] = ji;
 
@@ -206,7 +207,7 @@ reconstruct(std::size_t reconstruction_axis,
       m.template cells<ax::y, dm::predictor>(),
       m.template cells<ax::x, dm::predictor>());
 
-    forall(kji, mdpolicy_ppp, "reconstruct_3d") {
+    s.executor().forall(kji, mdpolicy_ppp) {
       auto [k, j, i] = kji;
 
       std::tie(rHead(i, j, k), rTail(i, j, k)) =

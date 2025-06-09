@@ -290,10 +290,10 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
     Color Task.
    *--------------------------------------------------------------------------*/
 
-  static coloring
-  color(std::size_t num_colors, gcoord axis_extents, periodic_axes p) {
+  template<typename T>
+  static auto index_colors(T & num, gcoord & axis_extents, periodic_axes & p) {
     index_definition idef;
-    idef.axes = mesh::base::make_axes(num_colors, axis_extents);
+    idef.axes = mesh::base::make_axes(num, axis_extents);
     std::size_t ai{0};
 
     for(auto & a : idef.axes) {
@@ -302,6 +302,19 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
       a.periodic = p[ai++];
     } // for
 
+    return idef;
+  }
+
+  static coloring
+  color(flecsi::Color num_colors, gcoord axis_extents, periodic_axes p) {
+    index_definition idef = index_colors(num_colors, axis_extents, p);
+    return {{idef}};
+  }
+
+  static coloring color(mesh::base::colors const & color_distribution,
+    gcoord axis_extents,
+    periodic_axes p) {
+    index_definition idef = index_colors(color_distribution, axis_extents, p);
     return {{idef}};
   } // color
 
@@ -309,8 +322,9 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
     Initialization.
    *--------------------------------------------------------------------------*/
 
-  static void set_geometry(mesh::template accessor<flecsi::rw> m,
-    grect const & g) {
+  static void set_geometry(flecsi::exec::cpu,
+    mesh::template accessor<flecsi::rw> m,
+    grect const & g) noexcept {
     if constexpr(D == 1) {
       m.set_geometry(
         (g[0][1] - g[0][0]) / m.template size<ax::x, dm::global>());
@@ -326,10 +340,11 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
     }
   } // set_geometry
 
-  static void initialize(flecsi::data::topology_slot<mesh> & s,
+  static void initialize(flecsi::scheduler & s,
+    typename mesh<D>::topology & m,
     coloring const &,
     grect const & geometry) {
-    flecsi::execute<set_geometry>(s, geometry);
+    s.execute<set_geometry>(flecsi::exec::on, m, geometry);
   } // initialize
 
 }; // struct mesh
