@@ -270,5 +270,13 @@ the ``catalyst_attributes::execute`` method in ``catalyst/types.cc``.
                                                   &this->tot_energy[0]); // <<< add total energy
   }
 
+Example for config file: 
+``` 
+catalyst:
+  script: gridwriter.py
+  implementation: paraview
+  implementation_directory: /vast/home/thomasvogel/spack/var/spack/environments/vtk_viz/.spack-env/view/lib64/catalyst/
+```
+
 
 Feel free to contact Thomas (thomasvogel@lanl.gov) directly if you have any further questions.
