@@ -49,7 +49,8 @@ analyze(control_policy<state, D> & cp) {
     if constexpr(D == 3) {
       // First update fields (catalyst_attributes) for catalysts pipeline
       flog(info) << "analyze action: prepare catalyst data" << std::endl;
-      execute<tasks::external::update_attributes<D>, mpi>(catalyst_data(pt),
+      execute<tasks::external::update_attributes<D>, mpi>(flecsi::exec::on,
+        s.catalyst_data(*s.pt),
         s.t(*s.gt),
         *s.m,
         s.mass_density(*s.m),
@@ -61,8 +62,11 @@ analyze(control_policy<state, D> & cp) {
 
       // Then pass catalyst_data to catalyst pipeline
       flog(info) << "analyze action: execute catalyst" << std::endl;
-      execute<tasks::external::execute_catalyst, mpi>(
-        catalyst_data(pt), cp.step(), s.t(*s.gt), lattice);
+      execute<tasks::external::execute_catalyst, mpi>(flecsi::exec::on,
+        s.catalyst_data(*s.pt),
+        cp.step(),
+        s.t(*s.gt),
+        lattice);
     }
     else {
       /* Do nothing, catalyst/paraview visualization only for 3D */
