@@ -18,8 +18,7 @@ namespace hard::tasks::external {
  *--------------------------------------------------------------------------*/
 template<std::size_t D>
 inline void
-get_lattice_size(flecsi::exec::cpu s,
-  typename mesh<D>::template accessor<ro> m) {
+get_lattice_size(flecsi::exec::cpu, typename mesh<D>::template accessor<ro> m) {
   if constexpr(D == 3) {
     number_vertices[0] = m.template size<ax::x, dm::global>() +
                          1; // 1 more vertex than cell in simple cubic lattice
@@ -72,7 +71,7 @@ get_color_data(flecsi::exec::cpu s, typename mesh<D>::template accessor<ro> m) {
 }
 
 inline void
-init_attributes(flecsi::exec::cpu s,
+init_attributes(flecsi::exec::cpu,
   single<catalyst_attributes>::accessor<wo> c_a,
   std::size_t pt,
   std::size_t cl) {
@@ -88,7 +87,7 @@ init_attributes(flecsi::exec::cpu s,
  *--------------------------------------------------------------------------*/
 template<std::size_t D>
 inline void
-update_attributes(flecsi::exec::cpu s,
+update_attributes(flecsi::exec::cpu,
   single<catalyst_attributes>::accessor<rw> c_a,
   single<double>::accessor<ro> time_a,
   typename mesh<D>::template accessor<ro> m,
@@ -169,7 +168,7 @@ update_attributes(flecsi::exec::cpu s,
   'execute' task.
  *--------------------------------------------------------------------------*/
 inline void
-execute_catalyst(flecsi::exec::cpu s,
+execute_catalyst(flecsi::exec::cpu,
   single<catalyst_attributes>::accessor<rw> c_a,
   size_t step,
   single<double>::accessor<ro> time,
@@ -184,7 +183,7 @@ execute_catalyst(flecsi::exec::cpu s,
   the 'initialize' task.
  *--------------------------------------------------------------------------*/
 inline void
-initialize(flecsi::exec::cpu s) {
+initialize(flecsi::exec::cpu) {
   catalyst_adaptor::initialize();
   flog(info) << "Catalyst Initialize, ok" << std::endl;
 }
@@ -195,7 +194,7 @@ initialize(flecsi::exec::cpu s) {
   the 'finalize' task.
  *--------------------------------------------------------------------------*/
 inline void
-finalize(flecsi::exec::cpu s, single<catalyst_attributes>::accessor<rw> c_a) {
+finalize(flecsi::exec::cpu, single<catalyst_attributes>::accessor<rw> c_a) {
   catalyst_adaptor::finalize();
   c_a->finalize();
   flog(info) << "Catalyst Finalize, ok" << std::endl;
