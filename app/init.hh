@@ -471,14 +471,15 @@ initialize(control_policy<state, D> & cp) {
   if constexpr(D == 3) {
     // Initialize catalyst
     execute<tasks::external::initialize, mpi>(flecsi::exec::on);
+    sc.allocate(s.pt, num_colors);
 
     // Initialize lattice
-    execute<tasks::external::get_lattice_size<D>, mpi>(flecsi::exec::on, s.m);
+    execute<tasks::external::get_lattice_size<D>, mpi>(flecsi::exec::on, *s.m);
     flog(info) << "init action, catalyst: got lattice dimensions from hard: "
                << number_vertices[0] << " x " << number_vertices[1] << " x "
                << number_vertices[2] << " vertices." << std::endl;
 
-    execute<tasks::external::get_color_data<D>, mpi>(flecsi::exec::on, s.m);
+    execute<tasks::external::get_color_data<D>, mpi>(flecsi::exec::on, *s.m);
     flog(info) << "init action, catalyst: got color dimensions from hard: "
                << number_colors[0] << " x " << number_colors[1] << " x "
                << number_colors[2] << " color blocks." << std::endl;
@@ -518,7 +519,8 @@ initialize(control_policy<state, D> & cp) {
     */
 
     // Initialize catalyst data structure
-    execute<tasks::external::init_attributes, mpi>(catalyst_data(pt),
+    execute<tasks::external::init_attributes, mpi>(flecsi::exec::on,
+      s.catalyst_data(*s.pt),
       lattice.get_number_of_points(),
       lattice.get_number_of_cells());
 
@@ -540,18 +542,19 @@ initialize(control_policy<state, D> & cp) {
     }
 
     // Send initial problem state to catalyst
-    execute<tasks::external::update_attributes<D>, mpi>(catalyst_data(pt),
-      s.t(s.gt),
-      s.m,
-      s.mass_density(s.m),
-      s.velocity(s.m),
-      s.pressure(s.m),
-      s.total_energy_density(s.m),
-      s.radiation_energy_density(s.m)); // <<< add variables here for catalyst
+    execute<tasks::external::update_attributes<D>, mpi>(flecsi::exec::on,
+      s.catalyst_data(*s.pt),
+      s.t(*s.gt),
+      *s.m,
+      s.mass_density(*s.m),
+      s.velocity(*s.m),
+      s.pressure(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m)); // <<< add variables here for catalyst
     flog(info) << "init action, catalyst: execute catalyst for initial state"
                << std::endl;
     execute<tasks::external::execute_catalyst, mpi>(
-      catalyst_data(pt), 0, s.t(s.gt), lattice);
+      flecsi::exec::on, s.catalyst_data(*s.pt), 0, s.t(*s.gt), lattice);
   }
   else {
     /* Do nothing, catalyst/paraview visualization only for 3D */

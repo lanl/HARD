@@ -64,3 +64,11 @@ darwin_hard_radiation_test_legion:
   variables:
     SPACK_ENV_NAME: "custom-file"
     SPACK_ENV_FILE: ${CI_PROJECT_DIR}/spack-repo/custom/hard_radiation_spack_legion.yaml
+
+darwin_catalyst_build_mpi:
+  stage: mpi
+  extends: [.ascgit_job, .darwin_job, .darwin_regular_job, .build_and_test]
+  needs: []
+  variables:
+    SPACK_ENV_NAME: "custom-file"
+    SPACK_ENV_FILE: ${CI_PROJECT_DIR}/spack-repo/custom/hard_catalyst_build_mpi.yaml
