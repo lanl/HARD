@@ -14,13 +14,15 @@ namespace hard::action {
 
 template<std::size_t D>
 void
-finalize(control_policy<state, D> &) {
+finalize(control_policy<state, D> & cs) {
   using namespace flecsi;
+  auto & s = cs.state();
 
 #ifdef USE_CATALYST
 
   if constexpr(D == 3) {
-    execute<tasks::external::finalize, mpi>(catalyst_data(pt));
+    execute<tasks::external::finalize, mpi>(
+      flecsi::exec::on, s.catalyst_data(*s.pt));
     flog(info) << "finalize action: done" << std::endl;
   }
   else {

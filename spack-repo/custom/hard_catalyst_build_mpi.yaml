@@ -1,0 +1,21 @@
+spack:
+  include:
+  - ../../common/packages.yaml
+  - ../../common/repos.yaml
+  - ../../common/mirrors.yaml
+  - ../common/bootstrap.yaml
+  - ../common/compilers.yaml
+  - ../common/packages.yaml
+  - ../common/upstreams.yaml
+  specs:
+  - hard
+  view: false
+  concretizer:
+    unify: true
+  packages:
+    mpi:
+      require: "openmpi"
+    flecsi:
+      require: "%gcc@13.2.0 +flog+hdf5+kokkos backend=mpi"
+    hard:
+      require: "+catalyst"
