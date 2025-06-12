@@ -19,7 +19,7 @@ dispatch(flecsi::runtime & r,
   std::size_t d,
   std::index_sequence<DD...>,
   AA &&... aa) {
-  bool ret;
+  bool ret = false;
   std::initializer_list<int>({(
     d == DD ? (ret = r.control<C<S, DD>>(std::forward<AA>(aa)...)), 0 : 0)...});
   return ret;
