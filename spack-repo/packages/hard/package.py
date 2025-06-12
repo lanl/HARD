@@ -20,6 +20,7 @@ class Hard(CMakePackage):
 
     depends_on("flecsi@2.4.0 +flog +kokkos")
     depends_on("libcatalyst", when="+catalyst")
+    #depends_on("paraview@5.12.1+libcatalyst+python", when="+catalyst")
     depends_on("yaml-cpp@0.8:")
     depends_on("singularity-eos@1.9.2 +hdf5 +spiner +eospac build_extra=sesame")
     depends_on("llvm@13.0.0", type="build", when="+format")
