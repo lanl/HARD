@@ -42,6 +42,16 @@ struct state {
   flecsi::topo::global::ptr gt;
   flecsi::topo::global::ptr dense_topology;
 
+#ifdef USE_CATALYST
+  flecsi::topo::index::ptr pt;
+  /*----------------------------------------------------------------------------*
+    Register the catalyst_data_structure on the "index" topology.
+   *----------------------------------------------------------------------------*/
+  static inline single<catalyst_attributes>::definition<flecsi::topo::index>
+    catalyst_data;
+
+#endif // USE_CATALYST
+
   // Vector for meshes in multigrid
   std::vector<typename mesh<D>::ptr> mh;
 
@@ -236,25 +246,6 @@ struct state {
   bool mg = false;
 
 }; // struct state
-
-#ifdef USE_CATALYST
-
-/*----------------------------------------------------------------------------*
-  Convenience reference of the flecsi pre-defined process_topology slot. The
-  process_topology slot has the same number of colors as there are processes.
-  This means that it can be used as an "mpi" topology, i.e., the number of
-  colors will always match the number of mpi ranks. In this example each
-  process/color will have its own instance of a type that is registered on it.
- *----------------------------------------------------------------------------*/
-inline flecsi::topo::index::slot & pt = flecsi::process_topology;
-
-/*----------------------------------------------------------------------------*
-  Register the catalyst_data_structure on the "index" topology.
- *----------------------------------------------------------------------------*/
-inline const single<catalyst_attributes>::definition<flecsi::topo::index>
-  catalyst_data;
-
-#endif // USE_CATALYST
 
 } // namespace hard
 
