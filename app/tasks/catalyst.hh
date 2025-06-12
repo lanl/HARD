@@ -18,7 +18,7 @@ namespace hard::tasks::external {
  *--------------------------------------------------------------------------*/
 template<std::size_t D>
 inline void
-get_lattice_size(typename mesh<D>::template accessor<ro> m) {
+get_lattice_size(flecsi::exec::cpu, typename mesh<D>::template accessor<ro> m) {
   if constexpr(D == 3) {
     number_vertices[0] = m.template size<ax::x, dm::global>() +
                          1; // 1 more vertex than cell in simple cubic lattice
@@ -32,7 +32,7 @@ get_lattice_size(typename mesh<D>::template accessor<ro> m) {
 
 template<std::size_t D>
 inline void
-get_color_data(typename mesh<D>::template accessor<ro> m) {
+get_color_data(flecsi::exec::cpu s, typename mesh<D>::template accessor<ro> m) {
   if constexpr(D == 3) {
     // get number of color in each direction
     auto ccolors = m.axis_colors();
@@ -63,7 +63,7 @@ get_color_data(typename mesh<D>::template accessor<ro> m) {
     color_cell_id_begin[2] = ax_z.global_id(*cell_it_z.begin());
     color_cell_id_end[2] = ax_z.global_id(*cell_it_z.end() - 1);
 
-    my_rank = flecsi::process();
+    my_rank = s.launch().index;
   }
   else {
     /* Do nothing, catalyst/paraview visualization only for 3D */
@@ -71,7 +71,8 @@ get_color_data(typename mesh<D>::template accessor<ro> m) {
 }
 
 inline void
-init_attributes(single<catalyst_attributes>::accessor<wo> c_a,
+init_attributes(flecsi::exec::cpu,
+  single<catalyst_attributes>::accessor<wo> c_a,
   std::size_t pt,
   std::size_t cl) {
   /* Need to use the '->' operator to "dereference" 'single' accessor types. */
@@ -86,7 +87,8 @@ init_attributes(single<catalyst_attributes>::accessor<wo> c_a,
  *--------------------------------------------------------------------------*/
 template<std::size_t D>
 inline void
-update_attributes(single<catalyst_attributes>::accessor<rw> c_a,
+update_attributes(flecsi::exec::cpu,
+  single<catalyst_attributes>::accessor<rw> c_a,
   single<double>::accessor<ro> time_a,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, ro> r_a,
@@ -166,7 +168,8 @@ update_attributes(single<catalyst_attributes>::accessor<rw> c_a,
   'execute' task.
  *--------------------------------------------------------------------------*/
 inline void
-execute_catalyst(single<catalyst_attributes>::accessor<rw> c_a,
+execute_catalyst(flecsi::exec::cpu,
+  single<catalyst_attributes>::accessor<rw> c_a,
   size_t step,
   single<double>::accessor<ro> time,
   simple_cubic & lattice) {
@@ -180,7 +183,7 @@ execute_catalyst(single<catalyst_attributes>::accessor<rw> c_a,
   the 'initialize' task.
  *--------------------------------------------------------------------------*/
 inline void
-initialize() {
+initialize(flecsi::exec::cpu) {
   catalyst_adaptor::initialize();
   flog(info) << "Catalyst Initialize, ok" << std::endl;
 }
@@ -191,7 +194,7 @@ initialize() {
   the 'finalize' task.
  *--------------------------------------------------------------------------*/
 inline void
-finalize(single<catalyst_attributes>::accessor<rw> c_a) {
+finalize(flecsi::exec::cpu, single<catalyst_attributes>::accessor<rw> c_a) {
   catalyst_adaptor::finalize();
   c_a->finalize();
   flog(info) << "Catalyst Finalize, ok" << std::endl;
