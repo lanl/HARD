@@ -20,13 +20,13 @@ update_dtmin(flecsi::exec::cpu,
     return m.template delta<ax::x>() / lmax;
   }
   else if constexpr(D == 2) {
-    return std::min(
-      m.template delta<ax::x>() / lmax, m.template delta<ax::y>() / lmax);
+    return std::min(m.template delta<ax::x>(), m.template delta<ax::y>()) /
+           (D * lmax);
   }
   else {
-    return std::min(m.template delta<ax::x>() / lmax,
-      std::min(
-        m.template delta<ax::y>() / lmax, m.template delta<ax::z>() / lmax));
+    return std::min(m.template delta<ax::x>(),
+             std::min(m.template delta<ax::y>(), m.template delta<ax::z>())) /
+           (D * lmax);
   } // if
 } // update_dtmin
 
