@@ -43,7 +43,9 @@ def main() -> None:
         last_output = find_last_output(dir=dir)
         assert last_output is not None
 
-        out_tuple = np.loadtxt(last_output, usecols=(0, 2, 3, 4, 5)).T
+        out_tuple = np.loadtxt(last_output, delimiter=",",
+                               skiprows=1,
+                               usecols=(0, 2, 3, 4, 9)).T
 
         # Extract physical quantities from tuple
         t_arr, x_num, rho_num, p_num, u_num = out_tuple

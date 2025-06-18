@@ -244,10 +244,30 @@ if(ENABLE_VERIFICATION OR ENABLE_UNIT_TESTS)
     OUTPUT_QUIET
     ERROR_QUIET
   )
-
   if(NOT EXACTPACK_FOUND EQUAL 0)
     message(FATAL_ERROR "ExactPack Python module not found. Please install it (e.g., with 'pip install exactpack').")
   endif()
+
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -c "import matplotlib"
+    RESULT_VARIABLE MATPLOTLIB_FOUND
+    OUTPUT_QUIET
+    ERROR_QUIET
+  )
+  if(NOT EXACTPACK_FOUND EQUAL 0)
+    message(FATAL_ERROR "Matplotlib Python module not found. Please install it (e.g., with 'pip install matplotlib').")
+  endif()
+
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -c "import pyyaml"
+    RESULT_VARIABLE PYYAML_FOUND
+    OUTPUT_QUIET
+    ERROR_QUIET
+  )
+  if(NOT EXACTPACK_FOUND EQUAL 0)
+    message(FATAL_ERROR "Yaml Python module not found. Please install it (e.g., with 'pip install pyyaml').")
+  endif()
+
 
 
   set(CHECK_SCRIPT ${CMAKE_SOURCE_DIR}/tools/exactpack_verify.py)
