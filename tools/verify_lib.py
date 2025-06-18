@@ -46,7 +46,7 @@ def parse_cli(get_file: bool = True) -> tuple[
 
     if len(sys.argv) < 2:
         s = f"Usage: python {sys.argv[0]} <config_file>"
-        s += " [output_dir | output.raw]"
+        s += " [output_dir | output.csv]"
         s += " [--plot]"
         sys.exit(s)
 
@@ -54,13 +54,13 @@ def parse_cli(get_file: bool = True) -> tuple[
     yaml_file = sys.argv[1]
     problem, gamma, x0, x1, problem_dict = parse_config(yaml_file)
 
-    raw_file = None
+    csv_file = None
     out_dir = None
     make_plot = False
 
     for arg in sys.argv[2:]:
-        if arg.endswith(".raw"):
-            raw_file = arg
+        if arg.endswith(".csv"):
+            csv_file = arg
         elif arg == "--plot":
             make_plot = True
         else:
@@ -69,13 +69,13 @@ def parse_cli(get_file: bool = True) -> tuple[
     if get_file:
 
         # If no file is passed, select the latest available output
-        if raw_file is None:
-            raw_file = find_last_output(dir=out_dir)
-            assert raw_file is not None
+        if csv_file is None:
+            csv_file = find_last_output(dir=out_dir)
+            assert csv_file is not None
 
-            print(f"Auto-selected input file: {raw_file}")
+            print(f"Auto-selected input file: {csv_file}")
 
-    return yaml_file, out_dir, raw_file, make_plot
+    return yaml_file, out_dir, csv_file, make_plot
 
 
 def simple_quad(f: Callable, x0: float, x1: float, deg=10) -> float:
@@ -105,7 +105,7 @@ def compute_l1_error_fvm(x_num: NDArray, numerical: NDArray,
     return error
 
 
-def find_last_output(pattern: str = "output-*-1D-0.raw",
+def find_last_output(pattern: str = "output-1D-0-*.csv",
                      dir: str | None = None) -> str | None:
 
     if dir is not None:

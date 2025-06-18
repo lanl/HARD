@@ -448,19 +448,24 @@ initialize(control_policy<state, D> & cp) {
 #ifndef HARD_BENCHMARK_MODE
 
   auto lm = data::launch::make(sc, *s.m);
-  execute<tasks::io::raw<D>, mpi>(flecsi::exec::on,
-    spec::io::name{"output-"} << std::setfill('0') << std::setw(5) << cp.step(),
+  execute<tasks::io::csv<D>, mpi>(flecsi::exec::on,
+    spec::io::name{""} << std::setfill('0') << std::setw(5) << cp.step(),
     s.t(*s.gt),
     lm,
-    s.mass_density(lm),
-    s.pressure(lm),
-    s.sound_speed(lm),
-    s.specific_internal_energy(lm),
-    s.velocity(lm),
-    s.momentum_density(lm),
-    s.total_energy_density(lm),
-    s.radiation_energy_density(lm));
-
+    std::vector{s.mass_density(lm),
+      s.pressure(lm),
+      s.sound_speed(lm),
+      s.specific_internal_energy(lm),
+      s.total_energy_density(lm),
+      s.radiation_energy_density(lm)},
+    std::vector{s.velocity(lm), s.momentum_density(lm)},
+    std::vector<std::string>{"density",
+      "pressure",
+      "sound_speed",
+      "specific_internal_energy",
+      "total_energy_density",
+      "radiation_energy_density"},
+    std::vector<std::string>{"velocity", "momentum_density"});
 #endif
   /*--------------------------------------------------------------------------*
     Initialize catalyst: Build the lattice, initialize adaptor, parse yaml file
