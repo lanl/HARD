@@ -7,10 +7,10 @@ hard_executable="$2"
 config_file="$3"
 additional_args="$4"
 
-rm -rf *.raw
+rm -rf *.csv
 $mpi_executable -np 1 $hard_executable $config_file $additional_args && \
   make verify CONFIG="$config_file"
-rm -rf *.raw
+rm -rf *.csv
 
 if [ -d ./artifacts ]; then
 # Save the plots as artifacts

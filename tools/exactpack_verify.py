@@ -25,7 +25,7 @@ class ProblemData(object):
 
         # Default values
         self.name = name
-        self.usecols = [0, 2, 3, 4, 5]
+        self.usecols = [0, 2, 3, 4, 9]
         self.extract = ["density", "pressure", "velocity"]
         self.labels = ["Density", "Pressure", "Velocity"]
         self.tolerances = [1e-2, 1e-2, 5e-1]
@@ -128,23 +128,23 @@ class Problem(object):
         self.errors: list[float]
         self.status: list[str]
 
-    def load_raw_file(self, raw_file: str) -> None:
+    def load_csv_file(self, csv_file: str) -> None:
         """
-        Load the last raw file
+        Load the last csv file
         """
-
-        self.raw_file = raw_file
-        raw_out = np.loadtxt(raw_file, usecols=self.data.usecols).T
+        self.csv_file = csv_file
+        csv_out = np.loadtxt(csv_file, delimiter=",",
+                             skiprows=1, usecols=self.data.usecols).T
 
         # Extract time and x_arr
         t_index = self.data.usecols.index(0)
         x_index = self.data.usecols.index(2)
-        self.time = raw_out[t_index][0]
-        self.x_arr = raw_out[x_index]
+        self.time = csv_out[t_index][0]
+        self.x_arr = csv_out[x_index]
 
         # Extract the other quantities
         self.numerical = [x for i, x in enumerate(
-            raw_out) if i not in [t_index, x_index]]
+            csv_out) if i not in [t_index, x_index]]
 
     def get_exact_solutions(self) -> None:
         """
@@ -201,8 +201,8 @@ class Problem(object):
         """
 
         # Return the references
-        tag = os.path.splitext(os.path.basename(self.raw_file))[0].replace(
-            "output-", "").replace(".raw", "")
+        tag = os.path.splitext(os.path.basename(self.csv_file))[0].replace(
+            "output-", "").replace(".csv", "")
 
         for lab, num, ref in zip(self.data.labels, self.numerical,
                                  self.references):
@@ -260,14 +260,14 @@ class Problem(object):
 def main() -> None:
 
     # Get the values
-    yaml_file, _, raw_file, make_plot = parse_cli()
-    assert raw_file is not None
+    yaml_file, _, csv_file, make_plot = parse_cli()
+    assert csv_file is not None
 
     # Instantiate problem object
     problem = Problem(yaml_file)
 
-    # Load raw file
-    problem.load_raw_file(raw_file)
+    # Load csv file
+    problem.load_csv_file(csv_file)
 
     # Get exact solutions
     problem.get_exact_solutions()

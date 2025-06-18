@@ -10,162 +10,118 @@
 namespace hard::tasks::io {
 
 template<std::size_t D>
-void inline raw(flecsi::exec::cpu s,
+void inline csv(flecsi::exec::cpu s,
   spec::io::name const & base,
   single<double>::accessor<ro> time,
   multi<typename mesh<D>::template accessor<ro>> mm,
-  multi<field<double>::accessor<ro, ro>> r_ma,
-  multi<field<double>::accessor<ro, ro>> p_ma,
-  multi<field<double>::accessor<ro, ro>> c_ma,
-  multi<field<double>::accessor<ro, ro>> e_ma,
-  multi<typename field<vec<D>>::template accessor<ro, ro>> u_ma,
-  multi<typename field<vec<D>>::template accessor<ro, ro>> ru_ma,
-  multi<field<double>::accessor<ro, ro>> rE_ma,
-  multi<field<double>::accessor<ro, ro>> radE_ma) {
+  std::vector<multi<field<double>::accessor<ro, ro>>> field_ma,
+  std::vector<multi<typename field<vec<D>>::template accessor<ro, ro>>>
+    field_vector_ma,
+  std::vector<std::string> field_name,
+  std::vector<std::string> field_vector_name) {
 
   for(uint32_t i{0}; i < mm.depth(); ++i) {
     const auto m = mm.accessors()[i];
+    std::vector<flecsi::util::mdcolex<const double, D>> fields;
+    std::vector<flecsi::util::mdcolex<const vec<D>, D>> fields_vectors;
 
-    auto r_a = r_ma.accessors()[i];
-    auto p_a = p_ma.accessors()[i];
-    auto c_a = c_ma.accessors()[i];
-    auto e_a = e_ma.accessors()[i];
-    auto u_a = u_ma.accessors()[i];
-    auto ru_a = ru_ma.accessors()[i];
-    auto rE_a = rE_ma.accessors()[i];
-    auto radE_a = radE_ma.accessors()[i];
-
-    auto r = m.template mdcolex<is::cells>(r_a);
-    auto p = m.template mdcolex<is::cells>(p_a);
-    auto c = m.template mdcolex<is::cells>(c_a);
-    auto e = m.template mdcolex<is::cells>(e_a);
-    auto u = m.template mdcolex<is::cells>(u_a);
-    auto ru = m.template mdcolex<is::cells>(ru_a);
-    auto rE = m.template mdcolex<is::cells>(rE_a);
-    auto radE = m.template mdcolex<is::cells>(radE_a);
+    std::transform(field_ma.begin(),
+      field_ma.end(),
+      std::back_inserter(fields),
+      [&m, &i](const multi<field<double>::accessor<ro, ro>> & ma)
+        -> flecsi::util::mdcolex<const double, D> {
+        return m.template mdcolex<is::cells>(ma.accessors()[i]);
+      });
+    std::transform(field_vector_ma.begin(),
+      field_vector_ma.end(),
+      std::back_inserter(fields_vectors),
+      [&m, &i](const multi<typename field<vec<D>>::accessor<ro, ro>> & ma)
+        -> flecsi::util::mdcolex<const vec<D>, D> {
+        return m.template mdcolex<is::cells>(ma.accessors()[i]);
+      });
 
     if constexpr(D == 1) {
-      std::ofstream file(
-        base.str() + "-1D-" + std::to_string(s.launch().index) + ".raw");
+      std::ofstream file("output-1D-" + std::to_string(s.launch().index) + "-" +
+                         base.str() + ".csv");
 
-      file << "#" << m.template size<ax::x, dm::quantities>() << std::endl;
-      file << "#" << m.template size<ax::x, dm::global>() << std::endl;
-
-      {
-        auto ccoords = m.color_indeces();
-        file << "#" << ccoords[ax::x] << std::endl;
-        auto ccolors = m.axis_colors();
-        file << "#" << ccolors[ax::x] << std::endl;
-      } // scope
-
-      // File format, columns:
-      // time, cellid_x, coord_x, density, pressure, velocity,
-      // fluid total energy density, radiation energy density
-      file << "#time\tcellid_x\tcoord_"
-              "x\tdensity\tpressure\tvelocity\ttotalE\tRadE\tsoundspeed\tsie"
-           << std::endl;
+      file << "time,cellid_x,coord_x";
+      for(auto n : field_name)
+        file << "," << n;
+      for(auto n : field_vector_name)
+        file << "," << n << "_x";
+      file << std::endl;
       file << std::fixed; // just to get a uniform file format
+
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
-        if(std::isnan(r(i)) || std::isnan(p(i)) || std::isnan(rE(i)) ||
-           std::isnan(radE(i)) || std::isnan(c(i)) || std::isnan(e(i))) {
-          flog_fatal(
-            "NAN Variable: r: "
-            << std::isnan(r(i)) << " p: " << std::isnan(p(i))
-            << " rE: " << std::isnan(rE(i)) << " radE: " << std::isnan(radE(i))
-            << " c: " << std::isnan(c(i)) << " e: " << std::isnan(e(i)));
-        }
-        file << std::setprecision(6) << std::scientific << time << "\t" << i
-             << "\t" << m.template center<ax::x>(i) << std::setprecision(12)
-             << "\t" << r(i) << "\t" << p(i) << "\t" << u(i).x << "\t" << rE(i)
-             << "\t" << radE(i) << "\t" << c(i) << "\t" << e(i) << std::endl;
-      } // for
-      file << std::endl; // empty line needed for gnuplot's splot
+        file << std::setprecision(6) << std::scientific << time << "," << i
+             << "," << m.template center<ax::x>(i) << std::setprecision(12);
+        for(auto f_ma : fields)
+          file << "," << f_ma(i);
+        for(auto f_ma : fields_vectors)
+          file << "," << f_ma(i)[0];
+        file << std::endl;
+      }
     }
     else if constexpr(D == 2) {
-      std::ofstream file(
-        base.str() + "-2D-" + std::to_string(s.launch().index) + ".raw");
 
-      file << "#" << m.template size<ax::x, dm::quantities>() << " "
-           << m.template size<ax::y, dm::quantities>() << std::endl;
-      file << "#" << m.template size<ax::x, dm::global>() << " "
-           << m.template size<ax::y, dm::global>() << std::endl;
+      std::ofstream file("output-2D-" + std::to_string(s.launch().index) + "-" +
+                         base.str() + ".csv");
 
-      {
-        auto ccoords = m.color_indeces();
-        file << "#" << ccoords[ax::x] << " " << ccoords[ax::y] << std::endl;
-        auto ccolors = m.axis_colors();
-        file << "#" << ccolors[ax::x] << " " << ccolors[ax::y] << std::endl;
-      } // scope
-
-      // File format, columns:
-      // time, cellid_x, cellid_y, coord_x, coord_y, density, pressure,
-      // velocity, fluid total energy density, radiation energy density
-      file << "#time\tcellidx\tcellidy\tx\ty\tdensity\tpressure\tvx\tvy\ttotalE"
-              "\tRadE"
-           << std::endl;
+      file << "time,cellid_x,cellid_y,coord_x,coord_y";
+      for(auto n : field_name)
+        file << "," << n;
+      for(auto n : field_vector_name)
+        file << "," << n << "_x," << n << "_y";
+      file << std::endl;
       file << std::fixed; // just to get a uniform file format
+
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         for(auto j : m.template cells<ax::y, dm::quantities>()) {
-          file << std::setprecision(6) << std::scientific << time << "\t" << i
-               << "\t" << j << "\t" << m.template center<ax::x>(i) << "\t"
-               << m.template center<ax::y>(j) << std::setprecision(9) << "\t"
-               << r(i, j) << "\t" << p(i, j) << "\t" << u(i, j).x << "\t"
-               << u(i, j).y << "\t" << rE(i, j) << "\t" << radE(i, j)
-               << std::endl;
-        } // for
-        file << std::endl; // empty line needed for gnuplot's splot
-      } // for
+
+          file << std::setprecision(6) << std::scientific << time << "," << i
+               << "," << j << "," << m.template center<ax::x>(i) << ","
+               << m.template center<ax::y>(j) << std::setprecision(12);
+          for(auto f_ma : fields)
+            file << "," << f_ma(i, j);
+          for(auto f_ma : fields_vectors)
+            file << "," << f_ma(i, j)[0] << "," << f_ma(i, j)[1];
+          file << std::endl;
+        }
+      }
     }
     else /* D == 3 */ {
-      std::ofstream file(
-        base.str() + "-" + std::to_string(s.launch().index) + ".raw");
 
-      file << m.template size<ax::x, dm::quantities>() << " "
-           << m.template size<ax::y, dm::quantities>() << " "
-           << m.template size<ax::z, dm::quantities>() << std::endl;
-      file << m.template size<ax::x, dm::global>() << " "
-           << m.template size<ax::y, dm::global>() << " "
-           << m.template size<ax::z, dm::global>() << std::endl;
+      std::ofstream file("output-3D-" + std::to_string(s.launch().index) + "-" +
+                         base.str() + ".csv");
 
-      {
-        auto ccoords = m.color_indeces();
-        file << ccoords[ax::x] << " " << ccoords[ax::y] << " " << ccoords[ax::z]
-             << std::endl;
-        auto ccolors = m.axis_colors();
-        file << ccolors[ax::x] << " " << ccolors[ax::y] << " " << ccolors[ax::z]
-             << std::endl;
-      } // scope
+      file << "time,cellid_x,cellid_y,cellid_z,coord_x,coord_y,coord_z";
+      for(auto n : field_name)
+        file << "," << n;
+      for(auto n : field_vector_name)
+        file << "," << n << "_x," << n << "_y," << n << "_z";
+      file << std::endl;
+      file << std::fixed; // just to get a uniform file format
 
-      // Density
-      for(auto k : m.template cells<ax::z, dm::quantities>()) {
+      for(auto i : m.template cells<ax::x, dm::quantities>()) {
         for(auto j : m.template cells<ax::y, dm::quantities>()) {
-          for(auto i : m.template cells<ax::x, dm::quantities>()) {
-            file << r(i, j, k) << std::endl;
-          } // for
-        } // for
-      } // for
+          for(auto k : m.template cells<ax::z, dm::quantities>()) {
 
-      // Momentum
-      for(auto k : m.template cells<ax::z, dm::quantities>()) {
-        for(auto j : m.template cells<ax::y, dm::quantities>()) {
-          for(auto i : m.template cells<ax::x, dm::quantities>()) {
-            file << ru(i, j, k).x << " " << ru(i, j, k).y << " "
-                 << ru(i, j, k).z << std::endl;
-          } // for
-        } // for
-      } // for
-
-      // Total Energy
-      for(auto k : m.template cells<ax::z, dm::quantities>()) {
-        for(auto j : m.template cells<ax::y, dm::quantities>()) {
-          for(auto i : m.template cells<ax::x, dm::quantities>()) {
-            file << rE(i, j, k) << std::endl;
-          } // for
-        } // for
-      } // for
-    } // for
-  } // if
-} // raw
+            file << std::setprecision(6) << std::scientific << time << "," << i
+                 << "," << j << "," << k << "," << m.template center<ax::x>(i)
+                 << "," << m.template center<ax::y>(j) << ","
+                 << m.template center<ax::z>(k) << std::setprecision(12);
+            for(auto f_ma : fields)
+              file << "," << f_ma(i, j, k);
+            for(auto f_ma : fields_vectors)
+              file << "," << f_ma(i, j, k)[0] << "," << f_ma(i, j, k)[1] << ","
+                   << f_ma(i, j, k)[2];
+            file << std::endl;
+          }
+        }
+      }
+    } // if
+  } // for
+} // csv
 
 } // namespace hard::tasks::io
 
