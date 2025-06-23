@@ -45,7 +45,7 @@ kh_instability(flecsi::exec::cpu s,
       "Kelvin-Helmholtz instability problem for D == 1 is not implemented")
   }
   else if constexpr(D == 2) {
-    s.executor().forall(j, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);
