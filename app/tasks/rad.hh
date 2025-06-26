@@ -1085,11 +1085,12 @@ correction(flecsi::exec::cpu s,
 } // correction
 
 // Linear interpolation for boundary temperature
-double
+void
 interp_e_boundary(flecsi::exec::cpu,
-  typename single<double>::accessor<flecsi::ro> t,
-  typename field<double>::accessor<flecsi::ro> time_boundary,
-  typename field<double>::accessor<flecsi::ro> temperature_boundary) {
+  single<double>::accessor<flecsi::ro> t,
+  field<double>::accessor<flecsi::ro> time_boundary,
+  field<double>::accessor<flecsi::ro> temperature_boundary,
+  single<double>::accessor<flecsi::wo> value) {
 
   auto get_energy = [](const double & temperature) -> double {
     return constants::cgs::radiation_constant *
@@ -1098,10 +1099,14 @@ interp_e_boundary(flecsi::exec::cpu,
 
   // Is it the first or last value?
   std::size_t i_end{time_boundary.span().size()};
-  if(t <= time_boundary[0])
-    return get_energy(temperature_boundary[0]);
-  if(t >= time_boundary[i_end - 1])
-    return get_energy(temperature_boundary[i_end - 1]);
+  if(t <= time_boundary[0]) {
+    value = get_energy(temperature_boundary[0]);
+    return;
+  }
+  if(t >= time_boundary[i_end - 1]) {
+    value = get_energy(temperature_boundary[i_end - 1]);
+    return;
+  }
 
   for(std::size_t i{0}; i < (i_end - 1); i++) {
     if((t >= time_boundary[i]) && (t <= time_boundary[i + 1])) {
@@ -1109,14 +1114,14 @@ interp_e_boundary(flecsi::exec::cpu,
       double dy{temperature_boundary[i + 1] - temperature_boundary[i]};
 
       // Found point, return
-      return get_energy(
+      value = get_energy(
         dy * (time_boundary[i + 1] - t) / dx + temperature_boundary[i]);
+      return;
     };
   }
 
   // We should never reach this line
   flog_fatal("Linear interpolation failed");
-  return -1.0; // Point never found
 } // interp_e_boundary
 
 } // namespace hard::task::rad

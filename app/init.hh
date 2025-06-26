@@ -4,7 +4,7 @@
 #include "options.hh"
 #include "spec/eos.hh"
 #include "state.hh"
-#include "tasks/boundary.hh"
+#include "tasks/boundaries/boundary.hh"
 #include "tasks/hydro/cons2prim.hh"
 #include "tasks/hydro/maxcharspeed.hh"
 #include "tasks/init.hh"
@@ -93,7 +93,7 @@ initialize(control_policy<state, D> & cp) {
   } // if
 
   auto bf =
-    execute<tasks::init::boundaries<D>>(flecsi::exec::on, s.bmap(*s.gt), bnds);
+    execute<tasks::init_boundaries<D>>(flecsi::exec::on, s.bmap(*s.gt), bnds);
 
   /*--------------------------------------------------------------------------*
     T boundary.
@@ -393,19 +393,6 @@ initialize(control_policy<state, D> & cp) {
     Initialize time advance.
    *--------------------------------------------------------------------------*/
 
-  if(s.mg) {
-    // FIXME: figure out how not to use the hardcoded radiation temperature
-    // boundary
-    auto radiation_boundary_f =
-      flecsi::execute<task::rad::interp_e_boundary>(flecsi::exec::on,
-        s.t(*s.gt),
-        time_boundary(*s.dense_topology),
-        temperature_boundary(*s.dense_topology));
-    flecsi::execute<tasks::apply_radiation_boundary<D>>(flecsi::exec::on,
-      *s.m,
-      s.radiation_energy_density(*s.m),
-      radiation_boundary_f);
-  }
   execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
     *s.m,
     s.mass_density(*s.m),
@@ -428,13 +415,26 @@ initialize(control_policy<state, D> & cp) {
   execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
     *s.m,
     s.bmap(*s.gt),
-    s.mass_density(*s.m),
-    s.velocity(*s.m),
-    s.pressure(*s.m),
-    s.specific_internal_energy(*s.m),
-    s.radiation_energy_density(*s.m),
-    s.momentum_density(*s.m),
-    s.total_energy_density(*s.m));
+    std::vector{s.mass_density(*s.m),
+      s.pressure(*s.m),
+      s.specific_internal_energy(*s.m),
+      s.radiation_energy_density(*s.m),
+      s.total_energy_density(*s.m)},
+    std::vector{s.velocity(*s.m), s.momentum_density(*s.m)});
+  if(s.mg) {
+    // FIXME: figure out how not to use the hardcoded radiation temperature
+    // boundary
+    flecsi::execute<task::rad::interp_e_boundary>(flecsi::exec::on,
+      s.t(*s.gt),
+      time_boundary(*s.dense_topology),
+      temperature_boundary(*s.dense_topology),
+      s.dirichlet_value(*s.gt));
+    flecsi::execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
+      *s.m,
+      s.bmap(*s.gt),
+      std::vector{s.radiation_energy_density(*s.m)},
+      s.dirichlet_value(*s.gt));
+  }
 
   /*--------------------------------------------------------------------------*
     Initialize time to 0

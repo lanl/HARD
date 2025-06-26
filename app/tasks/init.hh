@@ -194,49 +194,6 @@ touch1(typename mesh<D>::template accessor<ro>, // m,
 ) {
 } // touch
 
-/*----------------------------------------------------------------------------*
-  Boundary input translation.
- *----------------------------------------------------------------------------*/
-
-template<std::size_t D>
-mesh<D>::periodic_axes
-boundaries(flecsi::exec::cpu,
-  typename single<typename mesh<D>::bmap>::template accessor<wo> bmap_a,
-  std::array<std::array<bd::boundary_type, 2>, D> bnds) {
-  auto & bmap = *bmap_a;
-  constexpr auto periodic = mesh<D>::boundary_type::periodic;
-
-  typename mesh<D>::periodic_axes p;
-  p[ax::x] = false;
-  if constexpr(D == 2 || D == 3) {
-    p[ax::y] = false;
-  }
-  else if constexpr(D == 3) {
-    p[ax::z] = false;
-  } // if
-
-  bmap[ax::x][bd::low] = bnds[ax::x][bd::low];
-  bmap[ax::x][bd::high] = bnds[ax::x][bd::high];
-  p[ax::x] =
-    bnds[ax::x][bd::low] == periodic && bnds[ax::x][bd::high] == periodic;
-
-  if constexpr(D == 2 || D == 3) {
-    bmap[ax::y][bd::low] = bnds[ax::y][bd::low];
-    bmap[ax::y][bd::high] = bnds[ax::y][bd::high];
-    p[ax::y] =
-      bnds[ax::y][bd::low] == periodic && bnds[ax::y][bd::high] == periodic;
-  } // if
-
-  if constexpr(D == 3) {
-    bmap[ax::z][bd::low] = bnds[ax::z][bd::low];
-    bmap[ax::z][bd::high] = bnds[ax::z][bd::high];
-    p[ax::z] =
-      bnds[ax::z][bd::low] == periodic && bnds[ax::z][bd::high] == periodic;
-  } // if
-
-  return p;
-} // boundaries
-
 } // namespace tasks::init
 } // namespace hard
 
