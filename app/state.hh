@@ -74,7 +74,7 @@ struct state {
   static inline const single<vec<D>>::template definition<index> lmax;
 
   static inline const single<double>::template definition<global> dt, t,
-    dt_weighted;
+    dt_weighted, dirichlet_value;
 
   /*--------------------------------------------------------------------------*
     Mesh fields.
