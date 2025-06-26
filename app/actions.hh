@@ -5,7 +5,7 @@
 #include "numerical_algorithms/time_stepper.hh"
 #include "rad.hh"
 #include "state.hh"
-#include "tasks/boundary.hh"
+#include "tasks/boundaries/boundary.hh"
 #include "tasks/hydro/compute_interface_fluxes.hh"
 #include "tasks/hydro/cons2prim.hh"
 #include "tasks/hydro/maxcharspeed.hh"
@@ -277,27 +277,26 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
   flecsi::execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
     *s.m,
     s.bmap(*s.gt),
-    s.mass_density(*s.m),
-    s.velocity(*s.m),
-    s.pressure(*s.m),
-    s.specific_internal_energy(*s.m),
-    s.radiation_energy_density(*s.m),
-    s.momentum_density(*s.m),
-    s.total_energy_density(*s.m));
+    std::vector{s.mass_density(*s.m),
+      s.pressure(*s.m),
+      s.specific_internal_energy(*s.m),
+      s.radiation_energy_density(*s.m),
+      s.total_energy_density(*s.m)},
+    std::vector{s.velocity(*s.m), s.momentum_density(*s.m)});
 
   if(s.mg) {
     // FIXME: figure out how not to use the hardcoded radiation temperature
     // boundary
-    auto radiation_boundary_f =
-      flecsi::execute<task::rad::interp_e_boundary>(flecsi::exec::on,
-        s.t(*s.gt),
-        time_boundary(*s.dense_topology),
-        temperature_boundary(*s.dense_topology));
-    flecsi::execute<tasks::apply_radiation_boundary<D>>(flecsi::exec::on,
-
+    flecsi::execute<task::rad::interp_e_boundary>(flecsi::exec::on,
+      s.t(*s.gt),
+      time_boundary(*s.dense_topology),
+      temperature_boundary(*s.dense_topology),
+      s.dirichlet_value(*s.gt));
+    flecsi::execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
       *s.m,
-      s.radiation_energy_density(*s.m),
-      radiation_boundary_f);
+      s.bmap(*s.gt),
+      std::vector{s.radiation_energy_density(*s.m)},
+      s.dirichlet_value(*s.gt));
   }
 
 } // update_vars
@@ -357,21 +356,22 @@ radiation_advance(control_policy<state, D> & cp) {
     s.lambda_bridge(*s.m),
     kappa(*s.gt));
 
-  flecsi::execute<tasks::apply_boundary_single_field<D>>(
-    flecsi::exec::on, *s.m, s.bmap(*s.gt), s.lambda_bridge(*s.m));
+  flecsi::execute<tasks::apply_boundaries_scalar<D>>(
+    flecsi::exec::on, *s.m, s.bmap(*s.gt), std::vector{s.lambda_bridge(*s.m)});
 
   if(s.mg) {
     // FIXME: figure out how not to use the hardcoded radiation temperature
     // boundary
-    auto radiation_boundary_f =
-      flecsi::execute<task::rad::interp_e_boundary>(flecsi::exec::on,
-        s.t(*s.gt),
-        time_boundary(*s.dense_topology),
-        temperature_boundary(*s.dense_topology));
-    flecsi::execute<tasks::apply_radiation_boundary<D>>(flecsi::exec::on,
+    flecsi::execute<task::rad::interp_e_boundary>(flecsi::exec::on,
+      s.t(*s.gt),
+      time_boundary(*s.dense_topology),
+      temperature_boundary(*s.dense_topology),
+      s.dirichlet_value(*s.gt));
+    flecsi::execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
       *s.m,
-      s.radiation_energy_density(*s.m),
-      radiation_boundary_f);
+      s.bmap(*s.gt),
+      std::vector{s.radiation_energy_density(*s.m)},
+      s.dirichlet_value(*s.gt));
   }
 
   execute<task::rad::getDiff<D>>(flecsi::exec::on,
@@ -426,13 +426,12 @@ radiation_advance(control_policy<state, D> & cp) {
   flecsi::execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
     *s.m,
     s.bmap(*s.gt),
-    s.mass_density(*s.m),
-    s.velocity(*s.m),
-    s.pressure(*s.m),
-    s.specific_internal_energy(*s.m),
-    s.radiation_energy_density(*s.m),
-    s.momentum_density(*s.m),
-    s.total_energy_density(*s.m));
+    std::vector{s.mass_density(*s.m),
+      s.pressure(*s.m),
+      s.specific_internal_energy(*s.m),
+      s.radiation_energy_density(*s.m),
+      s.total_energy_density(*s.m)},
+    std::vector{s.velocity(*s.m), s.momentum_density(*s.m)});
 } // radiation_advance
 
 // -----------------------------------------------------------------------------

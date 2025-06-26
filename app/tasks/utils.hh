@@ -9,6 +9,8 @@
 
 namespace hard::tasks::util {
 
+enum bl { low, high, none };
+
 /*
   Find the specific internal energy consitent with the given density and
   pressure.
