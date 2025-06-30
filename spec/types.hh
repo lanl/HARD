@@ -20,8 +20,8 @@ using flecsi::data::multi;
 //  vec<D> type definitions
 // ----------------------------------------------------------------------------
 template<std::size_t D>
-requires(D <= 3) struct vec {
-};
+// requires(D <= 3)
+struct vec {};
 
 template<>
 struct vec<1> {

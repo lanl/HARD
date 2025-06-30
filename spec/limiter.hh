@@ -86,8 +86,8 @@ struct ppm4 {
 
       for(int i = 0; i < T::Dim; ++i) {
         if(delta_u_plus[i] * delta_u_minus[i] < 0.0) {
-          get<0>(res)[i] = u_0[i];
-          get<1>(res)[i] = u_0[i];
+          std::get<0>(res)[i] = u_0[i];
+          std::get<1>(res)[i] = u_0[i];
         }
         else {
           if(std::abs(delta_u_plus[i]) >= 2.0 * std::abs(delta_u_minus[i])) {
@@ -96,8 +96,8 @@ struct ppm4 {
           if(std::abs(delta_u_minus[i]) >= 2.0 * std::abs(delta_u_plus[i])) {
             u_minus_12[i] = u_0[i] - 2.0 * delta_u_plus[i];
           }
-          get<0>(res)[i] = u_minus_12[i];
-          get<1>(res)[i] = u_plus_12[i];
+          std::get<0>(res)[i] = u_minus_12[i];
+          std::get<1>(res)[i] = u_plus_12[i];
         }
       }
       return res;

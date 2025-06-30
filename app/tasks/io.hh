@@ -35,7 +35,8 @@ void inline csv(flecsi::exec::cpu s,
     std::transform(field_vector_ma.begin(),
       field_vector_ma.end(),
       std::back_inserter(fields_vectors),
-      [&m, &i](const multi<typename field<vec<D>>::accessor<ro, ro>> & ma)
+      [&m, &i](
+        const multi<typename field<vec<D>>::template accessor<ro, ro>> & ma)
         -> flecsi::util::mdcolex<const vec<D>, D> {
         return m.template mdcolex<is::cells>(ma.accessors()[i]);
       });
