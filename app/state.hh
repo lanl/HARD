@@ -62,8 +62,8 @@ struct state {
     Global parameters.
    *--------------------------------------------------------------------------*/
 
-  static inline const single<typename mesh<D>::bmap>::template definition<
-    global>
+  static inline const typename single<
+    typename mesh<D>::bmap>::template definition<global>
     bmap;
 
   /*--------------------------------------------------------------------------*
@@ -71,7 +71,7 @@ struct state {
    *--------------------------------------------------------------------------*/
 
   /* Maximum characteristic speed for a color. */
-  static inline const single<vec<D>>::template definition<index> lmax;
+  static inline const typename single<vec<D>>::template definition<index> lmax;
 
   static inline const single<double>::template definition<global> dt, t,
     dt_weighted, dirichlet_value;
@@ -83,7 +83,8 @@ struct state {
   // Conserved quantities.
   static inline const field<double>::definition<mesh<D>, is::cells>
     mass_density;
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     momentum_density;
   static inline const field<double>::definition<mesh<D>, is::cells>
     total_energy_density;
@@ -91,7 +92,8 @@ struct state {
     radiation_energy_density;
 
   // Primitives.
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     velocity; // u
   static inline const field<double>::definition<mesh<D>, is::cells>
     pressure; // p
@@ -106,10 +108,12 @@ struct state {
   static inline const field<double>::definition<mesh<D>, is::cells> eTail;
   static inline const field<double>::definition<mesh<D>, is::cells> cTail;
   static inline const field<double>::definition<mesh<D>, is::cells> rTail;
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     ruTail;
   static inline const field<double>::definition<mesh<D>, is::cells> rETail;
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     uTail;
   static inline const field<double>::definition<mesh<D>, is::cells> pTail;
   static inline const field<double>::definition<mesh<D>, is::cells> EradTail;
@@ -117,23 +121,26 @@ struct state {
   static inline const field<double>::definition<mesh<D>, is::cells> eHead;
   static inline const field<double>::definition<mesh<D>, is::cells> cHead;
   static inline const field<double>::definition<mesh<D>, is::cells> rHead;
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     ruHead;
   static inline const field<double>::definition<mesh<D>, is::cells> rEHead;
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     uHead;
   static inline const field<double>::definition<mesh<D>, is::cells> pHead;
   static inline const field<double>::definition<mesh<D>, is::cells> EradHead;
 
   // Riemann fluxes.
   static inline const field<double>::definition<mesh<D>, is::cells> rF;
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     ruF;
   static inline const field<double>::definition<mesh<D>, is::cells> rEF;
   static inline const field<double>::definition<mesh<D>, is::cells> EradF;
 
   // Radiation pressure (P^{ij})
-  static inline const field<spec::tensor<D,
+  static inline const typename field<spec::tensor<D,
     spec::tensor_rank::Two>>::template definition<mesh<D>, is::cells>
     radiation_pressure_tensor;
 
@@ -141,7 +148,8 @@ struct state {
   static inline dual_field<double, D> Esf; // solution field
   static inline const field<double>::template definition<mesh<D>, is::cells>
     Ef; // RHS of Au=f
-  static inline const field<stencil<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<stencil<D>>::template definition<mesh<D>,
+    is::cells>
     Ew; // stencil weights
   static inline const field<double>::template definition<mesh<D>, is::cells>
     r; // rho
@@ -177,7 +185,8 @@ struct state {
   std::size_t mg_cycles{1};
 
   // Gradient of a radiation energy density
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     gradient_rad_energy;
 
   // Magnitude of the gradient of the radiation energy density
@@ -185,7 +194,8 @@ struct state {
     magnitude_gradient_rad_energy;
 
   // Radiation force
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     radiation_force;
 
   // Dimensionless quantitiy, R
@@ -196,7 +206,7 @@ struct state {
     lambda_bridge;
 
   // Gradient of velocity
-  static inline const field<spec::tensor<D,
+  static inline const typename field<spec::tensor<D,
     spec::tensor_rank::Two>>::template definition<mesh<D>, is::cells>
     velocity_gradient;
 
@@ -207,7 +217,8 @@ struct state {
   //  - For RK substep 1
   static inline const field<double>::definition<mesh<D>, is::cells>
     dt_mass_density;
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     dt_momentum_density;
   static inline const field<double>::definition<mesh<D>, is::cells>
     dt_total_energy_density;
@@ -220,7 +231,8 @@ struct state {
   //  - For RK substep 2
   static inline const field<double>::definition<mesh<D>, is::cells>
     dt_mass_density_2;
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     dt_momentum_density_2;
   static inline const field<double>::definition<mesh<D>, is::cells>
     dt_total_energy_density_2;
@@ -234,7 +246,8 @@ struct state {
   // Storing variables at U^n during performing time update
   static inline const field<double>::definition<mesh<D>, is::cells>
     mass_density_n;
-  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
     momentum_density_n;
   static inline const field<double>::definition<mesh<D>, is::cells>
     total_energy_density_n;
