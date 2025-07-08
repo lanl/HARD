@@ -34,11 +34,7 @@ for visualization, see below.
 
 FlAstro's catalyst adaptor will put all visualization files into a directory ``datasets``.
 It can be directly opened from your local paraview client. This is a visualization of an example run with
-48 x 12 x12 cells, using ``gridwriter.py``:
-
-.. image:: images/3d-flastro-sod-48x12x12cells.gif
-  :width: 600
-  :alt: Evolution of speed in a 3D Sod shock tube during the first 0.5 seconds.
+48 x 12 x12 cells, using ``gridwriter.py``.
 
 2D visualizations using raw output and gnuplot/pm3d
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,10 +43,6 @@ Flastro creates raw output files in ``tsv`` format that can be read into spead s
 tools like ``gnuplot``. Animations can be produced by plotting the data from each time step.
 
 **Example**: Evolution of density in a 2D Sod shock tube during the first approx. 0.5 seconds.
-
-.. image:: images/2d-flastro-sod-128cells.gif
-  :width: 400
-  :alt: Evolution of density in a 2D Sod shock tube during the first ~0.5 seconds.
 
 **HowTo**:
 
@@ -76,17 +68,9 @@ To create a plot of an observable at a certain time, you can directly plot colum
 **Example**: Density in a 1D Sod shock tube at time :math:`t = 0.2`
 (https://en.wikipedia.org/wiki/Sod_shock_tube).
 
-.. image:: images/output_1d_128_t0.2.png
-  :width: 400
-  :alt: Alternative text
-
 To create a 3D plot of the time evolution of a scalar observable:
 
 **Example**: Evolution of density in a 1D Sod shock tube during the first 0.2 seconds.
-
-.. image:: images/output_1d_128_t0_0.2.png
-  :width: 400
-  :alt: Evolution of density in a 1D Sod shock tube during the first 0.2 seconds.
 
 **HowTo**:
 
