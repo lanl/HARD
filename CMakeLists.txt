@@ -142,19 +142,10 @@ if(ENABLE_DOCUMENTATION)
   )
 
   #----------------------------------------------------------------------------#
-  # Sphinx & Doxygen
+  # Sphinx
   #----------------------------------------------------------------------------#
 
-  include(FleCSI/doxygen)
   include(FleCSI/sphinx)
-
-  # Avoid race condition by proactively creating output directory
-  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/.doxygen/xml)
-  flecsi_add_doxygen_target(hard
-    CONFIGS
-      ${CMAKE_SOURCE_DIR}/doc/doxygen/hard.conf.in
-      ${CMAKE_SOURCE_DIR}/doc/doxygen/conf.in
-  )
 
   file(COPY ${CMAKE_SOURCE_DIR}/doc/sphinx
     DESTINATION ${CMAKE_BINARY_DIR}
