@@ -3,13 +3,8 @@
 # Sphinx extensions as list of strings
 extensions = [
     'sphinx.ext.mathjax',
-    'sphinx.ext.githubpages',
-    'breathe'
+    'sphinx.ext.githubpages'
 ]
-
-# Breathe configuration
-breathe_projects = {"doxygen": "@CMAKE_BINARY_DIR@/.doxygen/xml"}
-breathe_default_project = "doxygen"
 
 # Add any paths that contain templates
 templates_path = ['_templates']
@@ -76,7 +71,6 @@ html_theme_options = {
     'canonical_url': 'http://www.flecsi.org/',
     'analytics_id': '',
     'logo_only': True,
-    'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': False,
 
@@ -88,7 +82,7 @@ html_theme_options = {
     'titles_only': False
 }
 
-html_logo = '_static/flecsi-sp.png'
+html_logo = '_static/hard-sp.png'
 html_favicon = '_static/favicon.ico'
 
 html_sidebars = {
