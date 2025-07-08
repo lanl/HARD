@@ -84,28 +84,31 @@ logging and output
 
 Some problems have specific input information. These are all defined under the `problem_parameters` group.
 
-
-* `acoustic_wave`:
-  * `problem_parameters`, a list containing:
-    * `r0`, the equilibrium density
-    * `p0`, the equilibrium pressure
-    * `amplitude`, the perturbation amplitudes
-    * `scale`, the inverse of the wave number
-* `heating_and_cooling`:
-  * `problem_parameters`, a list containing:
-    * `fluid_mass_density`
-    * `fluid_temperature`
-    * `radiation_temperature`
-* `implosion`:
-  * `problem_parameters`, a list containing:
-    * `fluid_mass_density`
-    * `fluid_temperature`
-    * `radiation_temperature`
-* `sedov`:
-  * `problem_parameters`, a list containing:
-    * `hotspot_position`, an array of the position of the hotspot
-    * `hotspot_radius`, the radius of the hotspot
-    * `E_0`, the initial energy injected at the hotspot in Ergs
+  * `acoustic_wave`:
+    
+    * `problem_parameters`, a list containing:
+      * `r0`, the equilibrium density
+      * `p0`, the equilibrium pressure
+      * `amplitude`, the perturbation amplitudes
+      * `scale`, the inverse of the wave number
+  * `heating_and_cooling`:
+    
+    * `problem_parameters`, a list containing:
+      * `fluid_mass_density`
+      * `fluid_temperature`
+      * `radiation_temperature`
+  * `implosion`:
+    
+    * `problem_parameters`, a list containing:
+      * `fluid_mass_density`
+      * `fluid_temperature`
+      * `radiation_temperature`
+  * `sedov`:
+    
+    * `problem_parameters`, a list containing:
+      * `hotspot_position`, an array of the position of the hotspot
+      * `hotspot_radius`, the radius of the hotspot
+      * `E_0`, the initial energy injected at the hotspot in Ergs
 
 The other tests have setting hardcoded in their initialization files.
 They can be found in `app/tasks/initial_data/`.
