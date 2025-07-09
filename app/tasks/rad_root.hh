@@ -12,7 +12,7 @@ namespace hard::task::rad_root {
 //
 template<std::size_t D>
 void
-update_energy_density(flecsi::exec::cpu s,
+update_energy_density(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
   typename field<vec<D>>::template accessor<ro, na> u_a,
@@ -21,7 +21,7 @@ update_energy_density(flecsi::exec::cpu s,
   field<double>::accessor<rw, na> radiation_energy_density_a,
   single<double>::accessor<ro> kappa_a,
   single<double>::accessor<ro> dt_a,
-  eos::eos_wrapper const & eos) {
+  eos::eos_wrapper const & eos) noexcept {
 
   using hard::tasks::util::get_mdiota_policy;
 
@@ -41,7 +41,7 @@ update_energy_density(flecsi::exec::cpu s,
   const double rad_c{hard::constants::cgs::radiation_constant};
 
   // Define the En update lambda
-  auto get_up_En = [&eos, r, dt_c, rad_c](double_t t, double_t En) {
+  auto get_up_En = [eos, dt_c, rad_c](double_t t, double_t En) {
     return (En + dt_c * rad_c * pow(t, 4.0)) / (1 + dt_c);
   };
 

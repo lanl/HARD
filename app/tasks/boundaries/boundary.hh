@@ -17,7 +17,7 @@ using hard::tasks::util::bl;
  *----------------------------------------------------------------------------*/
 
 template<std::size_t D>
-mesh<D>::periodic_axes
+typename mesh<D>::periodic_axes
 init_boundaries(flecsi::exec::cpu,
   typename single<typename mesh<D>::bmap>::template accessor<wo> bmap_a,
   std::array<std::array<bd::boundary_type, 2>, D> bnds) {
@@ -69,16 +69,15 @@ init_boundaries(flecsi::exec::cpu,
 
 template<std::size_t D, typename T>
 void
-apply_boundary(flecsi::exec::cpu s,
-  typename mesh<D>::template accessor<ro> m,
-  typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
+apply_boundary(flecsi::exec::accelerator & s,
+  typename mesh<D>::template accessor<ro> & m,
+  typename single<typename mesh<D>::bmap>::template accessor<ro> & bmap_a,
   std::vector<typename field<T>::template accessor<rw, ro>> & f_a,
-  double value = 0) {
+  double value = 0) noexcept {
 
   using hard::tasks::util::get_mdiota_policy;
 
   const size_t ghost_zone_size = m.ghost_zone_size();
-  const typename mesh<D>::bmap & bm = *bmap_a;
 
   const flow<D> f(ghost_zone_size);
   const reflective<D> r(ghost_zone_size);
@@ -93,12 +92,17 @@ apply_boundary(flecsi::exec::cpu s,
       for(auto l : levels)
         if(l != bl::none) {
           std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
-          if(bm[0][l] == bd::flow)
-            f(f_acc, i, l);
-          if(bm[0][l] == bd::reflecting)
-            r(f_acc, i, l);
-          if(bm[0][l] == bd::dirichlet)
-            d(f_acc, value, i, l);
+          flecsi::util::iota_view policy{0, 1}; // default execution space
+          s.executor().forall(x, policy) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
+            (void)x; // remove compiler warning for unused
+            if(bm[0][l] == bd::flow)
+              f(f_acc, i, l);
+            if(bm[0][l] == bd::reflecting)
+              r(f_acc, i, l);
+            if(bm[0][l] == bd::dirichlet)
+              d(f_acc, value, i, l);
+          };
         }
     }
     else if constexpr(D == 2) {
@@ -112,6 +116,7 @@ apply_boundary(flecsi::exec::cpu s,
         if(l != bl::none) {
           std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
           s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
             if(bm[0][l] == bd::flow)
               f(ax::x, f_acc, i, j, l);
             if(bm[0][l] == bd::reflecting)
@@ -124,6 +129,7 @@ apply_boundary(flecsi::exec::cpu s,
         if(l != bl::none) {
           std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
           s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
             if(bm[1][l] == bd::flow)
               f(ax::y, f_acc, i, j, l);
             if(bm[1][l] == bd::reflecting)
@@ -150,6 +156,7 @@ apply_boundary(flecsi::exec::cpu s,
             m.template cells<ax::y, dm::quantities>());
           std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
           s.executor().forall(kj, mdpolicy_zy) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
             auto [k, j] = kj;
             if(bm[0][l] == bd::flow)
               f(ax::x, f_acc, i, j, k, l);
@@ -166,6 +173,7 @@ apply_boundary(flecsi::exec::cpu s,
             m.template cells<ax::x, dm::quantities>());
           std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
           s.executor().forall(ki, mdpolicy_zx) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
             auto [k, i] = ki;
             if(bm[1][l] == bd::flow)
               f(ax::y, f_acc, i, j, k, l);
@@ -182,6 +190,7 @@ apply_boundary(flecsi::exec::cpu s,
             m.template cells<ax::x, dm::quantities>());
           std::size_t k = l == bl::low ? 0 : m.template size<ax::z, dm::all>();
           s.executor().forall(ji, mdpolicy_yx) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
             auto [j, i] = ji;
             if(bm[2][l] == bd::flow)
               f(ax::z, f_acc, i, j, k, l);
@@ -197,7 +206,7 @@ apply_boundary(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-apply_boundaries(flecsi::exec::cpu s,
+apply_boundaries(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
   std::vector<field<double>::accessor<rw, ro>> f_a,
@@ -209,7 +218,7 @@ apply_boundaries(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-apply_boundaries_scalar(flecsi::exec::cpu s,
+apply_boundaries_scalar(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
   std::vector<field<double>::accessor<rw, ro>> f_a) noexcept {
@@ -218,7 +227,7 @@ apply_boundaries_scalar(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-apply_boundaries_vector(flecsi::exec::cpu s,
+apply_boundaries_vector(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
   std::vector<typename field<vec<D>>::template accessor<rw, ro>> f_a) noexcept {
@@ -227,7 +236,7 @@ apply_boundaries_vector(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-apply_dirichlet_boundaries(flecsi::exec::cpu s,
+apply_dirichlet_boundaries(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
   std::vector<field<double>::accessor<rw, ro>> f_a,

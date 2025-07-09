@@ -28,38 +28,41 @@ struct vec<1> {
 
   constexpr static std::size_t Dim = 1;
 
-  FLECSI_INLINE_TARGET vec<1>() : x(0) {}
-  FLECSI_INLINE_TARGET vec<1>(double v) : x(v) {}
+  FLECSI_INLINE_TARGET vec<1>() = default;
+  FLECSI_INLINE_TARGET ~vec<1>() = default;
 
-  FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
-    return components[d];
+  FLECSI_INLINE_TARGET vec<1>(double x) : vx(x) {}
+  FLECSI_INLINE_TARGET double & operator[](std::size_t) {
+    return vx;
   }
-  FLECSI_INLINE_TARGET double operator[](std::size_t d) const noexcept {
-    return components[d];
+  FLECSI_INLINE_TARGET double operator[](std::size_t) const {
+    return vx;
   }
 
-  union
-  {
-    struct {
-      double x;
-    };
-    double components[1];
-  };
+  FLECSI_INLINE_TARGET double & x() {
+    return vx;
+  }
+  FLECSI_INLINE_TARGET double x() const {
+    return vx;
+  }
+
+  double vx;
 
   FLECSI_INLINE_TARGET double norm_squared() const {
-    return x * x;
+    return vx * vx;
   }
   FLECSI_INLINE_TARGET double norm() const {
-    return std::abs(x);
+    return std::abs(vx);
   }
   FLECSI_INLINE_TARGET double & get([[maybe_unused]] const size_t idx) {
     assert(idx == 0 && "Invalid access for 1d vector");
-    return x;
+    return vx;
   }
   FLECSI_INLINE_TARGET const double & get(
     [[maybe_unused]] const size_t idx) const {
     assert(idx == 0 && "Invalid access for 1d vector");
-    return x;
+
+    return vx;
   }
 };
 
@@ -68,41 +71,54 @@ struct vec<2> {
 
   constexpr static std::size_t Dim = 2;
 
-  union
-  {
-    struct {
-      double x;
-      double y;
-    };
-    double components[2];
-  };
+  std::array<double, 2> v;
 
-  FLECSI_INLINE_TARGET vec<2>() {}
+  FLECSI_INLINE_TARGET vec<2>(double x) {
+    v[0] = x;
+    v[1] = x;
+  }
+  FLECSI_INLINE_TARGET vec<2>(double x, double y) {
+    v[0] = x;
+    v[1] = y;
+  }
 
-  FLECSI_INLINE_TARGET vec<2>(double v) : x(v), y(v) {}
-  FLECSI_INLINE_TARGET vec<2>(double x, double y) : x(x), y(y) {}
+  FLECSI_INLINE_TARGET vec<2>() = default;
+  FLECSI_INLINE_TARGET ~vec<2>() = default;
 
   FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
-    return components[d];
+    return v[d];
   }
 
   FLECSI_INLINE_TARGET double operator[](std::size_t d) const noexcept {
-    return components[d];
+    return v[d];
+  }
+
+  FLECSI_INLINE_TARGET double & x() {
+    return v[0];
+  }
+  FLECSI_INLINE_TARGET double & y() {
+    return v[1];
+  }
+  FLECSI_INLINE_TARGET double x() const {
+    return v[0];
+  }
+  FLECSI_INLINE_TARGET double y() const {
+    return v[1];
   }
 
   FLECSI_INLINE_TARGET double norm_squared() const {
-    return x * x + y * y;
+    return v[0] * v[0] + v[1] * v[1];
   }
   FLECSI_INLINE_TARGET double norm() const {
     return std::sqrt(norm_squared());
   }
   FLECSI_INLINE_TARGET double & get(const size_t idx) {
     assert(idx <= 1 && "Invalid access for 2d vector");
-    return components[idx];
+    return v[idx];
   }
   FLECSI_INLINE_TARGET const double & get(const size_t idx) const {
     assert(idx <= 1 && "Invalid access for 2d vector");
-    return components[idx];
+    return v[idx];
   }
 };
 
@@ -111,44 +127,63 @@ struct vec<3> {
 
   constexpr static std::size_t Dim = 3;
 
-  union
-  {
-    struct {
-      double x;
-      double y;
-      double z;
-    };
-    double components[3];
-  };
+  std::array<double, 3> v;
 
-  FLECSI_INLINE_TARGET vec<3>() {}
+  FLECSI_INLINE_TARGET vec<3>(double x) {
+    v[0] = x;
+    v[1] = x;
+    v[2] = x;
+  }
+  FLECSI_INLINE_TARGET vec<3>(double x, double y, double z) {
+    v[0] = x;
+    v[1] = y;
+    v[2] = z;
+  }
 
-  FLECSI_INLINE_TARGET vec<3>(double v) : x(v), y(v), z(v) {}
-
-  FLECSI_INLINE_TARGET vec<3>(double x, double y, double z)
-    : x(x), y(y), z(z) {}
+  FLECSI_INLINE_TARGET vec<3>() = default;
+  FLECSI_INLINE_TARGET ~vec<3>() = default;
 
   FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
-    return components[d];
+    return v[d];
   }
 
   FLECSI_INLINE_TARGET double operator[](std::size_t d) const noexcept {
-    return components[d];
+    return v[d];
+  }
+
+  FLECSI_INLINE_TARGET double & x() {
+    return v[0];
+  }
+  FLECSI_INLINE_TARGET double & y() {
+    return v[1];
+  }
+  FLECSI_INLINE_TARGET double & z() {
+    return v[2];
+  }
+
+  FLECSI_INLINE_TARGET double x() const {
+    return v[0];
+  }
+  FLECSI_INLINE_TARGET double y() const {
+    return v[1];
+  }
+  FLECSI_INLINE_TARGET double z() const {
+    return v[2];
   }
 
   FLECSI_INLINE_TARGET double norm_squared() const {
-    return x * x + y * y + z * z;
+    return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
   }
   FLECSI_INLINE_TARGET double norm() const {
     return std::sqrt(norm_squared());
   }
   FLECSI_INLINE_TARGET double & get(const size_t idx) {
     assert(idx <= 2 && "Invalid access for 3d vector");
-    return components[idx];
+    return v[idx];
   }
   FLECSI_INLINE_TARGET const double & get(const size_t idx) const {
     assert(idx <= 2 && "Invalid access for 3d vector");
-    return components[idx];
+    return v[idx];
   }
 };
 
@@ -160,11 +195,11 @@ template<std::size_t D>
 std::ostream &
 operator<<(std::ostream & s, vec<D> const & v) {
   if constexpr(D == 1)
-    s << "(" << v.x << ")";
+    s << "(" << v[0] << ")";
   else if constexpr(D == 2)
-    s << "(" << v.x << ", " << v.y << ")";
+    s << "(" << v[0] << ", " << v[1] << ")";
   else
-    s << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+    s << "(" << v[0] << ", " << v[1] << ", " << v[2] << ")";
   return s;
 }
 
@@ -172,11 +207,11 @@ template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
 operator+(const vec<D> & a, const vec<D> & b) {
   vec<D> result;
-  result.x = a.x + b.x;
+  result[0] = a[0] + b[0];
   if constexpr(D > 1)
-    result.y = a.y + b.y;
+    result[1] = a[1] + b[1];
   if constexpr(D > 2)
-    result.z = a.z + b.z;
+    result[2] = a[2] + b[2];
 
   return result;
 }
@@ -185,11 +220,11 @@ template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
 operator+(const vec<D> & a, double b) {
   vec<D> result;
-  result.x = a.x + b;
+  result[0] = a[0] + b;
   if constexpr(D > 1)
-    result.y = a.y + b;
+    result[1] = a[1] + b;
   if constexpr(D > 2)
-    result.z = a.z + b;
+    result[2] = a[2] + b;
 
   return result;
 }
@@ -198,11 +233,11 @@ template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
 operator+(double b, const vec<D> & a) {
   vec<D> result;
-  result.x = a.x + b;
+  result[0] = a[0] + b;
   if constexpr(D > 1)
-    result.y = a.y + b;
+    result[1] = a[1] + b;
   if constexpr(D > 2)
-    result.z = a.z + b;
+    result[2] = a[2] + b;
 
   return result;
 }
@@ -211,63 +246,63 @@ template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
 operator-(const vec<D> & a, const vec<D> & b) {
   vec<D> result;
-  result.x = a.x - b.x;
+  result[0] = a[0] - b[0];
   if constexpr(D > 1)
-    result.y = a.y - b.y;
+    result[1] = a[1] - b[1];
   if constexpr(D > 2)
-    result.z = a.z - b.z;
+    result[2] = a[2] - b[2];
   return result;
 }
 
 template<std::size_t D>
 FLECSI_INLINE_TARGET void
 operator+=(vec<D> & a, const vec<D> & b) {
-  a.x += b.x;
+  a[0] += b[0];
   if constexpr(D > 1)
-    a.y += b.y;
+    a[1] += b[1];
   if constexpr(D > 2)
-    a.z += b.z;
+    a[2] += b[2];
 }
 
 template<std::size_t D>
 FLECSI_INLINE_TARGET void
 operator+=(vec<D> & a, double b) {
-  a.x += b;
+  a[0] += b;
   if constexpr(D > 1)
-    a.y += b;
+    a[1] += b;
   if constexpr(D > 2)
-    a.z += b;
+    a[2] += b;
 }
 
 template<std::size_t D>
 FLECSI_INLINE_TARGET void
 operator+=(double b, vec<D> & a) {
-  a.x += b;
+  a[0] += b;
   if constexpr(D > 1)
-    a.y += b;
+    a[1] += b;
   if constexpr(D > 2)
-    a.z += b;
+    a[2] += b;
 }
 
 template<std::size_t D>
 FLECSI_INLINE_TARGET void
 operator-=(vec<D> & a, const vec<D> & b) {
-  a.x -= b.x;
+  a[0] -= b[0];
   if constexpr(D > 1)
-    a.y -= b.y;
+    a[1] -= b[1];
   if constexpr(D > 2)
-    a.z -= b.z;
+    a[2] -= b[2];
 }
 
 template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
 operator*(const vec<D> & a, double s) {
   vec<D> result;
-  result.x = a.x * s;
+  result[0] = a[0] * s;
   if constexpr(D > 1)
-    result.y = a.y * s;
+    result[1] = a[1] * s;
   if constexpr(D > 2)
-    result.z = a.z * s;
+    result[2] = a[2] * s;
   return result;
 }
 
@@ -281,11 +316,11 @@ template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
 operator*(const vec<D> & a, const vec<D> & b) {
   vec<D> result;
-  result.x = a.x * b.x;
+  result[0] = a[0] * b[0];
   if constexpr(D > 1)
-    result.y = a.y * b.y;
+    result[1] = a[1] * b[1];
   if constexpr(D > 2)
-    result.z = a.z * b.z;
+    result[2] = a[2] * b[2];
   return result;
 }
 
@@ -293,11 +328,11 @@ template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
 operator/(const vec<D> & a, double s) {
   vec<D> result;
-  result.x = a.x / s;
+  result[0] = a[0] / s;
   if constexpr(D > 1)
-    result.y = a.y / s;
+    result[1] = a[1] / s;
   if constexpr(D > 2)
-    result.z = a.z / s;
+    result[2] = a[2] / s;
   return result;
 }
 
@@ -305,11 +340,11 @@ template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
 operator/(const vec<D> & a, const vec<D> & b) {
   vec<D> result;
-  result.x = a.x / b.x;
+  result[0] = a[0] / b[0];
   if constexpr(D > 1)
-    result.y = a.y / b.y;
+    result[1] = a[1] / b[1];
   if constexpr(D > 2)
-    result.z = a.z / b.z;
+    result[2] = a[2] / b[2];
   return result;
 }
 
@@ -317,11 +352,11 @@ template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
 abs(const vec<D> & a) {
   vec<D> result;
-  result.x = std::abs(a.x);
+  result[0] = std::abs(a[0]);
   if constexpr(D > 1)
-    result.y = std::abs(a.y);
+    result[1] = std::abs(a[1]);
   if constexpr(D > 2)
-    result.z = std::abs(a.z);
+    result[2] = std::abs(a[2]);
   return result;
 }
 
