@@ -74,7 +74,7 @@ implosion_forced_T(flecsi::exec::cpu s,
   if constexpr(Dim == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       mass_density(i) = mass_density_v;
-      momentum_density(i).x = 0.0;
+      momentum_density(i).x() = 0.0;
 
       total_energy_density(i) = fluid_internal_energy_density;
       radiation_energy_density(i) = radiation_energy_density_v;

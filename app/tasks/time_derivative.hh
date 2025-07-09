@@ -11,12 +11,12 @@ namespace hard::tasks {
 
 template<std::size_t Dim>
 void
-set_dudt_to_zero(flecsi::exec::cpu s,
+set_dudt_to_zero(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> dt_mass_density_a,
   typename field<vec<Dim>>::template accessor<wo, na> dt_momentum_density_a,
   field<double>::accessor<wo, na> dt_total_energy_density_a,
-  field<double>::accessor<wo, na> dt_radiation_energy_density_a) {
+  field<double>::accessor<wo, na> dt_radiation_energy_density_a) noexcept {
 
   auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
   auto dt_momentum_density =
@@ -30,7 +30,7 @@ set_dudt_to_zero(flecsi::exec::cpu s,
   if constexpr(Dim == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       dt_mass_density(i) = 0.0;
-      dt_momentum_density(i).x = 0.0;
+      dt_momentum_density(i).x() = 0.0;
       dt_total_energy_density(i) = 0.0;
       dt_radiation_energy_density(i) = 0.0;
     }; // forall
@@ -43,8 +43,8 @@ set_dudt_to_zero(flecsi::exec::cpu s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       dt_mass_density(i, j) = 0.0;
-      dt_momentum_density(i, j).x = 0.0;
-      dt_momentum_density(i, j).y = 0.0;
+      dt_momentum_density(i, j).x() = 0.0;
+      dt_momentum_density(i, j).y() = 0.0;
       dt_total_energy_density(i, j) = 0.0;
 #ifdef ENABLE_RADIATION
       dt_radiation_energy_density(i, j) = 0.0;
@@ -61,9 +61,9 @@ set_dudt_to_zero(flecsi::exec::cpu s,
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       dt_mass_density(i, j, k) = 0.0;
-      dt_momentum_density(i, j, k).x = 0.0;
-      dt_momentum_density(i, j, k).y = 0.0;
-      dt_momentum_density(i, j, k).z = 0.0;
+      dt_momentum_density(i, j, k).x() = 0.0;
+      dt_momentum_density(i, j, k).y() = 0.0;
+      dt_momentum_density(i, j, k).z() = 0.0;
       dt_total_energy_density(i, j, k) = 0.0;
 #ifdef ENABLE_RADIATION
       dt_radiation_energy_density(i, j, k) = 0.0;
@@ -78,7 +78,7 @@ set_dudt_to_zero(flecsi::exec::cpu s,
 //
 template<std::size_t Dim>
 void
-store_current_state(flecsi::exec::cpu s,
+store_current_state(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   // Copied from
   field<double>::accessor<ro, na> mass_density_a,
@@ -97,7 +97,7 @@ store_current_state(flecsi::exec::cpu s,
 #ifdef ENABLE_RADIATION
     radiation_energy_density_n_a
 #endif
-) {
+  ) noexcept {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto mass_density_n = m.template mdcolex<is::cells>(mass_density_n_a);
@@ -165,7 +165,7 @@ store_current_state(flecsi::exec::cpu s,
 //
 template<std::size_t Dim>
 void
-update_u(flecsi::exec::cpu s,
+update_u(flecsi::exec::accelerator s,
   single<double>::accessor<ro> dt_a,
   typename mesh<Dim>::template accessor<ro> m,
   // U^n we want to update
@@ -185,7 +185,7 @@ update_u(flecsi::exec::cpu s,
 #ifdef ENABLE_RADIATION
     dt_radiation_energy_density_a
 #endif
-) {
+  ) noexcept {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
@@ -206,11 +206,11 @@ update_u(flecsi::exec::cpu s,
     m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
 #endif
 
-  auto h = *dt_a;
   using hard::tasks::util::get_mdiota_policy;
 
   if constexpr(Dim == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      auto h = *dt_a;
       mass_density(i) += h * dt_mass_density(i);
       momentum_density(i) += h * dt_momentum_density(i);
       total_energy_density(i) += h * dt_total_energy_density(i);
@@ -226,6 +226,7 @@ update_u(flecsi::exec::cpu s,
       m.template cells<ax::x, dm::quantities>());
 
     s.executor().forall(ji, mdpolicy_qq) {
+      auto h = *dt_a;
       auto [j, i] = ji;
       // Weights
       mass_density(i, j) += h * dt_mass_density(i, j);
@@ -243,6 +244,7 @@ update_u(flecsi::exec::cpu s,
       m.template cells<ax::x, dm::quantities>());
 
     s.executor().forall(kji, mdpolicy_qqq) {
+      auto h = *dt_a;
       auto [k, j, i] = kji;
 
       mass_density(i, j, k) += h * dt_mass_density(i, j, k);
@@ -258,7 +260,7 @@ update_u(flecsi::exec::cpu s,
 
 template<std::size_t Dim>
 void
-add_k1_k2(flecsi::exec::cpu s,
+add_k1_k2(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   // K1
   field<double>::accessor<rw, na> dt_mass_density_a,
@@ -277,7 +279,7 @@ add_k1_k2(flecsi::exec::cpu s,
 #ifdef ENABLE_RADIATION
     dt_radiation_energy_density_2_a
 #endif
-) {
+  ) noexcept {
   // K1
   auto dt_r = m.template mdcolex<is::cells>(dt_mass_density_a);
   auto dt_ru = m.template mdcolex<is::cells>(dt_momentum_density_a);

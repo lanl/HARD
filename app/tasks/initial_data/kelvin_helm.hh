@@ -53,15 +53,15 @@ kh_instability(flecsi::exec::cpu s,
         // initialize two different density and velocity fluids
         if(std::abs(y - 0.5) > 0.25) {
           mass_density(i, j) = rL;
-          momentum_density(i, j).x = rL * uL;
-          momentum_density(i, j).y = rL * vL;
+          momentum_density(i, j).x() = rL * uL;
+          momentum_density(i, j).y() = rL * vL;
           const double e = util::find_sie(eos, rL, pL);
           total_energy_density(i, j) = rL * e + 0.5 * rL * (vL * vL);
         }
         else {
           mass_density(i, j) = rH;
-          momentum_density(i, j).x = rH * uH;
-          momentum_density(i, j).y = rH * vH;
+          momentum_density(i, j).x() = rH * uH;
+          momentum_density(i, j).y() = rH * vH;
           const double e = util::find_sie(eos, rH, pH);
           total_energy_density(i, j) = rH * e + 0.5 * rH * (vH * vH);
         } // if
@@ -70,10 +70,10 @@ kh_instability(flecsi::exec::cpu s,
 
         // velocity perturbations in the Y-direction
         if(std::abs(y - 0.25) < 0.1) {
-          momentum_density(i, j).y = 0.05 * sin(N * wavenumber * x);
+          momentum_density(i, j).y() = 0.05 * sin(N * wavenumber * x);
         }
         if(std::abs(y - 0.75) < 0.1) {
-          momentum_density(i, j).y = 0.05 * sin(N * wavenumber * x);
+          momentum_density(i, j).y() = 0.05 * sin(N * wavenumber * x);
         }
       } // for
     }; // forall
