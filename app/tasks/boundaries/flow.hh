@@ -13,8 +13,12 @@ struct flow {};
 
 template<>
 struct flow<1> {
+
+  FLECSI_INLINE_TARGET flow<1>(int gzs) : ghost_zone_size(gzs){};
+
   template<typename T>
-  void operator()(flecsi::util::mdcolex<T, 1> a, int i, int level) const {
+  FLECSI_INLINE_TARGET void
+  operator()(flecsi::util::mdcolex<T, 1> a, int i, int level) const {
     if(level == bl::low)
       for(int m = 0; m < ghost_zone_size; ++m)
         a(m) = a(ghost_zone_size);
@@ -28,8 +32,11 @@ struct flow<1> {
 
 template<>
 struct flow<2> {
+
+  FLECSI_INLINE_TARGET flow<2>(int gzs) : ghost_zone_size(gzs){};
+
   template<typename T>
-  void operator()(int axis,
+  FLECSI_INLINE_TARGET void operator()(int axis,
     flecsi::util::mdcolex<T, 2> a,
     int i,
     int j,
@@ -56,8 +63,11 @@ struct flow<2> {
 
 template<>
 struct flow<3> {
+
+  FLECSI_INLINE_TARGET flow<3>(int gzs) : ghost_zone_size(gzs){};
+
   template<typename T>
-  void operator()(int axis,
+  FLECSI_INLINE_TARGET void operator()(int axis,
     flecsi::util::mdcolex<T, 3> a,
     int i,
     int j,

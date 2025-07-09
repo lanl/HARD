@@ -129,7 +129,7 @@ update_attributes(flecsi::exec::cpu,
             Esf(i, j, k)); // <<< add variables here for catalyst
           // vector data for catalyst/paraview stored non-interleaved: first all
           // x, then all y, etc.
-          velocity_vals.push_back(u(i, j, k).x);
+          velocity_vals.push_back(u(i, j, k).x());
         } // for
       } // for
     } // for
@@ -137,7 +137,7 @@ update_attributes(flecsi::exec::cpu,
       for(auto j : m.template cells<ax::y, dm::quantities>()) {
         for(auto i : m.template cells<ax::x, dm::quantities>()) {
           velocity_vals.push_back(
-            u(i, j, k).y); // run loop again to add y components
+            u(i, j, k).y()); // run loop again to add y components
         } // for
       } // for
     } // for
@@ -145,7 +145,7 @@ update_attributes(flecsi::exec::cpu,
       for(auto j : m.template cells<ax::y, dm::quantities>()) {
         for(auto i : m.template cells<ax::x, dm::quantities>()) {
           velocity_vals.push_back(
-            u(i, j, k).z); // run loop again to add z components
+            u(i, j, k).z()); // run loop again to add z components
         } // for
       } // for
     } // for
