@@ -9,13 +9,14 @@ namespace hard::tasks::hydro {
 template<typename Limiter>
 struct stencil {
   template<typename A, typename T>
-  auto operator()(const T & i, const A & acc) {
+  FLECSI_INLINE_TARGET auto operator()(const T & i, const A & acc) {
     return Limiter::reconstruct(
       acc(i - 2), acc(i - 1), acc(i), acc(i + 1), acc(i + 2));
   }
 
   template<typename A, typename T>
-  auto operator()(const int & x, const T & i, const T & j, const A & acc) {
+  FLECSI_INLINE_TARGET auto
+  operator()(const int & x, const T & i, const T & j, const A & acc) {
     if(x == 0)
       return Limiter::reconstruct(
         acc(i - 2, j), acc(i - 1, j), acc(i, j), acc(i + 1, j), acc(i + 2, j));
@@ -24,7 +25,7 @@ struct stencil {
   }
 
   template<typename A, typename T>
-  auto operator()(const int & x,
+  FLECSI_INLINE_TARGET auto operator()(const int & x,
     const T & i,
     const T & j,
     const T & k,
@@ -49,6 +50,17 @@ struct stencil {
   }
 };
 
+namespace utils {
+
+template<typename T>
+FLECSI_INLINE_TARGET void
+tie(const std::tuple<T, T> & tup, T & a, T & b) noexcept {
+  a = std::get<0>(tup);
+  b = std::get<1>(tup);
+}
+
+} // namespace utils
+
 //
 // Perform reconstruction of primitive variables on cell interfaces, calculate
 // corresponding conservative variables on faces, and store them into `*Head`
@@ -64,7 +76,7 @@ struct stencil {
 //
 template<std::size_t Dim, typename Limiter>
 void
-reconstruct(flecsi::exec::cpu s,
+reconstruct(flecsi::exec::accelerator s,
   std::size_t reconstruction_axis,
   typename mesh<Dim>::template accessor<ro> m,
   // cell-centered primitive varibles
@@ -103,7 +115,7 @@ reconstruct(flecsi::exec::cpu s,
   typename field<vec<Dim>>::template accessor<wo, na> ruTail_a,
   typename field<vec<Dim>>::template accessor<wo, na> ruHead_a,
   field<double>::accessor<wo, na> rETail_a,
-  field<double>::accessor<wo, na> rEHead_a) {
+  field<double>::accessor<wo, na> rEHead_a) noexcept {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto velocity = m.template mdcolex<is::cells>(velocity_a);
@@ -143,13 +155,13 @@ reconstruct(flecsi::exec::cpu s,
   if constexpr(Dim == 1) {
 
     s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
+      utils::tie(stencil<Limiter>()(i, mass_density), rHead(i), rTail(i));
+      utils::tie(stencil<Limiter>()(i, pressure), pHead(i), pTail(i));
+      utils::tie(
+        stencil<Limiter>()(i, specific_internal_energy), eHead(i), eTail(i));
+      utils::tie(stencil<Limiter>()(i, soundspeed), cHead(i), cTail(i));
+      utils::tie(stencil<Limiter>()(i, velocity), uHead(i), uTail(i));
 
-      std::tie(rHead(i), rTail(i)) = stencil<Limiter>()(i, mass_density);
-      std::tie(uHead(i), uTail(i)) = stencil<Limiter>()(i, velocity);
-      std::tie(pHead(i), pTail(i)) = stencil<Limiter>()(i, pressure);
-      std::tie(eHead(i), eTail(i)) =
-        stencil<Limiter>()(i, specific_internal_energy);
-      std::tie(cHead(i), cTail(i)) = stencil<Limiter>()(i, soundspeed);
       // Compute conservative variables
       ruHead(i) = rHead(i) * uHead(i);
       ruTail(i) = rTail(i) * uTail(i);
@@ -159,9 +171,11 @@ reconstruct(flecsi::exec::cpu s,
         rTail(i) * eTail(i) + 0.5 * rTail(i) * uTail(i).norm_squared();
 
 #ifdef ENABLE_RADIATION
-      std::tie(EradHead(i), EradTail(i)) =
-        stencil<Limiter>()(i, radiation_energy_density);
+      utils::tie(stencil<Limiter>()(i, radiation_energy_density),
+        EradHead(i),
+        EradTail(i));
 #endif
+
     }; // forall
   }
   else if constexpr(Dim == 2) {
@@ -171,23 +185,24 @@ reconstruct(flecsi::exec::cpu s,
       m.template cells<ax::x, dm::predictor>());
 
     s.executor().forall(ji, mdpolicy_pp) {
-
       auto [j, i] = ji;
 
-      std::tie(rHead(i, j), rTail(i, j)) =
-        stencil<Limiter>()(ra, i, j, mass_density);
-      std::tie(uHead(i, j), uTail(i, j)) =
-        stencil<Limiter>()(ra, i, j, velocity);
-      std::tie(pHead(i, j), pTail(i, j)) =
-        stencil<Limiter>()(ra, i, j, pressure);
-      std::tie(eHead(i, j), eTail(i, j)) =
-        stencil<Limiter>()(ra, i, j, specific_internal_energy);
-      std::tie(cHead(i, j), cTail(i, j)) =
-        stencil<Limiter>()(ra, i, j, soundspeed);
+      utils::tie(
+        stencil<Limiter>()(ra, i, j, mass_density), rHead(i, j), rTail(i, j));
+      utils::tie(
+        stencil<Limiter>()(ra, i, j, pressure), pHead(i, j), pTail(i, j));
+      utils::tie(stencil<Limiter>()(ra, i, j, specific_internal_energy),
+        eHead(i, j),
+        eTail(i, j));
+      utils::tie(
+        stencil<Limiter>()(ra, i, j, soundspeed), cHead(i, j), cTail(i, j));
+      utils::tie(
+        stencil<Limiter>()(ra, i, j, velocity), uHead(i, j), uTail(i, j));
 
 #ifdef ENABLE_RADIATION
-      std::tie(EradHead(i, j), EradTail(i, j)) =
-        stencil<Limiter>()(ra, i, j, radiation_energy_density);
+      utils::tie(stencil<Limiter>()(ra, i, j, radiation_energy_density),
+        EradHead(i, j),
+        EradTail(i, j));
 #endif
 
       // Compute conservative variables
@@ -197,7 +212,6 @@ reconstruct(flecsi::exec::cpu s,
                      0.5 * rHead(i, j) * uHead(i, j).norm_squared();
       rETail(i, j) = rTail(i, j) * eTail(i, j) +
                      0.5 * rTail(i, j) * uTail(i, j).norm_squared();
-
     }; // forall
   }
   else { // Dim == 3
@@ -210,20 +224,26 @@ reconstruct(flecsi::exec::cpu s,
     s.executor().forall(kji, mdpolicy_ppp) {
       auto [k, j, i] = kji;
 
-      std::tie(rHead(i, j, k), rTail(i, j, k)) =
-        stencil<Limiter>()(ra, i, j, k, mass_density);
-      std::tie(uHead(i, j, k), uTail(i, j, k)) =
-        stencil<Limiter>()(ra, i, j, k, velocity);
-      std::tie(pHead(i, j, k), pTail(i, j, k)) =
-        stencil<Limiter>()(ra, i, j, k, pressure);
-      std::tie(eHead(i, j, k), eTail(i, j, k)) =
-        stencil<Limiter>()(ra, i, j, k, specific_internal_energy);
-      std::tie(cHead(i, j, k), cTail(i, j, k)) =
-        stencil<Limiter>()(ra, i, j, k, soundspeed);
+      utils::tie(stencil<Limiter>()(ra, i, j, k, mass_density),
+        rHead(i, j, k),
+        rTail(i, j, k));
+      utils::tie(stencil<Limiter>()(ra, i, j, k, pressure),
+        pHead(i, j, k),
+        pTail(i, j, k));
+      utils::tie(stencil<Limiter>()(ra, i, j, k, specific_internal_energy),
+        eHead(i, j, k),
+        eTail(i, j, k));
+      utils::tie(stencil<Limiter>()(ra, i, j, k, soundspeed),
+        cHead(i, j, k),
+        cTail(i, j, k));
+      utils::tie(stencil<Limiter>()(ra, i, j, k, velocity),
+        uHead(i, j, k),
+        uTail(i, j, k));
 
 #ifdef ENABLE_RADIATION
-      std::tie(EradHead(i, j, k), EradTail(i, j, k)) =
-        stencil<Limiter>()(ra, i, j, k, radiation_energy_density);
+      utils::tie(stencil<Limiter>()(ra, i, j, k, radiation_energy_density),
+        EradHead(i, j, k),
+        EradTail(i, j, k));
 #endif
 
       // Compute conservative variables on faces
@@ -233,7 +253,6 @@ reconstruct(flecsi::exec::cpu s,
                         0.5 * rHead(i, j, k) * uHead(i, j, k).norm_squared();
       rETail(i, j, k) = eTail(i, j, k) * eTail(i, j, k) +
                         0.5 * rTail(i, j, k) * uTail(i, j, k).norm_squared();
-
     }; // forall
   }
 }

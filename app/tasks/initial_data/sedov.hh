@@ -59,7 +59,7 @@ sedov_blast(flecsi::exec::cpu s,
       const auto x = m.template center<ax::x>(i);
       double distance = std::abs(x - x0);
       mass_density(i) = density;
-      momentum_density(i).x = 0.0;
+      momentum_density(i).x() = 0.0;
       radiation_energy_density(i) = 0.0;
       total_energy_density(i) = distance < radius ? rE_inside : rE_outside;
     }; // forall

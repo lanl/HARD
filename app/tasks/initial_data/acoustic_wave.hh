@@ -69,7 +69,7 @@ acoustic_wave(flecsi::exec::cpu s,
       const double ux{cs * uA * sine_quad(x0, x1)};
       mass_density(i) = r0 * (1 + rA * sine_quad(x0, x1));
 
-      momentum_density(i).x = mass_density(i) * ux;
+      momentum_density(i).x() = mass_density(i) * ux;
       const double e = util::find_sie(eos, mass_density(i), p0);
       total_energy_density(i) =
         mass_density(i) * e + 0.5 * mass_density(i) * utils::sqr(ux);

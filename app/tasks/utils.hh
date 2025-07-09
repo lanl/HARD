@@ -16,7 +16,7 @@ enum bl { low, high, none };
   pressure.
  */
 template<typename E>
-auto
+FLECSI_INLINE_TARGET auto
 find_sie(E const & eos,
   const double_t r,
   const double_t p,
@@ -27,10 +27,9 @@ find_sie(E const & eos,
   const double_t min{eos.eRhoT(r, 1.0e-50)};
   const double_t max{eos.eRhoT(r, 1.0e20)};
   g = g == std::numeric_limits<double>::min() ? sqrt((max * min)) : g;
-  auto s = regula_falsi(kernel, p, g, min, max, 1.0e-12, 1.0e-12, sie);
-  flog_assert(s == Status::SUCCESS,
-    "specific internal energy root finder failed for r = " << r
-                                                           << " and p = " << p);
+  [[maybe_unused]] auto s =
+    regula_falsi(kernel, p, g, min, max, 1.0e-12, 1.0e-12, sie);
+  assert(s == Status::SUCCESS && "specific internal energy root finder failed");
   return sie;
 } // find_sie
 
@@ -39,7 +38,7 @@ find_sie(E const & eos,
 // F(T) = e(rho, T) - e^n - a / (1 + a) * (ar * T^4 - En)
 //  where a = dt * kappa * c
 template<typename E>
-auto
+auto FLECSI_INLINE_TARGET
 find_temp(E const & eos,
   const double_t r,
   const double_t e,
@@ -59,10 +58,9 @@ find_temp(E const & eos,
     return eos.eRhoT(r, t) + a / (1 + a) * (ar * pow(t, 4.0) - En);
   };
 
-  auto s = regula_falsi(kernel, e, gt, min, max, 1.0e-12, 1.0e-12, t);
-  flog_assert(s == Status::SUCCESS,
-    "specific internal energy root finder failed for r = " << r
-                                                           << " and t = " << t);
+  [[maybe_unused]] auto s =
+    regula_falsi(kernel, e, gt, min, max, 1.0e-12, 1.0e-12, t);
+  assert(s == Status::SUCCESS && "specific internal energy root finder failed");
   return t;
 
 } // find_temp
