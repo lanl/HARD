@@ -311,7 +311,7 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
     return {{idef}};
   }
 
-  static coloring color(mesh::base::colors const & color_distribution,
+  static coloring color(typename mesh::base::colors const & color_distribution,
     gcoord axis_extents,
     periodic_axes p) {
     index_definition idef = index_colors(color_distribution, axis_extents, p);
@@ -323,7 +323,7 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
    *--------------------------------------------------------------------------*/
 
   static void set_geometry(flecsi::exec::cpu,
-    mesh::template accessor<flecsi::rw> m,
+    typename mesh::template accessor<flecsi::rw> m,
     grect const & g) noexcept {
     if constexpr(D == 1) {
       m.set_geometry(

@@ -66,7 +66,7 @@ inline constexpr flecsi::privilege na = spec::na, ro = spec::ro, wo = spec::wo,
 
 template<typename T, std::size_t D>
 struct dual_field {
-  using type = const field<T>::template definition<mesh<D>, is::cells>;
+  using type = const typename field<T>::template definition<mesh<D>, is::cells>;
 
   auto flip() {
     ++flip_;

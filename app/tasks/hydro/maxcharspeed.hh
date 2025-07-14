@@ -7,11 +7,11 @@
 namespace hard::tasks::hydro {
 template<std::size_t D>
 double
-update_max_characteristic_speed(flecsi::exec::cpu s,
+update_max_characteristic_speed(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
   typename field<vec<D>>::template accessor<ro, na> u_a,
-  field<double>::accessor<ro, na> c_a) {
+  field<double>::accessor<ro, na> c_a) noexcept {
   using hard::tasks::util::get_mdiota_policy;
   namespace fold = flecsi::exec::fold;
 

@@ -29,7 +29,7 @@ void
 initialize(control_policy<state, D> & cp) {
   using namespace flecsi;
   auto & s = cp.state();
-  auto & sc = cp.scheduler();
+  flecsi::scheduler & sc = cp.scheduler();
 
   YAML::Node config = YAML::LoadFile(opt::config.value());
 
@@ -393,7 +393,7 @@ initialize(control_policy<state, D> & cp) {
     Initialize time advance.
    *--------------------------------------------------------------------------*/
 
-  execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
+  sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
     *s.m,
     s.mass_density(*s.m),
     s.momentum_density(*s.m),
@@ -403,16 +403,16 @@ initialize(control_policy<state, D> & cp) {
     s.specific_internal_energy(*s.m),
     s.sound_speed(*s.m),
     s.eos);
-  auto lmax_f =
-    execute<tasks::hydro::update_max_characteristic_speed<D>>(flecsi::exec::on,
-      *s.m,
-      s.mass_density(*s.m),
-      s.velocity(*s.m),
-      s.sound_speed(*s.m));
+  auto lmax_f = sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
+    flecsi::exec::on,
+    *s.m,
+    s.mass_density(*s.m),
+    s.velocity(*s.m),
+    s.sound_speed(*s.m));
   s.dtmin_ = reduce<hard::task::rad::update_dtmin<D>, exec::fold::min>(
     flecsi::exec::on, *s.m, lmax_f);
 
-  execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
+  sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
     *s.m,
     s.bmap(*s.gt),
     std::vector{s.mass_density(*s.m),
@@ -424,12 +424,12 @@ initialize(control_policy<state, D> & cp) {
   if(s.mg) {
     // FIXME: figure out how not to use the hardcoded radiation temperature
     // boundary
-    flecsi::execute<task::rad::interp_e_boundary>(flecsi::exec::on,
+    sc.execute<task::rad::interp_e_boundary>(flecsi::exec::on,
       s.t(*s.gt),
       time_boundary(*s.dense_topology),
       temperature_boundary(*s.dense_topology),
       s.dirichlet_value(*s.gt));
-    flecsi::execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
+    sc.execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
       *s.m,
       s.bmap(*s.gt),
       std::vector{s.radiation_energy_density(*s.m)},
@@ -439,7 +439,7 @@ initialize(control_policy<state, D> & cp) {
   /*--------------------------------------------------------------------------*
     Initialize time to 0
    *--------------------------------------------------------------------------*/
-  flecsi::execute<tasks::init::init_time>(
+  sc.execute<tasks::init::init_time>(
     flecsi::exec::on, s.t(*s.gt), config["t0"].as<double>());
 
   /*--------------------------------------------------------------------------*

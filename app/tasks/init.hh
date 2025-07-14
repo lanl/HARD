@@ -13,12 +13,14 @@ namespace tasks::init {
 void inline compute_dt_weighted(flecsi::exec::cpu,
   single<double>::accessor<ro> dt,
   single<double>::accessor<wo> dt_w,
-  double tsg) {
+  double tsg) noexcept {
   dt_w = *dt * tsg;
 }
 
 inline void
-init_time(flecsi::exec::cpu, single<double>::accessor<wo> time, double vtime) {
+init_time(flecsi::exec::cpu,
+  single<double>::accessor<wo> time,
+  double vtime) noexcept {
   *time = vtime;
 }
 

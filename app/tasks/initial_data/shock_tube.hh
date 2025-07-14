@@ -76,13 +76,13 @@ shock(flecsi::exec::cpu s,
 
       if(x < T::x0) {
         mass_density(i) = T::rL;
-        momentum_density(i).x = T::rL * T::uL;
+        momentum_density(i).x() = T::rL * T::uL;
         const double e = util::find_sie(eos, T::rL, T::pL);
         total_energy_density(i) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
         mass_density(i) = T::rR;
-        momentum_density(i).x = T::rR * T::uR;
+        momentum_density(i).x() = T::rR * T::uR;
         const double e = util::find_sie(eos, T::rR, T::pR);
         total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
