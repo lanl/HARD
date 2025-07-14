@@ -10,7 +10,7 @@ namespace hard::tasks::hydro {
 
 template<std::size_t Dim>
 void
-conservative_to_primitive(flecsi::exec::cpu s,
+conservative_to_primitive(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<ro, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<ro, na> momentum_density_a,
@@ -19,7 +19,8 @@ conservative_to_primitive(flecsi::exec::cpu s,
   field<double>::accessor<wo, na> pressure_a,
   field<double>::accessor<wo, na> specific_internal_energy_a,
   field<double>::accessor<wo, na> soundspeed_a,
-  eos::eos_wrapper const & eos) {
+  eos::eos_wrapper const & eos) noexcept {
+
   using hard::tasks::util::get_mdiota_policy;
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);

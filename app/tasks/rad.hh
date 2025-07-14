@@ -13,7 +13,7 @@ template<std::size_t D>
 double
 update_dtmin(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
-  flecsi::future<double> lmax_f) {
+  flecsi::future<double> lmax_f) noexcept {
 
   double lmax = lmax_f.get();
   if constexpr(D == 1) {
@@ -35,11 +35,11 @@ using hard::tasks::util::get_mdiota_policy;
 // Get the gradient of the velocity using a 5-point stencil.
 template<std::size_t D>
 void
-getGradV(flecsi::exec::cpu s,
+getGradV(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
     na> gradV_a,
-  typename field<vec<D>>::template accessor<ro, ro> u_a) {
+  typename field<vec<D>>::template accessor<ro, ro> u_a) noexcept {
 
   auto u = m.template mdcolex<is::cells>(u_a);
   auto gradV = m.template mdcolex<is::cells>(gradV_a);
@@ -48,9 +48,9 @@ getGradV(flecsi::exec::cpu s,
     const double one_over_12dx = 1.0 / (12.0 * m.template delta<ax::x>());
 
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      gradV(i).xx =
-        (u(i - 2).x - 8.0 * u(i - 1).x + 8.0 * u(i + 1).x - u(i + 2).x) *
-        one_over_12dx;
+      gradV(i).xx = (u(i - 2).x() - 8.0 * u(i - 1).x() + 8.0 * u(i + 1).x() -
+                      u(i + 2).x()) *
+                    one_over_12dx;
     };
   }
   else if constexpr(D == 2) {
@@ -64,18 +64,18 @@ getGradV(flecsi::exec::cpu s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
-      gradV(i, j).xx = (u(i - 2, j).x - 8.0 * u(i - 1, j).x +
-                         8.0 * u(i + 1, j).x - u(i + 2, j).x) *
+      gradV(i, j).xx = (u(i - 2, j).x() - 8.0 * u(i - 1, j).x() +
+                         8.0 * u(i + 1, j).x() - u(i + 2, j).x()) *
                        one_over_12dx;
-      gradV(i, j).xy = (u(i, j - 2).x - 8.0 * u(i, j - 1).x +
-                         8.0 * u(i, j + 1).x - u(i, j + 2).x) *
+      gradV(i, j).xy = (u(i, j - 2).x() - 8.0 * u(i, j - 1).x() +
+                         8.0 * u(i, j + 1).x() - u(i, j + 2).x()) *
                        one_over_12dy;
 
-      gradV(i, j).yx = (u(i - 2, j).y - 8.0 * u(i - 1, j).y +
-                         8.0 * u(i + 1, j).y - u(i + 2, j).y) *
+      gradV(i, j).yx = (u(i - 2, j).y() - 8.0 * u(i - 1, j).y() +
+                         8.0 * u(i + 1, j).y() - u(i + 2, j).y()) *
                        one_over_12dx;
-      gradV(i, j).yy = (u(i, j - 2).y - 8.0 * u(i, j - 1).y +
-                         8.0 * u(i, j + 1).y - u(i, j + 2).y) *
+      gradV(i, j).yy = (u(i, j - 2).y() - 8.0 * u(i, j - 1).y() +
+                         8.0 * u(i, j + 1).y() - u(i, j + 2).y()) *
                        one_over_12dy;
     };
   }
@@ -91,34 +91,34 @@ getGradV(flecsi::exec::cpu s,
 
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
-      gradV(i, j, k).xx = (u(i - 2, j, k).x - 8.0 * u(i - 1, j, k).x +
-                            8.0 * u(i + 1, j, k).x - u(i + 2, j, k).x) *
+      gradV(i, j, k).xx = (u(i - 2, j, k).x() - 8.0 * u(i - 1, j, k).x() +
+                            8.0 * u(i + 1, j, k).x() - u(i + 2, j, k).x()) *
                           one_over_12dx;
-      gradV(i, j, k).xy = (u(i, j - 2, k).x - 8.0 * u(i, j - 1, k).x +
-                            8.0 * u(i, j + 1, k).x - u(i, j + 2, k).x) *
+      gradV(i, j, k).xy = (u(i, j - 2, k).x() - 8.0 * u(i, j - 1, k).x() +
+                            8.0 * u(i, j + 1, k).x() - u(i, j + 2, k).x()) *
                           one_over_12dy;
-      gradV(i, j, k).xz = (u(i, j, k - 2).x - 8.0 * u(i, j, k - 1).x +
-                            8.0 * u(i, j, k + 1).x - u(i, j, k + 2).x) *
+      gradV(i, j, k).xz = (u(i, j, k - 2).x() - 8.0 * u(i, j, k - 1).x() +
+                            8.0 * u(i, j, k + 1).x() - u(i, j, k + 2).x()) *
                           one_over_12dz;
 
-      gradV(i, j, k).yx = (u(i - 2, j, k).y - 8.0 * u(i - 1, j, k).y +
-                            8.0 * u(i + 1, j, k).y - u(i + 2, j, k).y) *
+      gradV(i, j, k).yx = (u(i - 2, j, k).y() - 8.0 * u(i - 1, j, k).y() +
+                            8.0 * u(i + 1, j, k).y() - u(i + 2, j, k).y()) *
                           one_over_12dx;
-      gradV(i, j, k).yy = (u(i, j - 2, k).y - 8.0 * u(i, j - 1, k).y +
-                            8.0 * u(i, j + 1, k).y - u(i, j + 2, k).y) *
+      gradV(i, j, k).yy = (u(i, j - 2, k).y() - 8.0 * u(i, j - 1, k).y() +
+                            8.0 * u(i, j + 1, k).y() - u(i, j + 2, k).y()) *
                           one_over_12dy;
-      gradV(i, j, k).yz = (u(i, j, k - 2).y - 8.0 * u(i, j, k - 1).y +
-                            8.0 * u(i, j, k + 1).y - u(i, j, k + 2).y) *
+      gradV(i, j, k).yz = (u(i, j, k - 2).y() - 8.0 * u(i, j, k - 1).y() +
+                            8.0 * u(i, j, k + 1).y() - u(i, j, k + 2).y()) *
                           one_over_12dz;
 
-      gradV(i, j, k).zx = (u(i - 2, j, k).z - 8.0 * u(i - 1, j, k).z +
-                            8.0 * u(i + 1, j, k).z - u(i + 2, j, k).z) *
+      gradV(i, j, k).zx = (u(i - 2, j, k).z() - 8.0 * u(i - 1, j, k).z() +
+                            8.0 * u(i + 1, j, k).z() - u(i + 2, j, k).z()) *
                           one_over_12dx;
-      gradV(i, j, k).zy = (u(i, j - 2, k).z - 8.0 * u(i, j - 1, k).z +
-                            8.0 * u(i, j + 1, k).z - u(i, j + 2, k).z) *
+      gradV(i, j, k).zy = (u(i, j - 2, k).z() - 8.0 * u(i, j - 1, k).z() +
+                            8.0 * u(i, j + 1, k).z() - u(i, j + 2, k).z()) *
                           one_over_12dy;
-      gradV(i, j, k).zz = (u(i, j, k - 2).z - 8.0 * u(i, j, k - 1).z +
-                            8.0 * u(i, j, k + 1).z - u(i, j, k + 2).z) *
+      gradV(i, j, k).zz = (u(i, j, k - 2).z() - 8.0 * u(i, j, k - 1).z() +
+                            8.0 * u(i, j, k + 1).z() - u(i, j, k + 2).z()) *
                           one_over_12dz;
     };
   }
@@ -127,7 +127,7 @@ getGradV(flecsi::exec::cpu s,
 // Get the radiation pressure tensor P
 template<std::size_t D>
 void
-getTensorP(flecsi::exec::cpu s,
+getTensorP(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
     na> P_tensor_a,
@@ -135,7 +135,7 @@ getTensorP(flecsi::exec::cpu s,
   typename field<vec<D>>::template accessor<ro, na> gradEsf_a,
   field<double>::accessor<ro, na> gradE_mag_a,
   field<double>::accessor<ro, na> lambda_a,
-  field<double>::accessor<ro, na> R_a) {
+  field<double>::accessor<ro, na> R_a) noexcept {
 
   auto P_tensor = m.template mdcolex<is::cells>(P_tensor_a);
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
@@ -165,8 +165,8 @@ getTensorP(flecsi::exec::cpu s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
-      const double nx = gradEsf(i, j).x / (gradE_mag(i, j) + eps);
-      const double ny = gradEsf(i, j).y / (gradE_mag(i, j) + eps);
+      const double nx = gradEsf(i, j).x() / (gradE_mag(i, j) + eps);
+      const double ny = gradEsf(i, j).y() / (gradE_mag(i, j) + eps);
 
       const double f = compute_eddington_factor(lambda(i, j), R(i, j));
 
@@ -187,9 +187,9 @@ getTensorP(flecsi::exec::cpu s,
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
-      const double nx = gradEsf(i, j, k).x / (gradE_mag(i, j, k) + eps);
-      const double ny = gradEsf(i, j, k).y / (gradE_mag(i, j, k) + eps);
-      const double nz = gradEsf(i, j, k).z / (gradE_mag(i, j, k) + eps);
+      const double nx = gradEsf(i, j, k).x() / (gradE_mag(i, j, k) + eps);
+      const double ny = gradEsf(i, j, k).y() / (gradE_mag(i, j, k) + eps);
+      const double nz = gradEsf(i, j, k).z() / (gradE_mag(i, j, k) + eps);
 
       const double f = compute_eddington_factor(lambda(i, j, k), R(i, j, k));
 
@@ -216,10 +216,10 @@ getTensorP(flecsi::exec::cpu s,
 // for the Legion tracing so I am using `<wo, ro>` for now.
 template<std::size_t D>
 void
-getGradE(flecsi::exec::cpu s,
+getGradE(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, ro> Esf_a,
-  typename field<vec<D>>::template accessor<wo, ro> gradEsf_a) {
+  typename field<vec<D>>::template accessor<wo, ro> gradEsf_a) noexcept {
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
   auto gradEsf = m.template mdcolex<is::cells>(gradEsf_a);
 
@@ -228,7 +228,7 @@ getGradE(flecsi::exec::cpu s,
 
     // Application of the 5-stencil central differencing:
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      gradEsf(i).x =
+      gradEsf(i).x() =
         (Esf(i - 2) - 8.0 * Esf(i - 1) + 8.0 * Esf(i + 1) - Esf(i + 2)) *
         one_over_12dx;
     }; // for
@@ -245,12 +245,12 @@ getGradE(flecsi::exec::cpu s,
       auto [j, i] = ji;
 
       // Application of the 5-stencil central differencing:
-      gradEsf(i, j).x = (Esf(i - 2, j) - 8.0 * Esf(i - 1, j) +
-                          8.0 * Esf(i + 1, j) - Esf(i + 2, j)) *
-                        one_over_12dx;
-      gradEsf(i, j).y = (Esf(i, j - 2) - 8.0 * Esf(i, j - 1) +
-                          8.0 * Esf(i, j + 1) - Esf(i, j + 2)) *
-                        one_over_12dy;
+      gradEsf(i, j).x() = (Esf(i - 2, j) - 8.0 * Esf(i - 1, j) +
+                            8.0 * Esf(i + 1, j) - Esf(i + 2, j)) *
+                          one_over_12dx;
+      gradEsf(i, j).y() = (Esf(i, j - 2) - 8.0 * Esf(i, j - 1) +
+                            8.0 * Esf(i, j + 1) - Esf(i, j + 2)) *
+                          one_over_12dy;
     }; // forall
   }
   else {
@@ -267,15 +267,15 @@ getGradE(flecsi::exec::cpu s,
       auto [k, j, i] = kji;
 
       // Application of the 5-stencil central differencing:
-      gradEsf(i, j, k).x = (Esf(i - 2, j, k) - 8.0 * Esf(i - 1, j, k) +
-                             8.0 * Esf(i + 1, j, k) - Esf(i + 2, j, k)) *
-                           one_over_12dx;
-      gradEsf(i, j, k).y = (Esf(i, j - 2, k) - 8.0 * Esf(i, j - 1, k) +
-                             8.0 * Esf(i, j + 1, k) - Esf(i, j + 2, k)) *
-                           one_over_12dy;
-      gradEsf(i, j, k).z = (Esf(i, j, k - 2) - 8.0 * Esf(i, j, k - 1) +
-                             8.0 * Esf(i, j, k + 1) - Esf(i, j, k + 2)) *
-                           one_over_12dz;
+      gradEsf(i, j, k).x() = (Esf(i - 2, j, k) - 8.0 * Esf(i - 1, j, k) +
+                               8.0 * Esf(i + 1, j, k) - Esf(i + 2, j, k)) *
+                             one_over_12dx;
+      gradEsf(i, j, k).y() = (Esf(i, j - 2, k) - 8.0 * Esf(i, j - 1, k) +
+                               8.0 * Esf(i, j + 1, k) - Esf(i, j + 2, k)) *
+                             one_over_12dy;
+      gradEsf(i, j, k).z() = (Esf(i, j, k - 2) - 8.0 * Esf(i, j, k - 1) +
+                               8.0 * Esf(i, j, k + 1) - Esf(i, j, k + 2)) *
+                             one_over_12dz;
     };
   }
 } // getGradE
@@ -291,7 +291,7 @@ getGradE(flecsi::exec::cpu s,
 //
 template<std::size_t D>
 void
-getLambda(flecsi::exec::cpu s,
+getLambda(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
   field<double>::accessor<ro, na> Esf_a,
@@ -299,7 +299,7 @@ getLambda(flecsi::exec::cpu s,
   field<double>::accessor<rw, na> gradE_mag_a,
   field<double>::accessor<wo, na> R_a,
   field<double>::accessor<wo, na> lambda_a,
-  single<double>::accessor<ro> kappa_a) {
+  single<double>::accessor<ro> kappa_a) noexcept {
 
   // TODO: applying boundary condition should be separated to new task
 
@@ -315,7 +315,7 @@ getLambda(flecsi::exec::cpu s,
       auto const kappa = *kappa_a;
       const double eps = 1.0e-30;
 
-      gradE_mag(i) = std::abs(gradEsf(i).x);
+      gradE_mag(i) = std::abs(gradEsf(i).x());
       R(i) = gradE_mag(i) / (kappa * r(i) * Esf(i) + eps);
       lambda(i) = (2.0 + R(i)) / (6.0 + 3.0 * R(i) + R(i) * R(i));
     };
@@ -357,11 +357,11 @@ getLambda(flecsi::exec::cpu s,
 // Get the radiation force using the FLD approximation
 template<std::size_t D>
 void
-getRadForce(flecsi::exec::cpu s,
+getRadForce(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> lambda_a,
   typename field<vec<D>>::template accessor<ro, na> gradEsf_a,
-  typename field<vec<D>>::template accessor<wo, na> fr_a) {
+  typename field<vec<D>>::template accessor<wo, na> fr_a) noexcept {
 
   auto lambda = m.template mdcolex<is::cells>(lambda_a);
   auto gradEsf = m.template mdcolex<is::cells>(gradEsf_a);
@@ -369,7 +369,7 @@ getRadForce(flecsi::exec::cpu s,
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      fr(i).x = -lambda(i) * gradEsf(i).x;
+      fr(i).x() = -lambda(i) * gradEsf(i).x();
     };
   }
   else if constexpr(D == 2) {
@@ -379,8 +379,8 @@ getRadForce(flecsi::exec::cpu s,
 
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
-      fr(i, j).x = -lambda(i, j) * gradEsf(i, j).x;
-      fr(i, j).y = -lambda(i, j) * gradEsf(i, j).y;
+      fr(i, j).x() = -lambda(i, j) * gradEsf(i, j).x();
+      fr(i, j).y() = -lambda(i, j) * gradEsf(i, j).y();
     };
   }
   else {
@@ -390,9 +390,9 @@ getRadForce(flecsi::exec::cpu s,
       m.template cells<ax::x, dm::quantities>());
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
-      fr(i, j, k).x = -lambda(i, j, k) * gradEsf(i, j, k).x;
-      fr(i, j, k).y = -lambda(i, j, k) * gradEsf(i, j, k).y;
-      fr(i, j, k).z = -lambda(i, j, k) * gradEsf(i, j, k).z;
+      fr(i, j, k).x() = -lambda(i, j, k) * gradEsf(i, j, k).x();
+      fr(i, j, k).y() = -lambda(i, j, k) * gradEsf(i, j, k).y();
+      fr(i, j, k).z() = -lambda(i, j, k) * gradEsf(i, j, k).z();
     };
   }
 } // getRadForce
@@ -401,7 +401,7 @@ getRadForce(flecsi::exec::cpu s,
 // Moens2022)
 template<std::size_t D>
 void
-explicitSourceUpdate(flecsi::exec::cpu s,
+explicitSourceUpdate(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   // Primitive variables
   typename field<vec<D>>::template accessor<ro, na> velocity_a,
@@ -414,7 +414,7 @@ explicitSourceUpdate(flecsi::exec::cpu s,
   // time derivative
   typename field<vec<D>>::template accessor<rw, na> dt_momentum_density_a,
   field<double>::accessor<rw, na> dt_total_energy_density_a,
-  field<double>::accessor<rw, na> dt_radiation_energy_density_a) {
+  field<double>::accessor<rw, na> dt_radiation_energy_density_a) noexcept {
 
   auto velocity = m.template mdcolex<is::cells>(velocity_a);
   auto fr = m.template mdcolex<is::cells>(fr_a);
@@ -436,8 +436,8 @@ explicitSourceUpdate(flecsi::exec::cpu s,
       dt_momentum_density(i) += fr(i);
 
       // Updating the total gas energy density: Adding contribution from the
-      // work done by the radiative force: vdot_fr(i) = u(i).x * fr(i).x
-      dt_total_energy_density(i) += velocity(i).x * fr(i).x;
+      // work done by the radiative force: vdot_fr(i) = u(i).x() * fr(i).x()
+      dt_total_energy_density(i) += velocity(i).x() * fr(i).x();
 
       // Subtracting the photon tiring term, (P::gradV), from the radiation
       // energy density in each cell. See Eq(34) in Moens2022.
@@ -463,9 +463,9 @@ explicitSourceUpdate(flecsi::exec::cpu s,
       dt_momentum_density(i, j) += fr(i, j);
 
       // Updating the total gas energy density: Adding contribution from the
-      // work done by the radiative force: vdot_fr(i) = u(i).x * fr(i).x
+      // work done by the radiative force: vdot_fr(i) = u(i).x() * fr(i).x()
       dt_total_energy_density(i, j) +=
-        velocity(i, j).x * fr(i, j).x + velocity(i, j).y * fr(i, j).y;
+        velocity(i, j).x() * fr(i, j).x() + velocity(i, j).y() * fr(i, j).y();
 
       // Subtracting the photon tiring term, (P::gradV), from the radiation
       // energy density in each cell. See Eq(34) in Moens2022.
@@ -490,10 +490,11 @@ explicitSourceUpdate(flecsi::exec::cpu s,
       dt_momentum_density(i, j, k) += fr(i, j, k);
 
       // Updating the total gas energy density: Adding contribution from the
-      // work done by the radiative force: vdot_fr(i) = u(i).x * fr(i).x
-      dt_total_energy_density(i, j, k) += velocity(i, j, k).x * fr(i, j, k).x +
-                                          velocity(i, j, k).y * fr(i, j, k).y +
-                                          velocity(i, j, k).z * fr(i, j, k).z;
+      // work done by the radiative force: vdot_fr(i) = u(i).x() * fr(i).x()
+      dt_total_energy_density(i, j, k) +=
+        velocity(i, j, k).x() * fr(i, j, k).x() +
+        velocity(i, j, k).y() * fr(i, j, k).y() +
+        velocity(i, j, k).z() * fr(i, j, k).z();
 
       // Subtracting the photon tiring term, (P::gradV), from the radiation
       // energy density in each cell. See Eq(34) in Moens et al. 2022.
@@ -514,12 +515,12 @@ explicitSourceUpdate(flecsi::exec::cpu s,
 // Compute the diffusion coefficients D
 template<std::size_t D>
 void
-getDiff(flecsi::exec::cpu s,
+getDiff(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
   field<double>::accessor<ro, na> lambda_a,
   field<double>::accessor<wo, na> Diff_a,
-  single<double>::accessor<ro> kappa_a) {
+  single<double>::accessor<ro> kappa_a) noexcept {
 
   auto r = m.template mdcolex<is::cells>(r_a);
   auto lambda = m.template mdcolex<is::cells>(lambda_a);
@@ -562,12 +563,12 @@ getDiff(flecsi::exec::cpu s,
 // Compute the radiation diffusion coefficients D on faces
 template<std::size_t D>
 void
-diffusion_init(flecsi::exec::cpu s,
+diffusion_init(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> Diff_a,
   typename field<double>::template accessor<wo, na> Df_xa,
   typename field<double>::template accessor<wo, na> Df_ya,
-  typename field<double>::template accessor<wo, na> Df_za) {
+  typename field<double>::template accessor<wo, na> Df_za) noexcept {
 
   auto Diff = m.template mdcolex<is::cells>(Diff_a);
   auto Df_x = m.template mdcolex<is::cells>(Df_xa);
@@ -613,10 +614,10 @@ diffusion_init(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-const_init(flecsi::exec::cpu s,
+const_init(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<wo, na> f_a,
-  double w) {
+  double w) noexcept {
 
   auto f = m.template mdcolex<is::cells>(f_a);
 
@@ -651,10 +652,10 @@ const_init(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-initialize_Ef(flecsi::exec::cpu s,
+initialize_Ef(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, na> Erad_a,
-  typename field<double>::template accessor<wo, na> Ef_a) {
+  typename field<double>::template accessor<wo, na> Ef_a) noexcept {
 
   auto Erad = m.template mdcolex<is::cells>(Erad_a);
   auto Ef = m.template mdcolex<is::cells>(Ef_a);
@@ -689,13 +690,13 @@ initialize_Ef(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-stencil_init(flecsi::exec::cpu s,
+stencil_init(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> Df_xa,
   typename field<double>::template accessor<ro, ro> Df_ya,
   typename field<double>::template accessor<ro, ro> Df_za,
   typename field<stencil<D>>::template accessor<wo, na> Ew_a,
-  single<double>::accessor<ro> dt_a) {
+  single<double>::accessor<ro> dt_a) noexcept {
   // TODO: Stencil, Ew ghosts can be `na` (?)
 
   auto Df_x = m.template mdcolex<is::cells>(Df_xa);
@@ -760,11 +761,11 @@ stencil_init(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-full_weighting(flecsi::exec::cpu s,
+full_weighting(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> mf,
   typename mesh<D>::template accessor<ro> mc,
   typename field<double>::template accessor<ro, ro> rfa,
-  typename field<double>::template accessor<wo, ro> fca) {
+  typename field<double>::template accessor<wo, ro> fca) noexcept {
   // TODO: fca could be <wo, na>, since only writing quantities
 
   auto rf = mf.template mdcolex<is::cells>(rfa);
@@ -855,11 +856,11 @@ full_weighting(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-nlinear_interpolation(flecsi::exec::cpu s,
+nlinear_interpolation(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> mc,
   typename mesh<D>::template accessor<ro> mf,
   typename field<double>::template accessor<ro, ro> cfa,
-  typename field<double>::template accessor<wo, ro> ffa) {
+  typename field<double>::template accessor<wo, ro> ffa) noexcept {
   // TODO: As above, ffa could be <wo, na>, since only writing quantities
 
   auto cf = mc.template mdcolex<is::cells>(cfa);
@@ -931,13 +932,13 @@ nlinear_interpolation(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-damped_jacobi(flecsi::exec::cpu s,
+damped_jacobi(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
   typename field<double>::template accessor<rw, ro> ua_new,
   typename field<double>::template accessor<ro, ro> ua_old,
   typename field<double>::template accessor<ro, ro> fa,
-  double omega) {
+  double omega) noexcept {
 
   auto Ew = m.template mdcolex<is::cells>(Ew_a);
   auto u_new = m.template mdcolex<is::cells>(ua_new);
@@ -993,12 +994,12 @@ damped_jacobi(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-residual(flecsi::exec::cpu s,
+residual(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
   typename field<double>::template accessor<ro, ro> ua,
   typename field<double>::template accessor<ro, ro> fa,
-  typename field<double>::template accessor<wo, ro> ra) {
+  typename field<double>::template accessor<wo, ro> ra) noexcept {
   // TODO: Not using the ghost cells of fa here, are we?
 
   auto Ew = m.template mdcolex<is::cells>(Ew_a);
@@ -1047,10 +1048,10 @@ residual(flecsi::exec::cpu s,
 
 template<std::size_t D>
 void
-correction(flecsi::exec::cpu s,
+correction(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<rw, ro> ua,
-  typename field<double>::template accessor<wo, ro> ea) {
+  typename field<double>::template accessor<wo, ro> ea) noexcept {
   // TODO: Looks like ea should be <ro, na>
 
   auto u = m.template mdcolex<is::cells>(ua);
@@ -1090,7 +1091,7 @@ interp_e_boundary(flecsi::exec::cpu,
   single<double>::accessor<flecsi::ro> t,
   field<double>::accessor<flecsi::ro> time_boundary,
   field<double>::accessor<flecsi::ro> temperature_boundary,
-  single<double>::accessor<flecsi::wo> value) {
+  single<double>::accessor<flecsi::wo> value) noexcept {
 
   auto get_energy = [](const double & temperature) -> double {
     return constants::cgs::radiation_constant *
