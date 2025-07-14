@@ -38,6 +38,7 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
 
     # allow `main` version for development
     version("main", branch="main")
+    version("1.9.2.1", commit="bef20b27935b563aee5e63096fc141e44accf3a5")
     version("1.9.2", commit="9e7de3eccd610e0654e9a05d673ef7b24d32cf31")
     version("1.9.1", commit="1be18426a2c9c26f969bc14a73b482d5beca0217")
 
@@ -69,8 +70,8 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
     # link to EOSPAC for table reads
     variant("eospac", default=True, description="Pull in EOSPAC")
 
-    # enable/disable HDF5 - used to control upstream `spiner` 
-    # configuration 
+    # enable/disable HDF5 - used to control upstream `spiner`
+    # configuration
     variant("hdf5", default=False, description="Use hdf5")
 
     variant("spiner", default=True, description="Use Spiner")
@@ -108,7 +109,7 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
     requires("+kokkos-kernels", when="+cuda")
     requires("+kokkos-kernels", when="+rocm")
 
-    # eospac when asked for 
+    # eospac when asked for
     depends_on("eospac", when="+eospac")
 
     depends_on("ports-of-call@1.4.2,1.5.2:", when="@:1.7.0")
@@ -116,9 +117,9 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
     depends_on("ports-of-call@1.6.0:", when="@1.9.0:")
     # request HEAD of main branch
     depends_on("ports-of-call@main", when="@main")
-    
+
     depends_on("spiner +kokkos", when="+kokkos+spiner")
-    # tell spiner to use HDF5 
+    # tell spiner to use HDF5
     depends_on("spiner +hdf5", when="+hdf5+spiner")
 
     depends_on("spiner@1.6.3", when="+spiner")
@@ -128,7 +129,7 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
         "mpark-variant",
         patches=patch(
             "https://raw.githubusercontent.com/lanl/singularity-eos/refs/heads/main/utils/gpu_compatibility.patch",
-            sha256="c803670cbd95f9b97458fb4ef403de30229ec81566a5b8e5ccb75ad9d0b22541"
+            sha256="592e64ceccd2822ec1cc7eb01ac3fcad620551940beab793003afb6b5366dad8"
         ),
         when="+cuda",
     )
@@ -136,7 +137,7 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
         "mpark-variant",
         patches=patch(
             "https://raw.githubusercontent.com/lanl/singularity-eos/refs/heads/main/utils/gpu_compatibility.patch",
-            sha256="c803670cbd95f9b97458fb4ef403de30229ec81566a5b8e5ccb75ad9d0b22541",
+            sha256="592e64ceccd2822ec1cc7eb01ac3fcad620551940beab793003afb6b5366dad8",
         ),
         when="+rocm",
     )
@@ -160,7 +161,7 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
     # specfic specs when using GPU/cuda offloading
     # TODO remove +wrapper for clang builds
     # TODO version guard +cuda_lambda
-    depends_on("kokkos +wrapper+cuda_lambda", when="+cuda+kokkos")
+    depends_on("kokkos +cuda_lambda", when="+cuda+kokkos")
 
     # fix for older spacks
     if spack.version.Version(spack.spack_version) >= spack.version.Version("0.17"):
@@ -197,7 +198,7 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
     patch("true.patch")
 
 
-    # TODO some options are now version specific. For now it should be 
+    # TODO some options are now version specific. For now it should be
     # benign, but good practice to do some version guards.
     def cmake_args(self):
         args = [
