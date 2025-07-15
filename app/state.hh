@@ -53,7 +53,7 @@ struct state {
 #endif // USE_CATALYST
 
   // Vector for meshes in multigrid
-  std::vector<typename mesh<D>::ptr> mh;
+  std::deque<typename mesh<D>::ptr> mh;
 
   // Define the fine grid
   typename mesh<D>::ptr & m = mh.emplace_back(typename mesh<D>::ptr());
