@@ -1,0 +1,285 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Example Problem &mdash; HARD @HARD_VERSION@ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=9ecc9bae" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="canonical" href="http://www.flecsi.org/hard/method.html"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a33db331"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="HARD YAML Input Files" href="inputfiles.html" />
+    <link rel="prev" title="HARD Application" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/hard-sp.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Example Problem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#muscl-scheme">MUSCL Scheme</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hancock-time-evolution">Hancock Time Evolution</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="inputfiles.html">HARD YAML Input Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Visualization</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HARD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Example Problem</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/hard/method.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="example-problem">
+<span id="hard-problem"></span><h1>Example Problem<a class="headerlink" href="#example-problem" title="Link to this heading"></a></h1>
+<p>The application codes in this example solve the <em>Euler</em> equations of
+compressible gas dynamics. In one spatial dimension, the Euler equations
+are given by</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\left[
+  \begin{gathered}
+    \rho \\
+    \rho u \\
+    E
+  \end{gathered}
+\right]_t
++
+\left[
+  \begin{gathered}
+    \rho u \\
+    \rho u^2 + p \\
+    \left(E + p\right)u
+  \end{gathered}
+\right]_x
+= 0,\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\rho\)</span> is the density, <span class="math notranslate nohighlight">\(u\)</span> is the velocity, <span class="math notranslate nohighlight">\(E\)</span> is the
+total engery, and <span class="math notranslate nohighlight">\(p\)</span> is the pressure. This is generally referred to as
+the <em>conservation</em> form, as it emphasises the property that the Euler equations
+are mass, momentum, and total energy conserving.</p>
+<p>In three dimensions, the conservation form is</p>
+<div class="math notranslate nohighlight">
+\[q_t + f(q)_x + g(q)_y + h(q)_w = 0,\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}q =
+\left[
+  \begin{gathered}
+    \rho \\
+    \rho u \\
+    \rho v \\
+    \rho w \\
+    E
+  \end{gathered}
+\right],
+f(q) =
+\left[
+  \begin{gathered}
+    \rho u \\
+    \rho u^2 + p \\
+    \rho uv \\
+    \rho uw \\
+    \left(E+p\right)u
+\end{gathered}
+\right],
+g(q) =
+\left[
+  \begin{gathered}
+    \rho v \\
+    \rho uv \\
+    \rho v^2 + p \\
+    \rho vw \\
+    \left(E+p\right)v
+  \end{gathered}
+\right],
+h(q) =
+\left[
+  \begin{gathered}
+    \rho w \\
+    \rho uw \\
+    \rho vw \\
+    \rho w^2 + p \\
+    \left(E+p\right)w
+  \end{gathered}
+\right].\end{split}\]</div>
+<section id="muscl-scheme">
+<h2>MUSCL Scheme<a class="headerlink" href="#muscl-scheme" title="Link to this heading"></a></h2>
+<p>The MUSCL scheme (<em>Monotonic Upstream-centered Scheme for Conservation
+Laws</em>) is a second-order (in space) finite volume method that is <em>total
+variation diminishing (TVD)</em> and can provide accurate simulations of
+shock dynamics. A succinct, semi-discrete representation of the scheme
+can be written</p>
+<div class="math notranslate nohighlight">
+\[\frac{du_i}{dt} + \frac{1}{\Delta x_i}
+\left[
+  F^{*}_{i+1/2} - F^{*}_{i-1/2}
+\right],\label{semi}\tag{1}\]</div>
+<p>where <span class="math notranslate nohighlight">\(F^{*}_{i\pm 1/2}\)</span> are numerical fluxes that are a
+non-linear mix of first and second-order slope reconstructions depending
+on the gradients close to the current cell, and can be written in the
+form</p>
+<div class="math notranslate nohighlight">
+\[F^{*}_{i\pm 1/2} = f^{low}_{i\pm 1/2} -
+\phi(r_i)
+\left(
+  f^{low}_{i\pm 1/2} - f^{high}_{i\pm 1/2}
+\right)\]</div>
+<p>where <span class="math notranslate nohighlight">\(r_i\)</span> is the ratio of successive gradient approximations and
+<span class="math notranslate nohighlight">\(\phi: r_i \rightarrow [0,1]\)</span> is a limiter function that selects a
+realistic spatial derivative value. One example of such a limiter
+function is the <em>minmod</em> limiter</p>
+<div class="math notranslate nohighlight">
+\[\phi_{mm}(r_i) = max[0, min(1,r_i)];
+\;\;\lim_{r_i \rightarrow \infty}\phi_{mm}(r_i) = 1.\]</div>
+<p>In smooth areas of the flow, <span class="math notranslate nohighlight">\(\phi_{mm}(r_i)\)</span> will be close to
+one, which will select the higher-order approximation. Near a shock,
+<span class="math notranslate nohighlight">\(r_i\)</span> will approach infinity and <span class="math notranslate nohighlight">\(\phi_{mm}(r_i)\)</span> will be
+close to zero and the low-order approximation will be selected.</p>
+</section>
+<section id="hancock-time-evolution">
+<h2>Hancock Time Evolution<a class="headerlink" href="#hancock-time-evolution" title="Link to this heading"></a></h2>
+<p>To fully discretize (<span class="math notranslate nohighlight">\(\ref{semi}\)</span>), we can use the Hancock method,
+which is second-order accurate in time. Hancock is a predictor-corrector
+method that uses the averages of the reconstructed input quantities to
+approximate the flux for <span class="math notranslate nohighlight">\(t+\Delta t/2\)</span> in the predictor
+step. These intermediate quantities are then reconstructed to the faces
+again, but a <em>Riemann</em> solver is used to compute the corrector step.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The MUSCL-Hancock method documented here is second-order accurate in
+space and time.</p>
+</div>
+<p>Quantity reconstruction (extrapolation) to faces uses the rule</p>
+<div class="math notranslate nohighlight">
+\[q^n_{i\pm 1/2} = q^n_i \pm
+  \frac{\Delta x_i}{2}
+  \left(\frac{\partial q^n_i}{\partial s}\right),\label{recon}\tag{2}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\partial q^n_i/\partial s\)</span> is the flux limited slope.</p>
+<p>The predictor step computes intermediate quantities <span class="math notranslate nohighlight">\(q^{*}\)</span> using</p>
+<div class="math notranslate nohighlight">
+\[q^{*}_i = q^n_i - \frac{\Delta t}{2\Delta x_i}
+\left(q^n_{i-1/2} - q^n_{i+1/2}\right).\]</div>
+<p>These quantities are then reconstructed to the faces again by applying
+(<span class="math notranslate nohighlight">\(\ref{recon}\)</span>). The corrector step is</p>
+<div class="math notranslate nohighlight">
+\[q^{n+1}_i = q^n_i + \frac{\Delta t}{\Delta x}
+\left( F_{i-1/2} - F_{i+1/2} \right),\]</div>
+<p>where <span class="math notranslate nohighlight">\(F()\)</span> is a Riemann solver. The code in this specialization
+example uses the HLL approximate Riemann sovler.</p>
+<div class="math notranslate nohighlight">
+\[F^{hll} =
+\frac
+{S_R F_L - S_L F_R + S_R S_L\left(U_R - U_L\right)}
+{S_R - S_L}\]</div>
+<p>where <span class="math notranslate nohighlight">\(S_T\)</span> and <span class="math notranslate nohighlight">\(S_H\)</span> are the min and max wave speeds taken
+at the tail and head of the cell interfaces respectively, <span class="math notranslate nohighlight">\(U_L\)</span>
+and <span class="math notranslate nohighlight">\(U_R\)</span> are the respective intermediate quantities, and
+<span class="math notranslate nohighlight">\(F_L\)</span> and <span class="math notranslate nohighlight">\(F_R\)</span> are the flux functions evaluated at the
+respective intermediate quantities.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="HARD Application" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="inputfiles.html" class="btn btn-neutral float-right" title="HARD YAML Input Files" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023, Triad National Security, LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+  <style>
+    /* Contents caption */
+    .wy-menu-vertical>p.caption {
+      color: #ffffff;
+    }
+
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #e3e2db;
+    }
+    .wy-side-nav-search>div.version, .wy-nav-top>div.version {
+      color: #5f5d5f;
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+      background: #216897;
+      color: #ffffff;
+    }
+  </style>
+
+
+</body>
+</html>
