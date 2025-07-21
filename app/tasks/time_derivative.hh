@@ -319,7 +319,7 @@ add_k1_k2(flecsi::exec::accelerator s,
       // Weights
       dt_r(i, j) = (dt_r(i, j) + dt_r2(i, j)) * 0.5;
       dt_ru(i, j) = (dt_ru(i, j) + dt_ru2(i, j)) * 0.5;
-      dt_te(i, j) = (dt_te(i, j) + dt_te2(i, j) * 0.5);
+      dt_te(i, j) = (dt_te(i, j) + dt_te2(i, j)) * 0.5;
 #ifdef ENABLE_RADIATION
       dt_re(i, j) += dt_re2(i, j);
 #endif
