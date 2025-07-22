@@ -2,89 +2,10 @@
 
    <br />
 
-.. _hard_problem:
+.. _hard_method:
 
-Example Problem
+Numerical Schemes
 ***************
-
-The application codes in this example solve the *Euler* equations of
-compressible gas dynamics. In one spatial dimension, the Euler equations
-are given by
-
-.. math::
-
-   \left[
-     \begin{gathered}
-       \rho \\
-       \rho u \\
-       E
-     \end{gathered}
-   \right]_t
-   +
-   \left[
-     \begin{gathered}
-       \rho u \\
-       \rho u^2 + p \\
-       \left(E + p\right)u
-     \end{gathered}
-   \right]_x
-   = 0,
-
-where :math:`\rho` is the density, :math:`u` is the velocity, :math:`E` is the
-total engery, and :math:`p` is the pressure. This is generally referred to as
-the *conservation* form, as it emphasises the property that the Euler equations
-are mass, momentum, and total energy conserving.
-
-In three dimensions, the conservation form is
-
-.. math::
-
-   q_t + f(q)_x + g(q)_y + h(q)_w = 0,
-
-where
-
-.. math::
-
-   q =
-   \left[
-     \begin{gathered}
-       \rho \\
-       \rho u \\
-       \rho v \\
-       \rho w \\
-       E
-     \end{gathered}
-   \right],
-   f(q) =
-   \left[
-     \begin{gathered}
-       \rho u \\
-       \rho u^2 + p \\
-       \rho uv \\
-       \rho uw \\
-       \left(E+p\right)u
-   \end{gathered}
-   \right],
-   g(q) =
-   \left[
-     \begin{gathered}
-       \rho v \\
-       \rho uv \\
-       \rho v^2 + p \\
-       \rho vw \\
-       \left(E+p\right)v
-     \end{gathered}
-   \right],
-   h(q) =
-   \left[
-     \begin{gathered}
-       \rho w \\
-       \rho uw \\
-       \rho vw \\
-       \rho w^2 + p \\
-       \left(E+p\right)w
-     \end{gathered}
-   \right].
 
 MUSCL Scheme
 ~~~~~~~~~~~~
