@@ -8,6 +8,7 @@ HARD is based on the FleCSI framework and implemented on top of FleCSI-SP (FleCS
 .. toctree::
   :caption: Contents:
 
+  hard/equations
   hard/method
   hard/inputfiles
   hard/visualization
