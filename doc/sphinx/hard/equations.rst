@@ -1,4 +1,14 @@
-We follow the comoving frame formulation of the RHD equations in the diffusion limit, which can be written in Einstein notation in the form
+.. |br| raw:: html
+
+   <br />
+
+.. _hard_equations:
+
+
+Basic Equations
+***************
+
+We follow the comoving frame formulation of the radiation hydrodynamics equations in the diffusion limit, which can be written in Einstein notation in the form
 
 .. math::
    \partial_t \mathbf{U} + \partial_j \mathbf{F}^j = \mathbf{S}
@@ -39,6 +49,9 @@ and :math:`\dot{q}` is the radiative heating rate
    \dot{q} = \frac{dq}{dt} = c \kappa \rho (E - a T^4) ,
 
 where :math:`\kappa` is mean opacity, :math:`c` is the speed of light, :math:`a` is the radiation constant, and :math:`T` is the fluid temperature.
+
+Flux Limited Diffusion
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 For closure of the evolution system for the fluid, we need to specify the functional form of the fluid pressure :math:`p`. Here we adopt the singularity-EOS, allowing us to use any material in evolution.
 
@@ -89,4 +102,7 @@ As a result, the radiative transfer equation becomes:
         \partial_i(D\, \partial_i E) - P_r^{ij} \nabla_i v_j - \dot{q},
 
 with :math:`D = c\lambda / (\kappa\rho)`.
+
+.. vim: set tabstop=2 shiftwidth=2 expandtab fo=cqt tw=72 :
+
 
