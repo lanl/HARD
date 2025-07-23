@@ -4,7 +4,7 @@ from collections.abc import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
-from acoustic_solution import Acoustic
+from acoustic_solution import Acoustic_1D, Acoustic_2D, Acoustic_3D
 from verify_lib import (compute_l1_error_fvm, find_last_output, parse_cli,
                         parse_config, wrapFunction)
 
@@ -21,8 +21,9 @@ def main() -> None:
     ord = 3
 
     # Get all files
-    yaml_file, out_dir, _, make_plot = parse_cli(get_file=False)
+    yaml_file, dim, out_dir, _, make_plot = parse_cli(get_file=False)
     problem, gamma, x0, x1, problem_dict = parse_config(yaml_file)
+    # TODO: Finish this implementation
 
     # Find every example and build the dx and L1 error arrays
     if out_dir is None:
@@ -53,15 +54,26 @@ def main() -> None:
 
         # Instantiate our solution class in the first loop
         if first_loop:
-            acoustic_instance = wrapFunction(
-                Acoustic(gamma, x0, x1, problem_dict), time,
-                ["density", "pressure", "velocity"])
-            u_exact = acoustic_instance.velocity
+            if dim == 1:
+                acoustic_instance = wrapFunction(
+                    Acoustic_1D(gamma, x0, x1, problem_dict), time,
+                    ["density", "pressure", "velocity"])
+                u_exact = acoustic_instance.velocity
+            elif dim == 2:
+                acoustic_instance = wrapFunction(
+                    Acoustic_2D(gamma, x0, x1, problem_dict), time,
+                    ["density", "pressure", "velocity_x"], dim=dim)
+                u_exact = acoustic_instance.velocity_x
+            elif dim == 3:
+                acoustic_instance = wrapFunction(
+                    Acoustic_3D(gamma, x0, x1, problem_dict), time,
+                    ["density", "pressure", "velocity_x"], dim=dim)
+                u_exact = acoustic_instance.velocity_x
 
             first_loop = False
 
         dx.append(x_num[1] - x_num[0])
-        l1err.append(compute_l1_error_fvm(x_num, u_num, u_exact))
+        l1err.append(compute_l1_error_fvm(x_num, u_num, u_exact, dim))
 
     if make_plot:
         def plot_order(dx, l1err, ord):
@@ -81,7 +93,7 @@ def main() -> None:
         plt.title("Error convergence")
 
         plt.legend()
-        plt.savefig("convergence.pdf")
+        plt.savefig(f"convergence-{dim}D.pdf")
 
     # Find slope of logarithms for convergence test
     logE = np.log(l1err)

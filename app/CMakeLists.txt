@@ -100,6 +100,18 @@ if(NOT ENABLE_RADIATION)
     ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
+  add_test(NAME accuracy_acoustic_2d
+    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d2
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+  add_test(NAME accuracy_acoustic_3d
+    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d3
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
 endif()
 
 if(NOT ENABLE_RADIATION)

@@ -9,6 +9,8 @@ stop="$4"
 config_file="$5"
 additional_args="$6"
 
+dimension="${additional_args[0]: -1}"
+
 rm -rf output*
 for INDX in $(seq $start $stop)
 do
@@ -17,7 +19,7 @@ do
     $mpi_executable -np 1 $hard_executable $config_file $additional_args -r $INDX
     cd ..
 done
-make convergence CONFIG=$config_file
+make convergence CONFIG=$config_file DIMENSION=$dimension
 
 rm -rf output*
 
