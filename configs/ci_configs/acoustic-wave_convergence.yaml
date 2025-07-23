@@ -4,7 +4,7 @@ gamma: 1.4
 kappa: 1.0
 mean_molecular_weight: 1.0
 problem_parameters:
-  scale: 5
+  scale: [5, 1, 1]
   amplitude: 1e-8
   r0: 1.0
   p0: 1.0

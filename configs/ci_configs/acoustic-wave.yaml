@@ -4,7 +4,7 @@ gamma: 1.4
 kappa: 1.0
 mean_molecular_weight: 1.0
 problem_parameters:
-  scale: 1
+  scale: [3, 2, 1]
   amplitude: 1e-5
   r0: 1.0
   p0: 1.0
@@ -16,8 +16,8 @@ cfl: 0.5
 max_dt: 1.0
 log_frequency: 100
 output_frequency: 100
-levels: [12, 1, 1]
-lowest_level: 12
+levels: [5, 4, 3]
+lowest_level: 3
 coords:
   - [0.0, 0.0, 0.0]
   - [1.0, 1.0, 1.0]
