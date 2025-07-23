@@ -62,12 +62,12 @@ def main() -> None:
             elif dim == 2:
                 acoustic_instance = wrapFunction(
                     Acoustic_2D(gamma, x0, x1, problem_dict), time,
-                    ["density", "pressure", "velocity_x"], dim=dim)
+                    ["density", "pressure", "velocity_x"])
                 u_exact = acoustic_instance.velocity_x
             elif dim == 3:
                 acoustic_instance = wrapFunction(
                     Acoustic_3D(gamma, x0, x1, problem_dict), time,
-                    ["density", "pressure", "velocity_x"], dim=dim)
+                    ["density", "pressure", "velocity_x"])
                 u_exact = acoustic_instance.velocity_x
 
             first_loop = False
