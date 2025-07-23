@@ -18,6 +18,7 @@ class ProblemData(object):
     def __init__(self, name: str, dim: int):
         """
         name - problem name
+        dim - problem dimensions (1, 2 or 3)
         """
 
         assert dim in [1, 2, 3]
@@ -33,7 +34,7 @@ class ProblemData(object):
         if dim == 1:
             self.usecols = [0, 2, 3, 4, 9]
             self.extract = ["density", "pressure", "velocity"]
-            self.labels = ["Density", "Pressure", "Velocity x"]
+            self.labels = ["Density", "Pressure", "Velocity"]
             self.tolerances = [1e-2, 1e-2, 5e-1]
         elif dim == 2:
             self.usecols = [0, 3, 4, 5, 6, 11, 12]
@@ -71,8 +72,7 @@ class ProblemData(object):
                 self.right_state = (0.25, 0.0, 0.1795)
 
     def __acoustic_analytic_solution(self, gamma: float, t: float, x0: NDArray,
-                                     x1: NDArray, problem_dict: dict[str, str],
-                                     dim: int
+                                     x1: NDArray, problem_dict: dict[str, str]
                                      ) -> tuple[Callable, ...]:
         """
         Return the acoustic analytical solution
@@ -83,16 +83,14 @@ class ProblemData(object):
                 Acoustic_1D(gamma, x0, x1, problem_dict), t, self.extract)
         elif self.dim == 2:
             result = wrapFunction(
-                Acoustic_2D(gamma, x0, x1, problem_dict),
-                t, self.extract, dim=dim)
+                Acoustic_2D(gamma, x0, x1, problem_dict), t, self.extract)
         elif self.dim == 3:
             result = wrapFunction(
-                Acoustic_3D(gamma, x0, x1, problem_dict),
-                t, self.extract, dim=dim)
+                Acoustic_3D(gamma, x0, x1, problem_dict), t, self.extract)
 
-        if dim == 1:
+        if self.dim == 1:
             return result.density, result.pressure, result.velocity
-        elif dim == 2:
+        elif self.dim == 2:
             return (result.density, result.pressure, result.velocity_x,
                     result.velocity_y)
         else:
@@ -220,16 +218,13 @@ class Problem(object):
             input = [self.x_arr, self.time, self.gamma]
         elif self.name == "acoustic-wave":
             input = [self.gamma, self.time,
-                     self.x0, self.x1, self.problem_dict, self.dim]
+                     self.x0, self.x1, self.problem_dict]
         elif self.name == "su-olson":
             input = [self.x_arr, self.time, self.data.extract]
 
         # Save the exact output functions
         self.analytical = self.data.function(*input)
-        if self.dim == 1:
-            self.references = [f(self.x_arr) for f in self.analytical]
-        else:
-            self.references = [f(*self.x_arr) for f in self.analytical]
+        self.references = [f(self.x_arr) for f in self.analytical]
 
     def __plot_comparison(self, num_vals: NDArray, exact_vals: NDArray,
                           label: str, tag: str) -> None:

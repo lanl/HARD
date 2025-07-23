@@ -14,48 +14,32 @@ class wrapFunction(object):
     # Declaring the attributes to provide mypy with enough information
     density: Callable
     pressure: Callable
+    velocity: Callable
     velocity_x: Callable
     velocity_y: Callable
     velocity_z: Callable
 
-    def __init__(self, solver: Callable, t: float, extract: list[str],
-                 dim: int = 1) -> None:
+    def __init__(self, solver: Callable, t: float, extract: list[str]) -> None:
         """
         Create the wrapper for each attribute
         """
 
-        assert dim in [1, 2, 3]
-
         for name in extract:
-            self.__doWrapping(solver, t, name, dim=dim)
+            self.__doWrapping(solver, t, name)
 
-    def __doWrapping(self, f: Callable, t: float, name: str, dim: int) -> None:
+    def __doWrapping(self, f: Callable, t: float, name: str) -> None:
         """
         Transform the ExactPack array tuple into a Callable tuple
         """
 
-        assert dim in [1, 2, 3]
-
-        if dim == 1:
-            def wrap(x):
-                return f(x, t)[name]
-        elif dim == 2:
-            def wrap(x, y):
-                return f(x, y, t)[name]
-        else:
-            def wrap(x, y, z):
-                return f(x, y, z, t)[name]
+        def wrap(coordinates):
+            return f(coordinates, t)[name]
 
         self.__dict__[name] = wrap
 
 
-def parse_cli(get_file: bool = True) -> tuple[
-        str,
-        int,
-        str | None,
-        str | None,
-        bool
-]:
+def parse_cli(get_file: bool = True
+              ) -> tuple[str, int, str | None, str | None, bool]:
     """
     Parse command line input
     """
@@ -112,7 +96,7 @@ def simple_quad(f: Callable, x0: NDArray, x1: NDArray, deg: int = 10) -> float:
 
 def get_dx(array: NDArray) -> float | None:
     """
-    Get the minimum dx from array
+    Get the minimum dx from array. Assume that the coordinates are ordered.
     """
 
     x0 = array[0]
@@ -154,7 +138,7 @@ def compute_l1_error_fvm(x_num: NDArray, numerical: NDArray,
 
             error += abs(dx * dy * numerical[i] - simple_quad(
                 lambda y: simple_quad(
-                    lambda x: analytical(x, y),
+                    lambda x: analytical([x, y]),
                     x0, x1),
                 y0, y1))
     else:
@@ -175,7 +159,7 @@ def compute_l1_error_fvm(x_num: NDArray, numerical: NDArray,
             error += abs(dx * dy * dz * numerical[i] - simple_quad(
                 lambda z: simple_quad(
                     lambda y: simple_quad(
-                        lambda x: analytical(x, y, z), x0, x1),
+                        lambda x: analytical([x, y, z]), x0, x1),
                     y0, y1),
                 z0, z1))
 

@@ -96,7 +96,7 @@ class Acoustic_2D(Acoustic):
         return lambda x, y: np.sin(self.scale[0] * x +
                                    self.scale[1] * y) * self.amplitude
 
-    def __call__(self, x: NDArray | float, y: NDArray | float, t: float
+    def __call__(self, coordinates: list[NDArray] | list[float], t: float
                  ) -> dict[str, NDArray]:
         """
         Return dictionary with what the density, pressure and velocity are at
@@ -107,6 +107,8 @@ class Acoustic_2D(Acoustic):
 
         # Take the initial solution and transport it by cs * t, assuming
         # periodic boundary conditions
+
+        x, y = coordinates
 
         perturbation = self.__perturbation()
         density = self.r0
@@ -164,8 +166,8 @@ class Acoustic_3D(Acoustic):
                                       self.scale[1] * y +
                                       self.scale[2] * z) * self.amplitude
 
-    def __call__(self, x: NDArray | float, y: NDArray | float,
-                 z: NDArray | float, t: float) -> dict[str, NDArray]:
+    def __call__(self, coordinates: list[NDArray] | list[float], t: float
+                 ) -> dict[str, NDArray]:
         """
         Return dictionary with what the density, pressure and velocity are at
         time t
@@ -175,6 +177,7 @@ class Acoustic_3D(Acoustic):
 
         # Take the initial solution and transport it by cs * t, assuming
         # periodic boundary conditions
+        x, y, z = coordinates
 
         perturbation = self.__perturbation()
         density = self.r0
