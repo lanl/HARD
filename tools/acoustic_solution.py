@@ -1,5 +1,5 @@
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -26,7 +26,7 @@ class Acoustic(object):
             np.array(self.problem_dict["scale"])[:dim] / self.span
 
         # Scale norm
-        self.scale_norm = self.scale.dot(self.scale)
+        self.scale_norm = np.sqrt(self.scale.dot(self.scale))
 
         # Reshape arrays so that they can operate correctly
         # with self.x0 and self.scale
@@ -34,6 +34,9 @@ class Acoustic(object):
             self.x0 = self.x0.reshape((dim, 1))
             self.scale = self.scale.reshape((dim, 1))
             self.span = self.span.reshape((dim, 1))
+
+        # Directions
+        self.directions = self.scale / self.scale_norm
 
     def __perturbation(self) -> Callable:
         """
@@ -60,21 +63,23 @@ class Acoustic(object):
         pressure = self.p0
 
         # Positive movement
-        coords = (coordinates - self.cs * t - self.x0) % self.span + self.x0
+        shifted_coords = (coordinates - t * self.cs * self.directions -
+                          self.x0) % self.span + self.x0
 
-        density += perturbation(coords) * 0.5
-        pressure += perturbation(coords) * 0.5 * self.cs ** 2
-        velocity = perturbation(coords) * 0.5 * self.cs
+        density += perturbation(shifted_coords) * 0.5
+        pressure += perturbation(shifted_coords) * 0.5 * self.cs ** 2
+        velocity = perturbation(shifted_coords) * 0.5 * self.cs
 
         # Entropic mode (static density)
         density += perturbation(coordinates)
 
         # Negative movement
-        coords = (coordinates + self.cs * t - self.x0) % self.span + self.x0
+        shifted_coords = (coordinates + t * self.cs * self.directions -
+                          self.x0) % self.span + self.x0
 
-        density -= perturbation(coords) * 0.5
-        pressure -= perturbation(coords) * 0.5 * self.cs ** 2
-        velocity += perturbation(coords) * 0.5 * self.cs
+        density -= perturbation(shifted_coords) * 0.5
+        pressure -= perturbation(shifted_coords) * 0.5 * self.cs ** 2
+        velocity += perturbation(shifted_coords) * 0.5 * self.cs
 
         solution = {
             "density": density,
@@ -83,9 +88,9 @@ class Acoustic(object):
         }
 
         if self.dim > 1:
-            solution["velocity_x"] = velocity * self.scale[0] / self.scale_norm
-            solution["velocity_y"] = velocity * self.scale[1] / self.scale_norm
+            solution["velocity_x"] = velocity * self.directions[0]
+            solution["velocity_y"] = velocity * self.directions[1]
         if self.dim == 3:
-            solution["velocity_z"] = velocity * self.scale[2] / self.scale_norm
+            solution["velocity_z"] = velocity * self.directions[2]
 
         return solution
