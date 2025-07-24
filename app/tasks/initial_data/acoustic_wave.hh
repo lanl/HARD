@@ -49,9 +49,7 @@ acoustic_wave(flecsi::exec::cpu s,
   // Sound speed
   const double cs{sqrt(config["gamma"].as<double>() * p0 / r0)};
 
-  //
-  // Only 1D and 2D versions have been implemented.
-  //
+  // Initial conditions for the acoustic wave (it is a standing wave)
   if constexpr(Dim == 1) {
 
     // Define the wave number

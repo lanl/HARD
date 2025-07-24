@@ -1,5 +1,6 @@
 import glob
 import os
+import subprocess
 import sys
 from collections.abc import Callable
 from typing import Any
@@ -39,7 +40,7 @@ class wrapFunction(object):
 
 
 def parse_cli(get_file: bool = True
-              ) -> tuple[str, int, str | None, str | None, bool]:
+              ) -> tuple[str, int, str | None, str | None, bool, bool]:
     """
     Parse command line input
     """
@@ -59,6 +60,7 @@ def parse_cli(get_file: bool = True
     assert dim in [1, 2, 3]
 
     csv_file = None
+    combined = False
     out_dir = None
     make_plot = False
 
@@ -74,13 +76,13 @@ def parse_cli(get_file: bool = True
 
         # If no file is passed, select the latest available output
         if csv_file is None:
-            pattern = f"output-{dim}D-0-*.csv"
-            csv_file = find_last_output(pattern=pattern, dir=out_dir)
+            pattern = f"output-{dim}D-?-*.csv"
+            csv_file, combined = find_last_output(pattern=pattern, dir=out_dir)
             assert csv_file is not None
 
             print(f"Auto-selected input file: {csv_file}")
 
-    return yaml_file, dim, out_dir, csv_file, make_plot
+    return yaml_file, dim, out_dir, csv_file, combined, make_plot
 
 
 def simple_quad(f: Callable, x0: NDArray, x1: NDArray, deg: int = 10) -> float:
@@ -127,13 +129,15 @@ def compute_l1_error_fvm(x_num: NDArray, numerical: NDArray,
             error += abs(dx * numerical[i] - simple_quad(analytical, x0, x1))
     elif dim == 2:
         dx = get_dx(x_num[0])
-        dy = x_num[1][1] - x_num[1][0]
+        dy = get_dx(x_num[1])
 
         assert dx is not None
+        assert dy is not None
         for i, (x, y) in enumerate(zip(x_num[0], x_num[1])):
             x1 = x + dx * 0.5
-            x0 = x - dx * 0.5
             y1 = y + dy * 0.5
+
+            x0 = x - dx * 0.5
             y0 = y - dy * 0.5
 
             error += abs(dx * dy * numerical[i] - simple_quad(
@@ -144,16 +148,18 @@ def compute_l1_error_fvm(x_num: NDArray, numerical: NDArray,
     else:
         dx = get_dx(x_num[0])
         dy = get_dx(x_num[1])
-        dz = x_num[2][1] - x_num[2][0]
+        dz = get_dx(x_num[2])
 
         assert dx is not None
         assert dy is not None
+        assert dz is not None
         for i, (x, y, z) in enumerate(zip(x_num[0], x_num[1], x_num[2])):
             x1 = x + dx * 0.5
-            x0 = x - dx * 0.5
             y1 = y + dy * 0.5
-            y0 = y - dy * 0.5
             z1 = z + dz * 0.5
+
+            x0 = x - dx * 0.5
+            y0 = y - dy * 0.5
             z0 = z - dz * 0.5
 
             error += abs(dx * dy * dz * numerical[i] - simple_quad(
@@ -166,8 +172,12 @@ def compute_l1_error_fvm(x_num: NDArray, numerical: NDArray,
     return error
 
 
-def find_last_output(pattern: str = "output-?D-0-*.csv",
-                     dir: str | None = None) -> str | None:
+def find_last_output(pattern: str = "output-?D-?-*.csv",
+                     dir: str | None = None) -> tuple[str | None, bool]:
+    '''
+    Return the last csv file and a boolean that indicates where the
+    files were combined or not.
+    '''
 
     if dir is not None:
         pattern = os.path.join(dir, pattern)
@@ -175,13 +185,27 @@ def find_last_output(pattern: str = "output-?D-0-*.csv",
     files = glob.glob(pattern)
     if not files:
         print("No matching output files found.")
-        return None
+        return None, False
 
     # Sort the files so they are in order
     files.sort()
 
-    # Return first and last
-    return files[-1]
+    # If the last file is not a "*D-0-*.csv" file, this means
+    # we need to combine them
+    # We need to take every Nth file, where N = len(files) / (M + 1)
+    # where M is the number in *D-M-*.csv
+    mm = int(files[-1].split("-")[-2])
+    if mm == 0:
+        return files[-1], False
+    else:
+        nn = int(len(files) / (mm + 1))
+        combine = files[nn - 1::nn]
+
+        # Combine the files
+        new_file = combine[-1].replace(f"D-{mm}-", f"D-{mm + 1}-")
+        with open(new_file, "w") as fwrite:
+            subprocess.run(["cat"] + combine, stdout=fwrite)
+        return new_file, True
 
 
 def parse_config(yaml_file: str

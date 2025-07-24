@@ -21,7 +21,7 @@ def main() -> None:
     ord = 3
 
     # Get all files
-    yaml_file, dim, out_dir, _, make_plot = parse_cli(get_file=False)
+    yaml_file, dim, out_dir, _, _, make_plot = parse_cli(get_file=False)
     problem, gamma, x0, x1, problem_dict = parse_config(yaml_file)
 
     # Find every example and build the dx and L1 error arrays
@@ -40,12 +40,15 @@ def main() -> None:
 
     first_loop = True
     for dir in dirs:
-        last_output = find_last_output(dir=dir)
+        last_output, combined = find_last_output(dir=dir)
         assert last_output is not None
 
-        out_tuple = np.loadtxt(last_output, delimiter=",",
-                               skiprows=1,
-                               usecols=(0, 2, 3, 4, 9)).T
+        out_tuple = np.loadtxt(last_output, comments=["time", "#"],
+                               delimiter=",", usecols=(0, 2, 3, 4, 9)).T
+
+        # If the csv file was combined, erase it
+        if combined:
+            os.remove(last_output)
 
         # Extract physical quantities from tuple
         t_arr, x_num, rho_num, p_num, u_num = out_tuple

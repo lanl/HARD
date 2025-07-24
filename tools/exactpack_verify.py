@@ -60,9 +60,9 @@ class ProblemData(object):
 
             # The acoustic wave has much better accuracy
             if dim == 1:
-                self.tolerances = 7e-6
+                self.tolerances = 1e-8
             elif dim == 2:
-                self.tolerances = 7e-6
+                self.tolerances = 2e-7
             else:
                 self.tolerances = 7e-6
         else:
@@ -171,8 +171,8 @@ class Problem(object):
         Load the last csv file
         """
         self.csv_file = csv_file
-        csv_out = np.loadtxt(csv_file, delimiter=",",
-                             skiprows=1, usecols=self.data.usecols).T
+        csv_out = np.loadtxt(csv_file, comments=["time", "#"],
+                             delimiter=",", usecols=self.data.usecols).T
 
         # Extract time and x_arr
         t_index = self.data.usecols.index(0)
@@ -326,7 +326,7 @@ class Problem(object):
 def main() -> None:
 
     # Get the values
-    yaml_file, dim, _, csv_file, make_plot = parse_cli()
+    yaml_file, dim, _, csv_file, combined, make_plot = parse_cli()
     assert csv_file is not None
 
     # Instantiate problem object
@@ -334,6 +334,9 @@ def main() -> None:
 
     # Load csv file
     problem.load_csv_file(csv_file)
+
+    if combined:
+        os.remove(csv_file)
 
     # Get exact solutions
     problem.get_exact_solutions()
