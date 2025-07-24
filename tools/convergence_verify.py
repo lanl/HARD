@@ -4,7 +4,7 @@ from collections.abc import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
-from acoustic_solution import Acoustic_1D, Acoustic_2D, Acoustic_3D
+from acoustic_solution import Acoustic
 from verify_lib import (compute_l1_error_fvm, find_last_output, parse_cli,
                         parse_config, wrapFunction)
 
@@ -23,7 +23,6 @@ def main() -> None:
     # Get all files
     yaml_file, dim, out_dir, _, make_plot = parse_cli(get_file=False)
     problem, gamma, x0, x1, problem_dict = parse_config(yaml_file)
-    # TODO: Finish this implementation
 
     # Find every example and build the dx and L1 error arrays
     if out_dir is None:
@@ -54,21 +53,10 @@ def main() -> None:
 
         # Instantiate our solution class in the first loop
         if first_loop:
-            if dim == 1:
-                acoustic_instance = wrapFunction(
-                    Acoustic_1D(gamma, x0, x1, problem_dict), time,
-                    ["density", "pressure", "velocity"])
-                u_exact = acoustic_instance.velocity
-            elif dim == 2:
-                acoustic_instance = wrapFunction(
-                    Acoustic_2D(gamma, x0, x1, problem_dict), time,
-                    ["density", "pressure", "velocity_x"])
-                u_exact = acoustic_instance.velocity_x
-            elif dim == 3:
-                acoustic_instance = wrapFunction(
-                    Acoustic_3D(gamma, x0, x1, problem_dict), time,
-                    ["density", "pressure", "velocity_x"])
-                u_exact = acoustic_instance.velocity_x
+            acoustic_instance = wrapFunction(
+                Acoustic(gamma, x0, x1, problem_dict, dim=dim), time,
+                ["density", "pressure", "velocity"])
+            u_exact = acoustic_instance.velocity
 
             first_loop = False
 
