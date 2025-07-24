@@ -58,8 +58,8 @@ acoustic_wave(flecsi::exec::cpu s,
     const double k{
       2 * M_PI * config["problem_parameters"]["scale"][0].as<double>()};
 
-    // sine_quad is the volume average of the sine per cell,
-    // for sine wave fvm initialization
+    // sine_quad is the volume average of the sine per cell, for sine wave
+    // fvm initialization
     auto sine_quad = [k](double x0, double x1) {
       return (cos(k * x0) - cos(k * x1)) / (k * (x1 - x0));
     };
@@ -87,12 +87,12 @@ acoustic_wave(flecsi::exec::cpu s,
       2 * M_PI * config["problem_parameters"]["scale"][1].as<double>()};
     const double k{std::sqrt(utils::sqr(kx) + utils::sqr(ky))};
 
-    // sine_quad is the volume average of the sine per cell,
-    // for sine wave fvm initialization
+    // sine_quad is the volume average of the sine per cell, for sine wave
+    // fvm initialization
     auto sine_quad = [kx, ky](double x0, double x1, double y0, double y1) {
       return -((cos(kx * x1) - cos(kx * x0)) * (sin(ky * y1) - sin(ky * y0)) +
                (sin(kx * x1) - sin(kx * x0)) * (cos(ky * y1) - cos(ky * y0))) /
-             (kx * ky);
+             (kx * ky * (x1 - x0) * (y1 - y0));
     };
 
     s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
@@ -129,8 +129,8 @@ acoustic_wave(flecsi::exec::cpu s,
       2 * M_PI * config["problem_parameters"]["scale"][2].as<double>()};
     const double k{std::sqrt(utils::sqr(kx) + utils::sqr(ky) + utils::sqr(kz))};
 
-    // sine_quad is the volume average of the sine per cell,
-    // for sine wave fvm initialization
+    // sine_quad is the volume average of the sine per cell, for sine wave
+    // fvm initialization
     auto sine_quad =
       [kx, ky, kz](
         double x0, double x1, double y0, double y1, double z0, double z1) {
@@ -142,35 +142,35 @@ acoustic_wave(flecsi::exec::cpu s,
                    (sin(kz * z1) - sin(kz * z0)) -
                  (sin(kx * x1) - sin(kx * x0)) * (sin(ky * y1) - sin(ky * y0)) *
                    (cos(kz * z1) - cos(kz * z0))) /
-               (kx * ky * kz);
+               (kx * ky * kz * (x1 - x0) * (y1 - y0) * (z1 - z0));
       };
 
-    s.executor().forall(k, (m.template cells<ax::z, dm::quantities>())) {
+    s.executor().forall(l, (m.template cells<ax::z, dm::quantities>())) {
       for(auto j : m.template cells<ax::y, dm::quantities>()) {
         for(auto i : m.template cells<ax::x, dm::quantities>()) {
           const auto x0{m.template head<ax::x>(i)};
           const auto x1{m.template tail<ax::x>(i)};
           const auto y0{m.template head<ax::y>(j)};
           const auto y1{m.template tail<ax::y>(j)};
-          const auto z0{m.template head<ax::z>(k)};
-          const auto z1{m.template tail<ax::z>(k)};
+          const auto z0{m.template head<ax::z>(l)};
+          const auto z1{m.template tail<ax::z>(l)};
 
           const double ux{cs * uA * kx * sine_quad(x0, x1, y0, y1, z0, z1) / k};
           const double uy{cs * uA * ky * sine_quad(x0, x1, y0, y1, z0, z1) / k};
           const double uz{cs * uA * kz * sine_quad(x0, x1, y0, y1, z0, z1) / k};
-          mass_density(i, j, k) =
+          mass_density(i, j, l) =
             r0 * (1 + rA * sine_quad(x0, x1, y0, y1, z0, z1));
 
-          momentum_density(i, j, k).x() = mass_density(i, j, k) * ux;
-          momentum_density(i, j, k).y() = mass_density(i, j, k) * uy;
-          momentum_density(i, j, k).z() = mass_density(i, j, k) * uz;
-          const double e = util::find_sie(eos, mass_density(i, j, k), p0);
-          total_energy_density(i, j, k) =
-            mass_density(i, j, k) * e +
-            0.5 * mass_density(i, j, k) *
+          momentum_density(i, j, l).x() = mass_density(i, j, l) * ux;
+          momentum_density(i, j, l).y() = mass_density(i, j, l) * uy;
+          momentum_density(i, j, l).z() = mass_density(i, j, l) * uz;
+          const double e = util::find_sie(eos, mass_density(i, j, l), p0);
+          total_energy_density(i, j, l) =
+            mass_density(i, j, l) * e +
+            0.5 * mass_density(i, j, l) *
               (utils::sqr(ux) + utils::sqr(uy) + utils::sqr(uz));
 
-          radiation_energy_density(i, j, k) = 0.0;
+          radiation_energy_density(i, j, l) = 0.0;
 
         } // for
       } // for

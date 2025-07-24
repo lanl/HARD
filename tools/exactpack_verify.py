@@ -4,7 +4,7 @@ from collections.abc import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
-from acoustic_solution import Acoustic_1D, Acoustic_2D, Acoustic_3D
+from acoustic_solution import Acoustic
 from numpy.typing import NDArray
 from verify_lib import (compute_l1_error_fvm, parse_cli, parse_config,
                         wrapFunction)
@@ -30,6 +30,7 @@ class ProblemData(object):
         self.name = name
         self.dim = dim
         self.function: Callable
+        self.tolerances: float | list[float]
 
         if dim == 1:
             self.usecols = [0, 2, 3, 4, 9]
@@ -56,6 +57,14 @@ class ProblemData(object):
             self.function = self.__sedov_analytic_solution
         elif self.name == "acoustic-wave":
             self.function = self.__acoustic_analytic_solution
+
+            # The acoustic wave has much better accuracy
+            if dim == 1:
+                self.tolerances = 7e-6
+            elif dim == 2:
+                self.tolerances = 7e-6
+            else:
+                self.tolerances = 7e-6
         else:
             sys.exit(f"Unsupported problem type '{name}'")
 
@@ -78,15 +87,9 @@ class ProblemData(object):
         Return the acoustic analytical solution
         """
 
-        if self.dim == 1:
-            result = wrapFunction(
-                Acoustic_1D(gamma, x0, x1, problem_dict), t, self.extract)
-        elif self.dim == 2:
-            result = wrapFunction(
-                Acoustic_2D(gamma, x0, x1, problem_dict), t, self.extract)
-        elif self.dim == 3:
-            result = wrapFunction(
-                Acoustic_3D(gamma, x0, x1, problem_dict), t, self.extract)
+        result = wrapFunction(
+            Acoustic(gamma, x0, x1, problem_dict, dim=self.dim),
+            t, self.extract)
 
         if self.dim == 1:
             return result.density, result.pressure, result.velocity
@@ -296,7 +299,11 @@ class Problem(object):
         """
 
         tols = self.data.tolerances
-        failed = [False if x < y else True for x, y in zip(self.errors, tols)]
+        if type(tols) is list:
+            failed = [False if x < y else True for x,
+                      y in zip(self.errors, tols)]
+        elif type(tols) is float:
+            failed = [False if x < tols else True for x in self.errors]
         statuses = ["FAIL" if x else "PASS" for x in failed]
 
         print(f"Problem type: {self.name}")
@@ -307,7 +314,10 @@ class Problem(object):
 
         if any(failed):
             s = "Test FAILED: relative L1 error exceeds tolerance of "
-            s += " ".join([f"{tol:.2e}" for tol in tols])
+            if type(tols) is list:
+                s += " ".join([f"{tol:.2e}" for tol in tols])
+            elif type(tols) is float:
+                s += f"{tols:.2e}"
             sys.exit(s)
         else:
             print("Test PASSED")

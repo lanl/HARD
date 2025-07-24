@@ -189,8 +189,8 @@ def parse_config(yaml_file: str
     with open(yaml_file, 'r') as f:
         config = yaml.safe_load(f)
     gamma = float(config.get('gamma', 1.4))
-    x0 = np.array(config['coords'][0], dtype=float)
-    x1 = np.array(config['coords'][1], dtype=float)
+    x0 = np.array(config['coords'][0])
+    x1 = np.array(config['coords'][1])
     problem = config['problem']
     problem_dict = config.get("problem_parameters")
 
