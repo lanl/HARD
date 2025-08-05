@@ -49,11 +49,10 @@ and :math:`\dot{q}` is the radiative heating rate
    \dot{q} = \frac{dq}{dt} = c \kappa \rho (E - a T^4) ,
 
 where :math:`\kappa` is mean opacity, :math:`c` is the speed of light, :math:`a` is the radiation constant, and :math:`T` is the fluid temperature.
+For closure of the evolution system for the fluid, we need to specify the functional form of the fluid pressure :math:`p`. Here we adopt the singularity-EOS, allowing us to use any material in evolution.
 
 Flux Limited Diffusion
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
-For closure of the evolution system for the fluid, we need to specify the functional form of the fluid pressure :math:`p`. Here we adopt the singularity-EOS, allowing us to use any material in evolution.
 
 The radiative transfer equation — the last component of the evolution equation :math:`\partial_t \mathbf{U} + \partial_j \mathbf{F}^j = \mathbf{S}` — requires additional closures for radiation energy flux density :math:`F^i` and radiation pressure :math:`P_r^{ij}`.
 
