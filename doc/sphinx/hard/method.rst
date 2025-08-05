@@ -107,7 +107,9 @@ and :math:`U_R` are the respective intermediate quantities, and
 :math:`F_L` and :math:`F_R` are the flux functions evaluated at the
 respective intermediate quantities.
 
-IMEX Time Evolution
-~~~~~~~~~~~~~~~~~~~~~~
+Runge-Kutta Time Evolution for Explicit Update
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Multigrid for Implicit Update
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. vim: set tabstop=2 shiftwidth=2 expandtab fo=cqt tw=72 :
