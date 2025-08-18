@@ -11,6 +11,7 @@ HARD is based on the FleCSI framework and implemented on top of FleCSI-SP (FleCS
   hard/equations
   hard/method
   hard/inputfiles
+  hard/test_problems
   hard/visualization
 
 .. vim: set tabstop=2 shiftwidth=2 expandtab fo=cqt tw=72 :
