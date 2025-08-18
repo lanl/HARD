@@ -17,35 +17,34 @@ Unless specified, the units are in CGS.
 Here are details on each parts of the yaml files:
 
 `problem`
-  This is the string that is picked up by the `init.hh` file to configure the problem.
-  For now these options are available:
-  * `sod`
-  * `rankine-hugoniot`
-  * `leblanc`
-  * `acoustic-wave`
-  * `kh-test`
-  * `heating_and_cooling`
-  * `sedov`
-  * `implosion`
-  * `rad-rh`
-  * `lw-implosion`
+  This is the string that is picked up by the `init.hh` file to configure the problem. For now these options are available:
+    * `sod`
+    * `rankine-hugoniot`
+    * `leblanc`
+    * `acoustic-wave`
+    * `kh-test`
+    * `heating_and_cooling`
+    * `sedov`
+    * `implosion`
+    * `rad-rh`
+    * `lw-implosion`
 
 Physics quantities
   Input that represent physical quantities: `gamma`, `kappa`, `mean_molecular_weight`
 
 `eos`
   Define which EOS to be used from Singularity EOS
-  * `ideal`
-  * `spiner` (tabulated EOS, not tested)
-  * `gruneisen` (not tested)
+    * `ideal`
+    * `spiner` (tabulated EOS, not tested)
+    * `gruneisen` (not tested)
 
 time and steps
   These variables handle the time and timestep of the simulation:
-  * `t0`, start time for the simulation
-  * `tf`, final time for the simulation (not supported for Legion backend)
-  * `cfl`, Courant–Friedrichs–Lewy parameter
-  * `max_dt`, Maximum dt to be used in the simulation
-  * `max_steps`, Maximum number of iterations to run the simulation for
+    * `t0`, start time for the simulation
+    * `tf`, final time for the simulation (not supported for Legion backend)
+    * `cfl`, Courant–Friedrichs–Lewy coefficient
+    * `max_dt`, Maximum dt to be used in the simulation
+    * `max_steps`, Maximum number of iterations to run the simulation for
 
 logging and output
   * `log_frequency`, Set the frequency of iterations outputted on the terminal
@@ -68,18 +67,17 @@ logging and output
   - [1.0, 1.0, 1.0]
 
 `boundaries`
-  The boundaries are defined per dimensions `xlow`, `xhigh`, `ylow`, `yhigh`, `zlow`, and `zhigh`
-  For each several options are possible:
-  * `periodic`
-  * `flow`
-  * `reflecting`
-  * `dirichlet`
+  The boundaries are defined per dimensions `xlow`, `xhigh`, `ylow`, `yhigh`, `zlow`, and `zhigh` For each several options are possible:
+    * `periodic`
+    * `flow`
+    * `reflecting`
+    * `dirichlet`
 
 `catalyst`
   All these options are needed under catalyst to specify the location of the script and the paraview library.
-  * `script`, path to the python script that interface the output data and catalyst. An example is provided in `tools/gridwriter.py`
-  * `implementation`, only value for now is `paraview`
-  * `implementation_directory`, path to the catalyst library compiled using the implementation. Something like `libcatalyst_paraview.so`
+    * `script`, path to the python script that interface the output data and catalyst. An example is provided in `tools/gridwriter.py`
+    * `implementation`, only value for now is `paraview`
+    * `implementation_directory`, path to the catalyst library compiled using the implementation. Something like `libcatalyst_paraview.so`
 
 
 Some problems have specific input information. These are all defined under the `problem_parameters` group.
@@ -87,28 +85,28 @@ Some problems have specific input information. These are all defined under the `
   * `acoustic_wave`:
     
     * `problem_parameters`, a list containing:
-      * `r0`, the equilibrium density
-      * `p0`, the equilibrium pressure
-      * `amplitude`, the perturbation amplitudes
-      * `scale`, the inverse of the wave number
+        * `r0`, the equilibrium density
+        * `p0`, the equilibrium pressure
+        * `amplitude`, the perturbation amplitudes
+        * `scale`, the inverse of the wave number
   * `heating_and_cooling`:
     
     * `problem_parameters`, a list containing:
-      * `fluid_mass_density`
-      * `fluid_temperature`
-      * `radiation_temperature`
+        * `fluid_mass_density`
+        * `fluid_temperature`
+        * `radiation_temperature`
   * `implosion`:
     
     * `problem_parameters`, a list containing:
-      * `fluid_mass_density`
-      * `fluid_temperature`
-      * `radiation_temperature`
+        * `fluid_mass_density`
+        * `fluid_temperature`
+        * `radiation_temperature`
   * `sedov`:
     
     * `problem_parameters`, a list containing:
-      * `hotspot_position`, an array of the position of the hotspot
-      * `hotspot_radius`, the radius of the hotspot
-      * `E_0`, the initial energy injected at the hotspot in Ergs
+        * `hotspot_position`, an array of the position of the hotspot
+        * `hotspot_radius`, the radius of the hotspot
+        * `E_0`, the initial energy injected at the hotspot in Ergs
 
 The other tests have setting hardcoded in their initialization files.
 They can be found in `app/tasks/initial_data/`.
