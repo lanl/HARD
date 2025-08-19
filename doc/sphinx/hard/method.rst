@@ -111,6 +111,25 @@ respective intermediate quantities.
 Runge-Kutta Time Evolution for Explicit Update
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The time evolution for the explicit update is solved using `Heun's
+method <https://en.wikipedia.org/wiki/Heun%27s_method>`__, which is a
+type of second order Runge-Kutta method. A such, it can be completely
+described by using its Butcher tableau:
+
++-----+-----+-----+
+| 0   |     |     |
++-----+-----+-----+
+| 1   | 1   |     |
++-----+-----+-----+
+|     | 1/2 | 1/2 |
++-----+-----+-----+
+
+Each step is preceded by a reconstruction of primitive variables and a
+flux calculation similar to the one described in the Hancock method
+above. Afterwards the conservative variables are updated using those
+fluxes, and the primitive variables are recovered from them. The steps
+are combined as specified in the Butcher tableau.
+
 Geometric Multigrid Solver for Implicit Update
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
