@@ -150,4 +150,13 @@ operator to the finer grid, where the correction
 solution to the system is ideally calculated, but an approximated
 solution can be used as well.
 
+The algorithm described above is named `v-cycle` due to its diagram:
+
+.. image:: ../../../doc/v-cycle.svg
+
+A full multigrid (`FMG`) is the chaining of successive such `v-cycles`
+where a finer grid is added after each `v-cycle` is completed:
+
+.. image:: ../../../doc/fmg.svg
+
 .. vim: set tabstop=2 shiftwidth=2 expandtab fo=cqt tw=72 :
