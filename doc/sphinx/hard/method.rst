@@ -111,10 +111,15 @@ respective intermediate quantities.
 Runge-Kutta Time Evolution for Explicit Update
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Besides the Hancock method described above, there is a Runge-Kutta
+implementation for the time avance. This Runge-Kutta implementation has
+the advantage that it can be easily replaced by a higher order
+Runge-Kutta method as needed.
+
 The time evolution for the explicit update is solved using `Heun's
 method <https://en.wikipedia.org/wiki/Heun%27s_method>`__, which is a
-type of second order Runge-Kutta method. A such, it can be completely
-described by using its Butcher tableau:
+type of second order in time Runge-Kutta method. A such, it can be
+completely described by using its Butcher tableau:
 
 +-----+-----+-----+
 | 0   |     |     |
