@@ -363,15 +363,6 @@ compute_interface_fluxes(flecsi::exec::cpu s,
       s.executor().forall(kji, mdpolicy_qqc) {
 
         auto [k, j, i] = kji;
-        // min/max characteristic speeds on left
-        const double cT = cTail(i - 1, j, k);
-        const double LminT = uTail(i - 1, j, k).x() - cT;
-        const double LmaxT = uTail(i - 1, j, k).x() + cT;
-
-        // min/max characteristic speeds on right
-        const double cH = cHead(i, j, k);
-        const double LminH = uHead(i, j, k).x() - cH;
-        const double LmaxH = uHead(i, j, k).x() + cH;
 
         // Fluxes from left and right state
         const double f_r_T{ruTail(i - 1, j, k).x()};
@@ -411,6 +402,17 @@ compute_interface_fluxes(flecsi::exec::cpu s,
         // clang-format on
 
 #ifdef ENABLE_RADIATION
+
+        // min/max characteristic speeds on left
+        const double cT = cTail(i - 1, j, k);
+        const double LminT = uTail(i - 1, j, k).x() - cT;
+        const double LmaxT = uTail(i - 1, j, k).x() + cT;
+
+        // min/max characteristic speeds on right
+        const double cH = cHead(i, j, k);
+        const double LminH = uHead(i, j, k).x() - cH;
+        const double LmaxH = uHead(i, j, k).x() + cH;
+
         const double f_Erad_T{EradTail(i - 1, j, k) * uTail(i - 1, j, k).x()};
         const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).x()};
 
@@ -453,15 +455,6 @@ compute_interface_fluxes(flecsi::exec::cpu s,
       s.executor().forall(kji, mdpolicy_qcq) {
 
         auto [k, j, i] = kji;
-        // min/max characteristic speeds on left
-        const double cT = cTail(i, j - 1, k);
-        const double LminT = uTail(i, j - 1, k).y() - cT;
-        const double LmaxT = uTail(i, j - 1, k).y() + cT;
-
-        // min/max characteristic speeds on right
-        const double cH = cHead(i, j, k);
-        const double LminH = uHead(i, j, k).y() - cH;
-        const double LmaxH = uHead(i, j, k).y() + cH;
 
         // Fluxes from left and right state
         const double f_r_T{ruTail(i, j - 1, k).y()};
@@ -500,6 +493,17 @@ compute_interface_fluxes(flecsi::exec::cpu s,
         // clang-format on
 
 #ifdef ENABLE_RADIATION
+
+        // min/max characteristic speeds on left
+        const double cT = cTail(i, j - 1, k);
+        const double LminT = uTail(i, j - 1, k).y() - cT;
+        const double LmaxT = uTail(i, j - 1, k).y() + cT;
+
+        // min/max characteristic speeds on right
+        const double cH = cHead(i, j, k);
+        const double LminH = uHead(i, j, k).y() - cH;
+        const double LmaxH = uHead(i, j, k).y() + cH;
+
         const double f_Erad_T{EradTail(i, j - 1, k) * uTail(i, j - 1, k).y()};
         const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).y()};
 
@@ -541,15 +545,6 @@ compute_interface_fluxes(flecsi::exec::cpu s,
       s.executor().forall(kji, mdpolicy_cqq) {
 
         auto [k, j, i] = kji;
-        // min/max characteristic speeds on left
-        const double cT = cTail(i, j, k - 1);
-        const double LminT = uTail(i, j, k - 1).z() - cT;
-        const double LmaxT = uTail(i, j, k - 1).z() + cT;
-
-        // min/max characteristic speeds on right
-        const double cH = cHead(i, j, k);
-        const double LminH = uHead(i, j, k).z() - cH;
-        const double LmaxH = uHead(i, j, k).z() + cH;
 
         // Fluxes from left and right state
         const double f_r_T{ruTail(i, j, k - 1).z()};
@@ -589,6 +584,17 @@ compute_interface_fluxes(flecsi::exec::cpu s,
         // clang-format on
 
 #ifdef ENABLE_RADIATION
+
+        // min/max characteristic speeds on left
+        const double cT = cTail(i, j, k - 1);
+        const double LminT = uTail(i, j, k - 1).z() - cT;
+        const double LmaxT = uTail(i, j, k - 1).z() + cT;
+
+        // min/max characteristic speeds on right
+        const double cH = cHead(i, j, k);
+        const double LminH = uHead(i, j, k).z() - cH;
+        const double LmaxH = uHead(i, j, k).z() + cH;
+
         const double f_Erad_T{EradTail(i, j, k - 1) * uTail(i, j, k - 1).z()};
         const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).z()};
 
