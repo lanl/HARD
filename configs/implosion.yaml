@@ -9,6 +9,9 @@ problem_parameters:
   radiation_temperature: 18.92999988994724 # K
 
 kappa: 1.0
+adaptive_check: False
+limiter_id: 0
+closure_id: 0
 gamma: 1.666666
 mean_molecular_weight: 1.0
 eos: ideal

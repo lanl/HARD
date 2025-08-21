@@ -2,6 +2,9 @@
 problem: sedov
 gamma: 1.4
 kappa: 1.0e0
+adaptive_check: False
+limiter_id: 0
+closure_id: 0
 mean_molecular_weight: 0.5
 eos: ideal
 t0: 0.0

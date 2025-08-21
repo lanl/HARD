@@ -2,6 +2,9 @@
 problem: kh-test
 gamma: 1.6667
 kappa: 0.0
+adaptive_check: False
+limiter_id: 0
+closure_id: 0
 mean_molecular_weight: 1.0
 eos: ideal
 t0: 0.0

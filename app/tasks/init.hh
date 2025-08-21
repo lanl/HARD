@@ -38,6 +38,28 @@ void inline set_t_boundary(flecsi::exec::cpu,
 } // t_boundary
 
 /*----------------------------------------------------------------------------*
+  Adaptive Limiter Check, Closure ID, Limiter ID
+ *----------------------------------------------------------------------------*/
+
+// Simple opacity that is used across all
+void inline adaptive_check(single<bool>::accessor<wo> adaptive_check_a,
+  bool ac) noexcept {
+  (*adaptive_check_a) = ac;
+} // adaptive_check
+
+// Simple opacity that is used across all
+void inline closure_id(single<std::size_t>::accessor<wo> closure_id_a,
+  std::size_t clid) noexcept {
+  (*closure_id_a) = clid;
+} // closure_id
+
+// Simple opacity that is used across all
+void inline limiter_id(single<std::size_t>::accessor<wo> limiter_id_a,
+  std::size_t lmid) noexcept {
+  (*limiter_id_a) = lmid;
+} // limiter_id
+
+/*----------------------------------------------------------------------------*
   Temperature unit conversion from eV (or other) to Kelvin
  *----------------------------------------------------------------------------*/
 
@@ -94,7 +116,7 @@ void inline kappaR(single<double>::accessor<wo> kappaR_a, double kR) {
 void inline particle_mass(single<double>::accessor<wo> particle_mass_a,
   double mean_molecular_weight) {
   (*particle_mass_a) = mean_molecular_weight * constants::cgs::proton_mass;
-} // kappa
+} // particle_mass
 
 /*----------------------------------------------------------------------------*
   Fake initialization tasks to avoid legion errors.
@@ -142,6 +164,7 @@ touch(typename mesh<D>::template accessor<ro>, // m,
   typename field<vec<D>>::template accessor<wo, wo>, // radiation_force_a,
   field<double>::accessor<wo, wo>, // R_value_a,
   field<double>::accessor<wo, wo>, // lambda_bridge_a,
+  field<double>::accessor<wo, wo>, // eddington_factor_a,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
     wo> // velocity_gradient_a
 #endif
@@ -190,6 +213,7 @@ touch1(typename mesh<D>::template accessor<ro>, // m,
   typename field<vec<D>>::template accessor<wo, wo>, // radiation_force_a,
   field<double>::accessor<wo, wo>, // R_value_a,
   field<double>::accessor<wo, wo>, // lambda_bridge_a,
+  field<double>::accessor<wo, wo>, // eddington_factor_a,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
     wo> // velocity_gradient_a
 #endif
