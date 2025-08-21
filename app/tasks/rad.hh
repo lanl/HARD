@@ -17,19 +17,19 @@ AFLDEddFactor(double lam,
   double f = 0.0;
 
   switch(closure_id) {
-    case 0:
+    case 0: // f = λ
       f = lam;
       break;
-    case 1:
+    case 1: // f = 1/3
       f = 1.0 / 3.0;
       break;
-    case 2:
+    case 2: // f = 1 - 2λ
       f = 1.0 - 2.0 * lam;
       break;
-    case 3:
+    case 3: // f = λ + (λR)^2 with different limiters
       // lambda + (lambda*R)**2
       switch(limiter_id) {
-        case 0: // no limiter
+        case 0:
           f = 1.0 / 3.0;
           break;
         case 1: {
@@ -52,13 +52,12 @@ AFLDEddFactor(double lam,
             f = 1.0 + 3.0 * lam - 2.0 * std::sqrt(2.0 * lam);
           break;
         default:
-          assert("Invalid Limiter ID (Closure 3)");
+          assert(false && "Invalid Limiter ID (Closure 3)");
           return -1.0;
       }
       break;
-    case 4:
+    case 4: // f = 1/3 + (2/3)*(λR)^2 with different limiters
       switch(limiter_id) {
-        // 1/3 + 2/3*(lambda*R)**2
         case 0:
           f = 1.0 / 3.0; // no limiter
           break;
@@ -85,12 +84,12 @@ AFLDEddFactor(double lam,
                 (2.0 * (1.0 + 2.0 * lam - 2.0 * std::sqrt(2.0 * lam)) / 3.0);
           break;
         default:
-          assert("Invalid Limiter ID (Closure 4)");
+          assert(false && "Invalid Limiter ID (Closure 4)");
           return -1.0;
       }
       break;
     default:
-      assert("Invalid Closure ID");
+      assert(false && "Invalid Closure ID");
       return -1.0;
   }
 
@@ -126,7 +125,7 @@ AFLDalpha(double l, std::size_t limiter_id) noexcept {
         R = 1.0 / (l + p) - std::sqrt(2.0 / (l + p));
       break;
     default:
-      assert("Invalid Limiter ID");
+      assert(false && "Invalid Limiter ID");
       return -1.0;
   }
 
@@ -167,7 +166,7 @@ AFLDlambda(double r, std::size_t limiter_id) noexcept {
         l = 1.0 / (1.0 + r + std::sqrt(1.0 + 2.0 * r));
       break;
     default:
-      assert("Invalid Limiter ID");
+      assert(false && "Invalid Limiter ID");
       return -1.0;
   }
 
