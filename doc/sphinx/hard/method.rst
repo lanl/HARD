@@ -51,21 +51,29 @@ one, which will select the higher-order approximation. Near a shock,
 :math:`r_i` will approach infinity and :math:`\phi_{mm}(r_i)` will be
 close to zero and the low-order approximation will be selected.
 
-Hancock Time Evolution
-~~~~~~~~~~~~~~~~~~~~~~
+Runge-Kutta Time Evolution for Explicit Update
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To fully discretize (:math:`\ref{semi}`), we can use the Hancock method
-to approximate the time derivative. This method is second-order accurate
-in time. The Hancock discretization is a predictor-corrector method that
-uses the averages of the reconstructed input quantities to approximate
-the flux for :math:`t+\Delta t/2` in the predictor step. These
-intermediate quantities are then reconstructed to the faces again, but a
-*Riemann* solver is used to compute the corrector step.
+To fully discretize (:math:`\ref{semi}`), we can use `Heun's method
+<https://en.wikipedia.org/wiki/Heun%27s_method>`__ to approximate the
+time derivative. This method is second-order accurate in time. Heun's
+method is a Runge-Kutta method with the following Butcher tableau:
 
 .. note::
 
-   The MUSCL-Hancock method documented here is second-order accurate in
-   space and time.
+   The method documented here is second-order accurate in space and
+   time.
+
++-----+-----+-----+
+| 0   |     |     |
++-----+-----+-----+
+| 1   | 1   |     |
++-----+-----+-----+
+|     | 1/2 | 1/2 |
++-----+-----+-----+
+
+Each step is preceded by a reconstruction of primitive variables and a
+flux calculation given by a *Riemann* solver.
 
 The quantity reconstruction to faces uses the rule
 
@@ -77,20 +85,11 @@ The quantity reconstruction to faces uses the rule
 
 where :math:`\partial q^n_i/\partial s` is the flux limited slope.
 
-The predictor step computes intermediate quantities :math:`q^{*}` using
+The calculation of a RK slope :math:`K` is then
 
 .. math::
 
-   q^{*}_i = q^n_i - \frac{\Delta t}{2\Delta x_i}
-   \left(q^n_{i-1/2} - q^n_{i+1/2}\right).
-
-These quantities are then reconstructed to the faces again by applying
-(:math:`\ref{recon}`). The corrector step is
-
-.. math::
-
-   q^{n+1}_i = q^n_i + \frac{\Delta t}{\Delta x}
-   \left( F_{i-1/2} - F_{i+1/2} \right),
+   K_i = \frac{F_{i-1/2} - F_{i+1/2}}{\Delta x},
 
 where the :math:`F_i\pm1/2` are obtained from a Riemann solver. The code
 in this specialization example uses the HLL approximate Riemann sovler.
@@ -108,32 +107,8 @@ speeds taken at the tail and head of the cell interfaces respectively,
 and :math:`F_L` and :math:`F_R` are the flux functions evaluated at the
 respective intermediate quantities.
 
-Runge-Kutta Time Evolution for Explicit Update
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Besides the Hancock method described above, there is a Runge-Kutta
-implementation for the time avance. This Runge-Kutta implementation has
-the advantage that it can be easily replaced by a higher order
-Runge-Kutta method as needed.
-
-The time evolution for the explicit update is solved using `Heun's
-method <https://en.wikipedia.org/wiki/Heun%27s_method>`__, which is a
-type of second order in time Runge-Kutta method. A such, it can be
-completely described by using its Butcher tableau:
-
-+-----+-----+-----+
-| 0   |     |     |
-+-----+-----+-----+
-| 1   | 1   |     |
-+-----+-----+-----+
-|     | 1/2 | 1/2 |
-+-----+-----+-----+
-
-Each step is preceded by a reconstruction of primitive variables and a
-flux calculation similar to the one described in the Hancock method
-above. Afterwards the conservative variables are updated using those
-fluxes, and the primitive variables are recovered from them. The steps
-are combined as specified in the Butcher tableau.
+The RK slope is then used to advance the conserved variables, with which
+we can calculate the primitive variables and the next RK slope.
 
 Geometric Multigrid Solver for Implicit Update
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
