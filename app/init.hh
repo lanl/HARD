@@ -114,6 +114,20 @@ initialize(control_policy<state, D> & cp) {
 #ifdef ENABLE_RADIATION
   execute<tasks::init::kappa>(kappa(*s.gt), config["kappa"].as<double>());
 #endif
+
+  /*--------------------------------------------------------------------------*
+    Adaptive FLD Check, Closure ID and Limiter ID
+   *--------------------------------------------------------------------------*/
+
+#ifdef ENABLE_RADIATION
+  sc.execute<tasks::init::adaptive_check>(
+    adaptive_check(*s.gt), config["adaptive_check"].as<bool>());
+  sc.execute<tasks::init::limiter_id>(
+    limiter_id(*s.gt), config["limiter_id"].as<std::size_t>());
+  sc.execute<tasks::init::closure_id>(
+    closure_id(*s.gt), config["closure_id"].as<std::size_t>());
+#endif
+
   /*--------------------------------------------------------------------------*
     Particle mass
    *--------------------------------------------------------------------------*/
@@ -322,6 +336,20 @@ initialize(control_policy<state, D> & cp) {
     if(config["eos"].as<std::string>() != "ideal")
       flog_fatal("Heating and cooling test only supports Ideal Gas eos");
     execute<tasks::initial_data::heating_and_cooling<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
+      particle_mass(*s.gt),
+      config["gamma"].as<double>());
+  }
+  // Heating and Cooling for AFLD
+  else if(config["problem"].as<std::string>() == "heating-cooling-afld") {
+    if(config["eos"].as<std::string>() != "ideal")
+      flog_fatal("Heating and cooling test only supports Ideal Gas eos");
+    sc.execute<tasks::initial_data::heating_and_cooling_afld<D>>(
+      flecsi::exec::on,
       *s.m,
       s.mass_density(*s.m),
       s.momentum_density(*s.m),

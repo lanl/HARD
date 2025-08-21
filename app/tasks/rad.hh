@@ -9,6 +9,171 @@
 
 namespace hard::task::rad {
 
+// Castro/Source/radiation/fluxlimiter.H/Edd_factor
+FLECSI_INLINE_TARGET double
+AFLDEddFactor(double lam,
+  std::size_t limiter_id,
+  std::size_t closure_id) noexcept {
+  double f = 0.0;
+
+  switch(closure_id) {
+    case 0:
+      f = lam;
+      break;
+    case 1:
+      f = 1.0 / 3.0;
+      break;
+    case 2:
+      f = 1.0 - 2.0 * lam;
+      break;
+    case 3:
+      // lambda + (lambda*R)**2
+      switch(limiter_id) {
+        case 0: // no limiter
+          f = 1.0 / 3.0;
+          break;
+        case 1: {
+          double temp =
+            0.5 * std::max(0.0, 1.0 - 3.0 * lam) +
+            std::sqrt(std::max(0.0, (1.0 - 3.0 * lam) * (1.0 + 5.0 * lam)));
+          f = lam + temp * temp; // approximate LP, [123]
+          break;
+        }
+        case 2:
+          f = 1.0 - 5.0 * lam + 9.0 * lam * lam; // Bruenn, 1[123]
+          break;
+        case 3:
+          f = 1.0 + lam - 9.0 * lam * lam; // Larsen's square root, 2[123]
+          break;
+        case 4:
+          if(lam > 2.0 / 9.0) // Minerbo
+            f = 1.0 / 3.0;
+          else
+            f = 1.0 + 3.0 * lam - 2.0 * std::sqrt(2.0 * lam);
+          break;
+        default:
+          assert("Invalid Limiter ID (Closure 3)");
+          return -1.0;
+      }
+      break;
+    case 4:
+      switch(limiter_id) {
+        // 1/3 + 2/3*(lambda*R)**2
+        case 0:
+          f = 1.0 / 3.0; // no limiter
+          break;
+        case 1: {
+          double temp =
+            std::max(0.0, 1.0 - 3.0 * lam) +
+            std::sqrt(std::max(0.0, (1.0 - 3.0 * lam) * (1.0 + 5.0 * lam)));
+          f = 1.0 / 3.0 + (temp * temp / 6.0); // approximate LP, [123]
+          break;
+        }
+        case 2:
+          f = 1.0 / 3.0 +
+              2.0 * (1.0 - 6.0 * lam + 9.0 * lam * lam) / 3.0; // Bruenn, 1[123]
+          break;
+        case 3:
+          f = 1.0 / 3.0 + 2.0 * (1.0 - 9.0 * lam * lam) /
+                            3.0; // Larsen's square root, 2[123]
+          break;
+        case 4:
+          if(lam > 2.0 / 9.0)
+            f = 5.0 / 9.0 - (2.0 * lam / 3.0); // Minerbo
+          else
+            f = 1.0 / 3.0 +
+                (2.0 * (1.0 + 2.0 * lam - 2.0 * std::sqrt(2.0 * lam)) / 3.0);
+          break;
+        default:
+          assert("Invalid Limiter ID (Closure 4)");
+          return -1.0;
+      }
+      break;
+    default:
+      assert("Invalid Closure ID");
+      return -1.0;
+  }
+
+  return f;
+}
+
+// Castro/Source/radiation/fluxlimiter.H/FLDalpha
+FLECSI_INLINE_TARGET double
+AFLDalpha(double l, std::size_t limiter_id) noexcept {
+  double R = 0.0, alpha = 0.0;
+  double m = std::max(0.0, 1.0 - 3.0 * l);
+  constexpr double p = 1e-50;
+
+  switch(limiter_id) {
+    case 0:
+      R = 0.0; // no limiter
+      break;
+    case 1:
+      R = (m + std::sqrt(m * (1.0 + 5.0 * l))) /
+          (2.0 * l + p); // approximate LP, [123]
+      break;
+    case 2:
+      R = m / (l + p); // Bruenn, 1[123]
+      break;
+    case 3:
+      R = std::sqrt(m * (1.0 + 3.0 * l)) /
+          (l + p); // Larsen's square root, 2[123]
+      break;
+    case 4:
+      if(l > 2.0 / 9.0) // Minerbo
+        R = std::sqrt(m / 3.0) / (l + p);
+      else
+        R = 1.0 / (l + p) - std::sqrt(2.0 / (l + p));
+      break;
+    default:
+      assert("Invalid Limiter ID");
+      return -1.0;
+  }
+
+  if(R < 1e-6)
+    alpha = 0.25;
+  else if(R > 300.0)
+    alpha = 0.5;
+  else {
+    double cr = std::cosh(R);
+    alpha = cr * std::log(cr) / (2.0 * R * std::sinh(R));
+  }
+
+  return alpha;
+}
+
+// Castro/Source/radiation/rad_util.H/FLDlambda
+FLECSI_INLINE_TARGET double
+AFLDlambda(double r, std::size_t limiter_id) noexcept {
+  double l = 0.0;
+
+  switch(limiter_id) {
+    case 0:
+      l = 1.0 / 3.0; // no limiter
+      break;
+    case 1:
+      l = (2.0 + r) / (6.0 + 3.0 * r + r * r); // approximate LP
+      break;
+    case 2:
+      l = 1.0 / (3.0 + r); // Bruenn
+      break;
+    case 3:
+      l = 1.0 / std::sqrt(9.0 + r * r); // Larsen's square root
+      break;
+    case 4:
+      if(r < 1.5)
+        l = 2.0 / (3.0 + std::sqrt(9.0 + 12.0 * r * r)); // Minerbo
+      else
+        l = 1.0 / (1.0 + r + std::sqrt(1.0 + 2.0 * r));
+      break;
+    default:
+      assert("Invalid Limiter ID");
+      return -1.0;
+  }
+
+  return l;
+}
+
 template<std::size_t D>
 double
 update_dtmin(flecsi::exec::cpu,
@@ -124,7 +289,72 @@ getGradV(flecsi::exec::accelerator s,
   }
 } // getGradV
 
+// Get Eddington Factor based on either constant or adaptive limiter FLD
+template<std::size_t D>
+void
+getEddFactor(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  field<double>::accessor<ro, na> lambda_a,
+  field<double>::accessor<ro, na> R_a,
+  field<double>::accessor<wo, na> edd_factor_a,
+  single<bool>::accessor<ro> adaptive_check_a,
+  single<std::size_t>::accessor<ro> limiter_id_a,
+  single<std::size_t>::accessor<ro> closure_id_a) noexcept {
+
+  // TODO: applying boundary condition should be separated to new task
+
+  auto lambda = m.template mdcolex<is::cells>(lambda_a);
+  auto R = m.template mdcolex<is::cells>(R_a);
+  auto edd_factor = m.template mdcolex<is::cells>(edd_factor_a);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      if(!(*adaptive_check_a)) {
+        edd_factor(i) = lambda(i) + spec::utils::sqr(lambda(i) * R(i));
+      }
+      else {
+        edd_factor(i) = AFLDEddFactor(lambda(i), *limiter_id_a, *closure_id_a);
+      }
+    };
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(lambda,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      if(!(*adaptive_check_a)) {
+        edd_factor(i, j) =
+          lambda(i, j) + spec::utils::sqr(lambda(i, j) * R(i, j));
+      }
+      else {
+        edd_factor(i, j) =
+          AFLDEddFactor(lambda(i, j), *limiter_id_a, *closure_id_a);
+      }
+    };
+  }
+  else {
+    auto mdpolicy_qqq = get_mdiota_policy(lambda,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      if(!(*adaptive_check_a)) {
+        edd_factor(i, j, k) =
+          lambda(i, j, k) + spec::utils::sqr(lambda(i, j, k) * R(i, j, k));
+      }
+      else {
+        edd_factor(i, j, k) =
+          AFLDEddFactor(lambda(i, j, k), *limiter_id_a, *closure_id_a);
+      }
+    };
+  }
+
+} // getEddFactor
+
 // Get the radiation pressure tensor P
+// Modified so that it takes the eddington factor field
 template<std::size_t D>
 void
 getTensorP(flecsi::exec::accelerator s,
@@ -134,26 +364,21 @@ getTensorP(flecsi::exec::accelerator s,
   field<double>::accessor<ro, na> Esf_a,
   typename field<vec<D>>::template accessor<ro, na> gradEsf_a,
   field<double>::accessor<ro, na> gradE_mag_a,
-  field<double>::accessor<ro, na> lambda_a,
+  field<double>::accessor<ro, na> edd_factor_a,
   field<double>::accessor<ro, na> R_a) noexcept {
 
   auto P_tensor = m.template mdcolex<is::cells>(P_tensor_a);
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
   auto gradEsf = m.template mdcolex<is::cells>(gradEsf_a);
   auto gradE_mag = m.template mdcolex<is::cells>(gradE_mag_a);
-  auto lambda = m.template mdcolex<is::cells>(lambda_a);
+  auto edd_factor = m.template mdcolex<is::cells>(edd_factor_a);
   auto R = m.template mdcolex<is::cells>(R_a);
 
-  const double eps = 1.0e-15;
-
-  const auto compute_eddington_factor = [](
-                                          double lambda_value, double R_value) {
-    return lambda_value + spec::utils::sqr(lambda_value * R_value);
-  };
+  const double eps = 1.0e-50;
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      const double f = compute_eddington_factor(lambda(i), R(i));
+      const double f = edd_factor(i);
       P_tensor(i).xx = (0.5 * (1 - f) + 0.5 * (3 * f - 1)) * Esf(i);
     };
   }
@@ -168,7 +393,7 @@ getTensorP(flecsi::exec::accelerator s,
       const double nx = gradEsf(i, j).x() / (gradE_mag(i, j) + eps);
       const double ny = gradEsf(i, j).y() / (gradE_mag(i, j) + eps);
 
-      const double f = compute_eddington_factor(lambda(i, j), R(i, j));
+      const double f = edd_factor(i, j);
 
       P_tensor(i, j).xx =
         (0.5 * (1 - f) + 0.5 * (3 * f - 1) * nx * nx) * Esf(i, j);
@@ -191,7 +416,7 @@ getTensorP(flecsi::exec::accelerator s,
       const double ny = gradEsf(i, j, k).y() / (gradE_mag(i, j, k) + eps);
       const double nz = gradEsf(i, j, k).z() / (gradE_mag(i, j, k) + eps);
 
-      const double f = compute_eddington_factor(lambda(i, j, k), R(i, j, k));
+      const double f = edd_factor(i, j, k);
 
       P_tensor(i, j, k).xx =
         (0.5 * (1 - f) + 0.5 * (3 * f - 1) * nx * nx) * Esf(i, j, k);
@@ -284,7 +509,7 @@ getGradE(flecsi::exec::accelerator s,
 // Compute
 //  1) magnitude of grad(E)
 //  2) variable R (Eq 16 of Moens 2022 paper)
-//  3) flux limiter function `lambda`
+//  3) flux limiter function `lambda` - can either be a constant or adaptive
 //
 // Note : Lambda is only computed on the main grid (dm::quantities), then the
 // outermost values are copied into ghost zones.
@@ -299,7 +524,9 @@ getLambda(flecsi::exec::accelerator s,
   field<double>::accessor<rw, na> gradE_mag_a,
   field<double>::accessor<wo, na> R_a,
   field<double>::accessor<wo, na> lambda_a,
-  single<double>::accessor<ro> kappa_a) noexcept {
+  single<double>::accessor<ro> kappa_a,
+  single<bool>::accessor<ro> adaptive_check_a,
+  single<std::size_t>::accessor<ro> limiter_id_a) noexcept {
 
   // TODO: applying boundary condition should be separated to new task
 
@@ -317,7 +544,12 @@ getLambda(flecsi::exec::accelerator s,
 
       gradE_mag(i) = std::abs(gradEsf(i).x());
       R(i) = gradE_mag(i) / (kappa * r(i) * Esf(i) + eps);
-      lambda(i) = (2.0 + R(i)) / (6.0 + 3.0 * R(i) + R(i) * R(i));
+      if(!*adaptive_check_a) {
+        lambda(i) = (2.0 + R(i)) / (6.0 + 3.0 * R(i) + R(i) * R(i));
+      }
+      else {
+        lambda(i) = AFLDlambda(R(i), *limiter_id_a);
+      }
     };
   }
   else if constexpr(D == 2) {
@@ -331,8 +563,13 @@ getLambda(flecsi::exec::accelerator s,
       auto [j, i] = ji;
       gradE_mag(i, j) = gradEsf(i, j).norm();
       R(i, j) = gradE_mag(i, j) / (kappa * r(i, j) * Esf(i, j) + eps);
-      lambda(i, j) =
-        (2.0 + R(i, j)) / (6.0 + 3.0 * R(i, j) + R(i, j) * R(i, j));
+      if(!*adaptive_check_a) {
+        lambda(i, j) =
+          (2.0 + R(i, j)) / (6.0 + 3.0 * R(i, j) + R(i, j) * R(i, j));
+      }
+      else {
+        lambda(i, j) = AFLDlambda(R(i, j), *limiter_id_a);
+      }
     };
   }
   else {
@@ -348,8 +585,13 @@ getLambda(flecsi::exec::accelerator s,
       gradE_mag(i, j, k) = gradEsf(i, j, k).norm();
       R(i, j, k) =
         gradE_mag(i, j, k) / (kappa * r(i, j, k) * Esf(i, j, k) + eps);
-      lambda(i, j, k) =
-        (2.0 + R(i, j, k)) / (6.0 + 3.0 * R(i, j, k) + R(i, j, k) * R(i, j, k));
+      if(!*adaptive_check_a) {
+        lambda(i, j, k) = (2.0 + R(i, j, k)) /
+                          (6.0 + 3.0 * R(i, j, k) + R(i, j, k) * R(i, j, k));
+      }
+      else {
+        lambda(i, j, k) = AFLDlambda(R(i, j, k), *limiter_id_a);
+      }
     };
   }
 } // getLambda
@@ -1122,7 +1364,7 @@ interp_e_boundary(flecsi::exec::cpu,
   }
 
   // We should never reach this line
-  flog_fatal("Linear interpolation failed");
+  assert("Linear interpolation failed");
 } // interp_e_boundary
 
 } // namespace hard::task::rad

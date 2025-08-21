@@ -84,6 +84,8 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     s.radiation_energy_density(*s.m),
     s.gradient_rad_energy(*s.m));
 
+  // Standard (Constant) FLD formulation
+
   sc.execute<task::rad::getLambda<D>>(flecsi::exec::on,
     *s.m,
     s.mass_density(*s.m),
@@ -92,7 +94,18 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     s.magnitude_gradient_rad_energy(*s.m),
     s.R_value(*s.m),
     s.lambda_bridge(*s.m),
-    kappa(*s.gt));
+    kappa(*s.gt),
+    adaptive_check(*s.gt),
+    limiter_id(*s.gt));
+
+  sc.execute<task::rad::getEddFactor<D>>(flecsi::exec::on,
+    *s.m,
+    s.lambda_bridge(*s.m),
+    s.R_value(*s.m),
+    s.eddington_factor(*s.m),
+    adaptive_check(*s.gt),
+    limiter_id(*s.gt),
+    closure_id(*s.gt));
 
   sc.execute<task::rad::getTensorP<D>>(flecsi::exec::on,
     *s.m,
@@ -100,7 +113,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     s.radiation_energy_density(*s.m),
     s.gradient_rad_energy(*s.m),
     s.magnitude_gradient_rad_energy(*s.m),
-    s.lambda_bridge(*s.m),
+    s.eddington_factor(*s.m),
     s.R_value(*s.m));
 
   sc.execute<task::rad::getRadForce<D>>(flecsi::exec::on,
@@ -350,6 +363,8 @@ radiation_advance(control_policy<state, D> & cp) {
     s.radiation_energy_density(*s.m),
     s.gradient_rad_energy(*s.m));
 
+  // Adaptive FLD Radiation Advance
+
   sc.execute<task::rad::getLambda<D>>(flecsi::exec::on,
     *s.m,
     s.mass_density(*s.m),
@@ -358,7 +373,9 @@ radiation_advance(control_policy<state, D> & cp) {
     s.magnitude_gradient_rad_energy(*s.m),
     s.R_value(*s.m),
     s.lambda_bridge(*s.m),
-    kappa(*s.gt));
+    kappa(*s.gt),
+    adaptive_check(*s.gt),
+    limiter_id(*s.gt));
 
   sc.execute<tasks::apply_boundaries_scalar<D>>(
     flecsi::exec::on, *s.m, s.bmap(*s.gt), std::vector{s.lambda_bridge(*s.m)});

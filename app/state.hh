@@ -15,6 +15,9 @@ namespace hard {
 
 #ifdef ENABLE_RADIATION
 inline const single<double>::definition<global> kappa;
+inline const single<bool>::definition<global> adaptive_check;
+inline const single<std::size_t>::definition<global> limiter_id;
+inline const single<std::size_t>::definition<global> closure_id;
 #endif
 inline const single<double>::definition<global> particle_mass;
 inline const field<double>::definition<global> time_boundary;
@@ -201,9 +204,13 @@ struct state {
   // Dimensionless quantitiy, R
   static inline const field<double>::definition<mesh<D>, is::cells> R_value;
 
-  // Flux limiter
+  // Flux limiter (standard/adaptive)
   static inline const field<double>::definition<mesh<D>, is::cells>
     lambda_bridge;
+
+  // Eddington Factor
+  static inline const field<double>::definition<mesh<D>, is::cells>
+    eddington_factor;
 
   // Gradient of velocity
   static inline const typename field<spec::tensor<D,

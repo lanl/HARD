@@ -4,6 +4,9 @@ eos: spiner
 spiner_file: air.sp5
 spiner_matid: 5030
 kappa: 1.0e-100
+adaptive_check: False
+limiter_id: 0
+closure_id: 0
 mean_molecular_weight: 28.96
 t0: 0.0
 tf: 1.0
