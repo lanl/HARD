@@ -3,9 +3,6 @@ problem: rankine-hugoniot
 eos: ideal
 gamma: 1.4
 kappa: 1.0e-100
-adaptive_check: False
-limiter_id: 0
-closure_id: 0
 mean_molecular_weight: 1.0
 t0: 0.0
 tf: 0.2
