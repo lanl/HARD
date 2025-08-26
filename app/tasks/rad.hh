@@ -96,51 +96,6 @@ AFLDEddFactor(double lam,
   return f;
 }
 
-// Castro/Source/radiation/fluxlimiter.H/FLDalpha
-FLECSI_INLINE_TARGET double
-AFLDalpha(double l, std::size_t limiter_id) noexcept {
-  double R = 0.0, alpha = 0.0;
-  double m = std::max(0.0, 1.0 - 3.0 * l);
-  constexpr double p = 1e-50;
-
-  switch(limiter_id) {
-    case 0:
-      R = 0.0; // no limiter
-      break;
-    case 1:
-      R = (m + std::sqrt(m * (1.0 + 5.0 * l))) /
-          (2.0 * l + p); // approximate LP, [123]
-      break;
-    case 2:
-      R = m / (l + p); // Bruenn, 1[123]
-      break;
-    case 3:
-      R = std::sqrt(m * (1.0 + 3.0 * l)) /
-          (l + p); // Larsen's square root, 2[123]
-      break;
-    case 4:
-      if(l > 2.0 / 9.0) // Minerbo
-        R = std::sqrt(m / 3.0) / (l + p);
-      else
-        R = 1.0 / (l + p) - std::sqrt(2.0 / (l + p));
-      break;
-    default:
-      assert(false && "Invalid Limiter ID");
-      return -1.0;
-  }
-
-  if(R < 1e-6)
-    alpha = 0.25;
-  else if(R > 300.0)
-    alpha = 0.5;
-  else {
-    double cr = std::cosh(R);
-    alpha = cr * std::log(cr) / (2.0 * R * std::sinh(R));
-  }
-
-  return alpha;
-}
-
 // Castro/Source/radiation/rad_util.H/FLDlambda
 FLECSI_INLINE_TARGET double
 AFLDlambda(double r, std::size_t limiter_id) noexcept {
@@ -296,7 +251,6 @@ getEddFactor(flecsi::exec::accelerator s,
   field<double>::accessor<ro, na> lambda_a,
   field<double>::accessor<ro, na> R_a,
   field<double>::accessor<wo, na> edd_factor_a,
-  single<bool>::accessor<ro> adaptive_check_a,
   single<std::size_t>::accessor<ro> limiter_id_a,
   single<std::size_t>::accessor<ro> closure_id_a) noexcept {
 
@@ -308,12 +262,7 @@ getEddFactor(flecsi::exec::accelerator s,
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      if(!(*adaptive_check_a)) {
-        edd_factor(i) = lambda(i) + spec::utils::sqr(lambda(i) * R(i));
-      }
-      else {
-        edd_factor(i) = AFLDEddFactor(lambda(i), *limiter_id_a, *closure_id_a);
-      }
+      edd_factor(i) = AFLDEddFactor(lambda(i), *limiter_id_a, *closure_id_a);
     };
   }
   else if constexpr(D == 2) {
@@ -322,14 +271,8 @@ getEddFactor(flecsi::exec::accelerator s,
       m.template cells<ax::x, dm::quantities>());
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
-      if(!(*adaptive_check_a)) {
-        edd_factor(i, j) =
-          lambda(i, j) + spec::utils::sqr(lambda(i, j) * R(i, j));
-      }
-      else {
-        edd_factor(i, j) =
-          AFLDEddFactor(lambda(i, j), *limiter_id_a, *closure_id_a);
-      }
+      edd_factor(i, j) =
+        AFLDEddFactor(lambda(i, j), *limiter_id_a, *closure_id_a);
     };
   }
   else {
@@ -339,14 +282,8 @@ getEddFactor(flecsi::exec::accelerator s,
       m.template cells<ax::x, dm::quantities>());
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
-      if(!(*adaptive_check_a)) {
-        edd_factor(i, j, k) =
-          lambda(i, j, k) + spec::utils::sqr(lambda(i, j, k) * R(i, j, k));
-      }
-      else {
-        edd_factor(i, j, k) =
-          AFLDEddFactor(lambda(i, j, k), *limiter_id_a, *closure_id_a);
-      }
+      edd_factor(i, j, k) =
+        AFLDEddFactor(lambda(i, j, k), *limiter_id_a, *closure_id_a);
     };
   }
 
@@ -524,7 +461,6 @@ getLambda(flecsi::exec::accelerator s,
   field<double>::accessor<wo, na> R_a,
   field<double>::accessor<wo, na> lambda_a,
   single<double>::accessor<ro> kappa_a,
-  single<bool>::accessor<ro> adaptive_check_a,
   single<std::size_t>::accessor<ro> limiter_id_a) noexcept {
 
   // TODO: applying boundary condition should be separated to new task
@@ -543,12 +479,7 @@ getLambda(flecsi::exec::accelerator s,
 
       gradE_mag(i) = std::abs(gradEsf(i).x());
       R(i) = gradE_mag(i) / (kappa * r(i) * Esf(i) + eps);
-      if(!*adaptive_check_a) {
-        lambda(i) = (2.0 + R(i)) / (6.0 + 3.0 * R(i) + R(i) * R(i));
-      }
-      else {
-        lambda(i) = AFLDlambda(R(i), *limiter_id_a);
-      }
+      lambda(i) = AFLDlambda(R(i), *limiter_id_a);
     };
   }
   else if constexpr(D == 2) {
@@ -562,13 +493,7 @@ getLambda(flecsi::exec::accelerator s,
       auto [j, i] = ji;
       gradE_mag(i, j) = gradEsf(i, j).norm();
       R(i, j) = gradE_mag(i, j) / (kappa * r(i, j) * Esf(i, j) + eps);
-      if(!*adaptive_check_a) {
-        lambda(i, j) =
-          (2.0 + R(i, j)) / (6.0 + 3.0 * R(i, j) + R(i, j) * R(i, j));
-      }
-      else {
-        lambda(i, j) = AFLDlambda(R(i, j), *limiter_id_a);
-      }
+      lambda(i, j) = AFLDlambda(R(i, j), *limiter_id_a);
     };
   }
   else {
@@ -584,13 +509,7 @@ getLambda(flecsi::exec::accelerator s,
       gradE_mag(i, j, k) = gradEsf(i, j, k).norm();
       R(i, j, k) =
         gradE_mag(i, j, k) / (kappa * r(i, j, k) * Esf(i, j, k) + eps);
-      if(!*adaptive_check_a) {
-        lambda(i, j, k) = (2.0 + R(i, j, k)) /
-                          (6.0 + 3.0 * R(i, j, k) + R(i, j, k) * R(i, j, k));
-      }
-      else {
-        lambda(i, j, k) = AFLDlambda(R(i, j, k), *limiter_id_a);
-      }
+      lambda(i, j, k) = AFLDlambda(R(i, j, k), *limiter_id_a);
     };
   }
 } // getLambda
