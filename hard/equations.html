@@ -1,0 +1,204 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Basic Equations &mdash; HARD @HARD_VERSION@ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=9ecc9bae" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="canonical" href="http://www.flecsi.org/hard/equations.html"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a33db331"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Numerical Schemes" href="method.html" />
+    <link rel="prev" title="HARD Application" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/hard-sp.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Basic Equations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#flux-limited-diffusion">Flux Limited Diffusion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="method.html">Numerical Schemes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inputfiles.html">HARD YAML Input Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test_problems.html">Test Problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Visualization</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HARD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Basic Equations</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/hard/equations.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="basic-equations">
+<span id="hard-equations"></span><h1>Basic Equations<a class="headerlink" href="#basic-equations" title="Link to this heading"></a></h1>
+<p>We follow the comoving frame formulation of the radiation hydrodynamics equations in the diffusion limit, which can be written in Einstein notation in the form</p>
+<div class="math notranslate nohighlight">
+\[\partial_t \mathbf{U} + \partial_j \mathbf{F}^j = \mathbf{S}\]</div>
+<p>with the evolved variables</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{U} = \left[ \rho, \rho v^i, e + \frac{1}{2} \rho v^2, E \right]^T,\]</div>
+<p>fluxes</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathbf{F}^j = \left[ \begin{matrix}
+     \rho v^j \\
+     \rho v^i v^j + p \delta_{ij} \\
+     \left(e + \frac{1}{2} \rho v^2 + p\right) v^j \\
+     E v^j \\
+     \end{matrix} \right],\end{split}\]</div>
+<p>and source terms</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathbf{S} = \left[ \begin{matrix}
+0 \\
+f^i \\
+f^i v_i + \dot{q} \\
+- \partial_i F_r^i - P_r^{ij} \nabla_i v_j - \dot{q} \\
+\end{matrix} \right],\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\rho\)</span> is the fluid mass density, <span class="math notranslate nohighlight">\(v^i\)</span> is the component <em>i</em> of the fluid velocity vector, <span class="math notranslate nohighlight">\(e\)</span> is the fluid internal energy density, <span class="math notranslate nohighlight">\(p\)</span> is the fluid pressure, <span class="math notranslate nohighlight">\(E\)</span> is radiation energy density, <span class="math notranslate nohighlight">\(F_r^i\)</span> is the <em>i</em>-th component of the radiation energy flux vector, <span class="math notranslate nohighlight">\(P_r^{ij}\)</span> is the <em>i,j</em> element of the radiation pressure tensor, <span class="math notranslate nohighlight">\(f^i\)</span> is the <em>i</em>-th component of the radiation force density vector</p>
+<div class="math notranslate nohighlight">
+\[f^i = \frac{\kappa \rho}{c} F_r^i ,\]</div>
+<p>and <span class="math notranslate nohighlight">\(\dot{q}\)</span> is the radiative heating rate</p>
+<div class="math notranslate nohighlight">
+\[\dot{q} = \frac{dq}{dt} = c \kappa \rho (E - a T^4) ,\]</div>
+<p>where <span class="math notranslate nohighlight">\(\kappa\)</span> is mean opacity, <span class="math notranslate nohighlight">\(c\)</span> is the speed of light, <span class="math notranslate nohighlight">\(a\)</span> is the radiation constant, and <span class="math notranslate nohighlight">\(T\)</span> is the fluid temperature.
+For closure of the evolution system for the fluid, we need to specify the functional form of the fluid pressure <span class="math notranslate nohighlight">\(p\)</span>. Here we adopt the singularity-EOS, allowing us to use any material in evolution.</p>
+<section id="flux-limited-diffusion">
+<h2>Flux Limited Diffusion<a class="headerlink" href="#flux-limited-diffusion" title="Link to this heading"></a></h2>
+<p>The radiative transfer equation — the last component of the evolution equation <span class="math notranslate nohighlight">\(\partial_t \mathbf{U} + \partial_j \mathbf{F}^j = \mathbf{S}\)</span> — requires additional closures for radiation energy flux density <span class="math notranslate nohighlight">\(F^i\)</span> and radiation pressure <span class="math notranslate nohighlight">\(P_r^{ij}\)</span>.</p>
+<p>In the optically thick diffusion limit, they are given by:</p>
+<div class="math notranslate nohighlight">
+\[F^i = - \frac{c}{3\kappa\rho} \nabla E,\]</div>
+<div class="math notranslate nohighlight">
+\[P_r^{ij} = \frac{1}{3} E \delta_{ij},\]</div>
+<p>provided the mean free path of photons is much shorter than the length scale of interest.</p>
+<p>Evolution equations are valid in the diffusion (optically thick) limit. However, it is possible to introduce a bridge law so that the radiation energy flux density <span class="math notranslate nohighlight">\(F_r^i\)</span> recovers the correct norm in optically thin regions.</p>
+<div class="math notranslate nohighlight">
+\[F_r^i = - \lambda \frac{c}{\kappa \rho} \nabla E\]</div>
+<p><span class="math notranslate nohighlight">\(\lambda\)</span> is a radiation energy flux limiter function:</p>
+<div class="math notranslate nohighlight">
+\[\lambda = \frac{2 + R}{6 + 3R + R^2}\]</div>
+<div class="math notranslate nohighlight">
+\[R \equiv \frac{|\nabla E|}{\rho \kappa E}\]</div>
+<div class="math notranslate nohighlight">
+\[\frac{P^{ij}}{E} = \left(\frac{1 - f}{2}\right) \delta_{ij}
+   + \left(\frac{3f - 1}{2}\right) n^i n^j\]</div>
+<p>where <span class="math notranslate nohighlight">\(n^i \equiv \nabla E / |\nabla E|\)</span> and the quantity <span class="math notranslate nohighlight">\(f\)</span> is defined as:</p>
+<div class="math notranslate nohighlight">
+\[f = \lambda + \lambda^2 R^2\]</div>
+<p>In the optically thick limit, <span class="math notranslate nohighlight">\(R \to 0\)</span>, <span class="math notranslate nohighlight">\(\lambda \to 1/3\)</span>, <span class="math notranslate nohighlight">\(f \to 1/3\)</span>, and the Eddington approximation <span class="math notranslate nohighlight">\(P^{ij} = (E/3)\delta_{ij}\)</span> is recovered.</p>
+<p>In the optically thin limit, the photon field streams toward the direction of the local radiation energy density gradient at the speed of light.</p>
+<p>These prescriptions are not a physically exact implementation of realistic light-matter interactions but serve as a computationally efficient proxy for bridging optically thin and thick limits.</p>
+<p>As a result, the radiative transfer equation becomes:</p>
+<div class="math notranslate nohighlight">
+\[\partial_t E + \partial_j (Ev^j) =
+     \partial_i(D\, \partial_i E) - P_r^{ij} \nabla_i v_j - \dot{q},\]</div>
+<p>with <span class="math notranslate nohighlight">\(D = c\lambda / (\kappa\rho)\)</span>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="HARD Application" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="method.html" class="btn btn-neutral float-right" title="Numerical Schemes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023, Triad National Security, LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+  <style>
+    /* Contents caption */
+    .wy-menu-vertical>p.caption {
+      color: #ffffff;
+    }
+
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #e3e2db;
+    }
+    .wy-side-nav-search>div.version, .wy-nav-top>div.version {
+      color: #5f5d5f;
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+      background: #216897;
+      color: #ffffff;
+    }
+  </style>
+
+
+</body>
+</html>

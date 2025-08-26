@@ -1,0 +1,281 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HARD YAML Input Files &mdash; HARD @HARD_VERSION@ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=9ecc9bae" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="canonical" href="http://www.flecsi.org/hard/inputfiles.html"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a33db331"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Test Problems" href="test_problems.html" />
+    <link rel="prev" title="Numerical Schemes" href="method.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/hard-sp.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="equations.html">Basic Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="method.html">Numerical Schemes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">HARD YAML Input Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test_problems.html">Test Problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Visualization</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HARD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">HARD YAML Input Files</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/hard/inputfiles.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="hard-yaml-input-files">
+<span id="hard-input-files"></span><h1>HARD YAML Input Files<a class="headerlink" href="#hard-yaml-input-files" title="Link to this heading"></a></h1>
+<p>HARD uses YAML files as input to describe the different problems and their configurations.
+These files can be found in the <cite>configs</cite> directory at the root.
+A subdirectory <cite>ci_configs</cite> is used to run the regression tests in the CI and should not be altered.</p>
+<p>Unless specified, the units are in CGS.</p>
+<p>Here are details on each parts of the yaml files:</p>
+<dl class="simple">
+<dt><cite>problem</cite></dt><dd><dl class="simple">
+<dt>This is the string that is picked up by the <cite>init.hh</cite> file to configure the problem. For now these options are available:</dt><dd><ul class="simple">
+<li><p><cite>sod</cite></p></li>
+<li><p><cite>rankine-hugoniot</cite></p></li>
+<li><p><cite>leblanc</cite></p></li>
+<li><p><cite>acoustic-wave</cite></p></li>
+<li><p><cite>kh-test</cite></p></li>
+<li><p><cite>heating_and_cooling</cite></p></li>
+<li><p><cite>sedov</cite></p></li>
+<li><p><cite>implosion</cite></p></li>
+<li><p><cite>rad-rh</cite></p></li>
+<li><p><cite>lw-implosion</cite></p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>Physics quantities</dt><dd><p>Input that represent physical quantities: <cite>gamma</cite>, <cite>kappa</cite>, <cite>mean_molecular_weight</cite></p>
+</dd>
+<dt><cite>eos</cite></dt><dd><dl class="simple">
+<dt>Define which EOS to be used from Singularity EOS</dt><dd><ul class="simple">
+<li><p><cite>ideal</cite></p></li>
+<li><p><cite>spiner</cite> (tabulated EOS, not tested)</p></li>
+<li><p><cite>gruneisen</cite> (not tested)</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>time and steps</dt><dd><dl class="simple">
+<dt>These variables handle the time and timestep of the simulation:</dt><dd><ul class="simple">
+<li><p><cite>t0</cite>, start time for the simulation</p></li>
+<li><p><cite>tf</cite>, final time for the simulation (not supported for Legion backend)</p></li>
+<li><p><cite>cfl</cite>, Courant–Friedrichs–Lewy coefficient</p></li>
+<li><p><cite>max_dt</cite>, Maximum dt to be used in the simulation</p></li>
+<li><p><cite>max_steps</cite>, Maximum number of iterations to run the simulation for</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>logging and output</dt><dd><ul class="simple">
+<li><p><cite>log_frequency</cite>, Set the frequency of iterations outputted on the terminal</p></li>
+<li><p><cite>output_frequency</cite>, Set the frequency of the output files</p></li>
+</ul>
+</dd>
+<dt><cite>color_distribution</cite></dt><dd><p>An array representing how many colors per dimensions to assign.</p>
+</dd>
+<dt><cite>levels</cite></dt><dd><p>This is an array representing the grid size as a power of two per dimension.
+As an example [8,8,4] would mean a grid of 2^8 * 2^8 * 2^4.
+If the code runs with the -d command line option, the extra dimensions are ignored.</p>
+</dd>
+<dt><cite>lowest_level</cite></dt><dd><p>This defines the lowest level of resolution for the Geometric Multigrid.
+All dimensions decrease levels at the same rate, so the lowest resolution corresponds to whichever has one dimension arriving to the lowest level first</p>
+</dd>
+<dt><cite>coords</cite></dt><dd><p>Coordinates of the lowest and highest points of the domain.
+We set two array per dimensions as, for example, a square:
+- [0.0, 0.0, 0.0]
+- [1.0, 1.0, 1.0]</p>
+</dd>
+<dt><cite>boundaries</cite></dt><dd><dl class="simple">
+<dt>The boundaries are defined per dimensions <cite>xlow</cite>, <cite>xhigh</cite>, <cite>ylow</cite>, <cite>yhigh</cite>, <cite>zlow</cite>, and <cite>zhigh</cite> For each several options are possible:</dt><dd><ul class="simple">
+<li><p><cite>periodic</cite></p></li>
+<li><p><cite>flow</cite></p></li>
+<li><p><cite>reflecting</cite></p></li>
+<li><p><cite>dirichlet</cite></p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt><cite>catalyst</cite></dt><dd><dl class="simple">
+<dt>All these options are needed under catalyst to specify the location of the script and the paraview library.</dt><dd><ul class="simple">
+<li><p><cite>script</cite>, path to the python script that interface the output data and catalyst. An example is provided in <cite>tools/gridwriter.py</cite></p></li>
+<li><p><cite>implementation</cite>, only value for now is <cite>paraview</cite></p></li>
+<li><p><cite>implementation_directory</cite>, path to the catalyst library compiled using the implementation. Something like <cite>libcatalyst_paraview.so</cite></p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>Some problems have specific input information. These are all defined under the <cite>problem_parameters</cite> group.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>acoustic_wave</cite>:</p>
+<ul>
+<li><dl class="simple">
+<dt><cite>problem_parameters</cite>, a list containing:</dt><dd><ul>
+<li><p><cite>r0</cite>, the equilibrium density</p></li>
+<li><p><cite>p0</cite>, the equilibrium pressure</p></li>
+<li><p><cite>amplitude</cite>, the perturbation amplitudes</p></li>
+<li><p><cite>scale</cite>, the inverse of the wave number</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</li>
+<li><p><cite>heating_and_cooling</cite>:</p>
+<ul>
+<li><dl class="simple">
+<dt><cite>problem_parameters</cite>, a list containing:</dt><dd><ul>
+<li><p><cite>fluid_mass_density</cite></p></li>
+<li><p><cite>fluid_temperature</cite></p></li>
+<li><p><cite>radiation_temperature</cite></p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</li>
+<li><p><cite>implosion</cite>:</p>
+<ul>
+<li><dl class="simple">
+<dt><cite>problem_parameters</cite>, a list containing:</dt><dd><ul>
+<li><p><cite>fluid_mass_density</cite></p></li>
+<li><p><cite>fluid_temperature</cite></p></li>
+<li><p><cite>radiation_temperature</cite></p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</li>
+<li><p><cite>sedov</cite>:</p>
+<ul>
+<li><dl class="simple">
+<dt><cite>problem_parameters</cite>, a list containing:</dt><dd><ul>
+<li><p><cite>hotspot_position</cite>, an array of the position of the hotspot</p></li>
+<li><p><cite>hotspot_radius</cite>, the radius of the hotspot</p></li>
+<li><p><cite>E_0</cite>, the initial energy injected at the hotspot in Ergs</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</li>
+</ul>
+</div></blockquote>
+<p>The other tests have setting hardcoded in their initialization files.
+They can be found in <cite>app/tasks/initial_data/</cite>.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="method.html" class="btn btn-neutral float-left" title="Numerical Schemes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="test_problems.html" class="btn btn-neutral float-right" title="Test Problems" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023, Triad National Security, LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+  <style>
+    /* Contents caption */
+    .wy-menu-vertical>p.caption {
+      color: #ffffff;
+    }
+
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #e3e2db;
+    }
+    .wy-side-nav-search>div.version, .wy-nav-top>div.version {
+      color: #5f5d5f;
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+      background: #216897;
+      color: #ffffff;
+    }
+  </style>
+
+
+</body>
+</html>

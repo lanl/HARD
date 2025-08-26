@@ -1,0 +1,359 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visualization &mdash; HARD @HARD_VERSION@ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=9ecc9bae" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="canonical" href="http://www.flecsi.org/hard/visualization.html"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a33db331"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Test Problems" href="test_problems.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/hard-sp.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="equations.html">Basic Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="method.html">Numerical Schemes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inputfiles.html">HARD YAML Input Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test_problems.html">Test Problems</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Visualization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#d-visualizations-with-catalyst-paraview">3D visualizations with catalyst/paraview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#d-visualizations-using-raw-output-and-gnuplot-pm3d">2D visualizations using raw output and gnuplot/pm3d</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id1">1D visualizations using raw output and gnuplot/pm3d</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-add-other-fields-observables-to-the-catalyst-output">How to add other fields/observables to the catalyst output</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HARD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Visualization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/hard/visualization.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="visualization">
+<span id="flastro-visualization"></span><h1>Visualization<a class="headerlink" href="#visualization" title="Link to this heading"></a></h1>
+<p>FlAstro has an integrated Catalyst
+(<a class="reference external" href="https://www.paraview.org/Wiki/ParaView/Catalyst/Overview">https://www.paraview.org/Wiki/ParaView/Catalyst/Overview</a>; <a class="reference external" href="https://docs.paraview.org/en/latest/Catalyst/index.html">https://docs.paraview.org/en/latest/Catalyst/index.html</a>)
+adaptor that creates output that can directly be opened in ParaView
+(<a class="reference external" href="https://www.paraview.org/">https://www.paraview.org/</a>; <a class="reference external" href="https://docs.paraview.org/en/latest/UsersGuide/introduction.html">https://docs.paraview.org/en/latest/UsersGuide/introduction.html</a>).
+<strong>Note</strong>: The Catalyst adaptor is only activated for 3D simulations. For 2D or 1D simulations,
+FlAstro currently outputs raw text data files that can be read into gnuplot, for example.</p>
+<p><strong>How to build and run flastro with catalyst</strong></p>
+<p>To build flastro with catalyst, set <code class="docutils literal notranslate"><span class="pre">ENABLE_CATALYST=ON</span></code>.
+Run flastro as you would w/o creating visualzation output, for example:</p>
+<p><code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">-n</span> <span class="pre">4</span> <span class="pre">./flastro</span> <span class="pre">-d</span> <span class="pre">3</span> <span class="pre">../../configs/XYZ.yaml</span></code></p>
+<p>In the <code class="docutils literal notranslate"><span class="pre">XYZ.yaml</span></code> file you secify the physical dimension and resolution of the simulation box, the simulation time
+or maximum number of steps, etc. To create output for paraview, you need to provide the path for the catalyst implementation
+and specify a catalyst/paraview script, like <code class="docutils literal notranslate"><span class="pre">gridwriter.py</span></code> that is provided in the <code class="docutils literal notranslate"><span class="pre">../../tools/</span></code> directory along with
+other example scripts that directly render pngs for different observables. To add further observables/fields to the pipeline
+for visualization, see below.</p>
+<section id="d-visualizations-with-catalyst-paraview">
+<h2>3D visualizations with catalyst/paraview<a class="headerlink" href="#d-visualizations-with-catalyst-paraview" title="Link to this heading"></a></h2>
+<p><strong>Example</strong>: <em>Evolution of speed (magnitude of velocity) in a 3D Sod shock tube during the first 0.5 seconds.</em></p>
+<p>FlAstro’s catalyst adaptor will put all visualization files into a directory <code class="docutils literal notranslate"><span class="pre">datasets</span></code>.
+It can be directly opened from your local paraview client. This is a visualization of an example run with
+48 x 12 x12 cells, using <code class="docutils literal notranslate"><span class="pre">gridwriter.py</span></code>.</p>
+</section>
+<section id="d-visualizations-using-raw-output-and-gnuplot-pm3d">
+<h2>2D visualizations using raw output and gnuplot/pm3d<a class="headerlink" href="#d-visualizations-using-raw-output-and-gnuplot-pm3d" title="Link to this heading"></a></h2>
+<p>Flastro creates raw output files in <code class="docutils literal notranslate"><span class="pre">tsv</span></code> format that can be read into spead sheets or by
+tools like <code class="docutils literal notranslate"><span class="pre">gnuplot</span></code>. Animations can be produced by plotting the data from each time step.</p>
+<p><strong>Example</strong>: Evolution of density in a 2D Sod shock tube during the first approx. 0.5 seconds.</p>
+<p><strong>HowTo</strong>:</p>
+<ol class="arabic simple">
+<li><p>Process all raw output files from a 2D-FlAstro run with <code class="docutils literal notranslate"><span class="pre">gnuplot</span></code>:</p>
+<ul class="simple">
+<li><p>the script <code class="docutils literal notranslate"><span class="pre">make_png_from_raw_2D.sh</span></code> in the <code class="docutils literal notranslate"><span class="pre">../../tools/</span></code> directory will create a png file from
+every data file in a specified range</p></li>
+<li><p>Example was made with: <code class="docutils literal notranslate"><span class="pre">make_png_from_raw_2D.sh</span> <span class="pre">1</span> <span class="pre">200</span> <span class="pre">128</span> <span class="pre">4</span></code> (for help, run script w/o arguments)</p></li>
+</ul>
+</li>
+<li><p>Combine pictures into an animation, for example using QuickTime or ImageMagick</p>
+<ul class="simple">
+<li><p>QuickTime Player: load all image files (“Open image Sequence …”) and save as movie</p></li>
+<li><p>ImageMagick (available on Darwin): <code class="docutils literal notranslate"><span class="pre">convert</span> <span class="pre">*png</span> <span class="pre">2d-flastro-sod-128cells.gif</span></code></p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="id1">
+<h2>1D visualizations using raw output and gnuplot/pm3d<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>To create a plot of an observable at a certain time, you can directly plot columns from the raw output files.</p>
+<p><strong>Example</strong>: Density in a 1D Sod shock tube at time <span class="math notranslate nohighlight">\(t = 0.2\)</span>
+(<a class="reference external" href="https://en.wikipedia.org/wiki/Sod_shock_tube">https://en.wikipedia.org/wiki/Sod_shock_tube</a>).</p>
+<p>To create a 3D plot of the time evolution of a scalar observable:</p>
+<p><strong>Example</strong>: Evolution of density in a 1D Sod shock tube during the first 0.2 seconds.</p>
+<p><strong>HowTo</strong>:</p>
+<ol class="arabic simple">
+<li><p>Concatenate all raw output files from a 1D-FlAstro run: <code class="docutils literal notranslate"><span class="pre">cat</span> <span class="pre">output*raw</span> <span class="pre">&gt;</span> <span class="pre">output_time_evolution.raw</span></code></p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">gnuplot</span></code>:</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>user@host:.../flastro/build/app$ gnuplot
+
+gnuplot&gt; splot &#39;output_time_evolution.raw&#39; u 1:($2/128):3 w pm3d at bs title &quot;flastro 1D, 128 cells, sod evolution 0.0 &lt; t &lt; 0.2&quot;
+gnuplot&gt; set xlabel &quot;time&quot;
+gnuplot&gt; set ylabel &quot;x&quot;
+gnuplot&gt; set zlabel &quot;density&quot;
+
+[alternatively to all of the above:]
+gnuplot&gt; load &quot;output_time_evolution.gnuplot&quot;
+
+[use mouse to rotate to desired perspective]
+[to output png:]
+gnuplot&gt; set term png
+gnuplot&gt; set output &quot;output_time_evolution.png&quot;
+gnuplot&gt; replot
+gnuplot&gt; quit
+</pre></div>
+</div>
+</section>
+<section id="how-to-add-other-fields-observables-to-the-catalyst-output">
+<h2>How to add other fields/observables to the catalyst output<a class="headerlink" href="#how-to-add-other-fields-observables-to-the-catalyst-output" title="Link to this heading"></a></h2>
+<p>Adding new data to the catalyst/paraview pipeline requires editing all files in the catalyst module
+(<code class="docutils literal notranslate"><span class="pre">catalyst/adaptor.[cc|hh]</span></code> and <code class="docutils literal notranslate"><span class="pre">catalyst/types[cc|hh]</span></code>), the catalyst tasks file (<code class="docutils literal notranslate"><span class="pre">tasks/catalyst.hh</span></code>),
+and the files where you call catalyst tasks (<code class="docutils literal notranslate"><span class="pre">init.hh</span></code> and <code class="docutils literal notranslate"><span class="pre">analyze.hh</span></code>, in this example).</p>
+<p><strong>Example: Adding the total energy</strong></p>
+<p><strong>Note:</strong> All necessary additions/changes for this example are available in the code repository, included in the commit
+“How to add total energy to catalyst pipeline; documentation example”, and marked in the code with the <code class="docutils literal notranslate"><span class="pre">&lt;&lt;&lt;</span> <span class="pre">add</span> <span class="pre">total</span> <span class="pre">energy</span></code>
+tag.</p>
+<p>1. Physics fields/observables are referred to as “attributes” in the catalyst language.
+So we have to create a new attribute and update it along with all the others. This is
+done in <code class="docutils literal notranslate"><span class="pre">catalyst/types.[hh|cc]</span></code> and the <code class="docutils literal notranslate"><span class="pre">update_attributes</span></code> method in <code class="docutils literal notranslate"><span class="pre">tasks/catalyst.hh</span></code>.
+Note that total energy is a scalar field; in particular, it does not depend on the dimension.
+(For vector fields, use <code class="docutils literal notranslate"><span class="pre">velocity</span></code> as an example accordingly).</p>
+<p><code class="docutils literal notranslate"><span class="pre">catalyst/types.hh</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>class catalyst_attributes
+public:
+  …
+  void update_fields(double * cell_vector_vals1,
+                    double * cell_scalar_vals1,
+                    double * cell_scalar_vals2,
+                    double * cell_scalar_vals3); // &lt;&lt;&lt; add total energy
+  …
+
+private:
+  …
+  std::vector&lt;double&gt; tot_energy; // &lt;&lt;&lt; add total energy
+  …
+};
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">catalyst/types.cc</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>void catalyst_attributes::initialize(size_t number_of_points, size_t number_of_cells)
+{
+  …
+  this-&gt;tot_energy.resize(number_of_cells); // &lt;&lt;&lt; add total energy
+}
+
+void catalyst_attributes::update_fields(double * cell_vector_vals1,
+                                        double * cell_scalar_vals1,
+                                        double * cell_scalar_vals2,
+                                        double * cell_scalar_vals3) { // &lt;&lt;&lt; add total energy
+  for(size_t cell_i = 0; cell_i &lt; num_cells_; cell_i++) {
+    …
+    this-&gt;tot_energy[cell_i] = cell_scalar_vals3[cell_i]; // &lt;&lt;&lt; add total energy
+  }
+  …
+} // end update_fields
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">task/catalyst.hh</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>template&lt;std::size_t D&gt;
+inline void update_attributes(single&lt;catalyst_attributes&gt;::accessor&lt;rw&gt; c_a,
+  …
+  field&lt;double&gt;::accessor&lt;ro, ro&gt; rE_a) // &lt;&lt;&lt; add total energy
+{
+  if constexpr(D == 3) {
+    …
+    auto rE = m.template mdcolex&lt;is::cells&gt;(rE_a); // &lt;&lt;&lt; add total energy
+    …
+    std::vector&lt;double&gt; tot_energy_vals; // &lt;&lt;&lt; add total energy
+
+    for(auto k : m.template cells&lt;ax::z, dm::quantities&gt;()) {
+     for(auto j : m.template cells&lt;ax::y, dm::quantities&gt;()) {
+       for(auto i : m.template cells&lt;ax::x, dm::quantities&gt;()) {
+          // update all scalar fields
+          …
+          tot_energy_vals.push_back(rE(i,j,k)); // &lt;&lt;&lt; add total energy
+          …
+        } // for
+      } // for
+    } // for
+    …
+    c_a-&gt;update_fields(velocity_vals.data(),
+                       density_vals.data(),
+                       pressure_vals.data(),
+                       tot_energy_vals.data()); // &lt;&lt;&lt; add total energy
+  }
+  …
+}
+</pre></div>
+</div>
+<p>Finally, pass the new field along when the <code class="docutils literal notranslate"><span class="pre">update_attributes</span></code> task is executed.</p>
+<p><code class="docutils literal notranslate"><span class="pre">init.hh</span></code> and <code class="docutils literal notranslate"><span class="pre">analyze.hh</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">Send</span> <span class="n">initial</span> <span class="n">problem</span> <span class="n">state</span> <span class="n">to</span> <span class="n">catalyst</span>
+<span class="n">execute</span><span class="o">&lt;</span><span class="n">tasks</span><span class="p">::</span><span class="n">external</span><span class="p">::</span><span class="n">update_attributes</span><span class="o">&lt;</span><span class="n">D</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">mpi</span><span class="o">&gt;</span><span class="p">(</span>
+  <span class="n">catalyst_data</span><span class="p">(</span><span class="n">pt</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">r</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">s</span><span class="o">.</span><span class="n">u</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">s</span><span class="o">.</span><span class="n">p</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">rE</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">m</span><span class="p">));</span> <span class="o">//</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">add</span> <span class="n">total</span> <span class="n">energy</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">execute</span><span class="o">&lt;</span><span class="n">tasks</span><span class="p">::</span><span class="n">external</span><span class="p">::</span><span class="n">update_attributes</span><span class="o">&lt;</span><span class="n">D</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">mpi</span><span class="o">&gt;</span><span class="p">(</span>
+  <span class="n">catalyst_data</span><span class="p">(</span><span class="n">pt</span><span class="p">),</span> <span class="n">cp</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span> <span class="n">s</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">r</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">s</span><span class="o">.</span><span class="n">u</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">s</span><span class="o">.</span><span class="n">p</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">rE</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">m</span><span class="p">));</span> <span class="o">//</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">add</span> <span class="n">total</span> <span class="n">energy</span>
+</pre></div>
+</div>
+<p>2. Now the new attribute has to be included in the conduit node that is created for catalyst/paraview.
+This node is defined in <code class="docutils literal notranslate"><span class="pre">catalyst/adaptor.cc</span></code>. Note that the total energy is “cell data”
+(cells are called “elements” in catalyst language). We have to also add the new attribute to
+the <code class="docutils literal notranslate"><span class="pre">catalyst_attributes::execute</span></code> method in <code class="docutils literal notranslate"><span class="pre">catalyst/types.cc</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">catalyst/adaptor.hh</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>void execute(int cycle, double time, flastro::simple_cubic&amp; grid,
+  …
+  double* tot_energy_array); // &lt;&lt;&lt; add total energy
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">catalyst/adaptor.cc</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>void catalyst_adaptor::execute(int cycle, double time, simple_cubic&amp; grid,
+  …
+  double* tot_energy_array) // &lt;&lt;&lt; add total energy
+{
+…
+// add total energy &gt;&gt;&gt;
+  // total energy is cell-data
+  fields[&quot;total_energy/association&quot;].set(&quot;element&quot;);
+  fields[&quot;total_energy/topology&quot;].set(&quot;mesh&quot;);
+  fields[&quot;total_energy/volume_dependent&quot;].set(&quot;false&quot;);
+  fields[&quot;total_energy/values&quot;].set_external(tot_energy_array, grid.get_number_of_cells());
+// &lt;&lt;&lt; add total energy
+…
+}
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">catalyst/types.cc</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>void catalyst_attributes::execute(size_t step, double time, simple_cubic&amp; lattice)
+{
+  …
+  catalyst_adaptor::execute(step, time, lattice, &amp;this-&gt;velocity[0],
+                                                …
+                                                &amp;this-&gt;tot_energy[0]); // &lt;&lt;&lt; add total energy
+}
+</pre></div>
+</div>
+<p>Example for config file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">catalyst</span><span class="p">:</span>
+  <span class="n">script</span><span class="p">:</span> <span class="n">gridwriter</span><span class="o">.</span><span class="n">py</span>
+  <span class="n">implementation</span><span class="p">:</span> <span class="n">paraview</span>
+  <span class="n">implementation_directory</span><span class="p">:</span> <span class="o">/</span><span class="n">vast</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">thomasvogel</span><span class="o">/</span><span class="n">spack</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">spack</span><span class="o">/</span><span class="n">environments</span><span class="o">/</span><span class="n">vtk_viz</span><span class="o">/.</span><span class="n">spack</span><span class="o">-</span><span class="n">env</span><span class="o">/</span><span class="n">view</span><span class="o">/</span><span class="n">lib64</span><span class="o">/</span><span class="n">catalyst</span><span class="o">/</span>
+</pre></div>
+</div>
+<p>Feel free to contact Thomas (<a class="reference external" href="mailto:thomasvogel&#37;&#52;&#48;lanl&#46;gov">thomasvogel<span>&#64;</span>lanl<span>&#46;</span>gov</a>) directly if you have any further questions.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="test_problems.html" class="btn btn-neutral float-left" title="Test Problems" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023, Triad National Security, LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+  <style>
+    /* Contents caption */
+    .wy-menu-vertical>p.caption {
+      color: #ffffff;
+    }
+
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #e3e2db;
+    }
+    .wy-side-nav-search>div.version, .wy-nav-top>div.version {
+      color: #5f5d5f;
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+      background: #216897;
+      color: #ffffff;
+    }
+  </style>
+
+
+</body>
+</html>

@@ -1,0 +1,264 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Numerical Schemes &mdash; HARD @HARD_VERSION@ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=9ecc9bae" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="canonical" href="http://www.flecsi.org/hard/method.html"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a33db331"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="HARD YAML Input Files" href="inputfiles.html" />
+    <link rel="prev" title="Basic Equations" href="equations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/hard-sp.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="equations.html">Basic Equations</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Numerical Schemes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#muscl-scheme">MUSCL Scheme</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#runge-kutta-time-evolution-for-explicit-update">Runge-Kutta Time Evolution for Explicit Update</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#geometric-multigrid-solver-for-implicit-update">Geometric Multigrid Solver for Implicit Update</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="inputfiles.html">HARD YAML Input Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test_problems.html">Test Problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Visualization</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HARD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Numerical Schemes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/hard/method.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="numerical-schemes">
+<span id="hard-method"></span><h1>Numerical Schemes<a class="headerlink" href="#numerical-schemes" title="Link to this heading"></a></h1>
+<section id="muscl-scheme">
+<h2>MUSCL Scheme<a class="headerlink" href="#muscl-scheme" title="Link to this heading"></a></h2>
+<p>The MUSCL scheme (<em>Monotonic Upstream-centered Scheme for Conservation
+Laws</em>) is a second-order in space finite volume method that is <em>total
+variation diminishing (TVD)</em> and can provide accurate simulations of
+shock dynamics. A succinct, semi-discrete representation of the scheme
+can be written</p>
+<div class="math notranslate nohighlight">
+\[\frac{du_i}{dt} + \frac{1}{\Delta x_i}
+\left[
+  F^{*}_{i+1/2} - F^{*}_{i-1/2}
+\right] = 0,\label{semi}\tag{1}\]</div>
+<p>where <span class="math notranslate nohighlight">\(F^{*}_{i\pm 1/2}\)</span> are numerical fluxes that are a
+non-linear mix of first and second-order slope reconstructions depending
+on the gradients close to the current cell, and can be written in the
+form</p>
+<div class="math notranslate nohighlight">
+\[F^{*}_{i\pm 1/2} = f^{low}_{i\pm 1/2} -
+\phi(r_i)
+\left(
+  f^{low}_{i\pm 1/2} - f^{high}_{i\pm 1/2}
+\right)\]</div>
+<p>where <span class="math notranslate nohighlight">\(r_i\)</span> is the ratio of successive gradient approximations and
+<span class="math notranslate nohighlight">\(\phi: r_i \rightarrow [0,1]\)</span> is a limiter function that selects a
+realistic spatial derivative value. One example of such a limiter
+function is the <em>minmod</em> limiter</p>
+<div class="math notranslate nohighlight">
+\[\phi_{mm}(r_i) = max[0, min(1,r_i)];
+\;\;\lim_{r_i \rightarrow \infty}\phi_{mm}(r_i) = 1.\]</div>
+<p>In smooth areas of the flow, <span class="math notranslate nohighlight">\(\phi_{mm}(r_i)\)</span> will be close to
+one, which will select the higher-order approximation. Near a shock,
+<span class="math notranslate nohighlight">\(r_i\)</span> will approach infinity and <span class="math notranslate nohighlight">\(\phi_{mm}(r_i)\)</span> will be
+close to zero and the low-order approximation will be selected.</p>
+</section>
+<section id="runge-kutta-time-evolution-for-explicit-update">
+<h2>Runge-Kutta Time Evolution for Explicit Update<a class="headerlink" href="#runge-kutta-time-evolution-for-explicit-update" title="Link to this heading"></a></h2>
+<p>To fully discretize (<span class="math notranslate nohighlight">\(\ref{semi}\)</span>), we can use <a class="reference external" href="https://en.wikipedia.org/wiki/Heun%27s_method">Heun’s method</a> to approximate the
+time derivative. This method is second-order accurate in time. Heun’s
+method is a Runge-Kutta method with the following Butcher tableau:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The method documented here is second-order accurate in space and
+time.</p>
+</div>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>0</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>1</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p>1/2</p></td>
+<td><p>1/2</p></td>
+</tr>
+</tbody>
+</table>
+<p>Each step is preceded by a reconstruction of primitive variables and a
+flux calculation given by a <em>Riemann</em> solver.</p>
+<p>The quantity reconstruction to faces uses the rule</p>
+<div class="math notranslate nohighlight">
+\[q^n_{i\pm 1/2} = q^n_i \pm
+  \frac{\Delta x_i}{2}
+  \left(\frac{\partial q^n_i}{\partial s}\right),\label{recon}\tag{2}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\partial q^n_i/\partial s\)</span> is the flux limited slope.</p>
+<p>The calculation of a RK slope <span class="math notranslate nohighlight">\(K\)</span> is then</p>
+<div class="math notranslate nohighlight">
+\[K_i = \frac{F_{i-1/2} - F_{i+1/2}}{\Delta x},\]</div>
+<p>where the <span class="math notranslate nohighlight">\(F_i\pm1/2\)</span> are obtained from a Riemann solver. The code
+in this specialization example uses the HLL approximate Riemann sovler.</p>
+<div class="math notranslate nohighlight">
+\[F^{hll} =
+\frac
+{S_R F_L - S_L F_R + S_R S_L\left(U_R - U_L\right)}
+{S_R - S_L}\]</div>
+<p>where <span class="math notranslate nohighlight">\(S_T\)</span> and <span class="math notranslate nohighlight">\(S_H\)</span> are the min and max characteristic
+speeds taken at the tail and head of the cell interfaces respectively,
+<span class="math notranslate nohighlight">\(U_L\)</span> and <span class="math notranslate nohighlight">\(U_R\)</span> are the respective intermediate quantities,
+and <span class="math notranslate nohighlight">\(F_L\)</span> and <span class="math notranslate nohighlight">\(F_R\)</span> are the flux functions evaluated at the
+respective intermediate quantities.</p>
+<p>The RK slope is then used to advance the conserved variables, with which
+we can calculate the primitive variables and the next RK slope.</p>
+</section>
+<section id="geometric-multigrid-solver-for-implicit-update">
+<h2>Geometric Multigrid Solver for Implicit Update<a class="headerlink" href="#geometric-multigrid-solver-for-implicit-update" title="Link to this heading"></a></h2>
+<p>A geometric multigrid solver is a linear solver that uses the fact that
+relaxation methods such as the Jacobi or the Gauss-Seidel method
+converge faster in coarser domains or grids, and then the solutions in
+those coarser grids can be used as initial guesses of the relaxation
+methods applied in finer grids.</p>
+<p>The method begins by applying a relaxation method to the system</p>
+<div class="math notranslate nohighlight">
+\[Ax = b.\]</div>
+<p>After a few iterations of the relaxation method we obtain the
+approximate solution <span class="math notranslate nohighlight">\(x'\)</span>. The residual <span class="math notranslate nohighlight">\(r\)</span> is then computed
+with <span class="math notranslate nohighlight">\(r = b - Ax'\)</span>. This gives raise to the equation <span class="math notranslate nohighlight">\(Ay =
+r\)</span>, such that <span class="math notranslate nohighlight">\(y\)</span> is a correction to the unkown array <span class="math notranslate nohighlight">\(x\)</span>
+and the improved approximation <span class="math notranslate nohighlight">\(x''\)</span> is given by</p>
+<div class="math notranslate nohighlight">
+\[x'' = x' + y \implies Ax'' = A(x' + y) = Ax' + r = b,\label{residual}\tag{3}\]</div>
+<p>which only works if the operator <span class="math notranslate nohighlight">\(A\)</span> is linear.</p>
+<p>To solve <span class="math notranslate nohighlight">\(Ay = r\)</span>, the equation can be transported to a coarser
+grid where relaxation methods are more effective. This is done by
+applying a restriction operator on <span class="math notranslate nohighlight">\(r \rightarrow r_c\)</span>. In the
+coarser grid, the system <span class="math notranslate nohighlight">\(Ay_c = r_c\)</span> is solved by applying the
+method described above, with an initial solution of <span class="math notranslate nohighlight">\(y_{c0} = 0\)</span>.</p>
+<p>Once obtained, the solution <span class="math notranslate nohighlight">\(y_c\)</span> is extended with a prolongation
+operator to the finer grid, where the correction
+(<span class="math notranslate nohighlight">\(\ref{residual}\)</span>) is applied. In the coarsest level an exact
+solution to the system is ideally calculated, but an approximated
+solution can be used as well.</p>
+<p>The algorithm described above is named <cite>v-cycle</cite> due to its diagram:</p>
+<img alt="../_images/v-cycle.svg" src="../_images/v-cycle.svg" />
+<p>A full multigrid (<cite>FMG</cite>) is the chaining of successive such <cite>v-cycles</cite>
+where a finer grid is added after each <cite>v-cycle</cite> is completed:</p>
+<img alt="../_images/fmg.svg" src="../_images/fmg.svg" />
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="equations.html" class="btn btn-neutral float-left" title="Basic Equations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="inputfiles.html" class="btn btn-neutral float-right" title="HARD YAML Input Files" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023, Triad National Security, LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+  <style>
+    /* Contents caption */
+    .wy-menu-vertical>p.caption {
+      color: #ffffff;
+    }
+
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #e3e2db;
+    }
+    .wy-side-nav-search>div.version, .wy-nav-top>div.version {
+      color: #5f5d5f;
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+      background: #216897;
+      color: #ffffff;
+    }
+  </style>
+
+
+</body>
+</html>
