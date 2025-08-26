@@ -42,12 +42,6 @@ void inline set_t_boundary(flecsi::exec::cpu,
  *----------------------------------------------------------------------------*/
 
 // Simple opacity that is used across all
-void inline adaptive_check(single<bool>::accessor<wo> adaptive_check_a,
-  bool ac) noexcept {
-  (*adaptive_check_a) = ac;
-} // adaptive_check
-
-// Simple opacity that is used across all
 void inline closure_id(single<std::size_t>::accessor<wo> closure_id_a,
   std::size_t clid) noexcept {
   (*closure_id_a) = clid;

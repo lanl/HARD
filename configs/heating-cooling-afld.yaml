@@ -11,7 +11,6 @@ kappa: 1.0
 gamma: 1.4
 mean_molecular_weight: 1.0
 eos: ideal
-adaptive_check: True
 limiter_id: 3
 closure_id: 2
 

@@ -95,7 +95,6 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     s.R_value(*s.m),
     s.lambda_bridge(*s.m),
     kappa(*s.gt),
-    adaptive_check(*s.gt),
     limiter_id(*s.gt));
 
   sc.execute<task::rad::getEddFactor<D>>(flecsi::exec::on,
@@ -103,7 +102,6 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     s.lambda_bridge(*s.m),
     s.R_value(*s.m),
     s.eddington_factor(*s.m),
-    adaptive_check(*s.gt),
     limiter_id(*s.gt),
     closure_id(*s.gt));
 
