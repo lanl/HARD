@@ -2,9 +2,6 @@
 problem: acoustic-wave
 gamma: 1.4
 kappa: 1.0
-adaptive_check: False
-limiter_id: 0
-closure_id: 0
 mean_molecular_weight: 1.0
 problem_parameters:
   scale: 1
