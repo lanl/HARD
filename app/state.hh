@@ -15,7 +15,6 @@ namespace hard {
 
 #ifdef ENABLE_RADIATION
 inline const single<double>::definition<global> kappa;
-inline const single<bool>::definition<global> adaptive_check;
 inline const single<std::size_t>::definition<global> limiter_id;
 inline const single<std::size_t>::definition<global> closure_id;
 #endif

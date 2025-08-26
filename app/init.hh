@@ -120,12 +120,15 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
 
 #ifdef ENABLE_RADIATION
-  sc.execute<tasks::init::adaptive_check>(
-    adaptive_check(*s.gt), config["adaptive_check"].as<bool>());
-  sc.execute<tasks::init::limiter_id>(
-    limiter_id(*s.gt), config["limiter_id"].as<std::size_t>());
-  sc.execute<tasks::init::closure_id>(
-    closure_id(*s.gt), config["closure_id"].as<std::size_t>());
+  // Default is limiter = 1 and closure = 3
+  std::size_t ci = config["closure_id"].IsDefined()
+                     ? config["closure_id"].as<std::size_t>()
+                     : 3;
+  std::size_t li = config["limiter_id"].IsDefined()
+                     ? config["limiter_id"].as<std::size_t>()
+                     : 1;
+  sc.execute<tasks::init::closure_id>(closure_id(*s.gt), ci);
+  sc.execute<tasks::init::limiter_id>(limiter_id(*s.gt), li);
 #endif
 
   /*--------------------------------------------------------------------------*
