@@ -10,19 +10,6 @@
 namespace hard {
 
 /*----------------------------------------------------------------------------*
-  Global parameters.
- *----------------------------------------------------------------------------*/
-
-#ifdef ENABLE_RADIATION
-inline const single<double>::definition<global> kappa;
-inline const single<std::size_t>::definition<global> limiter_id;
-inline const single<std::size_t>::definition<global> closure_id;
-#endif
-inline const single<double>::definition<global> particle_mass;
-inline const field<double>::definition<global> time_boundary;
-inline const field<double>::definition<global> temperature_boundary;
-
-/*----------------------------------------------------------------------------*
   Problem state.
  *----------------------------------------------------------------------------*/
 
@@ -67,6 +54,14 @@ struct state {
   static inline const typename single<
     typename mesh<D>::bmap>::template definition<global>
     bmap;
+#ifdef ENABLE_RADIATION
+  static inline const single<double>::definition<global> kappa;
+  static inline const single<std::size_t>::definition<global> limiter_id;
+  static inline const single<std::size_t>::definition<global> closure_id;
+#endif
+  static inline const single<double>::definition<global> particle_mass;
+  static inline const field<double>::definition<global> time_boundary;
+  static inline const field<double>::definition<global> temperature_boundary;
 
   /*--------------------------------------------------------------------------*
     Color parameters (One per color using an index topology instance).
