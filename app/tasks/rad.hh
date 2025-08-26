@@ -254,8 +254,6 @@ getEddFactor(flecsi::exec::accelerator s,
   single<std::size_t>::accessor<ro> limiter_id_a,
   single<std::size_t>::accessor<ro> closure_id_a) noexcept {
 
-  // TODO: applying boundary condition should be separated to new task
-
   auto lambda = m.template mdcolex<is::cells>(lambda_a);
   auto R = m.template mdcolex<is::cells>(R_a);
   auto edd_factor = m.template mdcolex<is::cells>(edd_factor_a);
@@ -310,7 +308,7 @@ getTensorP(flecsi::exec::accelerator s,
   auto edd_factor = m.template mdcolex<is::cells>(edd_factor_a);
   auto R = m.template mdcolex<is::cells>(R_a);
 
-  const double eps = 1.0e-50;
+  const double zero_guard = 1.0e-15;
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
@@ -326,8 +324,8 @@ getTensorP(flecsi::exec::accelerator s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
-      const double nx = gradEsf(i, j).x() / (gradE_mag(i, j) + eps);
-      const double ny = gradEsf(i, j).y() / (gradE_mag(i, j) + eps);
+      const double nx = gradEsf(i, j).x() / (gradE_mag(i, j) + zero_guard);
+      const double ny = gradEsf(i, j).y() / (gradE_mag(i, j) + zero_guard);
 
       const double f = edd_factor(i, j);
 
@@ -348,9 +346,12 @@ getTensorP(flecsi::exec::accelerator s,
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
-      const double nx = gradEsf(i, j, k).x() / (gradE_mag(i, j, k) + eps);
-      const double ny = gradEsf(i, j, k).y() / (gradE_mag(i, j, k) + eps);
-      const double nz = gradEsf(i, j, k).z() / (gradE_mag(i, j, k) + eps);
+      const double nx =
+        gradEsf(i, j, k).x() / (gradE_mag(i, j, k) + zero_guard);
+      const double ny =
+        gradEsf(i, j, k).y() / (gradE_mag(i, j, k) + zero_guard);
+      const double nz =
+        gradEsf(i, j, k).z() / (gradE_mag(i, j, k) + zero_guard);
 
       const double f = edd_factor(i, j, k);
 
@@ -463,8 +464,6 @@ getLambda(flecsi::exec::accelerator s,
   single<double>::accessor<ro> kappa_a,
   single<std::size_t>::accessor<ro> limiter_id_a) noexcept {
 
-  // TODO: applying boundary condition should be separated to new task
-
   auto r = m.template mdcolex<is::cells>(r_a);
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
   auto gradEsf = m.template mdcolex<is::cells>(gradEsf_a);
@@ -475,10 +474,10 @@ getLambda(flecsi::exec::accelerator s,
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       auto const kappa = *kappa_a;
-      const double eps = 1.0e-30;
+      const double zero_guard = 1.0e-15;
 
       gradE_mag(i) = std::abs(gradEsf(i).x());
-      R(i) = gradE_mag(i) / (kappa * r(i) * Esf(i) + eps);
+      R(i) = gradE_mag(i) / (kappa * r(i) * Esf(i) + zero_guard);
       lambda(i) = AFLDlambda(R(i), *limiter_id_a);
     };
   }
@@ -488,11 +487,11 @@ getLambda(flecsi::exec::accelerator s,
       m.template cells<ax::x, dm::quantities>());
     s.executor().forall(ji, mdpolicy_qq) {
       auto const kappa = *kappa_a;
-      const double eps = 1.0e-30;
+      const double zero_guard = 1.0e-15;
 
       auto [j, i] = ji;
       gradE_mag(i, j) = gradEsf(i, j).norm();
-      R(i, j) = gradE_mag(i, j) / (kappa * r(i, j) * Esf(i, j) + eps);
+      R(i, j) = gradE_mag(i, j) / (kappa * r(i, j) * Esf(i, j) + zero_guard);
       lambda(i, j) = AFLDlambda(R(i, j), *limiter_id_a);
     };
   }
@@ -503,12 +502,12 @@ getLambda(flecsi::exec::accelerator s,
       m.template cells<ax::x, dm::quantities>());
     s.executor().forall(kji, mdpolicy_qqq) {
       auto const kappa = *kappa_a;
-      const double eps = 1.0e-30;
+      const double zero_guard = 1.0e-15;
 
       auto [k, j, i] = kji;
       gradE_mag(i, j, k) = gradEsf(i, j, k).norm();
       R(i, j, k) =
-        gradE_mag(i, j, k) / (kappa * r(i, j, k) * Esf(i, j, k) + eps);
+        gradE_mag(i, j, k) / (kappa * r(i, j, k) * Esf(i, j, k) + zero_guard);
       lambda(i, j, k) = AFLDlambda(R(i, j, k), *limiter_id_a);
     };
   }
