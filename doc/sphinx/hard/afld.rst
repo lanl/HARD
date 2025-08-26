@@ -13,14 +13,10 @@ AFLD
 Overview of Variables
 =====================
 
-Three new user-input variables have been implemented as part of AFLD:
+Three user-input variables have been implemented as part of AFLD:
 
-1. :code:`limiter_id`: Integer varying from 0 to 4. Corresponds to the limiter relation to be used.
-2. :code:`closure_id`: Integer varying from 0 to 4. Corresponds to the closure relation to be used.
-3. :code:`adaptive_check`: bool-type (:code:`True` or :code:`False`).
-
-   - If :code:`True`, the AFLD routine is used and values defined in :code:`limiter_id` and :code:`closure_id` are read.
-   - If :code:`False`, the FLD routine (pre-2025 CDSS) is used.
+1. :code:`limiter_id`: Integer varying from 0 to 4. Corresponds to the limiter relation to be used. The default is 1.
+2. :code:`closure_id`: Integer varying from 0 to 4. Corresponds to the closure relation to be used. The default is 3.
 
 Besides this, the **Eddington Factor** field was implemented to store the values returned by invoking the relation specified in :code:`closure_id`.
 
@@ -37,7 +33,7 @@ Here :math:`R` is the energy gradient ratio given as input to the function, alon
 ``limiter_id = 0``
 ------------------
 
-No limiter applied:
+Fixed value :math:`\frac{1}{3}`
 
 .. math::
 
