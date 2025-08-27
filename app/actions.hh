@@ -136,6 +136,19 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.dt_total_energy_density_2(*s.m),
       s.dt_radiation_energy_density_2(*s.m));
   }
+
+  // Variables may have changed after the radiation update, so store them again
+  sc.execute<tasks::store_current_state<D>>(flecsi::exec::on,
+    *s.m,
+    s.mass_density(*s.m),
+    s.momentum_density(*s.m),
+    s.total_energy_density(*s.m),
+    s.radiation_energy_density(*s.m),
+    //
+    s.mass_density_n(*s.m),
+    s.momentum_density_n(*s.m),
+    s.total_energy_density_n(*s.m),
+    s.radiation_energy_density_n(*s.m));
 #endif
 
   //
@@ -251,7 +264,6 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
 
     // Finish by updating the values stored in U_n to U
     sc.execute<tasks::store_current_state<D>>(flecsi::exec::on,
-
       *s.m,
       s.mass_density_n(*s.m),
       s.momentum_density_n(*s.m),
@@ -301,7 +313,6 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       std::vector{s.radiation_energy_density(*s.m)},
       s.dirichlet_value(*s.gt));
   }
-
 } // update_vars
 
 template<std::size_t D>
@@ -403,7 +414,7 @@ radiation_advance(control_policy<state, D> & cp) {
     s.dt_weighted(*s.gt));
 
   // Initialize fields
-  sc.execute<task::rad::initialize_Ef<D>>(
+  sc.execute<task::rad::copy_field<D>>(
     flecsi::exec::on, *s.m, s.radiation_energy_density(*s.m), s.Ef(*s.m));
   sc.execute<task::rad::const_init<D>>(
     flecsi::exec::on, *s.m, s.Esf(*s.m), 0.0);
@@ -413,6 +424,9 @@ radiation_advance(control_policy<state, D> & cp) {
     flecsi::exec::on, *s.m, s.Resf(*s.m), 0.0);
 
   hard::rad::fmg<D>(cp);
+
+  sc.execute<task::rad::copy_field<D>>(
+    flecsi::exec::on, *s.m, s.Ef(*s.m), s.radiation_energy_density(*s.m));
 
   // Perform primitive recovery, since energy densities have changed
   sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
