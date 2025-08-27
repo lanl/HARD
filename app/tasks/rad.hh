@@ -652,41 +652,41 @@ const_init(flecsi::exec::accelerator s,
 
 template<std::size_t D>
 void
-initialize_Ef(flecsi::exec::accelerator s,
+copy_field(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, na> Erad_a,
-  typename field<double>::template accessor<wo, na> Ef_a) noexcept {
+  typename field<double>::template accessor<ro, na> from_a,
+  typename field<double>::template accessor<wo, na> to_a) noexcept {
 
-  auto Erad = m.template mdcolex<is::cells>(Erad_a);
-  auto Ef = m.template mdcolex<is::cells>(Ef_a);
+  auto from = m.template mdcolex<is::cells>(from_a);
+  auto to = m.template mdcolex<is::cells>(to_a);
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      Ef(i) = Erad(i);
+      to(i) = from(i);
     }; // forall
   }
   else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(Ef,
+    auto mdpolicy_qq = get_mdiota_policy(to,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
-      Ef(i, j) = Erad(i, j);
+      to(i, j) = from(i, j);
     }; // forall
   }
   else if constexpr(D == 3) {
-    auto mdpolicy_qqq = get_mdiota_policy(Ef,
+    auto mdpolicy_qqq = get_mdiota_policy(to,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
-      Ef(i, j, k) = Erad(i, j, k);
+      to(i, j, k) = from(i, j, k);
     }; // forall
   }
-} // initialize_Ef
+} // copy_field
 
 template<std::size_t D>
 void
