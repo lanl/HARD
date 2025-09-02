@@ -100,25 +100,42 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
 
   execute<tasks::init::set_t_boundary>(
-    flecsi::exec::on, time_boundary(*s.dense_topology), time);
+    flecsi::exec::on, s.time_boundary(*s.dense_topology), time);
   execute<tasks::init::set_t_boundary>(
-    flecsi::exec::on, temperature_boundary(*s.dense_topology), temperature);
+    flecsi::exec::on, s.temperature_boundary(*s.dense_topology), temperature);
   if(config["problem"].as<std::string>() == "implosion")
     execute<tasks::init::convert_temperature>(flecsi::exec::on,
-      temperature_boundary(*s.dense_topology),
+      s.temperature_boundary(*s.dense_topology),
       config["temperature_units"].as<std::string>());
 
     /*--------------------------------------------------------------------------*
       Kappa.
      *--------------------------------------------------------------------------*/
 #ifdef ENABLE_RADIATION
-  execute<tasks::init::kappa>(kappa(*s.gt), config["kappa"].as<double>());
+  execute<tasks::init::kappa>(s.kappa(*s.gt), config["kappa"].as<double>());
 #endif
+
+  /*--------------------------------------------------------------------------*
+    Adaptive FLD Check, Closure ID and Limiter ID
+   *--------------------------------------------------------------------------*/
+
+#ifdef ENABLE_RADIATION
+  // Default is limiter = 1 and closure = 3
+  std::size_t ci = config["closure_id"].IsDefined()
+                     ? config["closure_id"].as<std::size_t>()
+                     : 3;
+  std::size_t li = config["limiter_id"].IsDefined()
+                     ? config["limiter_id"].as<std::size_t>()
+                     : 1;
+  sc.execute<tasks::init::closure_id>(s.closure_id(*s.gt), ci);
+  sc.execute<tasks::init::limiter_id>(s.limiter_id(*s.gt), li);
+#endif
+
   /*--------------------------------------------------------------------------*
     Particle mass
    *--------------------------------------------------------------------------*/
   execute<tasks::init::particle_mass>(
-    particle_mass(*s.gt), config["mean_molecular_weight"].as<double>());
+    s.particle_mass(*s.gt), config["mean_molecular_weight"].as<double>());
 
   /*--------------------------------------------------------------------------*
     Mesh topology allocation.
@@ -327,7 +344,21 @@ initialize(control_policy<state, D> & cp) {
       s.momentum_density(*s.m),
       s.total_energy_density(*s.m),
       s.radiation_energy_density(*s.m),
-      particle_mass(*s.gt),
+      s.particle_mass(*s.gt),
+      config["gamma"].as<double>());
+  }
+  // Heating and Cooling for AFLD
+  else if(config["problem"].as<std::string>() == "heating-cooling-afld") {
+    if(config["eos"].as<std::string>() != "ideal")
+      flog_fatal("Heating and cooling test only supports Ideal Gas eos");
+    sc.execute<tasks::initial_data::heating_and_cooling_afld<D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
+      s.particle_mass(*s.gt),
       config["gamma"].as<double>());
   }
   else if(config["problem"].as<std::string>() == "sedov") {
@@ -350,8 +381,8 @@ initialize(control_policy<state, D> & cp) {
       s.momentum_density(*s.m),
       s.total_energy_density(*s.m),
       s.radiation_energy_density(*s.m),
-      temperature_boundary(*s.dense_topology),
-      particle_mass(*s.gt),
+      s.temperature_boundary(*s.dense_topology),
+      s.particle_mass(*s.gt),
       config["gamma"].as<double>());
     s.mg = true;
   }
@@ -366,7 +397,7 @@ initialize(control_policy<state, D> & cp) {
       s.total_energy_density(*s.m),
       s.radiation_energy_density(*s.m),
       config["gamma"].as<double>(),
-      particle_mass(*s.gt));
+      s.particle_mass(*s.gt));
   }
   // FIXME: This problem has not been tested for correctness
   else if(config["problem"].as<std::string>() == "lw-implosion") {
@@ -426,8 +457,8 @@ initialize(control_policy<state, D> & cp) {
     // boundary
     sc.execute<task::rad::interp_e_boundary>(flecsi::exec::on,
       s.t(*s.gt),
-      time_boundary(*s.dense_topology),
-      temperature_boundary(*s.dense_topology),
+      s.time_boundary(*s.dense_topology),
+      s.temperature_boundary(*s.dense_topology),
       s.dirichlet_value(*s.gt));
     sc.execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
       *s.m,

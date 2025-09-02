@@ -10,17 +10,6 @@
 namespace hard {
 
 /*----------------------------------------------------------------------------*
-  Global parameters.
- *----------------------------------------------------------------------------*/
-
-#ifdef ENABLE_RADIATION
-inline const single<double>::definition<global> kappa;
-#endif
-inline const single<double>::definition<global> particle_mass;
-inline const field<double>::definition<global> time_boundary;
-inline const field<double>::definition<global> temperature_boundary;
-
-/*----------------------------------------------------------------------------*
   Problem state.
  *----------------------------------------------------------------------------*/
 
@@ -65,6 +54,14 @@ struct state {
   static inline const typename single<
     typename mesh<D>::bmap>::template definition<global>
     bmap;
+#ifdef ENABLE_RADIATION
+  static inline const single<double>::definition<global> kappa;
+  static inline const single<std::size_t>::definition<global> limiter_id;
+  static inline const single<std::size_t>::definition<global> closure_id;
+#endif
+  static inline const single<double>::definition<global> particle_mass;
+  static inline const field<double>::definition<global> time_boundary;
+  static inline const field<double>::definition<global> temperature_boundary;
 
   /*--------------------------------------------------------------------------*
     Color parameters (One per color using an index topology instance).
@@ -201,9 +198,13 @@ struct state {
   // Dimensionless quantitiy, R
   static inline const field<double>::definition<mesh<D>, is::cells> R_value;
 
-  // Flux limiter
+  // Flux limiter (standard/adaptive)
   static inline const field<double>::definition<mesh<D>, is::cells>
     lambda_bridge;
+
+  // Eddington Factor
+  static inline const field<double>::definition<mesh<D>, is::cells>
+    eddington_factor;
 
   // Gradient of velocity
   static inline const typename field<spec::tensor<D,
