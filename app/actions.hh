@@ -84,6 +84,8 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     s.radiation_energy_density(*s.m),
     s.gradient_rad_energy(*s.m));
 
+  // Standard (Constant) FLD formulation
+
   sc.execute<task::rad::getLambda<D>>(flecsi::exec::on,
     *s.m,
     s.mass_density(*s.m),
@@ -92,7 +94,16 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     s.magnitude_gradient_rad_energy(*s.m),
     s.R_value(*s.m),
     s.lambda_bridge(*s.m),
-    kappa(*s.gt));
+    s.kappa(*s.gt),
+    s.limiter_id(*s.gt));
+
+  sc.execute<task::rad::getEddFactor<D>>(flecsi::exec::on,
+    *s.m,
+    s.lambda_bridge(*s.m),
+    s.R_value(*s.m),
+    s.eddington_factor(*s.m),
+    s.limiter_id(*s.gt),
+    s.closure_id(*s.gt));
 
   sc.execute<task::rad::getTensorP<D>>(flecsi::exec::on,
     *s.m,
@@ -100,7 +111,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     s.radiation_energy_density(*s.m),
     s.gradient_rad_energy(*s.m),
     s.magnitude_gradient_rad_energy(*s.m),
-    s.lambda_bridge(*s.m),
+    s.eddington_factor(*s.m),
     s.R_value(*s.m));
 
   sc.execute<task::rad::getRadForce<D>>(flecsi::exec::on,
@@ -304,8 +315,8 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     // boundary
     sc.execute<task::rad::interp_e_boundary>(flecsi::exec::on,
       s.t(*s.gt),
-      time_boundary(*s.dense_topology),
-      temperature_boundary(*s.dense_topology),
+      s.time_boundary(*s.dense_topology),
+      s.temperature_boundary(*s.dense_topology),
       s.dirichlet_value(*s.gt));
     sc.execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
       *s.m,
@@ -352,7 +363,7 @@ radiation_advance(control_policy<state, D> & cp) {
     s.temperature(*s.m),
     s.total_energy_density(*s.m),
     s.radiation_energy_density(*s.m),
-    kappa(*s.gt),
+    s.kappa(*s.gt),
     s.dt_weighted(*s.gt),
     s.eos);
 
@@ -360,6 +371,8 @@ radiation_advance(control_policy<state, D> & cp) {
     *s.m,
     s.radiation_energy_density(*s.m),
     s.gradient_rad_energy(*s.m));
+
+  // Adaptive FLD Radiation Advance
 
   sc.execute<task::rad::getLambda<D>>(flecsi::exec::on,
     *s.m,
@@ -369,7 +382,8 @@ radiation_advance(control_policy<state, D> & cp) {
     s.magnitude_gradient_rad_energy(*s.m),
     s.R_value(*s.m),
     s.lambda_bridge(*s.m),
-    kappa(*s.gt));
+    s.kappa(*s.gt),
+    s.limiter_id(*s.gt));
 
   sc.execute<tasks::apply_boundaries_scalar<D>>(
     flecsi::exec::on, *s.m, s.bmap(*s.gt), std::vector{s.lambda_bridge(*s.m)});
@@ -379,8 +393,8 @@ radiation_advance(control_policy<state, D> & cp) {
     // boundary
     sc.execute<task::rad::interp_e_boundary>(flecsi::exec::on,
       s.t(*s.gt),
-      time_boundary(*s.dense_topology),
-      temperature_boundary(*s.dense_topology),
+      s.time_boundary(*s.dense_topology),
+      s.temperature_boundary(*s.dense_topology),
       s.dirichlet_value(*s.gt));
     sc.execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
       *s.m,
@@ -394,7 +408,7 @@ radiation_advance(control_policy<state, D> & cp) {
     s.mass_density(*s.m),
     s.lambda_bridge(*s.m),
     s.Diff(*s.m),
-    kappa(*s.gt));
+    s.kappa(*s.gt));
 
   // Initialize the diffusion coefficient
   sc.execute<task::rad::diffusion_init<D>>(flecsi::exec::on,
