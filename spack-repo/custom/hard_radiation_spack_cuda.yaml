@@ -1,0 +1,26 @@
+spack:
+  include:
+   - ../../common/packages.yaml
+   - ../../common/repos.yaml
+   - ../../common/mirrors.yaml
+   - ../common/bootstrap.yaml
+   - ../common/compilers.yaml
+   - ../common/packages.yaml
+   - ../common/upstreams.yaml
+  specs:
+   - hard
+  view:
+    default:
+      root: .spack-env/view
+      exclude: ['gcc-runtime']
+  concretizer:
+    unify: true
+  packages:
+    mpi:
+      require: "openmpi"
+    flecsi:
+      require: "%clang@17.0.6 +cuda+flog+hdf5+kokkos+openmp cuda_arch=70 backend=mpi caliper_detail=low"
+    kokkos:
+      require: "%clang ~wrapper +cuda cuda_arch=70"
+    hard:
+      require: "+radiation +tests +cuda cuda_arch=70"
