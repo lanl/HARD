@@ -101,11 +101,6 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
 
     if(level == s.lowest_level) {
 
-      // FIXME: Remove when finished with debugging
-      // flog(warn) << "Direct solve level(index): " << level << "(" << index <<
-      //")"
-      //           << std::endl;
-
       // Direct solve for a single interior point
       for(std::size_t i{0}; i < params.jacobi_iterations; i++) {
         s.Esf.flip();
@@ -135,7 +130,6 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
       // auto info = slv(f, u);
       // flog(info) << "coarse grid res norm " << info.res_norm_final
       //            << " iter: " << info.iters << std::endl;
-      // flecsi::flog::flush();
     }
     else {
 
@@ -252,11 +246,6 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
 
     if(level == s.lowest_level) {
 
-      // FIXME: Remove when finished with debugging
-      // flog(warn) << "Direct solve level(index): " << level << "(" << index <<
-      //")"
-      //           << std::endl;
-
       // Direct solve for a single interior point
       for(std::size_t i{0}; i < params.jacobi_iterations; i++) {
         s.Esf.flip();
@@ -286,7 +275,6 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
       // auto info = slv(f, u);
       // flog(info) << "coarse grid res norm " << info.res_norm_final
       //            << " iter: " << info.iters << std::endl;
-      // flecsi::flog::flush();
     }
     else {
 

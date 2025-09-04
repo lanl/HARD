@@ -7,7 +7,7 @@
 #include "catalyst/types.hh"
 #endif // USE_CATALYST
 
-#ifdef USE_FLECSOLVE
+#if defined(USE_FLECSOLVE) && USE_FLECSOLVE
 #include "flecsolve/operators/core.hh"
 #include "flecsolve/solvers/cg.hh"
 #include "flecsolve/solvers/factory.hh"

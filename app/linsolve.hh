@@ -13,13 +13,12 @@
 
 namespace hard::rad {
 
-#ifdef USE_FLECSOLVE
+#if defined(USE_FLECSOLVE) && USE_FLECSOLVE
 
 // FIX ME
 template<std::size_t D>
 auto
 make_solver(control_policy<state, D> & cp) {
-  // using T = flecsolve::cg;
 
   auto & s = cp.state();
   using namespace flecsolve;
@@ -67,8 +66,7 @@ linsolve(control_policy<state, D> & cp) {
     sc.execute<task::rad::residual<D>>(
       flecsi::exec::on, mf, s.Ew(mf), s.Esf(mf), s.Ef(mf), s.Resf(mf));
     auto r = flecsolve::vec::make(s.Resf(mf));
-    flog(warn) << "final res norm radiation: " << r.l2norm().get() << std::endl;
-    flecsi::flog::flush();
+    flog(info) << "final res norm radiation: " << r.l2norm().get() << std::endl;
 #endif
   }
   else {
@@ -79,7 +77,6 @@ linsolve(control_policy<state, D> & cp) {
 
     // Normalize rhs
     double f2norm = f.l2norm().get();
-    // f.scale(1 / f2norm);
 
     /* Sets up a new linear solver at each iteration (this should not be
      * done).*/
@@ -88,18 +85,13 @@ linsolve(control_policy<state, D> & cp) {
     auto iters = slv_info.iters;
     auto res_norm_final = slv_info.res_norm_final;
 
-    // u.scale(f2norm);
-    // f.scale(f2norm);
-
-    flog(warn) << "final res norm radiation (flecsolve): " << res_norm_final
+    flog(info) << "final res norm radiation (flecsolve): " << res_norm_final
                << " iter: " << iters << std::endl;
-    flecsi::flog::flush();
 
     sc.execute<task::rad::residual<D>>(
       flecsi::exec::on, mf, s.Ew(mf), s.Uf(mf), s.Ef(mf), s.Resf(mf));
     auto r = flecsolve::vec::make(s.Resf(mf));
-    flog(warn) << "final res norm radiation: " << r.l2norm().get() << std::endl;
-    flecsi::flog::flush();
+    flog(info) << "final res norm radiation: " << r.l2norm().get() << std::endl;
 
 #endif
   }

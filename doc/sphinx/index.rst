@@ -11,6 +11,7 @@ HARD is based on the FleCSI framework and implemented on top of FleCSI-SP (FleCS
   hard/equations
   hard/method
   hard/inputfiles
+  hard/solver.rst
   hard/test_problems
   hard/visualization
   hard/afld.rst
