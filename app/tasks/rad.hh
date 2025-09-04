@@ -1089,7 +1089,6 @@ nlinear_interpolation(flecsi::exec::accelerator s,
   } // if
 } // nlinear_interpolation
 
-
 template<std::size_t D>
 void
 cell_centered_weighting(flecsi::exec::accelerator s,
@@ -1097,7 +1096,6 @@ cell_centered_weighting(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> mc,
   field<double>::accessor<ro, na> rfa,
   field<double>::accessor<wo, na> fca) noexcept {
-  // TODO: fca could be <wo, na>, since only writing quantities
 
   auto rf = mf.template mdcolex<is::cells>(rfa);
   auto fc = mc.template mdcolex<is::cells>(fca);
@@ -1151,7 +1149,6 @@ cell_centered_interpolation(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> mf,
   field<double>::accessor<ro, na> cfa,
   field<double>::accessor<wo, na> ffa) noexcept {
-  // TODO: As above, ffa could be <wo, na>, since only writing quantities
 
   auto cf = mc.template mdcolex<is::cells>(cfa);
   auto ff = mf.template mdcolex<is::cells>(ffa);
@@ -1203,7 +1200,7 @@ cell_centered_interpolation(flecsi::exec::accelerator s,
     };
   } // if
 }
-  
+
 template<std::size_t D>
 void
 Ax(flecsi::exec::accelerator s,
