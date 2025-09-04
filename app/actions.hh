@@ -17,6 +17,8 @@
 #include <cstddef>
 #include <spec/limiter.hh>
 
+#include "linsolve.hh"
+
 namespace hard::actions {
 
 template<std::size_t D>
@@ -437,10 +439,20 @@ radiation_advance(control_policy<state, D> & cp) {
   sc.execute<task::rad::const_init<D>>(
     flecsi::exec::on, *s.m, s.Resf(*s.m), 0.0);
 
-  hard::rad::fmg<D>(cp);
+  std::chrono::time_point<std::chrono::system_clock> start_timer_rad =
+    std::chrono::system_clock::now();
+
+  hard::rad::linsolve<D>(cp);
+
+  std::chrono::time_point<std::chrono::system_clock> stop_timer_rad =
+    std::chrono::system_clock::now();
+
+  flog(info) << " Radiation Timing: "
+             << (stop_timer_rad - start_timer_rad).count() * 1e-9 << " [s] "
+             << std::endl;
 
   sc.execute<task::rad::copy_field<D>>(
-    flecsi::exec::on, *s.m, s.Ef(*s.m), s.radiation_energy_density(*s.m));
+    flecsi::exec::on, *s.m, s.Uf(*s.m), s.radiation_energy_density(*s.m));
 
   // Perform primitive recovery, since energy densities have changed
   sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,

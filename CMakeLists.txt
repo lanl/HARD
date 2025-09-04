@@ -103,6 +103,17 @@ option(ENABLE_RADIATION
 mark_as_advanced(ENABLE_RADIATION)
 
 #------------------------------------------------------------------------------#
+# Enable flecsolve
+#------------------------------------------------------------------------------#
+
+option(ENABLE_FLECSOLVE
+       "Enable flecsolve for KSP solvers in MG" ON)
+# mark_as_advanced(ENABLE_FLECSOLVE)
+if(ENABLE_FLECSOLVE)
+       find_package(flecsolve REQUIRED)
+endif()
+
+#------------------------------------------------------------------------------#
 # Formatting
 #------------------------------------------------------------------------------#
 
