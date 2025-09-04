@@ -7,6 +7,14 @@
 #include "catalyst/types.hh"
 #endif // USE_CATALYST
 
+#ifdef USE_FLECSOLVE
+#include "flecsolve/operators/core.hh"
+#include "flecsolve/solvers/cg.hh"
+#include "flecsolve/solvers/factory.hh"
+#include "flecsolve/solvers/gmres.hh"
+#include "flecsolve/vectors/topo_view.hh"
+#endif
+
 namespace hard {
 
 /*----------------------------------------------------------------------------*
@@ -41,7 +49,7 @@ struct state {
 
 #endif // USE_CATALYST
 
-  // Vector for meshes in multigrid
+  // Deque for meshes in multigrid
   std::deque<typename mesh<D>::ptr> mh;
 
   // Define the fine grid
@@ -142,9 +150,13 @@ struct state {
     radiation_pressure_tensor;
 
   // Variables related to the diffusion (multigrid) solver
-  static inline dual_field<double, D> Esf; // solution field
+  static inline dual_field<double, D> Esf; // Temp solution field in multigrid
+  static inline const field<double>::template definition<mesh<D>, is::cells>
+    Uf; // Outer solution field
   static inline const field<double>::template definition<mesh<D>, is::cells>
     Ef; // RHS of Au=f
+  static inline const field<double>::template definition<mesh<D>, is::cells>
+    Ef_temp; // RHS of Au=f in multigrid precond
   static inline const typename field<stencil<D>>::template definition<mesh<D>,
     is::cells>
     Ew; // stencil weights
@@ -180,6 +192,9 @@ struct state {
 
   // Cycles
   std::size_t mg_cycles{1};
+
+  // Jacobi iterations in mg coarse grid
+  std::size_t jacobi_iterations;
 
   // Gradient of a radiation energy density
   static inline const typename field<vec<D>>::template definition<mesh<D>,
@@ -258,6 +273,17 @@ struct state {
   // FIXME Temporary variable for sections of the code only used for the
   // multigroup implementation (mostly boundaries)
   bool mg = false;
+
+  /*--------------------------------------------------------------------------*
+    FleCSolve
+  *--------------------------------------------------------------------------*/
+
+#if defined(USE_FLECSOLVE) && USE_FLECSOLVE
+  flecsolve::bicgstab::settings solver_settings;
+  bool flecsolve_coarse_grid;
+  std::size_t nr_vcycles = 1;
+#endif
+  bool full_multigrid = false;
 
 }; // struct state
 
