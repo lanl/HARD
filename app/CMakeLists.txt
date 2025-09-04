@@ -28,6 +28,14 @@ target_link_libraries(hard
   singularity-eos::singularity-eos
 )
 
+if(ENABLE_FLECSOLVE)
+  target_compile_definitions(hard
+    PRIVATE
+      USE_FLECSOLVE=1)
+
+  target_link_libraries(hard flecsolve::flecsolve)
+endif()
+
 
 if(ENABLE_CATALYST)
   target_compile_definitions(hard
