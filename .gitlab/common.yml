@@ -17,6 +17,14 @@ default:
   tags:
     - darwin-slurm-shared
 
+.darwin_job_with_cuda:
+  allow_failure: false
+  variables:
+    CLUSTER: darwin
+    SCHEDULER_PARAMETERS: "-N 1 --qos=debug -p volta-x86 --constraint=\"(cpu_family:cascadelake)&(gpu1_model:Tesla_V100S-PCIE-32GB|gpu1_model:Tesla_V100-PCIE-32GB)\""
+  tags:
+    - darwin-slurm-shared
+  
 .darwin_regular_job:
   variables:
     CTEST_MODE: Continuous
