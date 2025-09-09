@@ -42,6 +42,64 @@ struct help<3> {
     double zdelta;
   };
 };
+
+struct srange {
+  std::size_t beg, end;
+  std::size_t size() const {
+    return end - beg;
+  }
+};
+
+FLECSI_INLINE_TARGET static std::size_t
+digit(flecsi::util::id & x, std::size_t d) {
+  std::size_t ret = x % d;
+  x /= d;
+  return ret;
+}
+
+FLECSI_INLINE_TARGET flecsi::util::id
+translate(flecsi::util::id & x,
+  std::size_t & stride,
+  const srange & sub,
+  std::size_t extent) {
+  flecsi::util::id ret = digit(x, sub.size()) + sub.beg;
+
+  ret *= stride;
+  stride *= extent;
+
+  return ret;
+}
+
+template<std::size_t... Index>
+flecsi::util::id
+translate_index(flecsi::util::id x,
+  const std::array<srange, sizeof...(Index)> & subrange,
+  const std::array<std::size_t, sizeof...(Index)> & extents,
+  std::index_sequence<Index...>) {
+  std::size_t stride = 1;
+  return (translate(x, stride, subrange[Index], extents[Index]) + ...);
+}
+
+template<std::size_t... Index>
+std::size_t
+subrange_size(std::array<srange, sizeof...(Index)> & subrange,
+  std::index_sequence<Index...>) {
+  return (subrange[Index].size() * ...);
+}
+
+template<auto S, unsigned short Dim>
+inline auto
+make_subrange_ids(std::array<srange, Dim> subrange,
+  std::array<std::size_t, Dim> extents) {
+  return flecsi::util::transform_view(
+    flecsi::util::iota_view<flecsi::util::id>(
+      0, subrange_size(subrange, std::make_index_sequence<Dim>())),
+    [=](const auto & x) {
+      return flecsi::topo::id<S>(
+        translate_index(x, subrange, extents, std::make_index_sequence<Dim>()));
+    });
+}
+
 } // namespace detail
 
 /*!
@@ -283,6 +341,32 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
           axis<ax::z>().axis.colors};
       } // if
     } // axis_colors
+
+    template<index_space Space>
+    auto dofs() {
+      return detail::make_subrange_ids<Space, axes::size>(
+        interior_subrange<Space>(axes()), extents_array<Space>(axes()));
+    }
+
+  protected:
+    template<index_space Space, ax::axis A>
+    detail::srange interior_subrange() {
+      const auto & l = axis<A>().layout;
+
+      return {l.template logical<0>(), l.template logical<1>()};
+    }
+
+    template<index_space Space, auto... Axis>
+    auto interior_subrange(flecsi::util::constants<Axis...>) {
+      return std::array<detail::srange, sizeof...(Axis)>{
+        {interior_subrange<Space, Axis>()...}};
+    }
+
+    template<index_space Space, auto... Axis>
+    auto extents_array(flecsi::util::constants<Axis...>) {
+      return std::array<std::size_t, sizeof...(Axis)>{
+        axis<Axis>().layout.extent()...};
+    }
 
   }; // interface
 
