@@ -36,7 +36,7 @@ struct Ax_op : flecsolve::op::base<solver_parameters<D>> {
   template<class Domain, class Ranges>
   void apply(const Domain & x, Ranges & y) const {
     flecsi::scheduler & sc = params.sc.get();
-    sc.execute<task::rad::Ax<D>>(flecsi::exec::on,
+    sc.execute<task::rad::apply_operator<D>>(flecsi::exec::on,
       y.data.topo(),
       std::move(params.s.get().Ew(y.data.topo())),
       y.data.ref(),
@@ -101,7 +101,6 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
 
     if(level == s.lowest_level) {
 
-      // Direct solve for a single interior point
       for(std::size_t i{0}; i < params.jacobi_iterations; i++) {
         s.Esf.flip();
         // NOTE: We are defaulting to damped_jacobi until gauss-seidel is
@@ -246,7 +245,6 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
 
     if(level == s.lowest_level) {
 
-      // Direct solve for a single interior point
       for(std::size_t i{0}; i < params.jacobi_iterations; i++) {
         s.Esf.flip();
         // NOTE: We are defaulting to damped_jacobi until gauss-seidel is
