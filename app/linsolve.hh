@@ -15,7 +15,6 @@ namespace hard::rad {
 
 #if defined(USE_FLECSOLVE) && USE_FLECSOLVE
 
-// FIX ME
 template<std::size_t D>
 auto
 make_solver(control_policy<state, D> & cp) {
