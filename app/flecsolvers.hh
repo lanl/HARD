@@ -27,11 +27,11 @@ struct solver_parameters {
 };
 
 template<std::size_t D>
-struct Ax_op : flecsolve::op::base<solver_parameters<D>> {
+struct operator_t : flecsolve::op::base<solver_parameters<D>> {
   using base = flecsolve::op::base<solver_parameters<D>>;
   using base::params;
 
-  Ax_op(solver_parameters<D> params) : base(std::move(params)) {}
+  operator_t(solver_parameters<D> params) : base(std::move(params)) {}
 
   template<class Domain, class Ranges>
   void apply(const Domain & x, Ranges & y) const {
@@ -116,7 +116,7 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
 
       // using namespace flecsolve;
       // solver_parameters<D> params{std::ref(s), std::ref(sc), 0.0};
-      // op::core<Ax_op<D>> so(params);
+      // op::core<operator_t<D>> so(params);
 
       // auto f = flecsolve::vec::make((s.Ef(mf)));
       // auto u = flecsolve::vec::make((s.Esf(mf)));
@@ -260,7 +260,7 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
 
       // using namespace flecsolve;
       // solver_parameters<D> params{std::ref(s), std::ref(sc), 0.0};
-      // op::core<Ax_op<D>> so(params);
+      // op::core<operator_t<D>> so(params);
 
       // auto f = flecsolve::vec::make((s.Ef(mf)));
       // auto u = flecsolve::vec::make((s.Esf(mf)));

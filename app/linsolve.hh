@@ -28,7 +28,7 @@ make_solver(control_policy<state, D> & cp) {
   // Only pass cp instead?
   solver_parameters<D> params{
     std::ref(cp.state()), std::ref(cp.scheduler()), temp};
-  op::core<Ax_op<D>> so(params);
+  op::core<operator_t<D>> so(params);
   auto op_handle = op::ref(so);
 
   precond_parameters<D> pparams{std::ref(s),
