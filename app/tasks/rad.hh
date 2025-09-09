@@ -1091,6 +1091,169 @@ nlinear_interpolation(flecsi::exec::accelerator s,
 
 template<std::size_t D>
 void
+cell_centered_weighting(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> mf,
+  typename mesh<D>::template accessor<ro> mc,
+  field<double>::accessor<ro, na> rfa,
+  field<double>::accessor<wo, na> fca) noexcept {
+
+  auto rf = mf.template mdcolex<is::cells>(rfa);
+  auto fc = mc.template mdcolex<is::cells>(fca);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (mc.template cells<ax::x, dm::quantities>())) {
+      auto fi = 2 * i - mc.ghost_zone_size();
+      fc(i) = 0.5 * (rf(fi) + rf(fi + 1));
+    }; // for
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(fc,
+      mc.template cells<ax::y, dm::quantities>(),
+      mc.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      auto fj = 2 * j - mc.ghost_zone_size();
+      auto fi = 2 * i - mc.ghost_zone_size();
+
+      fc(i, j) = 0.25 * (rf(fi, fj) + rf(fi + 1, fj) + rf(fi, fj + 1) +
+                          rf(fi + 1, fj + 1));
+    }; // forall
+  }
+  else /* D == 3 */ {
+    auto mdpolicy_qqq = get_mdiota_policy(fc,
+      mc.template cells<ax::z, dm::quantities>(),
+      mc.template cells<ax::y, dm::quantities>(),
+      mc.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      auto fk = 2 * k - mc.ghost_zone_size();
+      auto fj = 2 * j - mc.ghost_zone_size();
+      auto fi = 2 * i - mc.ghost_zone_size();
+
+      fc(i, j, k) =
+        0.125 *
+        (rf(fi, fj, fk) + rf(fi + 1, fj, fk) + rf(fi, fj + 1, fk) +
+          rf(fi, fj, fk + 1) + rf(fi + 1, fj + 1, fk) + rf(fi + 1, fj, fk + 1) +
+          rf(fi, fj + 1, fk + 1) + rf(fi + 1, fj + 1, fk + 1));
+
+    }; // for
+  } // if
+} // full_weighting
+
+template<std::size_t D>
+void
+cell_centered_interpolation(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> mc,
+  typename mesh<D>::template accessor<ro> mf,
+  field<double>::accessor<ro, na> cfa,
+  field<double>::accessor<wo, na> ffa) noexcept {
+
+  auto cf = mc.template mdcolex<is::cells>(cfa);
+  auto ff = mf.template mdcolex<is::cells>(ffa);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (mc.template cells<ax::x, dm::quantities>())) {
+      auto fi = 2 * i - mc.ghost_zone_size();
+      ff(i) = cf(fi);
+      ff(i + 1) = cf(fi);
+    }; // for
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(cf,
+      mc.template cells<ax::y, dm::quantities>(),
+      mc.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      auto fj = 2 * j - mc.ghost_zone_size();
+      auto fi = 2 * i - mc.ghost_zone_size();
+
+      ff(fi, fj) = cf(i, j);
+      ff(fi + 1, fj) = cf(i, j);
+      ff(fi, fj + 1) = cf(i, j);
+      ff(fi + 1, fj + 1) = cf(i, j);
+
+    }; // for
+  }
+  else /* D == 3 */ {
+    auto mdpolicy_qqq = get_mdiota_policy(cf,
+      mc.template cells<ax::z, dm::quantities>(),
+      mc.template cells<ax::y, dm::quantities>(),
+      mc.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      auto fj = 2 * j - mc.ghost_zone_size();
+      auto fi = 2 * i - mc.ghost_zone_size();
+      auto fk = 2 * k - mc.ghost_zone_size();
+
+      ff(fi, fj, fk) = cf(i, j, k);
+      ff(fi + 1, fj, fk) = cf(i, j, k);
+      ff(fi, fj + 1, fk) = cf(i, j, k);
+      ff(fi, fj, fk + 1) = cf(i, j, k);
+      ff(fi + 1, fj + 1, fk) = cf(i, j, k);
+      ff(fi + 1, fj + 1, fk + 1) = cf(i, j, k);
+      ff(fi + 1, fj, fk + 1) = cf(i, j, k);
+      ff(fi, fj + 1, fk + 1) = cf(i, j, k);
+    };
+  } // if
+}
+
+template<std::size_t D>
+void
+apply_operator(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
+  field<double>::accessor<wo, ro> ua_new,
+  field<double>::accessor<ro, ro> ua_old) noexcept {
+
+  auto Ew = m.template mdcolex<is::cells>(Ew_a);
+  auto u_new = m.template mdcolex<is::cells>(ua_new);
+  auto u_old = m.template mdcolex<is::cells>(ua_old);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      u_new(i) = (Ew(i)[dirs::c] * u_old(i) - Ew(i)[dirs::w] * u_old(i - 1) -
+                  Ew(i + 1)[dirs::w] * u_old(i + 1));
+    };
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(u_new,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      u_new(i, j) =
+        (Ew(i, j)[dirs::c] * u_old(i, j) - Ew(i, j)[dirs::w] * u_old(i - 1, j) -
+          Ew(i + 1, j)[dirs::w] * u_old(i + 1, j) -
+          Ew(i, j)[dirs::s] * u_old(i, j - 1) -
+          Ew(i, j + 1)[dirs::s] * u_old(i, j + 1));
+    }; // forall
+  }
+  else /* D == 3 */ {
+    auto mdpolicy_qqq = get_mdiota_policy(u_new,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      u_new(i, j, k) = (Ew(i, j, k)[dirs::c] * u_old(i, j, k) -
+                        Ew(i, j, k)[dirs::w] * u_old(i - 1, j, k) -
+                        Ew(i + 1, j, k)[dirs::w] * u_old(i + 1, j, k) -
+                        Ew(i, j, k)[dirs::s] * u_old(i, j - 1, k) -
+                        Ew(i, j + 1, k)[dirs::s] * u_old(i, j + 1, k) -
+                        Ew(i, j, k)[dirs::d] * u_old(i, j, k - 1) -
+                        Ew(i, j, k + 1)[dirs::d] * u_old(i, j, k + 1));
+    }; // forall
+  } // if
+} // Ax_op
+
+template<std::size_t D>
+void
 damped_jacobi(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<stencil<D>>::template accessor<ro, ro> Ew_a,

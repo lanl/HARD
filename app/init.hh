@@ -34,6 +34,35 @@ initialize(control_policy<state, D> & cp) {
   YAML::Node config = YAML::LoadFile(opt::config.value());
 
   /*--------------------------------------------------------------------------*
+    Solver.
+   *--------------------------------------------------------------------------*/
+
+#if defined(USE_FLECSOLVE) && USE_FLECSOLVE
+  s.solver_settings.maxiter = config["linear_solver"]["maxiter"].IsDefined()
+                                ? config["linear_solver"]["maxiter"].as<int>()
+                                : 50;
+  s.solver_settings.rtol = config["linear_solver"]["rtol"].IsDefined()
+                             ? config["linear_solver"]["rtol"].as<double>()
+                             : 1e-12;
+  s.solver_settings.use_zero_guess =
+    config["linear_solver"]["use_zero_guess"].IsDefined()
+      ? config["linear_solver"]["use_zero_guess"].as<bool>()
+      : true;
+  s.flecsolve_coarse_grid =
+    config["linear_solver"]["flecsolve_coarse_grid"].IsDefined()
+      ? config["linear_solver"]["flecsolve_coarse_grid"].as<bool>()
+      : true;
+#endif
+  s.jacobi_iterations =
+    config["linear_solver"]["jacobi_iterations"].IsDefined()
+      ? config["linear_solver"]["jacobi_iterations"].as<double>()
+      : 100;
+
+  s.full_multigrid = config["linear_solver"]["full_multigrid"].IsDefined()
+                       ? config["linear_solver"]["full_multigrid"].as<bool>()
+                       : true;
+
+  /*--------------------------------------------------------------------------*
     Global and color topology allocations.
    *--------------------------------------------------------------------------*/
 
