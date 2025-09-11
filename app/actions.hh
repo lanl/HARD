@@ -97,18 +97,15 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     s.magnitude_gradient_rad_energy(*s.m),
     s.R_value(*s.m),
     s.lambda_bridge(*s.m),
-    kappa(*s.gt),
-    adaptive_check(*s.gt),
-    limiter_id(*s.gt));
+    s.kappa(*s.gt),
+    s.limiter_id(*s.gt));
 
   sc.execute<task::rad::getEddFactor<D>>(flecsi::exec::on,
     *s.m,
     s.lambda_bridge(*s.m),
-    s.R_value(*s.m),
     s.eddington_factor(*s.m),
-    adaptive_check(*s.gt),
-    limiter_id(*s.gt),
-    closure_id(*s.gt));
+    s.limiter_id(*s.gt),
+    s.closure_id(*s.gt));
 
   sc.execute<task::rad::getTensorP<D>>(flecsi::exec::on,
     *s.m,
@@ -441,7 +438,7 @@ radiation_advance(control_policy<state, D> & cp) {
     s.temperature(*s.m),
     s.total_energy_density(*s.m),
     s.radiation_energy_density(*s.m),
-    kappa(*s.gt),
+    s.kappa(*s.gt),
     s.dt_weighted(*s.gt),
     s.eos);
 
@@ -460,9 +457,8 @@ radiation_advance(control_policy<state, D> & cp) {
     s.magnitude_gradient_rad_energy(*s.m),
     s.R_value(*s.m),
     s.lambda_bridge(*s.m),
-    kappa(*s.gt),
-    adaptive_check(*s.gt),
-    limiter_id(*s.gt));
+    s.kappa(*s.gt),
+    s.limiter_id(*s.gt));
 
   sc.execute<tasks::apply_boundaries_scalar<D>>(
     flecsi::exec::on, *s.m, s.bmap(*s.gt), std::vector{s.lambda_bridge(*s.m)});
@@ -486,7 +482,7 @@ radiation_advance(control_policy<state, D> & cp) {
     s.mass_density(*s.m),
     s.lambda_bridge(*s.m),
     s.Diff(*s.m),
-    kappa(*s.gt));
+    s.kappa(*s.gt));
 
   // Initialize the diffusion coefficient
   sc.execute<task::rad::diffusion_init<D>>(flecsi::exec::on,
