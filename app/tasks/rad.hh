@@ -249,13 +249,11 @@ void
 getEddFactor(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> lambda_a,
-  field<double>::accessor<ro, na> R_a,
   field<double>::accessor<wo, na> edd_factor_a,
   single<std::size_t>::accessor<ro> limiter_id_a,
   single<std::size_t>::accessor<ro> closure_id_a) noexcept {
 
   auto lambda = m.template mdcolex<is::cells>(lambda_a);
-  auto R = m.template mdcolex<is::cells>(R_a);
   auto edd_factor = m.template mdcolex<is::cells>(edd_factor_a);
 
   if constexpr(D == 1) {
@@ -298,15 +296,13 @@ getTensorP(flecsi::exec::accelerator s,
   field<double>::accessor<ro, na> Esf_a,
   typename field<vec<D>>::template accessor<ro, na> gradEsf_a,
   field<double>::accessor<ro, na> gradE_mag_a,
-  field<double>::accessor<ro, na> edd_factor_a,
-  field<double>::accessor<ro, na> R_a) noexcept {
+  field<double>::accessor<ro, na> edd_factor_a) noexcept {
 
   auto P_tensor = m.template mdcolex<is::cells>(P_tensor_a);
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
   auto gradEsf = m.template mdcolex<is::cells>(gradEsf_a);
   auto gradE_mag = m.template mdcolex<is::cells>(gradE_mag_a);
   auto edd_factor = m.template mdcolex<is::cells>(edd_factor_a);
-  auto R = m.template mdcolex<is::cells>(R_a);
 
   const double zero_guard = 1.0e-15;
 
