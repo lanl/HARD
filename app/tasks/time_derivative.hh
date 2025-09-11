@@ -321,7 +321,7 @@ add_k1_k2(flecsi::exec::accelerator s,
       dt_ru(i, j) = (dt_ru(i, j) + dt_ru2(i, j)) * 0.5;
       dt_te(i, j) = (dt_te(i, j) + dt_te2(i, j)) * 0.5;
 #ifdef ENABLE_RADIATION
-      dt_re(i, j) += dt_re2(i, j);
+      dt_re(i, j) = (dt_re(i, j) + dt_re2(i, j)) * 0.5;
 #endif
     }; // forall
   }
@@ -339,6 +339,130 @@ add_k1_k2(flecsi::exec::accelerator s,
       dt_te(i, j, k) = (dt_te(i, j, k) + dt_te2(i, j, k)) * 0.5;
 #ifdef ENABLE_RADIATION
       dt_re(i, j, k) = (dt_re(i, j, k) + dt_re2(i, j, k)) * 0.5;
+#endif
+    }; // forall
+  }
+}
+
+//
+// Used for the RK stage updates
+//
+template<std::size_t Dim, time_stepper::rk_stage stage>
+void
+update_u_stage(flecsi::exec::cpu s,
+  single<double>::accessor<ro> dt_a,
+  typename mesh<Dim>::template accessor<ro> m,
+  // U^n we want to update
+  field<double>::accessor<rw, na> mass_density_a,
+  typename field<vec<Dim>>::template accessor<rw, na> momentum_density_a,
+  field<double>::accessor<rw, na> total_energy_density_a,
+  field<double>::accessor<rw, na>
+#ifdef ENABLE_RADIATION
+    radiation_energy_density_a
+#endif
+  ,
+  // Time derivatives for the state U^1
+  field<double>::accessor<ro, na> dt_mass_density_a,
+  typename field<vec<Dim>>::template accessor<ro, na> dt_momentum_density_a,
+  field<double>::accessor<ro, na> dt_total_energy_density_a,
+  field<double>::accessor<ro, na>
+#ifdef ENABLE_RADIATION
+    dt_radiation_energy_density_a
+#endif
+  ,
+  // U^n+1 updated after stage
+  field<double>::accessor<rw, na> mass_density_b,
+  typename field<vec<Dim>>::template accessor<rw, na> momentum_density_b,
+  field<double>::accessor<rw, na> total_energy_density_b,
+  field<double>::accessor<rw, na>
+#ifdef ENABLE_RADIATION
+    radiation_energy_density_b
+#endif
+  ) noexcept {
+
+  auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
+  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
+  auto total_energy_density =
+    m.template mdcolex<is::cells>(total_energy_density_a);
+#ifdef ENABLE_RADIATION
+  auto radiation_energy_density =
+    m.template mdcolex<is::cells>(radiation_energy_density_a);
+#endif
+
+  auto mass_density_new = m.template mdcolex<is::cells>(mass_density_b);
+  auto momentum_density_new = m.template mdcolex<is::cells>(momentum_density_b);
+  auto total_energy_density_new =
+    m.template mdcolex<is::cells>(total_energy_density_b);
+#ifdef ENABLE_RADIATION
+  auto radiation_energy_density_new =
+    m.template mdcolex<is::cells>(radiation_energy_density_b);
+#endif
+
+  auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
+  auto dt_momentum_density =
+    m.template mdcolex<is::cells>(dt_momentum_density_a);
+  auto dt_total_energy_density =
+    m.template mdcolex<is::cells>(dt_total_energy_density_a);
+#ifdef ENABLE_RADIATION
+  auto dt_radiation_energy_density =
+    m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
+#endif
+
+  auto h = *dt_a;
+  using hard::tasks::util::get_mdiota_policy;
+
+  if constexpr(Dim == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      mass_density_new(i) = mass_density(i) + h * dt_mass_density(i);
+      momentum_density_new(i) =
+        momentum_density(i) + h * dt_momentum_density(i);
+      total_energy_density_new(i) =
+        total_energy_density(i) + h * dt_total_energy_density(i);
+
+#ifdef ENABLE_RADIATION
+      radiation_energy_density_new(i) =
+        radiation_energy_density(i) + h * dt_radiation_energy_density(i);
+#endif
+    }; // forall
+  }
+  else if constexpr(Dim == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(mass_density,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      mass_density_new(i, j) = mass_density(i, j) + h * dt_mass_density(i, j);
+      momentum_density_new(i, j) =
+        momentum_density(i, j) + h * dt_momentum_density(i, j);
+      total_energy_density_new(i, j) =
+        total_energy_density(i, j) + h * dt_total_energy_density(i, j);
+
+#ifdef ENABLE_RADIATION
+      radiation_energy_density_new(i, j) =
+        radiation_energy_density(i, j) + h * dt_radiation_energy_density(i, j);
+#endif
+    }; // forall
+  }
+  else {
+    auto mdpolicy_qqq = get_mdiota_policy(mass_density,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      mass_density_new(i, j, k) =
+        mass_density(i, j, k) + h * dt_mass_density(i, j, k);
+      momentum_density_new(i, j, k) =
+        momentum_density(i, j, k) + h * dt_momentum_density(i, j, k);
+      total_energy_density_new(i, j, k) =
+        total_energy_density(i, j, k) + h * dt_total_energy_density(i, j, k);
+
+#ifdef ENABLE_RADIATION
+      radiation_energy_density_new(i, j, k) =
+        radiation_energy_density(i, j, k) +
+        h * dt_radiation_energy_density(i, j, k);
 #endif
     }; // forall
   }
