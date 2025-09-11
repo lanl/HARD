@@ -353,7 +353,6 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
 
     // Finish by updating the values stored in U_n to U
     sc.execute<tasks::store_current_state<D>>(flecsi::exec::on,
-
       *s.m,
       s.mass_density_n(*s.m),
       s.momentum_density_n(*s.m),

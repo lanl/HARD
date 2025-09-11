@@ -1203,7 +1203,6 @@ cell_centered_interpolation(flecsi::exec::accelerator s,
 
 template<std::size_t D>
 void
-
 apply_operator(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
