@@ -16,14 +16,14 @@ void inline initialize_gravity_force(flecsi::exec::cpu,
   auto gf = gravity_force_a.span();
   // initialize gravity force with zero
   std::fill(gf.begin(), gf.end(), vec<D>{0.0});
-}
+} // initialize_gravity_force
 
 template<std::size_t D>
 void inline intialize_gravity_acc(
   typename single<vec<D>>::template accessor<wo> gravity_acc_a,
   vec<D> k) {
   (*gravity_acc_a) = k;
-} // gracvity_acc
+} // initialize_gravity_acc
 
 void inline compute_dt_weighted(flecsi::exec::cpu,
   single<double>::accessor<ro> dt,
