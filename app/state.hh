@@ -71,6 +71,9 @@ struct state {
   static inline const field<double>::definition<global> time_boundary;
   static inline const field<double>::definition<global> temperature_boundary;
 
+  static inline const typename single<vec<D>>::template definition<global>
+    gravity_acc;
+
   /*--------------------------------------------------------------------------*
     Color parameters (One per color using an index topology instance).
    *--------------------------------------------------------------------------*/
@@ -204,6 +207,11 @@ struct state {
   // Magnitude of the gradient of the radiation energy density
   static inline const field<double>::definition<mesh<D>, is::cells>
     magnitude_gradient_rad_energy;
+
+  // Gravity force
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
+    gravity_force;
 
   // Radiation force
   static inline const typename field<vec<D>>::template definition<mesh<D>,

@@ -1203,6 +1203,7 @@ cell_centered_interpolation(flecsi::exec::accelerator s,
 
 template<std::size_t D>
 void
+
 apply_operator(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
@@ -1408,12 +1409,11 @@ correction(flecsi::exec::accelerator s,
 } // correction
 
 // Linear interpolation for boundary temperature
-void
+double
 interp_e_boundary(flecsi::exec::cpu,
   single<double>::accessor<flecsi::ro> t,
   field<double>::accessor<flecsi::ro> time_boundary,
-  field<double>::accessor<flecsi::ro> temperature_boundary,
-  single<double>::accessor<flecsi::wo> value) noexcept {
+  field<double>::accessor<flecsi::ro> temperature_boundary) noexcept {
 
   auto get_energy = [](const double & temperature) -> double {
     return constants::cgs::radiation_constant *
@@ -1423,12 +1423,10 @@ interp_e_boundary(flecsi::exec::cpu,
   // Is it the first or last value?
   std::size_t i_end{time_boundary.span().size()};
   if(t <= time_boundary[0]) {
-    value = get_energy(temperature_boundary[0]);
-    return;
+    return get_energy(temperature_boundary[0]);
   }
   if(t >= time_boundary[i_end - 1]) {
-    value = get_energy(temperature_boundary[i_end - 1]);
-    return;
+    return get_energy(temperature_boundary[i_end - 1]);
   }
 
   for(std::size_t i{0}; i < (i_end - 1); i++) {
@@ -1437,14 +1435,14 @@ interp_e_boundary(flecsi::exec::cpu,
       double dy{temperature_boundary[i + 1] - temperature_boundary[i]};
 
       // Found point, return
-      value = get_energy(
+      return get_energy(
         dy * (time_boundary[i + 1] - t) / dx + temperature_boundary[i]);
-      return;
     };
   }
 
   // We should never reach this line
-  assert("Linear interpolation failed");
+  assert(false && "Linear interpolation failed");
+  return 0;
 } // interp_e_boundary
 
 } // namespace hard::task::rad
