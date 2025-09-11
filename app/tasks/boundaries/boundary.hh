@@ -240,8 +240,8 @@ apply_dirichlet_boundaries(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
   std::vector<field<double>::accessor<rw, ro>> f_a,
-  single<double>::accessor<ro> value) noexcept {
-  apply_boundary<D, double>(s, m, bmap_a, f_a, value);
+  flecsi::future<double> value) noexcept {
+  apply_boundary<D, double>(s, m, bmap_a, f_a, value.get());
 }
 
 } // namespace hard::tasks
