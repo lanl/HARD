@@ -80,7 +80,7 @@ rt_instability(flecsi::exec::cpu s,
 
       // Gaussian-localized x-velocity perturbation
       v = v0 * 1 / 2 * std::exp(-std::pow((x - 0.75) / 0.05, 2));
-      
+
       // Initialize state variables at location
       mass_density(i) = r;
       gravity_force(i).x() = r * g.x();
