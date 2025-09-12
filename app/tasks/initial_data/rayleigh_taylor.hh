@@ -46,17 +46,6 @@ rt_instability(flecsi::exec::cpu s,
   const double rH = 2.0;
   const double uH = 0.0;
 
-  // y-velocity and pressure for two fluids
-  // v and p will be implemented as spatially varying arrays
-  // vL, vH, pL, pH will therefore not be implemented
-  // If needed, kindly uncomment this section and ensure correct values
-  /*
-  const double vL = v0;
-  const double pL = p0;
-  const double vH = v0;
-  const double pH = p0;
-  */
-
   // initialize variables to be used at location considered
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
@@ -112,10 +101,6 @@ rt_instability(flecsi::exec::cpu s,
           p = p0 + rL * g.y() * y;
         } // if
 
-        // initially perturbed y-velocity
-        // v = v0 * ((1 + cos(4 * M_PI * (x - 0.25))) / 2) *
-        //     ((1 + cos(3 * M_PI * (y - 0.75))) / 2);
-
         // Gaussian-localized y-velocity perturbation
         v = v0 * (1 + cos(4 * M_PI * (x - 0.25))) / 2 *
             std::exp(-std::pow((y - 0.75) / 0.05, 2));
@@ -158,10 +143,6 @@ rt_instability(flecsi::exec::cpu s,
             w = 0.0;
             p = p0 + rL * g.y() * y;
           } // if
-
-          // initially perturbed y-velocity
-          // v = v0 * ((1 + cos(4 * M_PI * (x - 0.25))) / 2) *
-          //     ((1 + cos(3 * M_PI * (y - 0.75))) / 2);
 
           // Gaussian-localized y-velocity perturbation
           v = v0 *
