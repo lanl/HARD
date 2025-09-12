@@ -14,7 +14,7 @@ using hard::tasks::util::get_mdiota_policy;
 // test case)
 template<std::size_t D>
 void
-explicitSourceUpdate(flecsi::exec::accelerator s,
+externalSource(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   // Primitive variables
   typename field<vec<D>>::template accessor<ro, na> velocity_a,
@@ -42,12 +42,6 @@ explicitSourceUpdate(flecsi::exec::accelerator s,
       // Updating the total gas energy density: Adding contribution from the
       // work done by the radiative force: vdot_fr(i) = u(i).x * fr(i).x
       dt_total_energy_density(i) += velocity(i).x() * fg(i).x();
-
-      // TODO:
-      // Add the source from the temperature
-      // NOTE: Isn't this already in the rad_root part?
-      // dt_radiation_energy_density(i) +=
-      //   constants::cgs::radiation_constant * pow(T_source(i), 4);
     };
   }
   else if constexpr(D == 2) {
