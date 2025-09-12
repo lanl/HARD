@@ -152,7 +152,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
   if(Stage == time_stepper::rk_stage::First) {
     // RK Stage: 1 - Explicit source term (gravity) update for RT case in hydro
     // file
-    sc.execute<tasks::hydro::explicitSourceUpdate<D>>(flecsi::exec::on,
+    sc.execute<tasks::hydro::externalSource<D>>(flecsi::exec::on,
       *s.m,
       s.velocity(*s.m),
       s.gravity_force(*s.m),
@@ -190,7 +190,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
   // RK Stage: 2 - Explicit source term (gravity) update for RT case in hydro
   // file
   else if(Stage == time_stepper::rk_stage::Second) {
-    sc.execute<tasks::hydro::explicitSourceUpdate<D>>(flecsi::exec::on,
+    sc.execute<tasks::hydro::externalSource<D>>(flecsi::exec::on,
       *s.m,
       s.velocity(*s.m),
       s.gravity_force(*s.m),
@@ -393,10 +393,11 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
         s.t(*s.gt),
         s.time_boundary(*s.dense_topology),
         s.temperature_boundary(*s.dense_topology));
-    // sc.execute<tasks::apply_radiation_boundary<D>>(flecsi::exec::on,
-    //   *s.m,
-    //   s.radiation_energy_density(*s.m),
-    //   radiation_boundary_f);
+    sc.execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
+      *s.m,
+      s.bmap(*s.gt),
+      std::vector{s.radiation_energy_density(*s.m)},
+      radiation_boundary_f);
   }
 
 } // update_vars
@@ -471,10 +472,11 @@ radiation_advance(control_policy<state, D> & cp) {
         s.t(*s.gt),
         s.time_boundary(*s.dense_topology),
         s.temperature_boundary(*s.dense_topology));
-    // sc.execute<tasks::apply_radiation_boundary<D>>(flecsi::exec::on,
-    //   *s.m,
-    //   s.radiation_energy_density(*s.m),
-    //   radiation_boundary_f);
+    sc.execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
+      *s.m,
+      s.bmap(*s.gt),
+      std::vector{s.radiation_energy_density(*s.m)},
+      radiation_boundary_f);
   }
 
   sc.execute<task::rad::getDiff<D>>(flecsi::exec::on,
@@ -504,8 +506,6 @@ radiation_advance(control_policy<state, D> & cp) {
   // Initialize fields
   sc.execute<task::rad::copy_field<D>>(
     flecsi::exec::on, *s.m, s.radiation_energy_density(*s.m), s.Ef(*s.m));
-  // sc.execute<task::rad::const_init<D>>(
-  //   flecsi::exec::on, *s.m, s.Esf(*s.m), 0.0);
   sc.execute<task::rad::const_init<D>>(
     flecsi::exec::on, *s.m, s.Esf(*s.m, 1), 0.0);
   sc.execute<task::rad::const_init<D>>(
