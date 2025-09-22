@@ -1,12 +1,12 @@
 
 #pragma once
 
-#include "../../numerical_algorithms/riemann_solvers.hh"
-#include "../../types.hh"
-#include "../utils.hh"
+#include "../numerical_algorithms/riemann_solvers.hh"
+#include "../types.hh"
+#include "utils.hh"
 #include <cstddef>
 
-namespace hard::tasks::hydro {
+namespace hard::tasks {
 
 using hard::tasks::util::get_mdiota_policy;
 
@@ -85,4 +85,4 @@ externalSource(flecsi::exec::accelerator s,
   }
 } // explicitSourceUpdate
 
-} // namespace hard::tasks::hydro
+} // namespace hard::tasks

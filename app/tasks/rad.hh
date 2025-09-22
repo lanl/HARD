@@ -1253,7 +1253,7 @@ void
 damped_jacobi(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
-  typename field<double>::template accessor<rw, ro> ua_new,
+  typename field<double>::template accessor<wo, na> ua_new,
   typename field<double>::template accessor<ro, ro> ua_old,
   typename field<double>::template accessor<ro, ro> fa,
   double omega) noexcept {

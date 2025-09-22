@@ -6,9 +6,9 @@
 #include "rad.hh"
 #include "state.hh"
 #include "tasks/boundaries/boundary.hh"
+#include "tasks/external_source.hh"
 #include "tasks/hydro/compute_interface_fluxes.hh"
 #include "tasks/hydro/cons2prim.hh"
-#include "tasks/hydro/explicit_source_update.hh"
 #include "tasks/hydro/maxcharspeed.hh"
 #include "tasks/hydro/reconstruct.hh"
 #include "tasks/init.hh"
@@ -152,7 +152,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
   if(Stage == time_stepper::rk_stage::First) {
     // RK Stage: 1 - Explicit source term (gravity) update for RT case in hydro
     // file
-    sc.execute<tasks::hydro::externalSource<D>>(flecsi::exec::on,
+    sc.execute<tasks::externalSource<D>>(flecsi::exec::on,
       *s.m,
       s.velocity(*s.m),
       s.gravity_force(*s.m),
@@ -190,7 +190,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
   // RK Stage: 2 - Explicit source term (gravity) update for RT case in hydro
   // file
   else if(Stage == time_stepper::rk_stage::Second) {
-    sc.execute<tasks::hydro::externalSource<D>>(flecsi::exec::on,
+    sc.execute<tasks::externalSource<D>>(flecsi::exec::on,
       *s.m,
       s.velocity(*s.m),
       s.gravity_force(*s.m),
