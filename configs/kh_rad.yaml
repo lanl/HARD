@@ -1,0 +1,53 @@
+---
+problem: kh-rad-test
+
+problem_parameters:
+  fluid_mass_density_high: 2.0
+  fluid_pressure_high: 2.5
+  fluid_x_velocity_high: 0.5
+  fluid_y_velocity_high: 0.0
+  fluid_z_velocity_high: 0.0
+  fluid_mass_density_low: 1.0
+  fluid_pressure_low: 2.5
+  fluid_x_velocity_low: -0.5
+  fluid_y_velocity_low: 0.0
+  fluid_z_velocity_low: 0.0
+  fluid_sep_y_frac: 0.25 # discontinuity(ies) location
+  vel_per_y_frac: 0.1 # bound of domain which has velocity perturbation
+  perturb_N: 4.0
+  rad_temp: 3000
+linear_solver:
+  maxiter: 100
+  rtol: 1.0e-7
+  use_zero_guess: True
+
+gamma: 1.6667
+adaptive_check: False
+limiter_id: 0
+closure_id: 0
+kappa: 1.0
+mean_molecular_weight: 1.0
+eos: ideal
+t0: 0.0
+tf: 1.0
+max_steps: 10000
+cfl: 0.3
+max_dt: 5.0e-2
+log_frequency: 1
+output_frequency: 100
+levels: [6, 6, 6]
+lowest_level: 6
+coords:
+  - [0.0, 0.0, 0.0]
+  - [1.0, 1.0, 1.0]
+boundaries:
+  xlow: periodic
+  xhigh: periodic
+  ylow: periodic
+  yhigh: periodic
+  zlow: flow
+  zhigh: flow
+catalyst:
+  script: /path
+  implementation: paraview
+  implementation_directory: /path
