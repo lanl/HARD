@@ -6,6 +6,7 @@
 #include "rad.hh"
 #include "state.hh"
 #include "tasks/boundaries/boundary.hh"
+#include "tasks/external_source.hh"
 #include "tasks/hydro/compute_interface_fluxes.hh"
 #include "tasks/hydro/cons2prim.hh"
 #include "tasks/hydro/maxcharspeed.hh"
@@ -102,7 +103,6 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
   sc.execute<task::rad::getEddFactor<D>>(flecsi::exec::on,
     *s.m,
     s.lambda_bridge(*s.m),
-    s.R_value(*s.m),
     s.eddington_factor(*s.m),
     s.limiter_id(*s.gt),
     s.closure_id(*s.gt));
@@ -113,8 +113,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
     s.radiation_energy_density(*s.m),
     s.gradient_rad_energy(*s.m),
     s.magnitude_gradient_rad_energy(*s.m),
-    s.eddington_factor(*s.m),
-    s.R_value(*s.m));
+    s.eddington_factor(*s.m));
 
   sc.execute<task::rad::getRadForce<D>>(flecsi::exec::on,
     *s.m,
@@ -149,20 +148,84 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.dt_total_energy_density_2(*s.m),
       s.dt_radiation_energy_density_2(*s.m));
   }
-
-  // Variables may have changed after the radiation update, so store them again
-  sc.execute<tasks::store_current_state<D>>(flecsi::exec::on,
-    *s.m,
-    s.mass_density(*s.m),
-    s.momentum_density(*s.m),
-    s.total_energy_density(*s.m),
-    s.radiation_energy_density(*s.m),
-    //
-    s.mass_density_n(*s.m),
-    s.momentum_density_n(*s.m),
-    s.total_energy_density_n(*s.m),
-    s.radiation_energy_density_n(*s.m));
 #endif
+  if(Stage == time_stepper::rk_stage::First) {
+    // RK Stage: 1 - Explicit source term (gravity) update for RT case in hydro
+    // file
+    sc.execute<tasks::externalSource<D>>(flecsi::exec::on,
+      *s.m,
+      s.velocity(*s.m),
+      s.gravity_force(*s.m),
+      // time-derivatives
+      s.dt_momentum_density(*s.m),
+      s.dt_total_energy_density(*s.m));
+
+    // We need update_u here before we compute fluxes in the presence of
+    // hydro/rad::explictSourceUpdate with body forces. See Moens'21 Eq. 24-26
+    sc.execute<tasks::update_u<D>>(flecsi::exec::on,
+      s.dt(*s.gt),
+      *s.m,
+      //
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
+      //
+      s.dt_mass_density(*s.m),
+      s.dt_momentum_density(*s.m),
+      s.dt_total_energy_density(*s.m),
+      s.dt_radiation_energy_density(*s.m));
+    // Perform primitive recovery
+    sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.velocity(*s.m),
+      s.pressure(*s.m),
+      s.specific_internal_energy(*s.m),
+      s.sound_speed(*s.m),
+      s.eos);
+  }
+  // RK Stage: 2 - Explicit source term (gravity) update for RT case in hydro
+  // file
+  else if(Stage == time_stepper::rk_stage::Second) {
+    sc.execute<tasks::externalSource<D>>(flecsi::exec::on,
+      *s.m,
+      s.velocity(*s.m),
+      s.gravity_force(*s.m),
+      // time-derivatives
+      s.dt_momentum_density_2(*s.m),
+      s.dt_total_energy_density_2(*s.m));
+
+    // We need update_u here before we compute fluxes in the presence of
+    // hydro/rad::explictSourceUpdate with body forces. See Moens'21 Eq. 24-26
+    sc.execute<tasks::update_u<D>>(flecsi::exec::on,
+      s.dt(*s.gt),
+      *s.m,
+      //
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
+      //
+      s.dt_mass_density_2(*s.m),
+      s.dt_momentum_density_2(*s.m),
+      s.dt_total_energy_density_2(*s.m),
+      s.dt_radiation_energy_density_2(*s.m));
+
+    // Perform primitive recovery
+    sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.velocity(*s.m),
+      s.pressure(*s.m),
+      s.specific_internal_energy(*s.m),
+      s.sound_speed(*s.m),
+      s.eos);
+  }
 
   //
   // Perform reconstruction on cell faces, compute face fluxes with a Riemann
@@ -199,7 +262,8 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
         s.dt_mass_density(*s.m),
         s.dt_momentum_density(*s.m),
         s.dt_total_energy_density(*s.m),
-        s.dt_radiation_energy_density(*s.m));
+        s.dt_radiation_energy_density(*s.m),
+        s.gravity_acc(*s.gt));
     }
     else if(Stage == time_stepper::rk_stage::Second) {
       // Calculate K2 and save it to dt_U_2
@@ -215,7 +279,9 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
         s.dt_mass_density_2(*s.m),
         s.dt_momentum_density_2(*s.m),
         s.dt_total_energy_density_2(*s.m),
-        s.dt_radiation_energy_density_2(*s.m));
+        s.dt_radiation_energy_density_2(*s.m),
+        s.gravity_acc(*s.gt));
+
     }
     // clang-format on
   }
@@ -230,20 +296,27 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
 
   if(Stage == time_stepper::rk_stage::Second) {
     // Apply K1 to U with a Forward Euler step, so we can use U for the
+
     // K2 calculation in the next RK advance
-    sc.execute<tasks::update_u<D>>(flecsi::exec::on,
+    sc.execute<tasks::update_u_stage<D, time_stepper::rk_stage::First>>(
+      flecsi::exec::on,
       s.dt(*s.gt),
       *s.m,
       //
-      s.mass_density(*s.m),
-      s.momentum_density(*s.m),
-      s.total_energy_density(*s.m),
-      s.radiation_energy_density(*s.m),
+      s.mass_density_n(*s.m),
+      s.momentum_density_n(*s.m),
+      s.total_energy_density_n(*s.m),
+      s.radiation_energy_density_n(*s.m),
       //
       s.dt_mass_density(*s.m),
       s.dt_momentum_density(*s.m),
       s.dt_total_energy_density(*s.m),
-      s.dt_radiation_energy_density(*s.m));
+      s.dt_radiation_energy_density(*s.m),
+      //
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m));
   }
   else if(Stage == time_stepper::rk_stage::Update) {
     // First compute K1' = (K1 + K2) * 0.5
@@ -315,17 +388,18 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
   if(s.mg) {
     // FIXME: figure out how not to use the hardcoded radiation temperature
     // boundary
-    sc.execute<task::rad::interp_e_boundary>(flecsi::exec::on,
-      s.t(*s.gt),
-      s.time_boundary(*s.dense_topology),
-      s.temperature_boundary(*s.dense_topology),
-      s.dirichlet_value(*s.gt));
+    auto radiation_boundary_f =
+      sc.execute<task::rad::interp_e_boundary>(flecsi::exec::on,
+        s.t(*s.gt),
+        s.time_boundary(*s.dense_topology),
+        s.temperature_boundary(*s.dense_topology));
     sc.execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
       *s.m,
       s.bmap(*s.gt),
       std::vector{s.radiation_energy_density(*s.m)},
-      s.dirichlet_value(*s.gt));
+      radiation_boundary_f);
   }
+
 } // update_vars
 
 template<std::size_t D>
@@ -393,16 +467,16 @@ radiation_advance(control_policy<state, D> & cp) {
   if(s.mg) {
     // FIXME: figure out how not to use the hardcoded radiation temperature
     // boundary
-    sc.execute<task::rad::interp_e_boundary>(flecsi::exec::on,
-      s.t(*s.gt),
-      s.time_boundary(*s.dense_topology),
-      s.temperature_boundary(*s.dense_topology),
-      s.dirichlet_value(*s.gt));
+    auto radiation_boundary_f =
+      sc.execute<task::rad::interp_e_boundary>(flecsi::exec::on,
+        s.t(*s.gt),
+        s.time_boundary(*s.dense_topology),
+        s.temperature_boundary(*s.dense_topology));
     sc.execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
       *s.m,
       s.bmap(*s.gt),
       std::vector{s.radiation_energy_density(*s.m)},
-      s.dirichlet_value(*s.gt));
+      radiation_boundary_f);
   }
 
   sc.execute<task::rad::getDiff<D>>(flecsi::exec::on,
@@ -433,8 +507,6 @@ radiation_advance(control_policy<state, D> & cp) {
   sc.execute<task::rad::copy_field<D>>(
     flecsi::exec::on, *s.m, s.radiation_energy_density(*s.m), s.Ef(*s.m));
   sc.execute<task::rad::const_init<D>>(
-    flecsi::exec::on, *s.m, s.Esf(*s.m), 0.0);
-  sc.execute<task::rad::const_init<D>>(
     flecsi::exec::on, *s.m, s.Esf(*s.m, 1), 0.0);
   sc.execute<task::rad::const_init<D>>(
     flecsi::exec::on, *s.m, s.Resf(*s.m), 0.0);
@@ -451,6 +523,7 @@ radiation_advance(control_policy<state, D> & cp) {
              << (stop_timer_rad - start_timer_rad).count() * 1e-9 << " [s] "
              << std::endl;
 
+  // Move solution from rad solver
   sc.execute<task::rad::copy_field<D>>(
     flecsi::exec::on, *s.m, s.Uf(*s.m), s.radiation_energy_density(*s.m));
 
