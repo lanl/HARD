@@ -399,6 +399,17 @@ initialize(control_policy<state, D> & cp) {
       s.radiation_energy_density(*s.m),
       s.eos);
   }
+  // Ritchmyer-Meshkov works with both radiation on and off
+  else if(config["problem"].as<std::string>() == "richtmyer-meshkov") {
+
+    execute<tasks::initial_data::richtmyer_meshkov<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
+      s.eos);
+  }
   else if(config["problem"].as<std::string>() == "heating_and_cooling") {
     if(config["eos"].as<std::string>() != "ideal")
       flog_fatal("Heating and cooling test only supports Ideal Gas eos");
