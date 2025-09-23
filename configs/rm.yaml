@@ -22,6 +22,9 @@ linear_solver:
   rtol: 1.0e-10
   use_zero_guess: True
 problem_parameters:
+  density_above_shock: 1.5894
+  pressure_above_shock:  153338.5
+  velocity_above_shock: -105.7312
   density_low: 1.1847
   density_high: 5.494
   pressure: 101325
