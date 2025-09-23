@@ -56,8 +56,9 @@ compute_interface_fluxes(flecsi::exec::cpu s,
 #ifdef ENABLE_RADIATION
     dt_radiation_energy_density_a
 #endif
-  ) noexcept {
-  vec<Dim> g(0);
+  ,
+  typename single<vec<Dim>>::template accessor<ro> g_acc) noexcept {
+  auto g = g_acc.get();
   auto rTail = m.template mdcolex<is::cells>(rTail_a);
   auto rHead = m.template mdcolex<is::cells>(rHead_a);
   auto uTail = m.template mdcolex<is::cells>(uTail_a);

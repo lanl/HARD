@@ -161,6 +161,20 @@ initialize(control_policy<state, D> & cp) {
 #endif
 
   /*--------------------------------------------------------------------------*
+    Gravity Acceleration
+   *--------------------------------------------------------------------------*/
+
+  vec<D> g(0.0);
+  if(config["gravity_acc"].IsDefined()) {
+    g[0] = config["gravity_acc"][0].as<double>();
+    if constexpr(D > 1)
+      g[1] = config["gravity_acc"][1].as<double>();
+    if constexpr(D > 2)
+      g[2] = config["gravity_acc"][2].as<double>();
+  }
+  execute<tasks::init::intialize_gravity_acc<D>>(s.gravity_acc(*s.gt), g);
+
+  /*--------------------------------------------------------------------------*
     Particle mass
    *--------------------------------------------------------------------------*/
   execute<tasks::init::particle_mass>(
@@ -287,6 +301,9 @@ initialize(control_policy<state, D> & cp) {
     Initialize problem state.
    *--------------------------------------------------------------------------*/
 
+  execute<tasks::init::initialize_gravity_force<D>>(
+    flecsi::exec::on, s.gravity_force(*s.m));
+
   if(config["problem"].as<std::string>() == "sod") {
 
 #ifdef ENABLE_RADIATION
@@ -360,6 +377,24 @@ initialize(control_policy<state, D> & cp) {
       *s.m,
       s.mass_density(*s.m),
       s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
+      s.eos);
+  }
+  // Rayleigh-Taylor setup
+  else if(config["problem"].as<std::string>() == "rt-test") {
+
+#ifdef ENABLE_RADIATION
+    flog_fatal(
+      "Rayleigh-Taylor instability must be built with ENABLE_RADIATION=OFF");
+#endif
+
+    execute<tasks::initial_data::rt_instability<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.gravity_force(*s.m),
+      s.gravity_acc(*s.gt),
       s.total_energy_density(*s.m),
       s.radiation_energy_density(*s.m),
       s.eos);
@@ -484,16 +519,16 @@ initialize(control_policy<state, D> & cp) {
   if(s.mg) {
     // FIXME: figure out how not to use the hardcoded radiation temperature
     // boundary
-    sc.execute<task::rad::interp_e_boundary>(flecsi::exec::on,
-      s.t(*s.gt),
-      s.time_boundary(*s.dense_topology),
-      s.temperature_boundary(*s.dense_topology),
-      s.dirichlet_value(*s.gt));
+    auto radiation_boundary_f =
+      sc.execute<task::rad::interp_e_boundary>(flecsi::exec::on,
+        s.t(*s.gt),
+        s.time_boundary(*s.dense_topology),
+        s.temperature_boundary(*s.dense_topology));
     sc.execute<tasks::apply_dirichlet_boundaries<D>>(flecsi::exec::on,
       *s.m,
       s.bmap(*s.gt),
       std::vector{s.radiation_energy_density(*s.m)},
-      s.dirichlet_value(*s.gt));
+      radiation_boundary_f);
   }
 
   /*--------------------------------------------------------------------------*
