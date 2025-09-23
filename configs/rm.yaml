@@ -1,0 +1,48 @@
+---
+problem: richtmyer-meshkov
+gamma: 1.4
+kappa: 1.0
+adaptive_check: False
+limiter_id: 0
+closure_id: 0
+mean_molecular_weight: 1.0
+eos: ideal
+t0: 0.0
+tf: 1.0e-2
+max_steps: 50000
+cfl: 0.5
+max_dt: 1.0e-2
+log_frequency: 1000
+output_frequency: 1000
+levels: [7,11,4]
+lowest_level: 9
+#color_distribution: [8,16,1]
+linear_solver:
+  maxiter: 600
+  rtol: 1.0e-10
+  use_zero_guess: True
+problem_parameters:
+  density_above_shock: 1.5894
+  pressure_above_shock:  153338.5
+  velocity_above_shock: -105.7312
+  density_low: 1.1847
+  density_high: 5.494
+  pressure: 101325
+  interface: 0.08
+  perturbation: -5.0e-4
+radiation_parameters:
+  rad_temp: 3000.0
+coords:
+  - [0.0, 0.0, 0.0]
+  - [0.01, 0.16, 0.0]
+boundaries:
+  xlow: periodic
+  xhigh: periodic
+  ylow: reflecting
+  yhigh: flow
+  zlow: flow
+  zhigh: flow
+catalyst:
+  script: ../tools/gridwriter.py
+  implementation: paraview
+  implementation_directory: /vast/home/icbannerman/.spack/var/spack/environments/hard_paraview/.spack-env/view/lib64/catalyst

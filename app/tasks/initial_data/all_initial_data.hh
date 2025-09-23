@@ -10,5 +10,6 @@
 #include "lw_implosion.hh"
 #include "rad_rank_hugoniot.hh"
 #include "rayleigh_taylor.hh"
+#include "richtmyer_meshkov.hh"
 #include "sedov.hh"
 #include "shock_tube.hh"
