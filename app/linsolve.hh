@@ -41,8 +41,6 @@ make_solver(control_policy<state, D> & cp) {
 
   auto f = flecsolve::vec::make(s.Ef(*s.m));
 
-  std::size_t iter{0};
-
   auto slv = flecsolve::bicgstab::solver(
     s.solver_settings, flecsolve::bicgstab::make_work(f))(
     op_handle, prec_handle, [&](auto &, double rnorm) { return false; });
@@ -73,9 +71,6 @@ linsolve(control_policy<state, D> & cp) {
     // flecsolve vectors
     auto f = flecsolve::vec::make(s.Ef(mf));
     auto u = flecsolve::vec::make(s.Uf(mf));
-
-    // Normalize rhs
-    double f2norm = f.l2norm().get();
 
     /* Sets up a new linear solver at each iteration (this should not be
      * done).*/

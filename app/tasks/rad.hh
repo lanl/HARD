@@ -249,13 +249,11 @@ void
 getEddFactor(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> lambda_a,
-  field<double>::accessor<ro, na> R_a,
   field<double>::accessor<wo, na> edd_factor_a,
   single<std::size_t>::accessor<ro> limiter_id_a,
   single<std::size_t>::accessor<ro> closure_id_a) noexcept {
 
   auto lambda = m.template mdcolex<is::cells>(lambda_a);
-  auto R = m.template mdcolex<is::cells>(R_a);
   auto edd_factor = m.template mdcolex<is::cells>(edd_factor_a);
 
   if constexpr(D == 1) {
@@ -298,15 +296,13 @@ getTensorP(flecsi::exec::accelerator s,
   field<double>::accessor<ro, na> Esf_a,
   typename field<vec<D>>::template accessor<ro, na> gradEsf_a,
   field<double>::accessor<ro, na> gradE_mag_a,
-  field<double>::accessor<ro, na> edd_factor_a,
-  field<double>::accessor<ro, na> R_a) noexcept {
+  field<double>::accessor<ro, na> edd_factor_a) noexcept {
 
   auto P_tensor = m.template mdcolex<is::cells>(P_tensor_a);
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
   auto gradEsf = m.template mdcolex<is::cells>(gradEsf_a);
   auto gradE_mag = m.template mdcolex<is::cells>(gradE_mag_a);
   auto edd_factor = m.template mdcolex<is::cells>(edd_factor_a);
-  auto R = m.template mdcolex<is::cells>(R_a);
 
   const double zero_guard = 1.0e-15;
 
@@ -1257,7 +1253,7 @@ void
 damped_jacobi(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<stencil<D>>::template accessor<ro, ro> Ew_a,
-  typename field<double>::template accessor<rw, ro> ua_new,
+  typename field<double>::template accessor<wo, na> ua_new,
   typename field<double>::template accessor<ro, ro> ua_old,
   typename field<double>::template accessor<ro, ro> fa,
   double omega) noexcept {
@@ -1408,12 +1404,11 @@ correction(flecsi::exec::accelerator s,
 } // correction
 
 // Linear interpolation for boundary temperature
-void
+double
 interp_e_boundary(flecsi::exec::cpu,
   single<double>::accessor<flecsi::ro> t,
   field<double>::accessor<flecsi::ro> time_boundary,
-  field<double>::accessor<flecsi::ro> temperature_boundary,
-  single<double>::accessor<flecsi::wo> value) noexcept {
+  field<double>::accessor<flecsi::ro> temperature_boundary) noexcept {
 
   auto get_energy = [](const double & temperature) -> double {
     return constants::cgs::radiation_constant *
@@ -1423,12 +1418,10 @@ interp_e_boundary(flecsi::exec::cpu,
   // Is it the first or last value?
   std::size_t i_end{time_boundary.span().size()};
   if(t <= time_boundary[0]) {
-    value = get_energy(temperature_boundary[0]);
-    return;
+    return get_energy(temperature_boundary[0]);
   }
   if(t >= time_boundary[i_end - 1]) {
-    value = get_energy(temperature_boundary[i_end - 1]);
-    return;
+    return get_energy(temperature_boundary[i_end - 1]);
   }
 
   for(std::size_t i{0}; i < (i_end - 1); i++) {
@@ -1437,14 +1430,14 @@ interp_e_boundary(flecsi::exec::cpu,
       double dy{temperature_boundary[i + 1] - temperature_boundary[i]};
 
       // Found point, return
-      value = get_energy(
+      return get_energy(
         dy * (time_boundary[i + 1] - t) / dx + temperature_boundary[i]);
-      return;
     };
   }
 
   // We should never reach this line
-  assert("Linear interpolation failed");
+  assert(false && "Linear interpolation failed");
+  return 0;
 } // interp_e_boundary
 
 } // namespace hard::task::rad
