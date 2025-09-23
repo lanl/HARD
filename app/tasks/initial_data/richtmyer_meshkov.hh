@@ -32,6 +32,12 @@ richtmyer_meshkov(flecsi::exec::cpu s,
 
   YAML::Node config = YAML::LoadFile(opt::config.value());
 
+  const double rAs =
+    config["problem_parameters"]["density_above_shock"].as<double>();
+  const double pAs =
+    config["problem_parameters"]["pressure_above_shock"].as<double>();
+  const double vAs =
+    config["problem_parameters"]["velocity_above_shock"].as<double>();
   const double rL = config["problem_parameters"]["density_low"].as<double>();
   const double rH = config["problem_parameters"]["density_high"].as<double>();
   const double p0 = config["problem_parameters"]["pressure"].as<double>();
@@ -41,7 +47,6 @@ richtmyer_meshkov(flecsi::exec::cpu s,
   // for single mode perturbation, wavelength = domain width.
   const double wavelength = config["coords"][1][0].as<double>();
   const double wavenumber = 2.0 * M_PI;
-  const double N = 1.0 / wavelength; // to ensure wavelength = domain size
 
   // for defining shock
   const double y_shock = interface + 0.01;
@@ -52,7 +57,7 @@ richtmyer_meshkov(flecsi::exec::cpu s,
   // temperature for radiation
   const double rad_temp =
     config["radiation_parameters"]["rad_temp"].as<double>();
-  flog(info) << "radiation temperature is" << rad_temp;
+  flog(info) << "radiation temperature is " << rad_temp << std::endl;
 
   if constexpr(D == 2) {
     s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
@@ -69,9 +74,9 @@ richtmyer_meshkov(flecsi::exec::cpu s,
 
         // lighter fluid above shock
         if(y >= y_shock) {
-          rho = 1.5894;
-          p = 153338.5;
-          vy = -105.7312;
+          rho = rAs;
+          p = pAs;
+          vy = vAs;
         }
         // lighter fluid below shock
         else if(y >= interface_y && y < y_shock) {
