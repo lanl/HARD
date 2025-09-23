@@ -479,6 +479,17 @@ initialize(control_policy<state, D> & cp) {
       s.radiation_energy_density(*s.m),
       config["gamma"].as<double>());
   }
+  // Kelvin Helmholtz with radiation setup
+  else if(config["problem"].as<std::string>() == "kh-rad-test") {
+
+    execute<tasks::initial_data::kh_instability_rad<D>>(flecsi::exec::on,
+      *s.m,
+      s.mass_density(*s.m),
+      s.momentum_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
+      s.eos);
+  }
   else {
     flog_fatal(
       "unsupported problem(" << config["problem"].as<std::string>() << ")");
