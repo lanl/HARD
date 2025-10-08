@@ -16,6 +16,9 @@ class Flecsolve(CMakePackage):
     variant("standard", default=False, description="Standard setup for flecsolve")
 
     depends_on('flecsi@2.4:')
+    depends_on("c", type="build")
+    depends_on("cxx", type="build")
+    depends_on("fortran", type="build")
     #depends_on('amp+hypre', when="+standard") # Might want to enable at some point.
     #depends_on('stacktrace+shared', when="+standard")
     #depends_on('lapackwrappers@main', when="+standard")
