@@ -61,8 +61,8 @@ void inline csv(flecsi::exec::cpu s,
       file << std::fixed; // just to get a uniform file format
 
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
-        file << std::setprecision(6) << std::scientific << time << "," << i
-             << "," << m.template center<ax::x>(i) << std::setprecision(12);
+        file << std::setprecision(16) << std::scientific << time << "," << i
+             << "," << m.template center<ax::x>(i) << std::setprecision(16);
         for(auto f_ma : fields)
           file << "," << f_ma(i);
         for(auto f_ma : fields_vectors)
@@ -86,9 +86,9 @@ void inline csv(flecsi::exec::cpu s,
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         for(auto j : m.template cells<ax::y, dm::quantities>()) {
 
-          file << std::setprecision(6) << std::scientific << time << "," << i
+          file << std::setprecision(16) << std::scientific << time << "," << i
                << "," << j << "," << m.template center<ax::x>(i) << ","
-               << m.template center<ax::y>(j) << std::setprecision(12);
+               << m.template center<ax::y>(j) << std::setprecision(16);
           for(auto f_ma : fields)
             file << "," << f_ma(i, j);
           for(auto f_ma : fields_vectors)
@@ -114,10 +114,10 @@ void inline csv(flecsi::exec::cpu s,
         for(auto j : m.template cells<ax::y, dm::quantities>()) {
           for(auto k : m.template cells<ax::z, dm::quantities>()) {
 
-            file << std::setprecision(6) << std::scientific << time << "," << i
+            file << std::setprecision(16) << std::scientific << time << "," << i
                  << "," << j << "," << k << "," << m.template center<ax::x>(i)
                  << "," << m.template center<ax::y>(j) << ","
-                 << m.template center<ax::z>(k) << std::setprecision(12);
+                 << m.template center<ax::z>(k) << std::setprecision(16);
             for(auto f_ma : fields)
               file << "," << f_ma(i, j, k);
             for(auto f_ma : fields_vectors)
