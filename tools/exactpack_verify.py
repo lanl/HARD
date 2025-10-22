@@ -235,20 +235,21 @@ class Problem(object):
         Plot the numerical output and the reference
         """
 
-        plt.figure()
-        plt.plot(self.x_arr, exact_vals, label="Analytic", linestyle="--")
-        plt.plot(self.x_arr, num_vals, label="Simulation", marker='o',
-                 linestyle='none', markersize=4)
+        fig, ax = plt.subplots()
+        plt.plot(self.x_arr, num_vals, label="Numerical", lw=4)
+        plt.plot(self.x_arr, exact_vals, label="Analytical", linestyle="--")
 
-        plt.xlabel("x")
-        plt.ylabel(label)
-        plt.title(f"{label} at t = {self.time:.4f}")
+        plt.xlabel("Position (-)")
+        plt.ylabel(f"{label} (-)")
+        # plt.title(f"{label} at t = {self.time:.4f}")
 
         plt.legend()
-        plt.grid(True)
+        # plt.grid(True)
         plt.tight_layout()
+        plt.minorticks_on()
+        ax.tick_params(which="both", right="True", top="True")
 
-        filename = f"{label.lower()}_comparison_{tag}.png"
+        filename = f"{label.lower()}_comparison_{tag}.pdf"
         plt.savefig(filename)
         plt.close()
 

@@ -155,7 +155,7 @@ if(ENABLE_DOCUMENTATION)
 endif()
 
 #------------------------------------------------------------------------------#
-# Testing 
+# Testing
 #------------------------------------------------------------------------------#
 
 option(ENABLE_UNIT_TESTS "Enable unit tests" OFF)
@@ -233,7 +233,7 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   )
 
   add_custom_target(convergence
-    COMMAND ${Python3_EXECUTABLE} ${CONVERGENCE_SCRIPT} \$\(CONFIG\) \$\(DIMENSION\)
+    COMMAND ${Python3_EXECUTABLE} ${CONVERGENCE_SCRIPT} \$\(CONFIG\) \$\(DIMENSION\) "--plot"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     VERBATIM
   )
