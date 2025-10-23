@@ -101,6 +101,9 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
     depends_on("python@3:", when="+python")
     depends_on("py-numpy", when="+python+tests")
     depends_on("py-pybind11@2.9.1:", when="+python")
+    depends_on("c", type="build")
+    depends_on("cxx", type="build")
+    depends_on("fortran", type="build")
 
     # linear algebra when not using GPUs
     # TODO we can do LA with +kokkos+kokkos-kernels~cuda,
