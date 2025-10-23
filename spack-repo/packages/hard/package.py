@@ -19,12 +19,14 @@ class Hard(CMakePackage, CudaPackage):
     variant("tests", default=False, description="Enable unit tests")
     variant("format", default=False, description="Enable format target")
 
-    depends_on("flecsi@2.4.0: +flog +kokkos")
+    depends_on("flecsi@2.4.0: +flog")
     depends_on("flecsi +cuda", when="+cuda")
     depends_on("flecsolve", when="+flecsolve")
     depends_on("libcatalyst", when="+catalyst")
     #depends_on("paraview@5.12.1+libcatalyst+python", when="+catalyst")
     depends_on("yaml-cpp@0.8:")
+    depends_on("c", type="build")
+    depends_on("cxx", type="build")
 
     depends_on("singularity-eos@1.9.2: +hdf5 +spiner build_extra=sesame")
     depends_on("singularity-eos@1.9.2.1 ~eospac+kokkos+kokkos-kernels+cuda", when="+cuda")
