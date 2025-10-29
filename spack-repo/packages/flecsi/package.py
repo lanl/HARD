@@ -1,5 +1,5 @@
 from spack.package import *
-from spack.pkg.builtin.flecsi import Flecsi
+from spack_repo.builtin.packages.flecsi.package import Flecsi
 
 class Flecsi(Flecsi):
     """

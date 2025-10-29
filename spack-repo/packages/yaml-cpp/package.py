@@ -1,5 +1,5 @@
 from spack.package import *
-from spack.pkg.builtin.yaml_cpp import YamlCpp
+from spack_repo.builtin.packages.yaml_cpp.package import YamlCpp
 
 class YamlCpp(YamlCpp):
     """
