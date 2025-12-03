@@ -9,7 +9,6 @@ struct TimeReversal2D {
   double T{2.0};
   inline void sample(double x,
     double y,
-    double /*z*/,
     double t,
     double & u,
     double & v,
@@ -42,3 +41,5 @@ struct TimeReversal3D {
   }
 };
 } // namespace spec::level_set
+
+#endif

@@ -289,3 +289,5 @@ extend_constant_normal(const Grid & g,
 }
 
 } // namespace spec::level_set::core
+
+#endif
