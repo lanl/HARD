@@ -29,7 +29,7 @@ struct vec<1> {
   constexpr static std::size_t Dim = 1;
 
   FLECSI_INLINE_TARGET vec<1>() = default;
-  FLECSI_INLINE_TARGET ~vec<1>() = default;
+  FLECSI_INLINE_TARGET ~vec() = default;
 
   FLECSI_INLINE_TARGET vec<1>(double x) : vx(x) {}
   FLECSI_INLINE_TARGET double & operator[](std::size_t) {
@@ -83,7 +83,7 @@ struct vec<2> {
   }
 
   FLECSI_INLINE_TARGET vec<2>() = default;
-  FLECSI_INLINE_TARGET ~vec<2>() = default;
+  FLECSI_INLINE_TARGET ~vec() = default;
 
   FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
     return v[d];
@@ -141,7 +141,7 @@ struct vec<3> {
   }
 
   FLECSI_INLINE_TARGET vec<3>() = default;
-  FLECSI_INLINE_TARGET ~vec<3>() = default;
+  FLECSI_INLINE_TARGET ~vec() = default;
 
   FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
     return v[d];
