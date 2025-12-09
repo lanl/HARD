@@ -19,6 +19,7 @@ class Flecsolve(CMakePackage):
     depends_on("c", type="build")
     depends_on("cxx", type="build")
     depends_on("fortran", type="build")
+    depends_on('eigen')
     #depends_on('amp+hypre', when="+standard") # Might want to enable at some point.
     #depends_on('stacktrace+shared', when="+standard")
     #depends_on('lapackwrappers@main', when="+standard")
