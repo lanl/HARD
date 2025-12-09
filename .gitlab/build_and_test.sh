@@ -275,7 +275,7 @@ activate_build_env() {
     spack build-env ${PROJECT_NAME} bash
 
     # HACK: add a mirror so it does not fail building
-    spack mirror add upstream /usr/projects/cdss2024/shared/spack-env-jl/2025-07-08/spack_mirror/
+    spack mirror add upstream /usr/projects/cdss2024/shared/spack-env-jl/2025-11-29/spack_mirror/
 }
 
 ###############################################################################

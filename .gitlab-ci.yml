@@ -11,7 +11,7 @@ variables:
   ENABLE_CDASH: false
   ENABLED_CLUSTERS: "darwin"
   # use this variable if there is a deployment MR you want to use instead
-  PROJECT_SPACK_ENV_VERSION: "2025-07-08"
+  PROJECT_SPACK_ENV_VERSION: "2025-11-29"
   V100_CONSTRAINT: "--constraint=\"cpu_family:haswell&(gpu1_model:Tesla_V100S-PCIE-32GB|gpu1_model:Tesla_V100-PCIE-32GB)\""
   HSA_OVERRIDE_CPU_AFFINITY_DEBUG: 0
   #AMD_SERIALIZE_KERNEL: 3
