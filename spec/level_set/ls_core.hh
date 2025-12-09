@@ -1,6 +1,7 @@
 #ifndef SPEC_LS_CORE_HH
 #define SPEC_LS_CORE_HH
 
+#include "../mesh.hh"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -9,53 +10,48 @@
 
 namespace spec::level_set::core {
 
-// grid + state
-struct Grid {
-  int nx{1}, ny{1}, nz{1};
-  double dx{1}, dy{1}, dz{1};
-  int dim{1}; // 1, 2 or 3
-  bool periodic{true};
-
-  inline int idx(int i, int j, int k) const {
-    return i + nx * (j + ny * k);
+// Helpers to get sizes and deltas from spec/mesh.hh
+template<std::size_t D, class MeshAcc>
+inline void
+mesh_metrics(const MeshAcc & m,
+  int & nx,
+  int & ny,
+  int & nz,
+  double & dx,
+  double & dy,
+  double & dz) {
+  using ax::x;
+  using ax::y;
+  using ax::z;
+  using dm::quantities;
+  if constexpr(D == 1) {
+    nx = m.template size<x, quantities>();
+    ny = 1;
+    nz = 1;
+    dx = m.template delta<x>();
+    dy = 1.0;
+    dz = 1.0;
   }
-  inline int N() const {
-    return nx * ny * nz;
+  else if constexpr(D == 2) {
+    nx = m.template size<x, quantities>();
+    ny = m.template size<y, quantities>();
+    nz = 1;
+    dx = m.template delta<x>();
+    dy = m.template delta<y>();
+    dz = 1.0;
   }
-
-  inline int wi(int i) const {
-    i %= nx;
-    if(i < 0)
-      i += nx;
-    return i;
+  else { // D==3
+    nx = m.template size<x, quantities>();
+    ny = m.template size<y, quantities>();
+    nz = m.template size<z, quantities>();
+    dx = m.template delta<x>();
+    dy = m.template delta<y>();
+    dz = m.template delta<z>();
   }
-  inline int wj(int j) const {
-    j %= ny;
-    if(j < 0)
-      j += ny;
-    return j;
-  }
-  inline int wk(int k) const {
-    k %= nz;
-    if(k < 0)
-      k += nz;
-    return k;
-  }
-};
-
-struct State {
-  double * psi{};
-  int * label{};
-};
-
-// Velocity concept: .sample(x,y,z,t,u,v,w)
-template<class Vel>
-struct VelocityConcept {
-  static inline void check() {} // tag type for docs
-};
+}
 
 // upwind HJ RHS (acts on material-signed psi_m)
-template<class Vel>
+template<std::size_t D, class MeshAcc, class PsiCont, class Vel>
 inline void
 rhs_upwind(const Grid & g,
   const State & stage,
