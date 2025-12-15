@@ -3,8 +3,25 @@
 #include <cmath>
 
 // This is the verification purpose only
+// The setup is adapted from Tariq et al. 2025
 
 namespace spec::level_set {
+
+struct TimeReversal1D {
+  double T{2.0};
+  inline void sample(double x,
+    double,
+    double,
+    double t,
+    double & u,
+    double & v,
+    double & w) const {
+    u = 2.0 * std::sin(2.0 * M_PI * x) * std::cos(M_PI * t / T);
+    v = 0.0;
+    w = 0.0;
+  }
+};
+
 struct TimeReversal2D {
   double T{2.0};
   inline void sample(double x,
