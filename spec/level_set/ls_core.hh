@@ -53,67 +53,115 @@ mesh_metrics(const MeshAcc & m,
 // upwind HJ RHS (acts on material-signed psi_m)
 template<std::size_t D, class MeshAcc, class PsiCont, class Vel>
 inline void
-rhs_upwind(const Grid & g,
-  const State & stage,
-  const int * Lfrozen,
+rhs_upwind(const MeshAcc & m,
+  const PsiCont & psi,
+  const std::vector<int> & Lfrozen,
   double t,
   const Vel & vel,
-  double * Lout) {
+  std::vector<double> & Lout) {
+
+  int nx, ny, nz;
+  double dx, dy, dz;
+  mesh_metrics<D>(m, nx, ny, nz, dx, dy, dz);
+  const int N = nx * ny * nz;
+  if((int)Lout.size() != N)
+    Lout.assign(N, 0.0);
+
+  auto idx = [=](int i, int j, int k) {
+    auto wrap = [](int I, int n) {
+      I %= n;
+      if(I < 0)
+        I += n;
+      return I;
+    };
+    i = wrap(i, nx);
+    j = wrap(j, ny);
+    k = wrap(k, nz);
+    return i + nx * (j + ny * k);
+  };
+
   auto psim = [&](int ic, int jc, int kc, int in, int jn, int kn) {
-    int idc = g.idx(ic, jc, kc);
-    int idn = g.idx(g.wi(in), g.wj(jn), g.wk(kn));
+    int idc = idx(ic, jc, kc);
+    int idn = idx(in, jn, kn);
     return (Lfrozen[idn] == Lfrozen[idc]) ? stage.psi[idn] : -stage.psi[idn];
   };
 
-  for(int k = 0; k < g.nz; ++k)
-    for(int j = 0; j < g.ny; ++j)
-      for(int i = 0; i < g.nx; ++i) {
-        int id = g.idx(i, j, k);
-        const double x = (i + 0.0) * g.dx, y = (j + 0.0) * g.dy,
-                     z = (k + 0.0) * g.dz;
+  for(int k = 0; k < nz; ++k)
+    for(int j = 0; j < ny; ++j)
+      for(int i = 0; i < nx; ++i) {
+        int id = idx(i, j, k);
+
+        // map (i,j,k) to physical x,y,z with mesh centers:
+        // we assume that mesh is unifrom::
+        // x ~ (i+0.5)*dx;
+        double x = (i + 0.5) * dx;
+        double y = (D >= 2 ? (j + 0.5) * dy : 0.0);
+        double z = (D == 3 ? (k + 0.5) * dz : 0.0);
+
         double u, v, w;
         vel.sample(x, y, z, t, u, v, w);
 
-        const double pm = stage.psi[id];
+        const double pm = psi[id];
         const double im1 = psim(i, j, k, i - 1, j, k),
                      ip1 = psim(i, j, k, i + 1, j, k);
-        const double dmx = (pm - im1) / g.dx, dpx = (ip1 - pm) / g.dx;
+        const double dmx = (pm - im1) / dx, dpx = (ip1 - pm) / dx;
         double adv = std::max(0.0, u) * dmx + std::min(0.0, u) * dpx;
 
-        if(g.dim >= 2) {
+        if constexpr(D >= 2) {
           const double jm1 = psim(i, j, k, i, j - 1, k),
                        jp1 = psim(i, j, k, i, j + 1, k);
-          const double dmy = (pm - jm1) / g.dy, dpy = (jp1 - pm) / g.dy;
+          const double dmy = (pm - jm1) / dy, dpy = (jp1 - pm) / dy;
           double vpos = std::max(0.0, v), vneg = std::min(0.0, v);
           adv += vpos * dmy + vneg * dpy;
         }
-        if(g.dim == 3) {
+        if constexpr(D == 3) {
           const double km1 = psim(i, j, k, i, j, k - 1),
                        kp1 = psim(i, j, k, i, j, k + 1);
-          const double dmz = (pm - km1) / g.dz, dpz = (kp1 - pm) / g.dz;
+          const double dmz = (pm - km1) / dz, dpz = (kp1 - pm) / dz;
           double wpos = std::max(0.0, w), wneg = std::min(0.0, w);
           adv += wpos * dmz + wneg * dpz;
         }
 
-        Lout[id] = -adv; // psi_t = -u · ∇psi
+        Lout[id] = -adv; // psi_t = -u · grad_psi
       }
 }
 
 // Determine state at time level n+1 (2-neigh 1D, 4-neigh 2D, 6-neigh 3D)
 // algorithm 1 in Aslam et al. 2024
+template<std::size_t D,
+  class Psi3Cont,
+  class LabelCont,
+  class PsiOutCont,
+  class LabelOutCont>
 inline void
-determine_psi(const Grid & g,
-  const double * psi3,
-  const int * Lold,
-  double * psi_out,
-  int * L_out) {
-  if(g.dim == 1) {
-    for(int i = 0; i < g.nx; ++i) {
-      int id = g.idx(i, 0, 0);
+determine_psi(int nx,
+  int ny,
+  int nz,
+  const Psi3Cont & psi3,
+  const LabelCont & Lold,
+  PsiOutCont & psi_out,
+  LabelOutCont & L_out) {
+
+  auto idx = [=](int i, int j, int k) {
+    auto wrap = [](int I, int n) {
+      I %= n;
+      if(I < 0)
+        I += n;
+      return I;
+    };
+    i = wrap(i, nx);
+    j = wrap(j, ny);
+    k = wrap(k, nz);
+    return i + nx * (j + ny * k);
+  };
+
+  if constexpr(D == 1) {
+    for(int i = 0; i < nx; ++i) {
+      int id = idx(i, 0, 0);
       if(psi3[id] > 0.0) {
         double psimin = psi3[id];
         int lmin = Lold[id];
-        int idL = g.idx(g.wi(i - 1), 0, 0), idR = g.idx(g.wi(i + 1), 0, 0);
+        int idL = idx(i - 1, 0, 0), idR = idx(i + 1, 0, 0);
         if(Lold[idL] != Lold[id] && psi3[idL] < psimin) {
           psimin = psi3[idL];
           lmin = Lold[idL];
@@ -133,14 +181,14 @@ determine_psi(const Grid & g,
     return;
   }
 
-  const int di6[6] = {-1, 1, 0, 0, 0, 0}, dj6[6] = {0, 0, -1, 1, 0, 0},
-            dk6[6] = {0, 0, 0, 0, -1, 1};
-  const int nnei = (g.dim == 2 ? 4 : 6);
+  const int di[6] = {-1, 1, 0, 0, 0, 0}, dj[6] = {0, 0, -1, 1, 0, 0},
+            dk[6] = {0, 0, 0, 0, -1, 1};
+  const int nnei = (D == 2 ? 4 : 6);
 
-  for(int k = 0; k < g.nz; ++k)
-    for(int j = 0; j < g.ny; ++j)
-      for(int i = 0; i < g.nx; ++i) {
-        int id = g.idx(i, j, k);
+  for(int k = 0; k < nz; ++k)
+    for(int j = 0; j < ny; ++j)
+      for(int i = 0; i < nx; ++i) {
+        int id = idx(i, j, k);
         if(psi3[id] <= 0.0) {
           psi_out[id] = psi3[id];
           L_out[id] = Lold[id];
@@ -149,7 +197,7 @@ determine_psi(const Grid & g,
         double psimin = psi3[id];
         int lmin = Lold[id];
         for(int n = 0; n < nnei; ++n) {
-          int q = g.idx(g.wi(i + di6[n]), g.wj(j + dj6[n]), g.wk(k + dk6[n]));
+          int q = idx(i + di[n], j + dj[n], k + dk[n]);
           if(Lold[q] != Lold[id] && psi3[q] < psimin) {
             psimin = psi3[q];
             lmin = Lold[q];
@@ -161,82 +209,133 @@ determine_psi(const Grid & g,
 }
 
 // SSPRK(3,3) driver with frozen labels
-template<class Vel>
+template<std::size_t D, class MeshAcc, class PsiAcc, class LabelAcc, class Vel>
 inline void
-ssprk3_step(const Grid & g, State S, const Vel & vel, double t, double dt) {
-  const int N = g.N();
-  std::vector<int> Lfrozen(S.label, S.label + N);
+ssprk3_step(const MeshAcc & m,
+  PsiAcc & psi_a,
+  LabelAcc & lab_a,
+  const Vel & vel,
+  double t,
+  double dt) {
+
+  int nx, ny, nz;
+  double dx, dy, dz;
+  mesh_metrics<D>(m, nx, ny, nz, dx, dy, dz);
+  const int N = nx * ny * nz;
+
+  auto psi_span = psi_a.span();
+  auto label_span = lab_a.span();
+
+  std::vector<double> psi(psi_span.begin(), psi_span.end());
+  std::vector<int> label(label_span.begin(), label_span.end());
+
+  std::vector<int> Lfrozen = label;
   std::vector<double> L(N), psi1(N), psi2(N), psi3(N);
 
-  rhs_upwind(g, S, Lfrozen.data(), t, vel, L.data());
+  rhs_upwind<D>(m, psi, Lfrozen, t, vel, L);
   for(int q = 0; q < N; ++q)
-    psi1[q] = S.psi[q] + dt * L[q];
+    psi1[q] = psi[q] + dt * L[q];
 
-  State S1{psi1.data(), S.label};
-  rhs_upwind(g, S1, Lfrozen.data(), t + dt, vel, L.data());
+  rhs_upwind<D>(m, psi1, Lfrozen, t + dt, vel, L);
   for(int q = 0; q < N; ++q)
-    psi2[q] = 0.75 * S.psi[q] + 0.25 * (psi1[q] + dt * L[q]);
+    psi2[q] = 0.75 * psi[q] + 0.25 * (psi1[q] + dt * L[q]);
 
-  State S2{psi2.data(), S.label};
-  rhs_upwind(g, S2, Lfrozen.data(), t + 0.5 * dt, vel, L.data());
+  rhs_upwind<D>(m, psi2, Lfrozen, t + 0.5 * dt, vel, L);
   for(int q = 0; q < N; ++q)
-    psi3[q] = (1.0 / 3.0) * S.psi[q] + (2.0 / 3.0) * (psi2[q] + dt * L[q]);
+    psi3[q] = (1.0 / 3.0) * psi[q] + (2.0 / 3.0) * (psi2[q] + dt * L[q]);
 
   std::vector<double> psi_next(N);
   std::vector<int> L_next(N);
-  determine_psi(g, psi3.data(), S.label, psi_next.data(), L_next.data());
-  std::copy(psi_next.begin(), psi_next.end(), S.psi);
-  std::copy(L_next.begin(), L_next.end(), S.label);
+  determine_psi<D>(nx, ny, nz, psi3, label, psi_next, L_next);
+
+  for(int q = 0; q < N; ++q) {
+    psi_span[q] = psi_next[q];
+    label_span[q] = L_next[q];
+  }
 }
 
 // gradients and unit normals (for GFM & extrapolation)
+template<std::size_t D,
+  class MeshAcc,
+  class PsiAcc,
+  class DpxAcc,
+  class DpyAcc,
+  class DpzAcc>
 inline void
-gradient_centered(const Grid & g,
-  const double * psi,
-  double * dpsidx,
-  double * dpsidy,
-  double * dpsidz) {
-  for(int k = 0; k < g.nz; ++k)
-    for(int j = 0; j < g.ny; ++j)
-      for(int i = 0; i < g.nx; ++i) {
-        int id = g.idx(i, j, k);
+gradient_centered(const MeshAcc & m,
+  const PsiAcc & psi_a,
+  DpxAcc & dpx_a,
+  DpyAcc & dpy_a,
+  DpzAcc & dpz_a) {
+  int nx, ny, nz;
+  double dx, dy, dz;
+  mesh_metrics<D>(m, nx, ny, nz, dx, dy, dz);
 
-        auto at = [&](int I, int J, int K) {
-          return g.idx(g.wi(I), g.wj(J), g.wk(K));
-        };
+  auto psi = psi_a.span();
+  auto dpx = dpx_a.span();
+  auto dpy = dpy_a.span();
+  auto dpz = dpz_a.span();
 
-        int im1 = at(i - 1, j, k), ip1 = at(i + 1, j, k);
-        dpsidx[id] = (psi[ip1] - psi[im1]) / (2 * g.dx);
+  auto idx = [=](int i, int j, int k) {
+    auto wrap = [](int I, int n) {
+      I %= n;
+      if(I < 0)
+        I += n;
+      return I;
+    };
+    i = wrap(i, nx);
+    j = wrap(j, ny);
+    k = wrap(k, nz);
+    return i + nx * (j + ny * k);
+  };
 
-        if(g.dim >= 2) {
-          int jm1 = at(i, j - 1, k), jp1 = at(i, j + 1, k);
-          dpsidy[id] = (psi[jp1] - psi[jm1]) / (2 * g.dy);
+  for(int k = 0; k < nz; ++k)
+    for(int j = 0; j < ny; ++j)
+      for(int i = 0; i < nx; ++i) {
+        int id = idx(i, j, k);
+        int im1 = idx(i - 1, j, k), ip1 = idx(i + 1, j, k);
+        dpx[id] = (psi[ip1] - psi[im1]) / (2 * dx);
+
+        if constexpr(D >= 2) {
+          int jm1 = idx(i, j - 1, k), jp1 = idx(i, j + 1, k);
+          dpy[id] = (psi[jp1] - psi[jm1]) / (2 * dy);
         }
         else
-          dpsidy[id] = 0.0;
+          dpy[id] = 0.0;
 
-        if(g.dim == 3) {
-          int km1 = at(i, j, k - 1), kp1 = at(i, j, k + 1);
-          dpsidz[id] = (psi[kp1] - psi[km1]) / (2 * g.dz);
+        if constexpr(D == 3) {
+          int km1 = idx(i, j, k - 1), kp1 = idx(i, j, k + 1);
+          dpz[id] = (psi[kp1] - psi[km1]) / (2 * dz);
         }
         else
-          dpsidz[id] = 0.0;
+          dpz[id] = 0.0;
       }
 }
 
+template<class DpxAcc,
+  class DpyAcc,
+  class DpzAcc,
+  class NxAcc,
+  class NyAcc,
+  class NzAcc>
 inline void
-unit_normals(const Grid & g,
-  const double * dpsidx,
-  const double * dpsidy,
-  const double * dpsidz,
-  double * nx,
-  double * ny,
-  double * nz,
-  double eps = 1e-12) {
-  const int N = g.N();
-  for(int id = 0; id < N; ++id) {
-    double gx = dpsidx[id], gy = dpsidy[id], gz = dpsidz[id];
-    double mag = std::sqrt(gx * gx + gy * gy + gz * gz) + eps;
+unit_normals(const DpxAcc & dpx_a,
+  const DpyAcc & dpy_a,
+  const DpzAcc & dpz_a,
+  NxAcc & nx_a,
+  NyAcc & ny_a,
+  NzAcc & nz_a) {
+  auto dpx = dpx_a.span();
+  auto dpy = dpy_a.span();
+  auto dpz = dpz_a.span();
+  auto nx = nx_a.span();
+  auto ny = ny_a.span();
+  auto nz = nz_a.span();
+
+  const std::size_t N = dpx.size();
+  for(std::size_t id = 0; id < N; ++id) {
+    double gx = dpx[id], gy = dpy[id], gz = dpz[id];
+    double mag = std::sqrt(gx * gx + gy * gy + gz * gz) + 1e-12;
     nx[id] = gx / mag;
     ny[id] = gy / mag;
     nz[id] = gz / mag;
@@ -246,42 +345,68 @@ unit_normals(const Grid & g,
 // constant-normal extrapolation utility
 // Extends scalar q off the interface (one forward Euler step of
 // \partial tau q  + sing(\psi) n·\nabla q = 0 ).
-template<class SampleQ>
+template<std::size_t D,
+  class MeshAcc,
+  class PsiAcc,
+  class NxAcc,
+  class NyAcc,
+  class NzAcc,
+  class QAcc>
 inline void
-extend_constant_normal(const Grid & g,
-  const double * psi,
-  const double * nx,
-  const double * ny,
-  const double * nz,
+extend_constant_normal(const MeshAcc & m,
+  const PsiAcc & psi_a,
+  const NxAcc & nx_a,
+  const NyAcc & ny_a,
+  const NzAcc & nz_a,
   double dtau,
-  double * q,
-  SampleQ sample) {
-  auto at = [&](
-              int I, int J, int K) { return g.idx(g.wi(I), g.wj(J), g.wk(K)); };
-  std::vector<double> qn(q, q + g.N());
+  QAcc & q_a) {
+  int nx, ny, nz;
+  double dx, dy, dz;
+  mesh_metrics<D>(m, nx, ny, nz, dx, dy, dz);
+  const int N = nx * ny * nz;
 
-  for(int k = 0; k < g.nz; ++k)
-    for(int j = 0; j < g.ny; ++j)
-      for(int i = 0; i < g.nx; ++i) {
-        int id = g.idx(i, j, k);
+  auto psi = psi_a.span();
+  auto nxv = nx_a.span();
+  auto nyv = ny_a.span();
+  auto nzv = nz_a.span();
+  auto q = q_a.span();
+
+  std::vector<double> qn(q.begin(), q.end());
+
+  auto idx = [=](int i, int j, int k) {
+    auto wrap = [](int I, int n) {
+      I %= n;
+      if(I < 0)
+        I += n;
+      return I;
+    };
+    i = wrap(i, nx);
+    j = wrap(j, ny);
+    k = wrap(k, nz);
+    return i + nx * (j + ny * k);
+  };
+
+  for(int k = 0; k < nz; ++k)
+    for(int j = 0; j < ny; ++j)
+      for(int i = 0; i < nx; ++i) {
+        int id = idx(i, j, k);
         double s = (psi[id] >= 0.0 ? 1.0 : -1.0);
+
         // first-order upwind along normal: pick upwind neighbor w.r.t. normal
         // components
-        int iU = at(i - (nx[id] > 0 ? 1 : 0), j, k),
-            iD = at(i + (nx[id] < 0 ? 1 : 0), j, k);
-        int jU = at(i, j - (ny[id] > 0 ? 1 : 0), k),
-            jD = at(i, j + (ny[id] < 0 ? 1 : 0), k);
-        int kU = at(i, j, k - (nz[id] > 0 ? 1 : 0)),
-            kD = at(i, j, k + (nz[id] < 0 ? 1 : 0));
+        int iU = idx(i - (nxv[id] > 0.0 ? 1 : 0), j, k);
+        int jU = (D >= 2 ? idx(i, j - (nyv[id] > 0.0 ? 1 : 0), k) : id);
+        int kU = (D == 3 ? idx(i, j, k - (nzv[id] > 0.0 ? 1 : 0)) : id);
 
-        double dqdx = (q[id] - q[iU]) / g.dx;
-        double dqdy = (g.dim >= 2 ? (q[id] - q[jU]) / g.dy : 0.0);
-        double dqdz = (g.dim == 3 ? (q[id] - q[kU]) / g.dz : 0.0);
+        double dqdx = (q[id] - q[iU]) / dx;
+        double dqdy = (D >= 2 ? (q[id] - q[jU]) / dy : 0.0);
+        double dqdz = (D == 3 ? (q[id] - q[kU]) / dz : 0.0);
 
-        double ndgrad = nx[id] * dqdx + ny[id] * dqdy + nz[id] * dqdz;
+        double ndgrad = nxv[id] * dqdx + nyv[id] * dqdy + nzv[id] * dqdz;
         qn[id] = q[id] - dtau * s * ndgrad;
       }
-  std::copy(qn.begin(), qn.end(), q);
+
+  std::copy(qn.begin(), qn.end(), q.begin());
 }
 
 } // namespace spec::level_set::core
