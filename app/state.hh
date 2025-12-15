@@ -168,6 +168,12 @@ struct state {
     dpsidy;
   static inline const field<double>::definition<spec::mesh<D>, is::cells>
     dpsidz;
+  static inline const field<double>::definition<spec::mesh<D>, is::cells>
+    norm_x;
+  static inline const field<double>::definition<spec::mesh<D>, is::cells>
+    norm_y;
+  static inline const field<double>::definition<spec::mesh<D>, is::cells>
+    norm_z;
 
   static inline const field<double>::definition<spec::mesh<D>, is::cells> nx;
   static inline const field<double>::definition<spec::mesh<D>, is::cells> ny;
