@@ -15,21 +15,40 @@ class ProblemData(object):
     Define the quantities for each problem
     """
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, dim: int):
         """
         name - problem name
+        dim - problem dimensions (1, 2 or 3)
         """
+
+        assert dim in [1, 2, 3]
 
         # Define names for Riemann problems
         self.riemann_problems = ["sod", "leblanc", "rankine-hugoniot"]
 
         # Default values
         self.name = name
-        self.usecols = [0, 2, 3, 4, 9]
-        self.extract = ["density", "pressure", "velocity"]
-        self.labels = ["Density", "Pressure", "Velocity"]
-        self.tolerances = [1e-2, 1e-2, 5e-1]
+        self.dim = dim
         self.function: Callable
+        self.tolerances: float | list[float]
+
+        if dim == 1:
+            self.usecols = [0, 2, 3, 4, 9]
+            self.extract = ["density", "pressure", "velocity"]
+            self.labels = ["Density", "Pressure", "Velocity"]
+            self.tolerances = [1e-2, 1e-2, 5e-1]
+        elif dim == 2:
+            self.usecols = [0, 3, 4, 5, 6, 11, 12]
+            self.extract = ["density", "pressure", "velocity_x", "velocity_y"]
+            self.labels = ["Density", "Pressure", "Velocity x", "Velocity y"]
+            self.tolerances = [1e-2, 1e-2, 5e-1, 5e-1]
+        else:
+            self.usecols = [0, 4, 5, 6, 7, 8, 13, 14, 15]
+            self.extract = ["density", "pressure",
+                            "velocity_x", "velocity_y", "velocity_z"]
+            self.labels = ["Density", "Pressure",
+                           "Velocity x", "Velocity y", "Velocity z"]
+            self.tolerances = [1e-2, 1e-2, 5e-1, 5e-1, 5e-1]
 
         # Define specifics per problem and analytical solutions
         if self.name in self.riemann_problems:
@@ -38,6 +57,14 @@ class ProblemData(object):
             self.function = self.__sedov_analytic_solution
         elif self.name == "acoustic-wave":
             self.function = self.__acoustic_analytic_solution
+
+            # The acoustic wave has much better accuracy
+            if dim == 1:
+                self.tolerances = 1e-8
+            elif dim == 2:
+                self.tolerances = 2e-7
+            else:
+                self.tolerances = 7e-6
         else:
             sys.exit(f"Unsupported problem type '{name}'")
 
@@ -53,20 +80,28 @@ class ProblemData(object):
                 self.left_state = (1.0, 0.0, 1.0)
                 self.right_state = (0.25, 0.0, 0.1795)
 
-    def __acoustic_analytic_solution(self, gamma: float, t: float, x0: float,
-                                     x1: float, problem_dict: dict[str, str]
-                                     ) -> tuple[Callable, Callable, Callable]:
+    def __acoustic_analytic_solution(self, gamma: float, t: float, x0: NDArray,
+                                     x1: NDArray, problem_dict: dict[str, str]
+                                     ) -> tuple[Callable, ...]:
         """
         Return the acoustic analytical solution
         """
 
         result = wrapFunction(
-            Acoustic(gamma, x0, x1, problem_dict), t, self.extract)
+            Acoustic(gamma, x0, x1, problem_dict, dim=self.dim),
+            t, self.extract)
 
-        return result.density, result.pressure, result.velocity
+        if self.dim == 1:
+            return result.density, result.pressure, result.velocity
+        elif self.dim == 2:
+            return (result.density, result.pressure, result.velocity_x,
+                    result.velocity_y)
+        else:
+            return (result.density, result.pressure, result.velocity_x,
+                    result.velocity_y, result.velocity_z)
 
     def __sedov_analytic_solution(self, x: NDArray, t: float, gamma: float
-                                  ) -> tuple[Callable, Callable, Callable]:
+                                  ) -> tuple[Callable, ...]:
 
         from exactpack.solvers.sedov import Sedov
 
@@ -78,7 +113,7 @@ class ProblemData(object):
     def __riemann_analytic_solution(self, x: NDArray, t: float, gamma: float,
                                     left_state: tuple[float, float, float],
                                     right_state: tuple[float, float, float]
-                                    ) -> tuple[Callable, Callable, Callable]:
+                                    ) -> tuple[Callable, ...]:
 
         try:
             from exactpack.solvers.riemann.ep_riemann import IGEOS_Solver
@@ -103,10 +138,12 @@ class Problem(object):
     Class to hold each type of problem parameters
     """
 
-    def __init__(self, yaml_file: str) -> None:
+    def __init__(self, yaml_file: str, dim: int) -> None:
         """
         yaml_file - the yaml_file with the problem configuration
         """
+
+        assert dim in [1, 2, 3]
 
         name, gamma, x0, x1, problem_dict = parse_config(yaml_file)
 
@@ -114,10 +151,11 @@ class Problem(object):
         self.gamma = gamma
         self.x0 = x0
         self.x1 = x1
+        self.dim = dim
         self.problem_dict = problem_dict
 
         # Initialize quantities
-        self.data = ProblemData(self.name)
+        self.data = ProblemData(self.name, dim)
 
         # Variables to be defined later
         self.time: float
@@ -133,18 +171,39 @@ class Problem(object):
         Load the last csv file
         """
         self.csv_file = csv_file
-        csv_out = np.loadtxt(csv_file, delimiter=",",
-                             skiprows=1, usecols=self.data.usecols).T
+        csv_out = np.loadtxt(csv_file, comments=["time", "#"],
+                             delimiter=",", usecols=self.data.usecols).T
 
         # Extract time and x_arr
         t_index = self.data.usecols.index(0)
-        x_index = self.data.usecols.index(2)
+        if self.dim == 1:
+            x_index = self.data.usecols.index(2)
+        elif self.dim == 2:
+            x_index = self.data.usecols.index(3)
+            y_index = self.data.usecols.index(4)
+        else:
+            x_index = self.data.usecols.index(4)
+            y_index = self.data.usecols.index(5)
+            z_index = self.data.usecols.index(6)
+
         self.time = csv_out[t_index][0]
-        self.x_arr = csv_out[x_index]
+        if self.dim == 1:
+            self.x_arr = csv_out[x_index]
+        elif self.dim == 2:
+            self.x_arr = csv_out[x_index:y_index + 1]
+        else:
+            self.x_arr = csv_out[x_index:z_index + 1]
 
         # Extract the other quantities
-        self.numerical = [x for i, x in enumerate(
-            csv_out) if i not in [t_index, x_index]]
+        if self.dim == 1:
+            self.numerical = [x for i, x in enumerate(
+                csv_out) if i not in [t_index, x_index]]
+        elif self.dim == 2:
+            self.numerical = [x for i, x in enumerate(
+                csv_out) if i not in [t_index, x_index, y_index]]
+        else:
+            self.numerical = [x for i, x in enumerate(
+                csv_out) if i not in [t_index, x_index, y_index, z_index]]
 
     def get_exact_solutions(self) -> None:
         """
@@ -223,7 +282,7 @@ class Problem(object):
         Compute all the errors
         """
 
-        self.errors = [compute_l1_error_fvm(self.x_arr, num, exact)
+        self.errors = [compute_l1_error_fvm(self.x_arr, num, exact, self.dim)
                        for num, exact in zip(self.numerical, self.analytical)]
 
     def __color_text(self, text: str, status: str) -> str:
@@ -240,7 +299,11 @@ class Problem(object):
         """
 
         tols = self.data.tolerances
-        failed = [False if x < y else True for x, y in zip(self.errors, tols)]
+        if type(tols) is list:
+            failed = [False if x < y else True for x,
+                      y in zip(self.errors, tols)]
+        elif type(tols) is float:
+            failed = [False if x < tols else True for x in self.errors]
         statuses = ["FAIL" if x else "PASS" for x in failed]
 
         print(f"Problem type: {self.name}")
@@ -251,7 +314,10 @@ class Problem(object):
 
         if any(failed):
             s = "Test FAILED: relative L1 error exceeds tolerance of "
-            s += " ".join([f"{tol:.2e}" for tol in tols])
+            if type(tols) is list:
+                s += " ".join([f"{tol:.2e}" for tol in tols])
+            elif type(tols) is float:
+                s += f"{tols:.2e}"
             sys.exit(s)
         else:
             print("Test PASSED")
@@ -260,19 +326,22 @@ class Problem(object):
 def main() -> None:
 
     # Get the values
-    yaml_file, _, csv_file, make_plot = parse_cli()
+    yaml_file, dim, _, csv_file, combined, make_plot = parse_cli()
     assert csv_file is not None
 
     # Instantiate problem object
-    problem = Problem(yaml_file)
+    problem = Problem(yaml_file, dim)
 
     # Load csv file
     problem.load_csv_file(csv_file)
 
+    if combined:
+        os.remove(csv_file)
+
     # Get exact solutions
     problem.get_exact_solutions()
 
-    if make_plot:
+    if make_plot and dim == 1:
         problem.make_plot()
 
     # For Sedov: only compare for x > 0.2

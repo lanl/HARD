@@ -251,7 +251,7 @@ reconstruct(flecsi::exec::accelerator s,
       ruTail(i, j, k) = rTail(i, j, k) * uTail(i, j, k);
       rEHead(i, j, k) = rHead(i, j, k) * eHead(i, j, k) +
                         0.5 * rHead(i, j, k) * uHead(i, j, k).norm_squared();
-      rETail(i, j, k) = eTail(i, j, k) * eTail(i, j, k) +
+      rETail(i, j, k) = rTail(i, j, k) * eTail(i, j, k) +
                         0.5 * rTail(i, j, k) * uTail(i, j, k).norm_squared();
     }; // forall
   }

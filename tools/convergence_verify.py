@@ -21,7 +21,7 @@ def main() -> None:
     ord = 3
 
     # Get all files
-    yaml_file, out_dir, _, make_plot = parse_cli(get_file=False)
+    yaml_file, dim, out_dir, _, _, make_plot = parse_cli(get_file=False)
     problem, gamma, x0, x1, problem_dict = parse_config(yaml_file)
 
     # Find every example and build the dx and L1 error arrays
@@ -40,12 +40,15 @@ def main() -> None:
 
     first_loop = True
     for dir in dirs:
-        last_output = find_last_output(dir=dir)
+        last_output, combined = find_last_output(dir=dir)
         assert last_output is not None
 
-        out_tuple = np.loadtxt(last_output, delimiter=",",
-                               skiprows=1,
-                               usecols=(0, 2, 3, 4, 9)).T
+        out_tuple = np.loadtxt(last_output, comments=["time", "#"],
+                               delimiter=",", usecols=(0, 2, 3, 4, 9)).T
+
+        # If the csv file was combined, erase it
+        if combined:
+            os.remove(last_output)
 
         # Extract physical quantities from tuple
         t_arr, x_num, rho_num, p_num, u_num = out_tuple
@@ -54,14 +57,14 @@ def main() -> None:
         # Instantiate our solution class in the first loop
         if first_loop:
             acoustic_instance = wrapFunction(
-                Acoustic(gamma, x0, x1, problem_dict), time,
+                Acoustic(gamma, x0, x1, problem_dict, dim=dim), time,
                 ["density", "pressure", "velocity"])
             u_exact = acoustic_instance.velocity
 
             first_loop = False
 
         dx.append(x_num[1] - x_num[0])
-        l1err.append(compute_l1_error_fvm(x_num, u_num, u_exact))
+        l1err.append(compute_l1_error_fvm(x_num, u_num, u_exact, dim))
 
     if make_plot:
         def plot_order(dx, l1err, ord):
@@ -81,7 +84,7 @@ def main() -> None:
         plt.title("Error convergence")
 
         plt.legend()
-        plt.savefig("convergence.pdf")
+        plt.savefig(f"convergence-{dim}D.pdf")
 
     # Find slope of logarithms for convergence test
     logE = np.log(l1err)
