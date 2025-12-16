@@ -155,29 +155,20 @@ struct state {
   // Level set
   // Signed distance-like scalar and integer material label per cell
   // TODO: verify this
-  static inline const field<double>::definition<spec::mesh<D>, is::cells> psi;
-  static inline const field<int>::definition<spec::mesh<D>, is::cells> label;
+  static inline const field<double>::definition<mesh<D>, is::cells> psi;
+  static inline const field<int>::definition<mesh<D>, is::cells> label;
 
-  static inline const field<double>::definition<spec::mesh<D>, is::cells>
+  static inline const field<double>::definition<mesh<D>, is::cells>
     Lwork; // HJ operator result
 
   // Gradient components and unit normal
-  static inline const field<double>::definition<spec::mesh<D>, is::cells>
-    dpsidx;
-  static inline const field<double>::definition<spec::mesh<D>, is::cells>
-    dpsidy;
-  static inline const field<double>::definition<spec::mesh<D>, is::cells>
-    dpsidz;
-  static inline const field<double>::definition<spec::mesh<D>, is::cells>
-    norm_x;
-  static inline const field<double>::definition<spec::mesh<D>, is::cells>
-    norm_y;
-  static inline const field<double>::definition<spec::mesh<D>, is::cells>
-    norm_z;
+  static inline const field<double>::definition<mesh<D>, is::cells> dpsidx;
+  static inline const field<double>::definition<mesh<D>, is::cells> dpsidy;
+  static inline const field<double>::definition<mesh<D>, is::cells> dpsidz;
 
-  static inline const field<double>::definition<spec::mesh<D>, is::cells> nx;
-  static inline const field<double>::definition<spec::mesh<D>, is::cells> ny;
-  static inline const field<double>::definition<spec::mesh<D>, is::cells> nz;
+  static inline const field<double>::definition<mesh<D>, is::cells> norm_x;
+  static inline const field<double>::definition<mesh<D>, is::cells> norm_y;
+  static inline const field<double>::definition<mesh<D>, is::cells> norm_z;
 
   // Variables related to the diffusion (multigrid) solver
   static inline dual_field<double, D> Esf; // Temp solution field in multigrid
