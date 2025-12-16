@@ -5,4 +5,4 @@ class Flecsi(Flecsi):
     """
     Additional named versions for FleCSI
     """
-    version("2.4.0", commit="ff213702c291c303add0ed94eaf58c138af67f39")
+    version("2.4.1", commit="f57a634e3f1f136e8932ad81f267d3b69657ae15")

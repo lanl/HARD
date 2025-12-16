@@ -19,8 +19,8 @@ spack:
     mpi:
       require: "openmpi"
     flecsi:
-      require: "%clang@17.0.6 +cuda+flog+hdf5+kokkos+openmp cuda_arch=70 backend=mpi caliper_detail=low"
+      require: "+cuda+flog+hdf5 cuda_arch=70 backend=mpi caliper_detail=low %clang@17.0.6"
     kokkos:
-      require: "%clang ~wrapper +cuda cuda_arch=70"
+      require: "~wrapper +cuda cuda_arch=70 %clang"
     hard:
       require: "+radiation +tests +cuda cuda_arch=70"
