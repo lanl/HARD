@@ -5,7 +5,7 @@
 // This is the verification purpose only
 // The setup is adapted from Tariq et al. 2025
 
-namespace spec::level_set {
+namespace spec::level_set::vel {
 
 struct TimeReversal1D {
   double T{2.0};
@@ -57,6 +57,6 @@ struct TimeReversal3D {
         std::cos(M_PI * t / T);
   }
 };
-} // namespace spec::level_set
+} // namespace spec::level_set::vel
 
 #endif
