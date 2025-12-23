@@ -2,211 +2,186 @@
 #define SPEC_LS_CORE_HH
 
 #include "../mesh.hh"
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <cstddef>
-#include <vector>
+#include "app/types.hh"
+#include "spec/labels.hh"
 
 namespace spec::level_set::core {
 
-// Helpers to get sizes and deltas from spec/mesh.hh
-template<std::size_t D, class MeshAcc>
-inline void
-mesh_metrics(const MeshAcc & m,
-  int & nx,
-  int & ny,
-  int & nz,
-  double & dx,
-  double & dy,
-  double & dz) {
-  using ax::x;
-  using ax::y;
-  using ax::z;
-  using dm::quantities;
-  if constexpr(D == 1) {
-    nx = m.template size<x, quantities>();
-    ny = 1;
-    nz = 1;
-    dx = m.template delta<x>();
-    dy = 1.0;
-    dz = 1.0;
-  }
-  else if constexpr(D == 2) {
-    nx = m.template size<x, quantities>();
-    ny = m.template size<y, quantities>();
-    nz = 1;
-    dx = m.template delta<x>();
-    dy = m.template delta<y>();
-    dz = 1.0;
-  }
-  else { // D==3
-    nx = m.template size<x, quantities>();
-    ny = m.template size<y, quantities>();
-    nz = m.template size<z, quantities>();
-    dx = m.template delta<x>();
-    dy = m.template delta<y>();
-    dz = m.template delta<z>();
-  }
-}
+namespace hard::tasks {
 
 // upwind HJ RHS (acts on material-signed psi_m)
-template<std::size_t D, class MeshAcc, class PsiCont, class Vel>
-inline void
-rhs_upwind(const MeshAcc & m,
-  const PsiCont & psi,
-  const std::vector<int> & Lfrozen,
-  double t,
-  const Vel & vel,
-  std::vector<double> & Lout) {
+template<std::size_t D>
+void
+rhs_upwind(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<double>::template accessor<ro> psi_a,
+  typename field<vec<D>>::template accessor<ro> velocity_a,
+  typename field<int>::template accessor<rw> label_a) {
 
-  int nx, ny, nz;
-  double dx, dy, dz;
-  mesh_metrics<D>(m, nx, ny, nz, dx, dy, dz);
-  const int N = nx * ny * nz;
-  if((int)Lout.size() != N)
-    Lout.assign(N, 0.0);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto u = m.template mdcolex<is::cells>(velocity_a);
+  auto label = m.template mdcolex<is::cells>(label_a);
 
-  auto idx = [=](int i, int j, int k) {
-    auto wrap = [](int I, int n) {
-      I %= n;
-      if(I < 0)
-        I += n;
-      return I;
-    };
-    i = wrap(i, nx);
-    j = wrap(j, ny);
-    k = wrap(k, nz);
-    return i + nx * (j + ny * k);
-  };
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      const double max_u_x = std::max(0.0, u(i).x());
+      const double min_u_x = std::min(0.0, u(i).x());
+      label(i) -= (psi(i) * (max_u_x - min_u_x) + psi(i + 1) * min_u_x -
+                    psi(i - 1) * max_u_x) /
+                  m.template delta<ax::x>();
+    }; // forall
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(u,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
 
-  auto psim = [&](int ic, int jc, int kc, int in, int jn, int kn) {
-    int idc = idx(ic, jc, kc);
-    int idn = idx(in, jn, kn);
-    return (Lfrozen[idn] == Lfrozen[idc]) ? stage.psi[idn] : -stage.psi[idn];
-  };
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      const double max_u_x = std::max(0.0, u(i, j).x());
+      const double min_u_x = std::min(0.0, u(i, j).x());
+      const double max_u_y = std::max(0.0, u(i, j).y());
+      const double min_u_y = std::min(0.0, u(i, j).y());
+      label(i, j) -= (psi(i, j) * (max_u_x - min_u_x) +
+                       psi(i + 1, j) * min_u_x - psi(i - 1, j) * max_u_x) /
+                       m.template delta<ax::x>() +
+                     (psi(i, j) * (max_u_y - min_u_y) +
+                       psi(i, j + 1) * min_u_y - psi(i, j - 1) * max_u_y) /
+                       m.template delta<ax::y>();
+    }; // forall
+  }
+  else /* D == 3 */ {
+    auto mdpolicy_qqq = get_mdiota_policy(u,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
 
-  for(int k = 0; k < nz; ++k)
-    for(int j = 0; j < ny; ++j)
-      for(int i = 0; i < nx; ++i) {
-        int id = idx(i, j, k);
-
-        // map (i,j,k) to physical x,y,z with mesh centers:
-        // we assume that mesh is unifrom::
-        // x ~ (i+0.5)*dx;
-        double x = (i + 0.5) * dx;
-        double y = (D >= 2 ? (j + 0.5) * dy : 0.0);
-        double z = (D == 3 ? (k + 0.5) * dz : 0.0);
-
-        double u, v, w;
-        vel.sample(x, y, z, t, u, v, w);
-
-        const double pm = psi[id];
-        const double im1 = psim(i, j, k, i - 1, j, k),
-                     ip1 = psim(i, j, k, i + 1, j, k);
-        const double dmx = (pm - im1) / dx, dpx = (ip1 - pm) / dx;
-        double adv = std::max(0.0, u) * dmx + std::min(0.0, u) * dpx;
-
-        if constexpr(D >= 2) {
-          const double jm1 = psim(i, j, k, i, j - 1, k),
-                       jp1 = psim(i, j, k, i, j + 1, k);
-          const double dmy = (pm - jm1) / dy, dpy = (jp1 - pm) / dy;
-          double vpos = std::max(0.0, v), vneg = std::min(0.0, v);
-          adv += vpos * dmy + vneg * dpy;
-        }
-        if constexpr(D == 3) {
-          const double km1 = psim(i, j, k, i, j, k - 1),
-                       kp1 = psim(i, j, k, i, j, k + 1);
-          const double dmz = (pm - km1) / dz, dpz = (kp1 - pm) / dz;
-          double wpos = std::max(0.0, w), wneg = std::min(0.0, w);
-          adv += wpos * dmz + wneg * dpz;
-        }
-
-        Lout[id] = -adv; // psi_t = -u · grad_psi
-      }
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      const double max_u_x = std::max(0.0, u(i, j, k).x());
+      const double min_u_x = std::min(0.0, u(i, j, k).x());
+      const double max_u_y = std::max(0.0, u(i, j, k).y());
+      const double min_u_y = std::min(0.0, u(i, j, k).y());
+      const double max_u_z = std::max(0.0, u(i, j, k).z());
+      const double min_u_z = std::min(0.0, u(i, j, k).z());
+      label(i, j, k) -=
+        (psi(i, j, k) * (max_u_x - min_u_x) + psi(i + 1, j, k) * min_u_x -
+          psi(i - 1, j, k) * max_u_x) /
+          m.template delta<ax::x>() +
+        (psi(i, j, k) * (max_u_y - min_u_y) + psi(i, j + 1, k) * min_u_y -
+          psi(i, j - 1, k) * max_u_y) /
+          m.template delta<ax::y>() +
+        (psi(i, j, k) * (max_u_z - min_u_z) + psi(i, j, k + 1) * min_u_z -
+          psi(i, j, k - 1) * max_u_z) /
+          m.template delta<ax::z>();
+    }; // forall
+  }
 }
 
 // Determine state at time level n+1 (2-neigh 1D, 4-neigh 2D, 6-neigh 3D)
 // algorithm 1 in Aslam et al. 2024
-template<std::size_t D,
-  class Psi3Cont,
-  class LabelCont,
-  class PsiOutCont,
-  class LabelOutCont>
-inline void
-determine_psi(int nx,
-  int ny,
-  int nz,
-  const Psi3Cont & psi3,
-  const LabelCont & Lold,
-  PsiOutCont & psi_out,
-  LabelOutCont & L_out) {
+template<std::size_t D>
+void
+determine_psi(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<double>::template accessor<ro> frozen_psi_a,
+  typename field<double>::template accessor<wo> psi_a,
+  typename field<int>::template accessor<ro> frozen_label_a,
+  typename field<int>::template accessor<wo> label_a) {
 
-  auto idx = [=](int i, int j, int k) {
-    auto wrap = [](int I, int n) {
-      I %= n;
-      if(I < 0)
-        I += n;
-      return I;
-    };
-    i = wrap(i, nx);
-    j = wrap(j, ny);
-    k = wrap(k, nz);
-    return i + nx * (j + ny * k);
-  };
+  auto f_psi = m.template mdcolex<is::cells>(frozen_psi_a);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto f_label = m.template mdcolex<is::cells>(frozen_label_a);
+  auto Label = m.template mdcolex<is::cells>(label_a);
 
   if constexpr(D == 1) {
-    for(int i = 0; i < nx; ++i) {
-      int id = idx(i, 0, 0);
-      if(psi3[id] > 0.0) {
-        double psimin = psi3[id];
-        int lmin = Lold[id];
-        int idL = idx(i - 1, 0, 0), idR = idx(i + 1, 0, 0);
-        if(Lold[idL] != Lold[id] && psi3[idL] < psimin) {
-          psimin = psi3[idL];
-          lmin = Lold[idL];
-        }
-        if(Lold[idR] != Lold[id] && psi3[idR] < psimin) {
-          psimin = psi3[idR];
-          lmin = Lold[idR];
-        }
-        psi_out[id] = (psimin >= 0.0 ? 1.0 : -1.0) * psi3[id];
-        L_out[id] = lmin;
-      }
-      else {
-        psi_out[id] = psi3[id];
-        L_out[id] = Lold[id];
-      }
-    }
-    return;
-  }
-
-  const int di[6] = {-1, 1, 0, 0, 0, 0}, dj[6] = {0, 0, -1, 1, 0, 0},
-            dk[6] = {0, 0, 0, 0, -1, 1};
-  const int nnei = (D == 2 ? 4 : 6);
-
-  for(int k = 0; k < nz; ++k)
-    for(int j = 0; j < ny; ++j)
-      for(int i = 0; i < nx; ++i) {
-        int id = idx(i, j, k);
-        if(psi3[id] <= 0.0) {
-          psi_out[id] = psi3[id];
-          L_out[id] = Lold[id];
-          continue;
-        }
-        double psimin = psi3[id];
-        int lmin = Lold[id];
-        for(int n = 0; n < nnei; ++n) {
-          int q = idx(i + di[n], j + dj[n], k + dk[n]);
-          if(Lold[q] != Lold[id] && psi3[q] < psimin) {
-            psimin = psi3[q];
-            lmin = Lold[q];
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      if(f_psi(i) > 0) {
+        double psimin = f_psi(i);
+        int lmin = f_label(i);
+        for(int pm = -1; pm <= 1; pm += 2) {
+          if(f_label(i + pm) != f_label(i) && f_psi(i + pm) < psimin) {
+            psimin = f_psi(i + pm);
+            lmin = f_label(i + pm);
           }
         }
-        psi_out[id] = (psimin >= 0.0 ? 1.0 : -1.0) * psi3[id];
-        L_out[id] = lmin;
+        psi(i) = (psimin >= 0.0 ? 1.0 : -1.0) * f_psi(i);
+        label(i) = lmin;
       }
-}
+      else {
+        psi(i) = f_psi(i);
+        label(i) = f_label(i);
+      }
+    }; // forall
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(psi,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      if(f_psi(i, j) > 0) {
+        double psimin = f_psi(i, j);
+        int lmin = f_label(i, j);
+        for(int pm = -1; pm <= 1; pm += 2) {
+          if(f_label(i + pm, j) != f_label(i, j) && f_psi(i + pm, j) < psimin) {
+            psimin = f_psi(i + pm, j);
+            lmin = f_label(i + pm, j);
+          }
+          if(f_label(i, j + pm) != f_label(i, j) && f_psi(i, j + pm) < psimin) {
+            psimin = f_psi(i, j + pm);
+            lmin = f_label(i, j + pm);
+          }
+        }
+        psi(i, j) = (psimin >= 0.0 ? 1.0 : -1.0) * f_psi(i, j);
+        label(i, j) = lmin;
+      }
+      else {
+        psi(i, j) = f_psi(i, j);
+        label(i, j) = f_label(i, j);
+      }
+    }; // forall
+  }
+  else /* D == 3 */ {
+    auto mdpolicy_qqq = get_mdiota_policy(psi,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      if(f_psi(i, j, k) > 0) {
+        double psimin = f_psi(i, j, k);
+        int lmin = f_label(i, j, k);
+        for(int pm = -1; pm <= 1; pm += 2) {
+          if(f_label(i + pm, j, k) != f_label(i, j, k) &&
+             f_psi(i + pm, j, k) < psimin) {
+            psimin = f_psi(i + pm, j, k);
+            lmin = f_label(i + pm, j, k);
+          }
+          if(f_label(i, j + pm, k) != f_label(i, j, k) &&
+             f_psi(i, j + pm, k) < psimin) {
+            psimin = f_psi(i, j + pm, k);
+            lmin = f_label(i, j + pm, k);
+          }
+          if(f_label(i, j, k + pm) != f_label(i, j, k) &&
+             f_psi(i, j, k + pm) < psimin) {
+            psimin = f_psi(i, j, k + pm);
+            lmin = f_label(i, j, k + pm);
+          }
+          psi(i, j, k) = (psimin >= 0.0 ? 1.0 : -1.0) * f_psi(i, j, k);
+          label(i, j, k) = lmin;
+        }
+      }
+      else {
+        psi(i, j, k) = f_psi(i, j, k);
+        label(i, j, k) = f_label(i, j, k);
+      }
+    }; // forall
+  }
+
+} // namespace hard::tasks
 
 // SSPRK(3,3) driver with frozen labels
 template<std::size_t D, class MeshAcc, class PsiAcc, class LabelAcc, class Vel>
