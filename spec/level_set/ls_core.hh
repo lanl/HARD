@@ -254,7 +254,6 @@ ssprk3_step(const MeshAcc & m,
   }
 }
 
-
 } // namespace spec::level_set::core
 
 #endif
