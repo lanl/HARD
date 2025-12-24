@@ -161,15 +161,6 @@ struct state {
   static inline const field<double>::definition<mesh<D>, is::cells>
     Lwork; // HJ operator result
 
-  // Gradient components and unit normal
-  static inline const field<double>::definition<mesh<D>, is::cells> dpsidx;
-  static inline const field<double>::definition<mesh<D>, is::cells> dpsidy;
-  static inline const field<double>::definition<mesh<D>, is::cells> dpsidz;
-
-  static inline const field<double>::definition<mesh<D>, is::cells> norm_x;
-  static inline const field<double>::definition<mesh<D>, is::cells> norm_y;
-  static inline const field<double>::definition<mesh<D>, is::cells> norm_z;
-
   // Variables related to the diffusion (multigrid) solver
   static inline dual_field<double, D> Esf; // Temp solution field in multigrid
   static inline const field<double>::template definition<mesh<D>, is::cells>
