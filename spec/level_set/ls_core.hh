@@ -18,8 +18,7 @@ rhs_upwind(flecsi::exec::accelerator s,
   typename field<double>::template accessor<ro> psi_a,
   typename field<vec<D>>::template accessor<ro> velocity_a,
   typename field<int>::template accessor<rw> frozen_label_a,
-  typename field<int>::template accessor<rw> label_a,
-  const double t) {
+  typename field<int>::template accessor<rw> label_a) {
 
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto u = m.template mdcolex<is::cells>(velocity_a);
@@ -27,6 +26,8 @@ rhs_upwind(flecsi::exec::accelerator s,
   auto f_label = m.template mdcolex<is::cells>(frozen_label_a);
 
   // TODO: The velocity is not sampled right now at a timestep
+  // This is why the dt was being added before, but I removed it from
+  // the signature for now
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
@@ -309,8 +310,7 @@ ssprk3_step(control_policy<hard::state, D> & cp) {
     s.psi(*s.m),
     s.velocity(*s.m),
     s.frozen_label(*s.m),
-    s.label(*s.m),
-    s.t(*s.gt));
+    s.label(*s.m));
   sc.execute<task::advance_psi<D, 1>>(flecsi::exec::on,
     *s.m,
     s.psi(*s.m),
@@ -324,8 +324,7 @@ ssprk3_step(control_policy<hard::state, D> & cp) {
     s.psi1(*s.m),
     s.velocity(*s.m),
     s.frozen_label(*s.m),
-    s.label(*s.m),
-    s.t(*s.gt) + s.dt(*s.gt));
+    s.label(*s.m));
   sc.execute<task::advance_psi<D, 2>>(flecsi::exec::on,
     *s.m,
     s.psi(*s.m),
@@ -339,8 +338,7 @@ ssprk3_step(control_policy<hard::state, D> & cp) {
     s.psi2(*s.m),
     s.velocity(*s.m),
     s.frozen_label(*s.m),
-    s.label(*s.m),
-    s.t(*s.gt) + s.dt(*s.gt));
+    s.label(*s.m));
   sc.execute<task::advance_psi<D, 3>>(flecsi::exec::on,
     *s.m,
     s.psi(*s.m),
