@@ -156,8 +156,13 @@ struct state {
   // Signed distance-like scalar and integer material label per cell
   // TODO: verify this
   static inline const field<double>::definition<mesh<D>, is::cells> psi;
+  static inline const field<double>::definition<mesh<D>, is::cells> psi1, psi2,
+    psi3;
+  static inline const field<double>::definition<mesh<D>, is::cells> frozen_psi;
   static inline const field<int>::definition<mesh<D>, is::cells> label;
+  static inline const field<int>::definition<mesh<D>, is::cells> frozen_label;
 
+  // TODO: Maybe remove
   static inline const field<double>::definition<mesh<D>, is::cells>
     Lwork; // HJ operator result
 
@@ -287,7 +292,7 @@ struct state {
   static inline const field<double>::definition<mesh<D>, is::cells>
     radiation_energy_density_n;
 
-  // FIXME Temporary variable for sections of the code only used for the
+  // FIXME: Temporary variable for sections of the code only used for the
   // multigroup implementation (mostly boundaries)
   bool mg = false;
 

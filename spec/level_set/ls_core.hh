@@ -1,13 +1,14 @@
 #ifndef SPEC_LS_CORE_HH
 #define SPEC_LS_CORE_HH
 
+#include "../../app/state.hh"
 #include "../mesh.hh"
 #include "app/types.hh"
 #include "spec/labels.hh"
 
 namespace spec::level_set::core {
 
-namespace hard::tasks {
+namespace task {
 
 // upwind HJ RHS (acts on material-signed psi_m)
 template<std::size_t D>
@@ -16,19 +17,29 @@ rhs_upwind(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro> psi_a,
   typename field<vec<D>>::template accessor<ro> velocity_a,
-  typename field<int>::template accessor<rw> label_a) {
+  typename field<int>::template accessor<rw> frozen_label_a,
+  typename field<int>::template accessor<rw> label_a,
+  const double t) {
 
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto u = m.template mdcolex<is::cells>(velocity_a);
   auto label = m.template mdcolex<is::cells>(label_a);
+  auto f_label = m.template mdcolex<is::cells>(frozen_label_a);
+
+  // TODO: The velocity is not sampled right now at a timestep
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const double max_u_x = std::max(0.0, u(i).x());
       const double min_u_x = std::min(0.0, u(i).x());
-      label(i) -= (psi(i) * (max_u_x - min_u_x) + psi(i + 1) * min_u_x -
-                    psi(i - 1) * max_u_x) /
-                  m.template delta<ax::x>();
+      const double psi_ip1 =
+        (f_label(i) == f_label(i + 1)) ? psi(i + 1) : -psi(i + 1);
+      const double psi_im1 =
+        (f_label(i) == f_label(i - 1)) ? psi(i - 1) : -psi(i - 1);
+
+      label(i) -=
+        (psi(i) * (max_u_x - min_u_x) + psi_ip1 * min_u_x - psi_im1 * max_u_x) /
+        m.template delta<ax::x>();
     }; // forall
   }
   else if constexpr(D == 2) {
@@ -42,11 +53,20 @@ rhs_upwind(flecsi::exec::accelerator s,
       const double min_u_x = std::min(0.0, u(i, j).x());
       const double max_u_y = std::max(0.0, u(i, j).y());
       const double min_u_y = std::min(0.0, u(i, j).y());
-      label(i, j) -= (psi(i, j) * (max_u_x - min_u_x) +
-                       psi(i + 1, j) * min_u_x - psi(i - 1, j) * max_u_x) /
+      const double psi_ip1 =
+        (f_label(i, j) == f_label(i + 1, j)) ? psi(i + 1, j) : -psi(i + 1, j);
+      const double psi_im1 =
+        (f_label(i, j) == f_label(i - 1, j)) ? psi(i - 1, j) : -psi(i - 1, j);
+      const double psi_jp1 =
+        (f_label(i, j) == f_label(i, j + 1)) ? psi(i, j + 1) : -psi(i, j + 1);
+      const double psi_jm1 =
+        (f_label(i, j) == f_label(i, j - 1)) ? psi(i, j - 1) : -psi(i, j - 1);
+
+      label(i, j) -= (psi(i, j) * (max_u_x - min_u_x) + psi_ip1 * min_u_x -
+                       psi_im1 * max_u_x) /
                        m.template delta<ax::x>() +
-                     (psi(i, j) * (max_u_y - min_u_y) +
-                       psi(i, j + 1) * min_u_y - psi(i, j - 1) * max_u_y) /
+                     (psi(i, j) * (max_u_y - min_u_y) + psi_jp1 * min_u_y -
+                       psi_jm1 * max_u_y) /
                        m.template delta<ax::y>();
     }; // forall
   }
@@ -64,16 +84,34 @@ rhs_upwind(flecsi::exec::accelerator s,
       const double min_u_y = std::min(0.0, u(i, j, k).y());
       const double max_u_z = std::max(0.0, u(i, j, k).z());
       const double min_u_z = std::min(0.0, u(i, j, k).z());
-      label(i, j, k) -=
-        (psi(i, j, k) * (max_u_x - min_u_x) + psi(i + 1, j, k) * min_u_x -
-          psi(i - 1, j, k) * max_u_x) /
-          m.template delta<ax::x>() +
-        (psi(i, j, k) * (max_u_y - min_u_y) + psi(i, j + 1, k) * min_u_y -
-          psi(i, j - 1, k) * max_u_y) /
-          m.template delta<ax::y>() +
-        (psi(i, j, k) * (max_u_z - min_u_z) + psi(i, j, k + 1) * min_u_z -
-          psi(i, j, k - 1) * max_u_z) /
-          m.template delta<ax::z>();
+      const double psi_ip1 = (f_label(i, j, k) == f_label(i + 1, j, k))
+                               ? psi(i + 1, j, k)
+                               : -psi(i + 1, j, k);
+      const double psi_im1 = (f_label(i, j, k) == f_label(i - 1, j, k))
+                               ? psi(i - 1, j, k)
+                               : -psi(i - 1, j, k);
+      const double psi_jp1 = (f_label(i, j, k) == f_label(i, j + 1, k))
+                               ? psi(i, j + 1, k)
+                               : -psi(i, j + 1, k);
+      const double psi_jm1 = (f_label(i, j, k) == f_label(i, j - 1, k))
+                               ? psi(i, j - 1, k)
+                               : -psi(i, j - 1, k);
+      const double psi_kp1 = (f_label(i, j, k) == f_label(i, j, k + 1))
+                               ? psi(i, j, k + 1)
+                               : -psi(i, j, k + 1);
+      const double psi_km1 = (f_label(i, j, k) == f_label(i, j, k - 1))
+                               ? psi(i, j, k - 1)
+                               : -psi(i, j, k - 1);
+
+      label(i, j, k) -= (psi(i, j, k) * (max_u_x - min_u_x) +
+                          psi_ip1 * min_u_x - psi_im1 * max_u_x) /
+                          m.template delta<ax::x>() +
+                        (psi(i, j, k) * (max_u_y - min_u_y) +
+                          psi_jp1 * min_u_y - psi_jm1 * max_u_y) /
+                          m.template delta<ax::y>() +
+                        (psi(i, j, k) * (max_u_z - min_u_z) +
+                          psi_kp1 * min_u_z - psi_km1 * max_u_z) /
+                          m.template delta<ax::z>();
     }; // forall
   }
 }
@@ -86,13 +124,13 @@ determine_psi(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro> frozen_psi_a,
   typename field<double>::template accessor<wo> psi_a,
-  typename field<int>::template accessor<ro> frozen_label_a,
+  typename field<int>::template accessor<rw> frozen_label_a,
   typename field<int>::template accessor<wo> label_a) {
 
   auto f_psi = m.template mdcolex<is::cells>(frozen_psi_a);
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto f_label = m.template mdcolex<is::cells>(frozen_label_a);
-  auto Label = m.template mdcolex<is::cells>(label_a);
+  auto label = m.template mdcolex<is::cells>(label_a);
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
@@ -170,9 +208,9 @@ determine_psi(flecsi::exec::accelerator s,
             psimin = f_psi(i, j, k + pm);
             lmin = f_label(i, j, k + pm);
           }
-          psi(i, j, k) = (psimin >= 0.0 ? 1.0 : -1.0) * f_psi(i, j, k);
-          label(i, j, k) = lmin;
         }
+        psi(i, j, k) = (psimin >= 0.0 ? 1.0 : -1.0) * f_psi(i, j, k);
+        label(i, j, k) = lmin;
       }
       else {
         psi(i, j, k) = f_psi(i, j, k);
@@ -180,55 +218,144 @@ determine_psi(flecsi::exec::accelerator s,
       }
     }; // forall
   }
+} // determine_psi
 
-} // namespace hard::tasks
+// Determine state at time level n+1 (2-neigh 1D, 4-neigh 2D, 6-neigh 3D)
+// algorithm 1 in Aslam et al. 2024
+template<std::size_t D, std::size_t STEP>
+void
+advance_psi(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<double>::template accessor<ro> psi_a,
+  typename field<int>::template accessor<ro> label_a,
+  typename field<double>::template accessor<ro> psi_prev_a,
+  typename field<double>::template accessor<wo> psi_n_a,
+  const double dt) {
+
+  static_assert(STEP >= 1 && STEP <= 3, "STEP is 1, 2 or 3");
+
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto label = m.template mdcolex<is::cells>(label_a);
+  auto psi_prev = m.template mdcolex<is::cells>(psi_prev_a);
+  auto psi_n = m.template mdcolex<is::cells>(psi_n_a);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      if constexpr(STEP == 1) {
+        psi_n(i) = psi(i) + dt * label(i);
+      }
+      else if constexpr(STEP == 2) {
+        psi_n(i) = (3 * psi(i) + (psi_prev(i) + dt * label(i))) * 0.25;
+      }
+      else /* STEP == 3 */ {
+        psi_n(i) = (psi(i) + 2 * (psi_prev(i) + dt * label(i))) / 3.0;
+      }
+    }; // forall
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(psi,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      if constexpr(STEP == 1) {
+        psi_n(i, j) = psi(i, j) + dt * label(i, j);
+      }
+      else if constexpr(STEP == 2) {
+        psi_n(i, j) =
+          (3 * psi(i, j) + (psi_prev(i, j) + dt * label(i, j))) * 0.25;
+      }
+      else /* STEP == 3 */ {
+        psi_n(i, j) =
+          (psi(i, j) + 2 * (psi_prev(i, j) + dt * label(i, j))) / 3.0;
+      }
+    }; // forall
+  }
+  else /* D == 3 */ {
+    auto mdpolicy_qqq = get_mdiota_policy(psi,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      if constexpr(STEP == 1) {
+        psi_n(i, j, k) = psi(i, j, k) + dt * label(i, j, k);
+      }
+      else if constexpr(STEP == 2) {
+        psi_n(i, j, k) =
+          (3 * psi(i, j, k) + (psi_prev(i, j, k) + dt * label(i, j, k))) * 0.25;
+      }
+      else /* STEP == 3 */ {
+        psi_n(i, j, k) =
+          (psi(i, j, k) + 2 * (psi_prev(i, j, k) + dt * label(i, j, k))) / 3.0;
+      }
+    }; // forall
+  }
+} // advance_psi
+} // namespace task
 
 // SSPRK(3,3) driver with frozen labels
-template<std::size_t D, class MeshAcc, class PsiAcc, class LabelAcc, class Vel>
-inline void
-ssprk3_step(const MeshAcc & m,
-  PsiAcc & psi_a,
-  LabelAcc & lab_a,
-  const Vel & vel,
-  double t,
-  double dt) {
+template<std::size_t D>
+void
+ssprk3_step(control_policy<hard::state, D> & cp) {
+  auto & s = cp.state();
 
-  int nx, ny, nz;
-  double dx, dy, dz;
-  mesh_metrics<D>(m, nx, ny, nz, dx, dy, dz);
-  const int N = nx * ny * nz;
+  flecsi::scheduler & sc = cp.scheduler();
 
-  auto psi_span = psi_a.span();
-  auto label_span = lab_a.span();
+  sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
+    *s.m,
+    s.psi(*s.m),
+    s.velocity(*s.m),
+    s.frozen_label(*s.m),
+    s.label(*s.m),
+    s.t(*s.gt));
+  sc.execute<task::advance_psi<D, 1>>(flecsi::exec::on,
+    *s.m,
+    s.psi(*s.m),
+    s.label(*s.m),
+    s.psi2(*s.m),
+    s.psi1(*s.m),
+    s.dt(s.gt));
 
-  std::vector<double> psi(psi_span.begin(), psi_span.end());
-  std::vector<int> label(label_span.begin(), label_span.end());
+  sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
+    *s.m,
+    s.psi1(*s.m),
+    s.velocity(*s.m),
+    s.frozen_label(*s.m),
+    s.label(*s.m),
+    s.t(*s.gt) + s.dt(*s.gt));
+  sc.execute<task::advance_psi<D, 2>>(flecsi::exec::on,
+    *s.m,
+    s.psi(*s.m),
+    s.label(*s.m),
+    s.psi1(*s.m),
+    s.psi2(*s.m),
+    s.dt(s.gt));
 
-  std::vector<int> Lfrozen = label;
-  std::vector<double> L(N), psi1(N), psi2(N), psi3(N);
+  sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
+    *s.m,
+    s.psi2(*s.m),
+    s.velocity(*s.m),
+    s.frozen_label(*s.m),
+    s.label(*s.m),
+    s.t(*s.gt) + s.dt(*s.gt));
+  sc.execute<task::advance_psi<D, 3>>(flecsi::exec::on,
+    *s.m,
+    s.psi(*s.m),
+    s.label(*s.m),
+    s.psi2(*s.m),
+    s.psi3(*s.m),
+    s.dt(s.gt));
 
-  rhs_upwind<D>(m, psi, Lfrozen, t, vel, L);
-  for(int q = 0; q < N; ++q)
-    psi1[q] = psi[q] + dt * L[q];
-
-  rhs_upwind<D>(m, psi1, Lfrozen, t + dt, vel, L);
-  for(int q = 0; q < N; ++q)
-    psi2[q] = 0.75 * psi[q] + 0.25 * (psi1[q] + dt * L[q]);
-
-  rhs_upwind<D>(m, psi2, Lfrozen, t + 0.5 * dt, vel, L);
-  for(int q = 0; q < N; ++q)
-    psi3[q] = (1.0 / 3.0) * psi[q] + (2.0 / 3.0) * (psi2[q] + dt * L[q]);
-
-  std::vector<double> psi_next(N);
-  std::vector<int> L_next(N);
-  determine_psi<D>(nx, ny, nz, psi3, label, psi_next, L_next);
-
-  for(int q = 0; q < N; ++q) {
-    psi_span[q] = psi_next[q];
-    label_span[q] = L_next[q];
-  }
+  sc.execute<task::determine_psi<D>>(flecsi::exec::on,
+    *s.m,
+    s.psi3(*s.m),
+    s.psi(*s.m),
+    s.frozen_label(*s.m),
+    s.label(*s.m));
 }
-
 } // namespace spec::level_set::core
 
 #endif

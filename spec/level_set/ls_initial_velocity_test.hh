@@ -2,7 +2,7 @@
 #define SPEC_LS_INITIAL_VELOCITY_TEST
 #include <cmath>
 
-// This is the verification purpose only
+// This is for verification purposes only
 // The setup is adapted from Tariq et al. 2025
 
 namespace spec::level_set::vel {
