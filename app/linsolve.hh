@@ -43,7 +43,7 @@ make_solver(control_policy<state, D> & cp) {
 
   auto slv = flecsolve::bicgstab::solver(
     s.solver_settings, flecsolve::bicgstab::make_work(f))(
-    op_handle, prec_handle, [&](auto &, double rnorm) { return false; });
+    op_handle, prec_handle, [&](auto &, double) { return false; });
   return slv;
 }
 #endif
