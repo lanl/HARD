@@ -3,7 +3,6 @@
 
 #include "../../app/state.hh"
 #include "../mesh.hh"
-#include "app/types.hh"
 #include "spec/labels.hh"
 
 namespace spec::level_set::core {
@@ -353,7 +352,7 @@ ssprk3_step(control_policy<hard::state, D> & cp) {
     s.psi(*s.m),
     s.frozen_label(*s.m),
     s.label(*s.m));
-}
+} // ssprk3_step
 } // namespace spec::level_set::core
 
 #endif
