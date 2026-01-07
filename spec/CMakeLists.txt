@@ -13,4 +13,6 @@ spec_headers(
   limiter.hh
   types.hh
   utils.hh
+  mesh.hh
+  eos.hh
 )

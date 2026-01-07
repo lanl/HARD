@@ -8,7 +8,7 @@ if(ENABLE_CATALYST)
     ${HARD_SOURCES}
     catalyst/types.cc
     catalyst/adaptor.cc
-  ) 
+  )
 endif()
 
 add_executable(hard ${HARD_SOURCES})
@@ -22,9 +22,9 @@ if(Kokkos_ENABLE_CUDA AND CMAKE_BUILD_TYPE STREQUAL "Debug" AND
 endif()
 
 target_link_libraries(hard
-	Spec::Spec
-	FleCSI::FleCSI
-	yaml-cpp::yaml-cpp
+  Spec::Spec
+  FleCSI::FleCSI
+  yaml-cpp::yaml-cpp
   singularity-eos::singularity-eos
 )
 
@@ -62,71 +62,82 @@ if(HARD_ENABLE_LEGION_TRACING)
     target_compile_definitions(hard PUBLIC HARD_ENABLE_LEGION_TRACING)
 endif()
 
-if(ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
-  file(MAKE_DIRECTORY
-    ${CMAKE_BINARY_DIR}/tests/rk_3d
-    ${CMAKE_BINARY_DIR}/tests/sod_3d
-  )
+if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
 
-if(NOT ENABLE_RADIATION)
-  # Accuracy tests 
-  add_test(NAME accuracy_rk_1d
-    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
-    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/rk.yaml -d1
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
-  add_test(NAME accuracy_sod_1d
-    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
-    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod.yaml -d1
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
-  add_test(NAME accuracy_leblanc_1d
-    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
-    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/leblanc.yaml -d1
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
-  # add_test(NAME accuracy_sedov_1d
-  #   COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
-  #   ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
-  #   ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.yaml -d1
-  #   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  # )
-  add_test(NAME accuracy_acoustic_1d
-    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
-    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d1
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
-  add_test(NAME accuracy_acoustic_2d
-    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
-    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d2
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
-endif()
+  if(ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
+    file(MAKE_DIRECTORY
+      ${CMAKE_BINARY_DIR}/tests/rk_3d
+      ${CMAKE_BINARY_DIR}/tests/sod_3d
+    )
 
-if(NOT ENABLE_RADIATION)
-  # Distributed tests 
-  add_test(NAME hard-distributed
-    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_distributed.sh
-    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.yaml -d1)
-endif()
+    if(NOT ENABLE_RADIATION)
+      # Accuracy tests
+      add_test(NAME accuracy_rk_1d
+        COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+        ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+        ${CMAKE_SOURCE_DIR}/configs/ci_configs/rk.yaml -d1
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      )
+      add_test(NAME accuracy_sod_1d
+        COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+        ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+        ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod.yaml -d1
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      )
+      add_test(NAME accuracy_leblanc_1d
+        COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+        ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+        ${CMAKE_SOURCE_DIR}/configs/ci_configs/leblanc.yaml -d1
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      )
+      # add_test(NAME accuracy_sedov_1d
+      #   COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+      #   ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+      #   ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.yaml -d1
+      #   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      # )
+      add_test(NAME accuracy_acoustic_1d
+        COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+        ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+        ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d1
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      )
+      add_test(NAME accuracy_acoustic_2d
+        COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_verify.sh
+        ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+        ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d2
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      )
+    endif()
 
-if(NOT ENABLE_RADIATION)
-  # Convergence tests
-  add_test(NAME convergence_testing
-    COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_convergence.sh
-    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
-    6 10
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_convergence.yaml -d1
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
-endif()
+    if(NOT ENABLE_RADIATION)
+      # Distributed tests
+      add_test(NAME hard-distributed
+        COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_distributed.sh
+        ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+        ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.yaml -d1)
+    endif()
 
+    if(NOT ENABLE_RADIATION)
+      # Convergence tests
+      add_test(NAME convergence_testing
+        COMMAND ${CMAKE_SOURCE_DIR}/app/tests/test_convergence.sh
+        ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/app/hard
+        6 10
+        ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_convergence.yaml -d1
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      )
+    endif()
+  endif()
 endif()
 
 install(TARGETS hard)
+
+#----------------------------------------------------------------------------#
+# Unit Tests
+#----------------------------------------------------------------------------#
+
+flecsi_add_test(mesh
+  SOURCES
+    tests/mesh.cc
+)

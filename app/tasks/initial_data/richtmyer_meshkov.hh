@@ -51,8 +51,10 @@ richtmyer_meshkov(flecsi::exec::cpu s,
   // for defining shock
   const double y_shock = interface + 0.01;
 
+#ifdef ENABLE_RADIATION
   // constant for the radiation energy
   const double a = hard::constants::cgs::radiation_constant;
+#endif
 
   // temperature for radiation
   const double rad_temp =
