@@ -201,17 +201,6 @@ if(ENABLE_DOCUMENTATION)
 endif()
 
 #------------------------------------------------------------------------------#
-# Testing
-#------------------------------------------------------------------------------#
-option(ENABLE_UNIT_TESTS "Enable unit tests" OFF)
-mark_as_advanced(ENABLE_UNIT_TESTS)
-
-if(ENABLE_UNIT_TESTS)
-  include(FleCSI/unit)
-  enable_testing()
-endif()
-
-#------------------------------------------------------------------------------#
 # Add library.
 #------------------------------------------------------------------------------#
 
@@ -222,6 +211,20 @@ target_include_directories(Spec
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 add_subdirectory(spec)
+
+#------------------------------------------------------------------------------#
+# Testing
+#------------------------------------------------------------------------------#
+option(ENABLE_UNIT_TESTS "Enable unit tests" OFF)
+mark_as_advanced(ENABLE_UNIT_TESTS)
+
+set(FLECSI_UNIT_MAIN ${CMAKE_SOURCE_DIR}/app/tests/main.cc)
+include(FleCSI/unit)
+
+if(ENABLE_UNIT_TESTS)
+  flecsi_enable_testing()
+endif()
+
 
 #------------------------------------------------------------------------------#
 # Add apps.
@@ -236,7 +239,7 @@ add_subdirectory(app)
 option(ENABLE_VERIFICATION "Enable exactpack verification" OFF)
 mark_as_advanced(ENABLE_FORMAT)
 
-if(ENABLE_VERIFICATION OR ENABLE_UNIT_TESTS)
+if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
 
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
   # We need the exactpack package

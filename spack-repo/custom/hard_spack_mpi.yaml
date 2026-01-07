@@ -18,4 +18,4 @@ spack:
     flecsi:
       require: "+flog+hdf5 backend=mpi %gcc@13.2.0"
     hard:
-      require: "+tests -radiation"
+      require: "+tests +verification -radiation"
