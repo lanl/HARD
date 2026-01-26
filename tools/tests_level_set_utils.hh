@@ -1,15 +1,42 @@
-#ifndef SPEC_LS_INITIAL_VELOCITY_TEST
-#define SPEC_LS_INITIAL_VELOCITY_TEST
-#include "../mesh.hh"
-#include "app/types.hh"
-#include <array>
-#include <cmath>
-#include <cstdarg>
+#ifndef TEST_LS_UTILS_HH
+#define TEST_LS_UTILS_HH
 
-// This is for verification purposes only
-// The setup is adapted from Tariq et al. 2025
+#include "../tasks/utils.hh"
 
-namespace spec::level_set::vel {
+using namespace spec;
+using namespace hard::tasks::util;
+
+namespace tests::level_set_utils {
+
+template<size_t D>
+struct state {
+  global::ptr gt;
+  typename mesh<D>::ptr m;
+
+  // Velocity field (u)
+  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+    velocity;
+
+  // Time step and time
+  static inline const single<double>::definition<flecsi::topo::global> dt, t;
+
+  // Level set fields (stage buffers)
+  static inline const field<double>::definition<mesh<D>, is::cells> psi;
+  static inline const field<double>::definition<mesh<D>, is::cells> psi1, psi2,
+    psi3;
+
+  // RHS storage for HJ upwind operator: k = L(psi_stage, frozen_material)
+  static inline const field<double>::definition<mesh<D>, is::cells> rhs;
+
+  // Material labels (integer IDs)
+  static inline const field<int>::definition<mesh<D>, is::cells> material;
+  static inline const field<int>::definition<mesh<D>, is::cells>
+    frozen_material;
+
+  // For unit test comparison
+  static inline const field<int>::definition<mesh<D>, is::cells>
+    initial_material;
+};
 
 template<std::size_t D>
 vec<D>
@@ -41,13 +68,12 @@ time_reversal_vel(double t, const std::array<double, D> & x) {
   }
 }; // time_reversal_vel
 
-namespace task {
 template<std::size_t D>
 void
 copy_test_vel(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<vec<D>>::template accessor<wo> velocity_a,
-  double t) {
+  typename field<vec<D>>::template accessor<wo, ro> velocity_a,
+  typename single<double>::template accessor<ro> t) noexcept {
 
   auto u = m.template mdcolex<is::cells>(velocity_a);
 
@@ -83,9 +109,8 @@ copy_test_vel(flecsi::exec::accelerator s,
           m.template center<ax::z>(k)});
     }; // forall
   }
-}
-}; // namespace task
+}; // copy_test_vel
 
-} // namespace spec::level_set::vel
+} // namespace tests::level_set_utils
 
 #endif

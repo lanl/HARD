@@ -2,117 +2,268 @@
 #define SPEC_LS_CORE_HH
 
 #include "../../app/state.hh"
+#include "../../app/tasks/utils.hh"
 #include "../mesh.hh"
 #include "spec/labels.hh"
+
+using namespace hard::tasks::util;
 
 namespace spec::level_set::core {
 
 namespace task {
+
+// Periodic wrapper
+int
+wrapi(int a, int n) {
+  int r = a % n;
+  return (r < 0) ? (r + n) : r;
+}
+
+// Freeze material labels at the start of each step
+template<std::size_t D>
+void
+freeze_material(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<int>::template accessor<ro, ro> material_a,
+  typename field<int>::template accessor<wo, ro> frozen_material_a) noexcept {
+
+  auto mat = m.template mdcolex<is::cells>(material_a);
+  auto fmat = m.template mdcolex<is::cells>(frozen_material_a);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      fmat(i) = mat(i);
+    };
+  }
+  else if constexpr(D == 2) {
+    auto pol = get_mdiota_policy(mat,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+    s.executor().forall(ji, pol) {
+      auto [j, i] = ji;
+      fmat(i, j) = mat(i, j);
+    };
+  }
+  else { // D == 3
+    auto pol = get_mdiota_policy(mat,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+    s.executor().forall(kji, pol) {
+      auto [k, j, i] = kji;
+      fmat(i, j, k) = mat(i, j, k);
+    };
+  }
+}
 
 // upwind HJ RHS (acts on material-signed psi_m)
 template<std::size_t D>
 void
 rhs_upwind(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro> psi_a,
-  typename field<vec<D>>::template accessor<ro> velocity_a,
-  typename field<int>::template accessor<rw> frozen_label_a,
-  typename field<int>::template accessor<rw> label_a) {
+  typename field<double>::template accessor<ro, ro> psi_a,
+  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
+  typename field<int>::template accessor<ro, ro> frozen_material_a,
+  typename field<double>::template accessor<wo, ro> rhs_a) noexcept {
 
   auto psi = m.template mdcolex<is::cells>(psi_a);
-  auto u = m.template mdcolex<is::cells>(velocity_a);
-  auto label = m.template mdcolex<is::cells>(label_a);
-  auto f_label = m.template mdcolex<is::cells>(frozen_label_a);
-
-  // TODO: The velocity is not sampled right now at a timestep
-  // This is why the dt was being added before, but I removed it from
-  // the signature for now
+  auto vel = m.template mdcolex<is::cells>(velocity_a);
+  auto fmat = m.template mdcolex<is::cells>(frozen_material_a);
+  auto rhs = m.template mdcolex<is::cells>(rhs_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      const double max_u_x = std::max(0.0, u(i).x());
-      const double min_u_x = std::min(0.0, u(i).x());
-      const double psi_ip1 =
-        (f_label(i) == f_label(i + 1)) ? psi(i + 1) : -psi(i + 1);
-      const double psi_im1 =
-        (f_label(i) == f_label(i - 1)) ? psi(i - 1) : -psi(i - 1);
+    const int nx = m.template size<ax::x, dm::quantities>();
 
-      label(i) -=
-        (psi(i) * (max_u_x - min_u_x) + psi_ip1 * min_u_x - psi_im1 * max_u_x) /
-        m.template delta<ax::x>();
-    }; // forall
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      const int ip1 = wrapi(i + 1, nx);
+      const int im1 = wrapi(i - 1, nx);
+
+      const double up = std::max(0.0, vel(i).x());
+      const double um = std::min(0.0, vel(i).x());
+
+      // material-signed neighbor values relative to center frozen material
+      const double pm_ip1 = (fmat(ip1) == fmat(i)) ? psi(ip1) : -psi(ip1);
+      const double pm_im1 = (fmat(im1) == fmat(i)) ? psi(im1) : -psi(im1);
+      const double pm_i = psi(i);
+
+      // adv_x in flux-form upwind; rhs = -adv to match working HJ_upwind_L_2D
+      const double adv_x = (pm_i * (up - um) + pm_ip1 * um - pm_im1 * up) /
+                           m.template delta<ax::x>();
+
+      rhs(i) = -adv_x;
+    };
   }
   else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(u,
+    const int nx = m.template size<ax::x, dm::quantities>();
+    const int ny = m.template size<ax::y, dm::quantities>();
+
+    auto pol = get_mdiota_policy(vel,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().forall(ji, pol) {
       auto [j, i] = ji;
-      const double max_u_x = std::max(0.0, u(i, j).x());
-      const double min_u_x = std::min(0.0, u(i, j).x());
-      const double max_u_y = std::max(0.0, u(i, j).y());
-      const double min_u_y = std::min(0.0, u(i, j).y());
-      const double psi_ip1 =
-        (f_label(i, j) == f_label(i + 1, j)) ? psi(i + 1, j) : -psi(i + 1, j);
-      const double psi_im1 =
-        (f_label(i, j) == f_label(i - 1, j)) ? psi(i - 1, j) : -psi(i - 1, j);
-      const double psi_jp1 =
-        (f_label(i, j) == f_label(i, j + 1)) ? psi(i, j + 1) : -psi(i, j + 1);
-      const double psi_jm1 =
-        (f_label(i, j) == f_label(i, j - 1)) ? psi(i, j - 1) : -psi(i, j - 1);
 
-      label(i, j) -= (psi(i, j) * (max_u_x - min_u_x) + psi_ip1 * min_u_x -
-                       psi_im1 * max_u_x) /
-                       m.template delta<ax::x>() +
-                     (psi(i, j) * (max_u_y - min_u_y) + psi_jp1 * min_u_y -
-                       psi_jm1 * max_u_y) /
-                       m.template delta<ax::y>();
-    }; // forall
+      const int ip1 = wrapi(i + 1, nx);
+      const int im1 = wrapi(i - 1, nx);
+      const int jp1 = wrapi(j + 1, ny);
+      const int jm1 = wrapi(j - 1, ny);
+
+      const double upx = std::max(0.0, vel(i, j).x());
+      const double umx = std::min(0.0, vel(i, j).x());
+      const double upy = std::max(0.0, vel(i, j).y());
+      const double umy = std::min(0.0, vel(i, j).y());
+
+      const double pm_ip1 =
+        (fmat(ip1, j) == fmat(i, j)) ? psi(ip1, j) : -psi(ip1, j);
+      const double pm_im1 =
+        (fmat(im1, j) == fmat(i, j)) ? psi(im1, j) : -psi(im1, j);
+      const double pm_jp1 =
+        (fmat(i, jp1) == fmat(i, j)) ? psi(i, jp1) : -psi(i, jp1);
+      const double pm_jm1 =
+        (fmat(i, jm1) == fmat(i, j)) ? psi(i, jm1) : -psi(i, jm1);
+      const double pm_ij = psi(i, j);
+
+      const double adv_x = (pm_ij * (upx - umx) + pm_ip1 * umx - pm_im1 * upx) /
+                           m.template delta<ax::x>();
+
+      const double adv_y = (pm_ij * (upy - umy) + pm_jp1 * umy - pm_jm1 * upy) /
+                           m.template delta<ax::y>();
+
+      rhs(i, j) = -(adv_x + adv_y);
+    };
   }
-  else /* D == 3 */ {
-    auto mdpolicy_qqq = get_mdiota_policy(u,
+  else { // D == 3
+    const int nx = m.template size<ax::x, dm::quantities>();
+    const int ny = m.template size<ax::y, dm::quantities>();
+    const int nz = m.template size<ax::z, dm::quantities>();
+
+    auto pol = get_mdiota_policy(vel,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().forall(kji, pol) {
       auto [k, j, i] = kji;
-      const double max_u_x = std::max(0.0, u(i, j, k).x());
-      const double min_u_x = std::min(0.0, u(i, j, k).x());
-      const double max_u_y = std::max(0.0, u(i, j, k).y());
-      const double min_u_y = std::min(0.0, u(i, j, k).y());
-      const double max_u_z = std::max(0.0, u(i, j, k).z());
-      const double min_u_z = std::min(0.0, u(i, j, k).z());
-      const double psi_ip1 = (f_label(i, j, k) == f_label(i + 1, j, k))
-                               ? psi(i + 1, j, k)
-                               : -psi(i + 1, j, k);
-      const double psi_im1 = (f_label(i, j, k) == f_label(i - 1, j, k))
-                               ? psi(i - 1, j, k)
-                               : -psi(i - 1, j, k);
-      const double psi_jp1 = (f_label(i, j, k) == f_label(i, j + 1, k))
-                               ? psi(i, j + 1, k)
-                               : -psi(i, j + 1, k);
-      const double psi_jm1 = (f_label(i, j, k) == f_label(i, j - 1, k))
-                               ? psi(i, j - 1, k)
-                               : -psi(i, j - 1, k);
-      const double psi_kp1 = (f_label(i, j, k) == f_label(i, j, k + 1))
-                               ? psi(i, j, k + 1)
-                               : -psi(i, j, k + 1);
-      const double psi_km1 = (f_label(i, j, k) == f_label(i, j, k - 1))
-                               ? psi(i, j, k - 1)
-                               : -psi(i, j, k - 1);
 
-      label(i, j, k) -= (psi(i, j, k) * (max_u_x - min_u_x) +
-                          psi_ip1 * min_u_x - psi_im1 * max_u_x) /
-                          m.template delta<ax::x>() +
-                        (psi(i, j, k) * (max_u_y - min_u_y) +
-                          psi_jp1 * min_u_y - psi_jm1 * max_u_y) /
-                          m.template delta<ax::y>() +
-                        (psi(i, j, k) * (max_u_z - min_u_z) +
-                          psi_kp1 * min_u_z - psi_km1 * max_u_z) /
-                          m.template delta<ax::z>();
-    }; // forall
+      const int ip1 = wrapi(i + 1, nx);
+      const int im1 = wrapi(i - 1, nx);
+      const int jp1 = wrapi(j + 1, ny);
+      const int jm1 = wrapi(j - 1, ny);
+      const int kp1 = wrapi(k + 1, nz);
+      const int km1 = wrapi(k - 1, nz);
+
+      const double upx = std::max(0.0, vel(i, j, k).x());
+      const double umx = std::min(0.0, vel(i, j, k).x());
+      const double upy = std::max(0.0, vel(i, j, k).y());
+      const double umy = std::min(0.0, vel(i, j, k).y());
+      const double upz = std::max(0.0, vel(i, j, k).z());
+      const double umz = std::min(0.0, vel(i, j, k).z());
+
+      const double pm_ip1 =
+        (fmat(ip1, j, k) == fmat(i, j, k)) ? psi(ip1, j, k) : -psi(ip1, j, k);
+      const double pm_im1 =
+        (fmat(im1, j, k) == fmat(i, j, k)) ? psi(im1, j, k) : -psi(im1, j, k);
+      const double pm_jp1 =
+        (fmat(i, jp1, k) == fmat(i, j, k)) ? psi(i, jp1, k) : -psi(i, jp1, k);
+      const double pm_jm1 =
+        (fmat(i, jm1, k) == fmat(i, j, k)) ? psi(i, jm1, k) : -psi(i, jm1, k);
+      const double pm_kp1 =
+        (fmat(i, j, kp1) == fmat(i, j, k)) ? psi(i, j, kp1) : -psi(i, j, kp1);
+      const double pm_km1 =
+        (fmat(i, j, km1) == fmat(i, j, k)) ? psi(i, j, km1) : -psi(i, j, km1);
+      const double pm_ijk = psi(i, j, k);
+
+      const double adv_x =
+        (pm_ijk * (upx - umx) + pm_ip1 * umx - pm_im1 * upx) /
+        m.template delta<ax::x>();
+      const double adv_y =
+        (pm_ijk * (upy - umy) + pm_jp1 * umy - pm_jm1 * upy) /
+        m.template delta<ax::y>();
+      const double adv_z =
+        (pm_ijk * (upz - umz) + pm_kp1 * umz - pm_km1 * upz) /
+        m.template delta<ax::z>();
+
+      rhs(i, j, k) = -(adv_x + adv_y + adv_z);
+    };
+  }
+}
+
+// SSPRK3 stage update
+template<std::size_t D, std::size_t STEP>
+void
+advance_psi(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<double>::template accessor<ro, ro> psi_n0_a, // psi^n
+  typename field<double>::template accessor<ro, ro> rhs_a, // k(psi_stage)
+  typename field<double>::template accessor<ro, ro>
+    psi_prev_a, // stage input (psi1 or psi2)
+  typename field<double>::template accessor<wo, ro>
+    psi_out_a, // stage output (psi1/psi2/psi3)
+  typename single<double>::template accessor<ro> dt_a) noexcept {
+
+  static_assert(STEP >= 1 && STEP <= 3, "STEP is 1, 2 or 3");
+
+  auto psi_n0 = m.template mdcolex<is::cells>(psi_n0_a);
+  auto rhs = m.template mdcolex<is::cells>(rhs_a);
+  auto psi_prev = m.template mdcolex<is::cells>(psi_prev_a);
+  auto psi_out = m.template mdcolex<is::cells>(psi_out_a);
+
+  const double dt = *dt_a;
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      if constexpr(STEP == 1) {
+        psi_out(i) = psi_n0(i) + dt * rhs(i);
+      }
+      else if constexpr(STEP == 2) {
+        psi_out(i) = 0.75 * psi_n0(i) + 0.25 * (psi_prev(i) + dt * rhs(i));
+      }
+      else { // STEP == 3
+        psi_out(i) =
+          (1.0 / 3.0) * psi_n0(i) + (2.0 / 3.0) * (psi_prev(i) + dt * rhs(i));
+      }
+    };
+  }
+  else if constexpr(D == 2) {
+    auto pol = get_mdiota_policy(psi_out,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+    s.executor().forall(ji, pol) {
+      auto [j, i] = ji;
+      if constexpr(STEP == 1) {
+        psi_out(i, j) = psi_n0(i, j) + dt * rhs(i, j);
+      }
+      else if constexpr(STEP == 2) {
+        psi_out(i, j) =
+          0.75 * psi_n0(i, j) + 0.25 * (psi_prev(i, j) + dt * rhs(i, j));
+      }
+      else { // STEP == 3
+        psi_out(i, j) = (1.0 / 3.0) * psi_n0(i, j) +
+                        (2.0 / 3.0) * (psi_prev(i, j) + dt * rhs(i, j));
+      }
+    };
+  }
+  else { // D == 3
+    auto pol = get_mdiota_policy(psi_out,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+    s.executor().forall(kji, pol) {
+      auto [k, j, i] = kji;
+      if constexpr(STEP == 1) {
+        psi_out(i, j, k) = psi_n0(i, j, k) + dt * rhs(i, j, k);
+      }
+      else if constexpr(STEP == 2) {
+        psi_out(i, j, k) = 0.75 * psi_n0(i, j, k) +
+                           0.25 * (psi_prev(i, j, k) + dt * rhs(i, j, k));
+      }
+      else { // STEP == 3
+        psi_out(i, j, k) =
+          (1.0 / 3.0) * psi_n0(i, j, k) +
+          (2.0 / 3.0) * (psi_prev(i, j, k) + dt * rhs(i, j, k));
+      }
+    };
   }
 }
 
@@ -122,187 +273,269 @@ template<std::size_t D>
 void
 determine_psi(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro> frozen_psi_a,
-  typename field<double>::template accessor<wo> psi_a,
-  typename field<int>::template accessor<rw> frozen_label_a,
-  typename field<int>::template accessor<wo> label_a) {
+  typename field<double>::template accessor<ro, ro> frozen_psi_a, // psi3
+  typename field<double>::template accessor<wo, ro> psi_a, // psi^{n+1}
+  typename field<int>::template accessor<ro, ro> frozen_material_a, // L^n
+  typename field<int>::template accessor<wo, ro> material_a) noexcept {
 
-  auto f_psi = m.template mdcolex<is::cells>(frozen_psi_a);
+  auto fpsi = m.template mdcolex<is::cells>(frozen_psi_a);
   auto psi = m.template mdcolex<is::cells>(psi_a);
-  auto f_label = m.template mdcolex<is::cells>(frozen_label_a);
-  auto label = m.template mdcolex<is::cells>(label_a);
+  auto fmat = m.template mdcolex<is::cells>(frozen_material_a);
+  auto mat = m.template mdcolex<is::cells>(material_a);
 
   if constexpr(D == 1) {
+    const int nx = m.template size<ax::x, dm::quantities>();
+
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      if(f_psi(i) > 0) {
-        double psimin = f_psi(i);
-        int lmin = f_label(i);
-        for(int pm = -1; pm <= 1; pm += 2) {
-          if(f_label(i + pm) != f_label(i) && f_psi(i + pm) < psimin) {
-            psimin = f_psi(i + pm);
-            lmin = f_label(i + pm);
-          }
+      if(fpsi(i) > 0.0) {
+        double psimin = fpsi(i);
+        int lmin = fmat(i);
+
+        const int im1 = wrapi(i - 1, nx);
+        const int ip1 = wrapi(i + 1, nx);
+
+        if(fmat(im1) != fmat(i) && fpsi(im1) < psimin) {
+          psimin = fpsi(im1);
+          lmin = fmat(im1);
         }
-        psi(i) = (psimin >= 0.0 ? 1.0 : -1.0) * f_psi(i);
-        label(i) = lmin;
+        if(fmat(ip1) != fmat(i) && fpsi(ip1) < psimin) {
+          psimin = fpsi(ip1);
+          lmin = fmat(ip1);
+        }
+
+        psi(i) = (psimin >= 0.0 ? 1.0 : -1.0) * fpsi(i);
+        mat(i) = lmin;
       }
       else {
-        psi(i) = f_psi(i);
-        label(i) = f_label(i);
+        psi(i) = fpsi(i);
+        mat(i) = fmat(i);
       }
-    }; // forall
+    };
   }
   else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(psi,
+    const int nx = m.template size<ax::x, dm::quantities>();
+    const int ny = m.template size<ax::y, dm::quantities>();
+
+    auto pol = get_mdiota_policy(psi,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().forall(ji, pol) {
       auto [j, i] = ji;
-      if(f_psi(i, j) > 0) {
-        double psimin = f_psi(i, j);
-        int lmin = f_label(i, j);
-        for(int pm = -1; pm <= 1; pm += 2) {
-          if(f_label(i + pm, j) != f_label(i, j) && f_psi(i + pm, j) < psimin) {
-            psimin = f_psi(i + pm, j);
-            lmin = f_label(i + pm, j);
-          }
-          if(f_label(i, j + pm) != f_label(i, j) && f_psi(i, j + pm) < psimin) {
-            psimin = f_psi(i, j + pm);
-            lmin = f_label(i, j + pm);
-          }
+
+      if(fpsi(i, j) > 0.0) {
+        double psimin = fpsi(i, j);
+        int lmin = fmat(i, j);
+
+        const int ip1 = wrapi(i + 1, nx);
+        const int im1 = wrapi(i - 1, nx);
+        const int jp1 = wrapi(j + 1, ny);
+        const int jm1 = wrapi(j - 1, ny);
+
+        // 4-neighbor scan like working version
+        if(fmat(im1, j) != fmat(i, j) && fpsi(im1, j) < psimin) {
+          psimin = fpsi(im1, j);
+          lmin = fmat(im1, j);
         }
-        psi(i, j) = (psimin >= 0.0 ? 1.0 : -1.0) * f_psi(i, j);
-        label(i, j) = lmin;
+        if(fmat(ip1, j) != fmat(i, j) && fpsi(ip1, j) < psimin) {
+          psimin = fpsi(ip1, j);
+          lmin = fmat(ip1, j);
+        }
+        if(fmat(i, jm1) != fmat(i, j) && fpsi(i, jm1) < psimin) {
+          psimin = fpsi(i, jm1);
+          lmin = fmat(i, jm1);
+        }
+        if(fmat(i, jp1) != fmat(i, j) && fpsi(i, jp1) < psimin) {
+          psimin = fpsi(i, jp1);
+          lmin = fmat(i, jp1);
+        }
+
+        psi(i, j) = (psimin >= 0.0 ? 1.0 : -1.0) * fpsi(i, j);
+        mat(i, j) = lmin;
       }
       else {
-        psi(i, j) = f_psi(i, j);
-        label(i, j) = f_label(i, j);
+        psi(i, j) = fpsi(i, j);
+        mat(i, j) = fmat(i, j);
       }
-    }; // forall
+    };
   }
-  else /* D == 3 */ {
-    auto mdpolicy_qqq = get_mdiota_policy(psi,
+  else { // D == 3
+    const int nx = m.template size<ax::x, dm::quantities>();
+    const int ny = m.template size<ax::y, dm::quantities>();
+    const int nz = m.template size<ax::z, dm::quantities>();
+
+    auto pol = get_mdiota_policy(psi,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().forall(kji, pol) {
       auto [k, j, i] = kji;
-      if(f_psi(i, j, k) > 0) {
-        double psimin = f_psi(i, j, k);
-        int lmin = f_label(i, j, k);
-        for(int pm = -1; pm <= 1; pm += 2) {
-          if(f_label(i + pm, j, k) != f_label(i, j, k) &&
-             f_psi(i + pm, j, k) < psimin) {
-            psimin = f_psi(i + pm, j, k);
-            lmin = f_label(i + pm, j, k);
-          }
-          if(f_label(i, j + pm, k) != f_label(i, j, k) &&
-             f_psi(i, j + pm, k) < psimin) {
-            psimin = f_psi(i, j + pm, k);
-            lmin = f_label(i, j + pm, k);
-          }
-          if(f_label(i, j, k + pm) != f_label(i, j, k) &&
-             f_psi(i, j, k + pm) < psimin) {
-            psimin = f_psi(i, j, k + pm);
-            lmin = f_label(i, j, k + pm);
-          }
+
+      if(fpsi(i, j, k) > 0.0) {
+        double psimin = fpsi(i, j, k);
+        int lmin = fmat(i, j, k);
+
+        const int ip1 = wrapi(i + 1, nx);
+        const int im1 = wrapi(i - 1, nx);
+        const int jp1 = wrapi(j + 1, ny);
+        const int jm1 = wrapi(j - 1, ny);
+        const int kp1 = wrapi(k + 1, nz);
+        const int km1 = wrapi(k - 1, nz);
+
+        // 6-neighbor scan
+        if(fmat(im1, j, k) != fmat(i, j, k) && fpsi(im1, j, k) < psimin) {
+          psimin = fpsi(im1, j, k);
+          lmin = fmat(im1, j, k);
         }
-        psi(i, j, k) = (psimin >= 0.0 ? 1.0 : -1.0) * f_psi(i, j, k);
-        label(i, j, k) = lmin;
+        if(fmat(ip1, j, k) != fmat(i, j, k) && fpsi(ip1, j, k) < psimin) {
+          psimin = fpsi(ip1, j, k);
+          lmin = fmat(ip1, j, k);
+        }
+        if(fmat(i, jm1, k) != fmat(i, j, k) && fpsi(i, jm1, k) < psimin) {
+          psimin = fpsi(i, jm1, k);
+          lmin = fmat(i, jm1, k);
+        }
+        if(fmat(i, jp1, k) != fmat(i, j, k) && fpsi(i, jp1, k) < psimin) {
+          psimin = fpsi(i, jp1, k);
+          lmin = fmat(i, jp1, k);
+        }
+        if(fmat(i, j, km1) != fmat(i, j, k) && fpsi(i, j, km1) < psimin) {
+          psimin = fpsi(i, j, km1);
+          lmin = fmat(i, j, km1);
+        }
+        if(fmat(i, j, kp1) != fmat(i, j, k) && fpsi(i, j, kp1) < psimin) {
+          psimin = fpsi(i, j, kp1);
+          lmin = fmat(i, j, kp1);
+        }
+
+        psi(i, j, k) = (psimin >= 0.0 ? 1.0 : -1.0) * fpsi(i, j, k);
+        mat(i, j, k) = lmin;
       }
       else {
-        psi(i, j, k) = f_psi(i, j, k);
-        label(i, j, k) = f_label(i, j, k);
+        psi(i, j, k) = fpsi(i, j, k);
+        mat(i, j, k) = fmat(i, j, k);
       }
-    }; // forall
+    };
   }
-} // determine_psi
+}
 
-// Determine state at time level n+1 (2-neigh 1D, 4-neigh 2D, 6-neigh 3D)
-// algorithm 1 in Aslam et al. 2024
-template<std::size_t D, std::size_t STEP>
-void
-advance_psi(flecsi::exec::accelerator s,
-  typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro> psi_a,
-  typename field<int>::template accessor<ro> label_a,
-  typename field<double>::template accessor<ro> psi_prev_a,
-  typename field<double>::template accessor<wo> psi_n_a,
-  const double dt) {
-
-  static_assert(STEP >= 1 && STEP <= 3, "STEP is 1, 2 or 3");
-
-  auto psi = m.template mdcolex<is::cells>(psi_a);
-  auto label = m.template mdcolex<is::cells>(label_a);
-  auto psi_prev = m.template mdcolex<is::cells>(psi_prev_a);
-  auto psi_n = m.template mdcolex<is::cells>(psi_n_a);
-
-  if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      if constexpr(STEP == 1) {
-        psi_n(i) = psi(i) + dt * label(i);
-      }
-      else if constexpr(STEP == 2) {
-        psi_n(i) = (3 * psi(i) + (psi_prev(i) + dt * label(i))) * 0.25;
-      }
-      else /* STEP == 3 */ {
-        psi_n(i) = (psi(i) + 2 * (psi_prev(i) + dt * label(i))) / 3.0;
-      }
-    }; // forall
-  }
-  else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(psi,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(ji, mdpolicy_qq) {
-      auto [j, i] = ji;
-      if constexpr(STEP == 1) {
-        psi_n(i, j) = psi(i, j) + dt * label(i, j);
-      }
-      else if constexpr(STEP == 2) {
-        psi_n(i, j) =
-          (3 * psi(i, j) + (psi_prev(i, j) + dt * label(i, j))) * 0.25;
-      }
-      else /* STEP == 3 */ {
-        psi_n(i, j) =
-          (psi(i, j) + 2 * (psi_prev(i, j) + dt * label(i, j))) / 3.0;
-      }
-    }; // forall
-  }
-  else /* D == 3 */ {
-    auto mdpolicy_qqq = get_mdiota_policy(psi,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_qqq) {
-      auto [k, j, i] = kji;
-      if constexpr(STEP == 1) {
-        psi_n(i, j, k) = psi(i, j, k) + dt * label(i, j, k);
-      }
-      else if constexpr(STEP == 2) {
-        psi_n(i, j, k) =
-          (3 * psi(i, j, k) + (psi_prev(i, j, k) + dt * label(i, j, k))) * 0.25;
-      }
-      else /* STEP == 3 */ {
-        psi_n(i, j, k) =
-          (psi(i, j, k) + 2 * (psi_prev(i, j, k) + dt * label(i, j, k))) / 3.0;
-      }
-    }; // forall
-  }
-} // advance_psi
 } // namespace task
 
+template<std::size_t D>
+void
+ssprk3_step(
+#ifndef IN_TEST
+  control_policy<hard::state, D> & cp
+#else
+  flecsi::scheduler & sc,
+  tests::level_set_utils::state<D> & s
+#endif
+) {
+
+#ifndef IN_TEST
+  auto & s = cp.state();
+  flecsi::scheduler & sc = cp.scheduler();
+#endif
+
+#ifdef IN_TEST
+  sc.execute<tests::level_set_utils::copy_test_vel<D>>(
+    flecsi::exec::on, *s.m, s.velocity(*s.m), s.t(*s.gt));
+#endif // IN_TEST
+
+  // 0) Freeze material for this entire time step: Lfrozen = L^n
+  sc.execute<task::freeze_material<D>>(
+    flecsi::exec::on, *s.m, s.material(*s.m), s.frozen_material(*s.m));
+
+  // Stage 1: k = L(psi^n, L^n); psi1 = psi^n + dt*k
+  sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
+    *s.m,
+    s.psi(*s.m),
+    s.velocity(*s.m),
+    s.frozen_material(*s.m),
+    s.rhs(*s.m));
+
+  sc.execute<task::advance_psi<D, 1>>(flecsi::exec::on,
+    *s.m,
+    s.psi(*s.m), // psi^n
+    s.rhs(*s.m), // k(psi^n)
+    s.psi2(*s.m), // unused for step1 (kept for signature consistency)
+    s.psi1(*s.m), // psi1
+    s.dt(*s.gt));
+
+#ifdef IN_TEST
+  sc.execute<tests::level_set_utils::copy_test_vel<D>>(
+    flecsi::exec::on, *s.m, s.velocity(*s.m), s.t(*s.gt));
+#endif // IN_TEST
+
+  // Stage 2: k = L(psi1, L^n); psi2 = 0.75*psi^n + 0.25*(psi1 + dt*k)
+  sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
+    *s.m,
+    s.psi1(*s.m),
+    s.velocity(*s.m),
+    s.frozen_material(*s.m),
+    s.rhs(*s.m));
+
+  sc.execute<task::advance_psi<D, 2>>(flecsi::exec::on,
+    *s.m,
+    s.psi(*s.m), // psi^n
+    s.rhs(*s.m), // k(psi1)
+    s.psi1(*s.m), // psi_prev = psi1
+    s.psi2(*s.m), // psi2
+    s.dt(*s.gt));
+
+#ifdef IN_TEST
+  sc.execute<tests::level_set_utils::copy_test_vel<D>>(
+    flecsi::exec::on, *s.m, s.velocity(*s.m), s.t(*s.gt));
+#endif // IN_TEST
+
+  // Stage 3: k = L(psi2, L^n); psi3 = 1/3*psi^n + 2/3*(psi2 + dt*k)
+  sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
+    *s.m,
+    s.psi2(*s.m),
+    s.velocity(*s.m),
+    s.frozen_material(*s.m),
+    s.rhs(*s.m));
+
+  sc.execute<task::advance_psi<D, 3>>(flecsi::exec::on,
+    *s.m,
+    s.psi(*s.m), // psi^n
+    s.rhs(*s.m), // k(psi2)
+    s.psi2(*s.m), // psi_prev = psi2
+    s.psi3(*s.m), // psi3
+    s.dt(*s.gt));
+
+  // Algorithm 1 post-process: (psi3, L^n) -> (psi^{n+1}, L^{n+1})
+  sc.execute<task::determine_psi<D>>(flecsi::exec::on,
+    *s.m,
+    s.psi3(*s.m), // frozen_psi = psi3
+    s.psi(*s.m), // output psi^{n+1}
+    s.frozen_material(*s.m), // L^n
+    s.material(*s.m)); // output L^{n+1}
+}
+
+#if 0
 // SSPRK(3,3) driver with frozen labels
 template<std::size_t D>
 void
-ssprk3_step(control_policy<hard::state, D> & cp) {
-  auto & s = cp.state();
+ssprk3_step(
+#ifdef IN_TEST
+  flecsi::scheduler & sc,
+  tests::level_set_utils::state<D> & s
+#else
+  control_policy<hard::state, D> & cp
+#endif // IN_TEST
+) {
 
+#ifndef IN_TEST
+  auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
+#endif // !IN_TEST
+
+#ifdef IN_TEST
+  sc.execute<tests::level_set_utils::copy_test_vel<D>>(
+    flecsi::exec::on, *s.m, s.velocity(*s.m), s.t(*s.gt));
+#endif // IN_TEST
 
   sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
     *s.m,
@@ -316,7 +549,12 @@ ssprk3_step(control_policy<hard::state, D> & cp) {
     s.label(*s.m),
     s.psi2(*s.m),
     s.psi1(*s.m),
-    s.dt(s.gt));
+    s.dt(*s.gt));
+
+#ifdef IN_TEST
+  sc.execute<tests::level_set_utils::copy_test_vel<D>>(
+    flecsi::exec::on, *s.m, s.velocity(*s.m), s.t(*s.gt));
+#endif // IN_TEST
 
   sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
     *s.m,
@@ -330,7 +568,12 @@ ssprk3_step(control_policy<hard::state, D> & cp) {
     s.label(*s.m),
     s.psi1(*s.m),
     s.psi2(*s.m),
-    s.dt(s.gt));
+    s.dt(*s.gt));
+
+#ifdef IN_TEST
+  sc.execute<tests::level_set_utils::copy_test_vel<D>>(
+    flecsi::exec::on, *s.m, s.velocity(*s.m), s.t(*s.gt));
+#endif // IN_TEST
 
   sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
     *s.m,
@@ -344,7 +587,7 @@ ssprk3_step(control_policy<hard::state, D> & cp) {
     s.label(*s.m),
     s.psi2(*s.m),
     s.psi3(*s.m),
-    s.dt(s.gt));
+    s.dt(*s.gt));
 
   sc.execute<task::determine_psi<D>>(flecsi::exec::on,
     *s.m,
@@ -353,6 +596,7 @@ ssprk3_step(control_policy<hard::state, D> & cp) {
     s.frozen_label(*s.m),
     s.label(*s.m));
 } // ssprk3_step
+#endif
 } // namespace spec::level_set::core
 
 #endif

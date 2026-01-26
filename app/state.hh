@@ -159,12 +159,19 @@ struct state {
   static inline const field<double>::definition<mesh<D>, is::cells> psi1, psi2,
     psi3;
   static inline const field<double>::definition<mesh<D>, is::cells> frozen_psi;
+
+  // NEW: RHS storage for upwind operator (k / Lout)
+  static inline const field<double>::definition<mesh<D>, is::cells> rhs;
+
+  // Rename these for clarity
+  static inline const field<int>::definition<mesh<D>, is::cells> material;
+  static inline const field<int>::definition<mesh<D>, is::cells>
+    frozen_material;
+
+#if 0
   static inline const field<int>::definition<mesh<D>, is::cells> label;
   static inline const field<int>::definition<mesh<D>, is::cells> frozen_label;
-
-  // TODO: Maybe remove
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    Lwork; // HJ operator result
+#endif
 
   // Variables related to the diffusion (multigrid) solver
   static inline dual_field<double, D> Esf; // Temp solution field in multigrid
