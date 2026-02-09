@@ -28,10 +28,10 @@ struct vec<1> {
 
   constexpr static std::size_t Dim = 1;
 
-  FLECSI_INLINE_TARGET vec<1>() = default;
+  FLECSI_INLINE_TARGET vec() = default;
   FLECSI_INLINE_TARGET ~vec() = default;
 
-  FLECSI_INLINE_TARGET vec<1>(double x) : vx(x) {}
+  FLECSI_INLINE_TARGET vec(double x) : vx(x) {}
   FLECSI_INLINE_TARGET double & operator[](std::size_t) {
     return vx;
   }
@@ -73,16 +73,16 @@ struct vec<2> {
 
   std::array<double, 2> v;
 
-  FLECSI_INLINE_TARGET vec<2>(double x) {
+  FLECSI_INLINE_TARGET vec(double x) {
     v[0] = x;
     v[1] = x;
   }
-  FLECSI_INLINE_TARGET vec<2>(double x, double y) {
+  FLECSI_INLINE_TARGET vec(double x, double y) {
     v[0] = x;
     v[1] = y;
   }
 
-  FLECSI_INLINE_TARGET vec<2>() = default;
+  FLECSI_INLINE_TARGET vec() = default;
   FLECSI_INLINE_TARGET ~vec() = default;
 
   FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
@@ -129,18 +129,18 @@ struct vec<3> {
 
   std::array<double, 3> v;
 
-  FLECSI_INLINE_TARGET vec<3>(double x) {
+  FLECSI_INLINE_TARGET vec(double x) {
     v[0] = x;
     v[1] = x;
     v[2] = x;
   }
-  FLECSI_INLINE_TARGET vec<3>(double x, double y, double z) {
+  FLECSI_INLINE_TARGET vec(double x, double y, double z) {
     v[0] = x;
     v[1] = y;
     v[2] = z;
   }
 
-  FLECSI_INLINE_TARGET vec<3>() = default;
+  FLECSI_INLINE_TARGET vec() = default;
   FLECSI_INLINE_TARGET ~vec() = default;
 
   FLECSI_INLINE_TARGET double & operator[](std::size_t d) noexcept {
