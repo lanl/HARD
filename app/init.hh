@@ -199,12 +199,16 @@ initialize(control_policy<state, D> & cp) {
   // Find highest level
   s.highest_level = get_resolution(0);
   if(D == 2 || D == 3) {
-    s.highest_level = get_resolution(1);
+    s.highest_level = std::min(get_resolution(1), s.highest_level);
   } // if
   if(D == 3) {
-    s.highest_level = get_resolution(2);
+    s.highest_level = std::min(get_resolution(2), s.highest_level);
   } // if
   s.max_num_levels = s.highest_level - s.lowest_level + 1;
+
+  if(s.lowest_level > s.highest_level)
+    flog_fatal("Error in levels setup: lowest_level("
+               << s.lowest_level << ") > (" << s.highest_level << ")" << '\n');
 
   std::optional<color_distribution> cd;
   if(config["color_distribution"]) {
