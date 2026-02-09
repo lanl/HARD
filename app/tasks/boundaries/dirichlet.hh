@@ -14,7 +14,7 @@ struct dirichlet {};
 template<>
 struct dirichlet<1> {
 
-  FLECSI_INLINE_TARGET dirichlet<1>(int gzs) : ghost_zone_size(gzs) {}
+  FLECSI_INLINE_TARGET dirichlet(int gzs) : ghost_zone_size(gzs) {}
 
   template<typename T>
   FLECSI_INLINE_TARGET void
@@ -32,7 +32,7 @@ struct dirichlet<1> {
 template<>
 struct dirichlet<2> {
 
-  FLECSI_INLINE_TARGET dirichlet<2>(int gzs) : ghost_zone_size(gzs) {}
+  FLECSI_INLINE_TARGET dirichlet(int gzs) : ghost_zone_size(gzs) {}
 
   template<typename T>
   FLECSI_INLINE_TARGET void operator()(int axis,
@@ -64,7 +64,7 @@ struct dirichlet<2> {
 template<>
 struct dirichlet<3> {
 
-  FLECSI_INLINE_TARGET dirichlet<3>(int gzs) : ghost_zone_size(gzs) {}
+  FLECSI_INLINE_TARGET dirichlet(int gzs) : ghost_zone_size(gzs) {}
 
   template<typename T>
   FLECSI_INLINE_TARGET void operator()(int axis,
