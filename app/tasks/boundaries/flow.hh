@@ -14,7 +14,7 @@ struct flow {};
 template<>
 struct flow<1> {
 
-  FLECSI_INLINE_TARGET flow<1>(int gzs) : ghost_zone_size(gzs){};
+  FLECSI_INLINE_TARGET flow(int gzs) : ghost_zone_size(gzs){};
 
   template<typename T>
   FLECSI_INLINE_TARGET void
@@ -33,7 +33,7 @@ struct flow<1> {
 template<>
 struct flow<2> {
 
-  FLECSI_INLINE_TARGET flow<2>(int gzs) : ghost_zone_size(gzs){};
+  FLECSI_INLINE_TARGET flow(int gzs) : ghost_zone_size(gzs){};
 
   template<typename T>
   FLECSI_INLINE_TARGET void operator()(int axis,
@@ -64,7 +64,7 @@ struct flow<2> {
 template<>
 struct flow<3> {
 
-  FLECSI_INLINE_TARGET flow<3>(int gzs) : ghost_zone_size(gzs){};
+  FLECSI_INLINE_TARGET flow(int gzs) : ghost_zone_size(gzs){};
 
   template<typename T>
   FLECSI_INLINE_TARGET void operator()(int axis,
