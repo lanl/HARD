@@ -14,7 +14,7 @@ struct reflective {};
 template<>
 struct reflective<1> {
 
-  FLECSI_INLINE_TARGET reflective<1>(int gzs) : ghost_zone_size(gzs){};
+  FLECSI_INLINE_TARGET reflective(int gzs) : ghost_zone_size(gzs){};
 
   template<typename T>
   FLECSI_INLINE_TARGET void
@@ -40,7 +40,7 @@ struct reflective<1> {
 template<>
 struct reflective<2> {
 
-  FLECSI_INLINE_TARGET reflective<2>(int gzs) : ghost_zone_size(gzs){};
+  FLECSI_INLINE_TARGET reflective(int gzs) : ghost_zone_size(gzs){};
 
   template<typename T>
   FLECSI_INLINE_TARGET void operator()(int axis,
@@ -95,7 +95,7 @@ struct reflective<2> {
 template<>
 struct reflective<3> {
 
-  FLECSI_INLINE_TARGET reflective<3>(int gzs) : ghost_zone_size(gzs){};
+  FLECSI_INLINE_TARGET reflective(int gzs) : ghost_zone_size(gzs){};
 
   template<typename T>
   FLECSI_INLINE_TARGET void operator()(int axis,
