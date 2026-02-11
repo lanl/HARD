@@ -76,76 +76,14 @@ tie(const std::tuple<T, T> & tup, T & a, T & b) noexcept {
 //
 template<std::size_t Dim, typename Limiter>
 void
-reconstruct(flecsi::exec::accelerator s,
+reconstruct_primitives(flecsi::exec::accelerator s,
   std::size_t reconstruction_axis,
   typename mesh<Dim>::template accessor<ro> m,
   // cell-centered primitive varibles
-  field<double>::accessor<ro, ro> mass_density_a,
-  typename field<vec<Dim>>::template accessor<ro, ro> velocity_a,
-  field<double>::accessor<ro, ro> pressure_a,
-  field<double>::accessor<ro, ro> specific_internal_energy_a,
-  field<double>::accessor<ro, ro> soundspeed_a,
-  field<double>::accessor<ro, ro>
-#ifdef ENABLE_RADIATION
-    radiation_energy_density_a
-#endif
-  ,
-  // reconstructed primitives on faces
-  field<double>::accessor<wo, na> rTail_a,
-  field<double>::accessor<wo, na> rHead_a,
-  typename field<vec<Dim>>::template accessor<wo, na> uTail_a,
-  typename field<vec<Dim>>::template accessor<wo, na> uHead_a,
-  field<double>::accessor<wo, na> pTail_a,
-  field<double>::accessor<wo, na> pHead_a,
-  field<double>::accessor<wo, na> eTail_a,
-  field<double>::accessor<wo, na> eHead_a,
-  field<double>::accessor<wo, na> cTail_a,
-  field<double>::accessor<wo, na> cHead_a,
-  field<double>::accessor<wo, na>
-#ifdef ENABLE_RADIATION
-    EradTail_a
-#endif
-  ,
-  field<double>::accessor<wo, na>
-#ifdef ENABLE_RADIATION
-    EradHead_a
-#endif
-  ,
-  // reconstructed conservatives on faces
-  typename field<vec<Dim>>::template accessor<wo, na> ruTail_a,
-  typename field<vec<Dim>>::template accessor<wo, na> ruHead_a,
-  field<double>::accessor<wo, na> rETail_a,
-  field<double>::accessor<wo, na> rEHead_a) noexcept {
-
-  auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto velocity = m.template mdcolex<is::cells>(velocity_a);
-  auto pressure = m.template mdcolex<is::cells>(pressure_a);
-  auto soundspeed = m.template mdcolex<is::cells>(soundspeed_a);
-  auto specific_internal_energy =
-    m.template mdcolex<is::cells>(specific_internal_energy_a);
-
-#ifdef ENABLE_RADIATION
-  auto radiation_energy_density =
-    m.template mdcolex<is::cells>(radiation_energy_density_a);
-#endif
-  auto rTail = m.template mdcolex<is::cells>(rTail_a);
-  auto rHead = m.template mdcolex<is::cells>(rHead_a);
-  auto uTail = m.template mdcolex<is::cells>(uTail_a);
-  auto uHead = m.template mdcolex<is::cells>(uHead_a);
-  auto pTail = m.template mdcolex<is::cells>(pTail_a);
-  auto pHead = m.template mdcolex<is::cells>(pHead_a);
-  auto eTail = m.template mdcolex<is::cells>(eTail_a);
-  auto eHead = m.template mdcolex<is::cells>(eHead_a);
-  auto cTail = m.template mdcolex<is::cells>(cTail_a);
-  auto cHead = m.template mdcolex<is::cells>(cHead_a);
-#ifdef ENABLE_RADIATION
-  auto EradTail = m.template mdcolex<is::cells>(EradTail_a);
-  auto EradHead = m.template mdcolex<is::cells>(EradHead_a);
-#endif
-  auto ruTail = m.template mdcolex<is::cells>(ruTail_a);
-  auto ruHead = m.template mdcolex<is::cells>(ruHead_a);
-  auto rETail = m.template mdcolex<is::cells>(rETail_a);
-  auto rEHead = m.template mdcolex<is::cells>(rEHead_a);
+  std::vector<std::tuple<field<double>::accessor<ro, na>,
+    typename faces<Dim>::accessor<wo, na>>> cons_faces_a,
+  std::vector<std::tuple<typename field<vec<Dim>>::accessor<ro, na>,
+    typename faces_vec<Dim>::accessor<wo, na>>> cons_faces_vec_a) noexcept {
 
   using hard::tasks::util::get_mdiota_policy;
   using spec::utils::sqr;
@@ -154,13 +92,105 @@ reconstruct(flecsi::exec::accelerator s,
 
   if constexpr(Dim == 1) {
 
+    for(auto cf : cons_faces_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
+        utils::tie(stencil<Limiter>()(i, cons), h(i), t(i));
+      };
+    }
+
+    for(auto cf : cons_faces_vec_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
+        utils::tie(stencil<Limiter>()(i, cons), h(i), t(i));
+      };
+    }
+  }
+  else if constexpr(Dim == 2) {
+
+    auto mdpolicy_pp = get_mdiota_policy(
+      m.template mdcolex<is::cells>(std::get<0>(cons_faces_a.front())),
+      m.template cells<ax::y, dm::predictor>(),
+      m.template cells<ax::x, dm::predictor>());
+
+    for(auto cf : cons_faces_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(ji, mdpolicy_pp) {
+        auto [j, i] = ji;
+        utils::tie(stencil<Limiter>()(ra, i, j, cons), h(i, j), t(i, j));
+      };
+    };
+    for(auto cf : cons_faces_vec_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(ji, mdpolicy_pp) {
+        auto [j, i] = ji;
+        utils::tie(stencil<Limiter>()(ra, i, j, cons), h(i, j), t(i, j));
+      };
+    };
+  }
+  else { // Dim == 3
+
+    auto mdpolicy_ppp = get_mdiota_policy(
+      m.template mdcolex<is::cells>(std::get<0>(cons_faces_a.front())),
+      m.template cells<ax::z, dm::predictor>(),
+      m.template cells<ax::y, dm::predictor>(),
+      m.template cells<ax::x, dm::predictor>());
+
+    for(auto cf : cons_faces_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(kji, mdpolicy_ppp) {
+        auto [k, j, i] = kji;
+        utils::tie(
+          stencil<Limiter>()(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
+      };
+    }
+
+    for(auto cf : cons_faces_vec_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(kji, mdpolicy_ppp) {
+        auto [k, j, i] = kji;
+        utils::tie(
+          stencil<Limiter>()(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
+      };
+    }
+  }
+}
+
+template<std::size_t Dim>
+void
+reconstruct_conservatives(flecsi::exec::accelerator s,
+  typename mesh<Dim>::template accessor<ro> m,
+  typename faces<Dim>::accessor<ro, na> rFace_a,
+  typename faces_vec<Dim>::accessor<ro, na> uFace_a,
+  typename faces<Dim>::accessor<ro, na> eFace_a,
+  // reconstructed conservatives on faces
+  typename faces_vec<Dim>::accessor<wo, na> ruFace_a,
+  typename faces<Dim>::accessor<wo, na> rEFace_a) noexcept {
+
+  auto [rHead, rTail] = faces<Dim>::mdcolex(m, rFace_a);
+  auto [uHead, uTail] = faces_vec<Dim>::mdcolex(m, uFace_a);
+  auto [eHead, eTail] = faces<Dim>::mdcolex(m, eFace_a);
+  auto [ruHead, ruTail] = faces_vec<Dim>::mdcolex(m, ruFace_a);
+  auto [rEHead, rETail] = faces<Dim>::mdcolex(m, rEFace_a);
+
+  using hard::tasks::util::get_mdiota_policy;
+  using spec::utils::sqr;
+
+  if constexpr(Dim == 1) {
+
     s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
-      utils::tie(stencil<Limiter>()(i, mass_density), rHead(i), rTail(i));
-      utils::tie(stencil<Limiter>()(i, pressure), pHead(i), pTail(i));
-      utils::tie(
-        stencil<Limiter>()(i, specific_internal_energy), eHead(i), eTail(i));
-      utils::tie(stencil<Limiter>()(i, soundspeed), cHead(i), cTail(i));
-      utils::tie(stencil<Limiter>()(i, velocity), uHead(i), uTail(i));
 
       // Compute conservative variables
       ruHead(i) = rHead(i) * uHead(i);
@@ -170,40 +200,16 @@ reconstruct(flecsi::exec::accelerator s,
       rETail(i) =
         rTail(i) * eTail(i) + 0.5 * rTail(i) * uTail(i).norm_squared();
 
-#ifdef ENABLE_RADIATION
-      utils::tie(stencil<Limiter>()(i, radiation_energy_density),
-        EradHead(i),
-        EradTail(i));
-#endif
-
     }; // forall
   }
   else if constexpr(Dim == 2) {
 
-    auto mdpolicy_pp = get_mdiota_policy(velocity,
+    auto mdpolicy_pp = get_mdiota_policy(rHead,
       m.template cells<ax::y, dm::predictor>(),
       m.template cells<ax::x, dm::predictor>());
 
     s.executor().forall(ji, mdpolicy_pp) {
       auto [j, i] = ji;
-
-      utils::tie(
-        stencil<Limiter>()(ra, i, j, mass_density), rHead(i, j), rTail(i, j));
-      utils::tie(
-        stencil<Limiter>()(ra, i, j, pressure), pHead(i, j), pTail(i, j));
-      utils::tie(stencil<Limiter>()(ra, i, j, specific_internal_energy),
-        eHead(i, j),
-        eTail(i, j));
-      utils::tie(
-        stencil<Limiter>()(ra, i, j, soundspeed), cHead(i, j), cTail(i, j));
-      utils::tie(
-        stencil<Limiter>()(ra, i, j, velocity), uHead(i, j), uTail(i, j));
-
-#ifdef ENABLE_RADIATION
-      utils::tie(stencil<Limiter>()(ra, i, j, radiation_energy_density),
-        EradHead(i, j),
-        EradTail(i, j));
-#endif
 
       // Compute conservative variables
       ruHead(i, j) = rHead(i, j) * uHead(i, j);
@@ -216,35 +222,13 @@ reconstruct(flecsi::exec::accelerator s,
   }
   else { // Dim == 3
 
-    auto mdpolicy_ppp = get_mdiota_policy(velocity,
+    auto mdpolicy_ppp = get_mdiota_policy(rHead,
       m.template cells<ax::z, dm::predictor>(),
       m.template cells<ax::y, dm::predictor>(),
       m.template cells<ax::x, dm::predictor>());
 
     s.executor().forall(kji, mdpolicy_ppp) {
       auto [k, j, i] = kji;
-
-      utils::tie(stencil<Limiter>()(ra, i, j, k, mass_density),
-        rHead(i, j, k),
-        rTail(i, j, k));
-      utils::tie(stencil<Limiter>()(ra, i, j, k, pressure),
-        pHead(i, j, k),
-        pTail(i, j, k));
-      utils::tie(stencil<Limiter>()(ra, i, j, k, specific_internal_energy),
-        eHead(i, j, k),
-        eTail(i, j, k));
-      utils::tie(stencil<Limiter>()(ra, i, j, k, soundspeed),
-        cHead(i, j, k),
-        cTail(i, j, k));
-      utils::tie(stencil<Limiter>()(ra, i, j, k, velocity),
-        uHead(i, j, k),
-        uTail(i, j, k));
-
-#ifdef ENABLE_RADIATION
-      utils::tie(stencil<Limiter>()(ra, i, j, k, radiation_energy_density),
-        EradHead(i, j, k),
-        EradTail(i, j, k));
-#endif
 
       // Compute conservative variables on faces
       ruHead(i, j, k) = rHead(i, j, k) * uHead(i, j, k);

@@ -113,9 +113,20 @@ struct state {
     temperature; // t
 
   // Faces.
+  faces<D> eFace;
+  faces<D> cFace;
+  faces<D> rFace;
+  faces<D> rEFace;
+  faces<D> EradFace;
+  faces<D> pFace;
+
+  faces_vec<D> ruFace;
+  faces_vec<D> uFace;
+
   static inline const field<double>::definition<mesh<D>, is::cells> eTail;
   static inline const field<double>::definition<mesh<D>, is::cells> cTail;
   static inline const field<double>::definition<mesh<D>, is::cells> rTail;
+
   static inline const typename field<vec<D>>::template definition<mesh<D>,
     is::cells>
     ruTail;
@@ -235,48 +246,9 @@ struct state {
     velocity_gradient;
 
   // Storing dU/dt
-  // In the future, it'd be worth consider grouping these into an one
-  // std::tuple<> object per substep.
-  //
-  //  - For RK substep 1
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    dt_mass_density;
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    dt_momentum_density;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    dt_total_energy_density;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    dt_total_energy_density_implicit;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    dt_radiation_energy_density;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    dt_radiation_energy_density_implicit;
-  //  - For RK substep 2
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    dt_mass_density_2;
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    dt_momentum_density_2;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    dt_total_energy_density_2;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    dt_total_energy_density_implicit_2;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    dt_radiation_energy_density_2;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    dt_radiation_energy_density_implicit_2;
-
-  // Storing variables at U^n during performing time update
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    mass_density_n;
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    momentum_density_n;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    total_energy_density_n;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    radiation_energy_density_n;
+  RK<D> rk_dt1;
+  RK<D> rk_dt2;
+  RK<D> rk_n;
 
   // FIXME Temporary variable for sections of the code only used for the
   // multigroup implementation (mostly boundaries)

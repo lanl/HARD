@@ -42,32 +42,19 @@ initialize_time_derivative(control_policy<state, D> & cp) {
     hard::time_stepper::time_stepper_gamma);
 
   // Set all dU_dt temporaries to zero before adding time derivative terms
-  sc.execute<tasks::set_dudt_to_zero<D>>(flecsi::exec::on,
-    *s.m,
-    s.dt_mass_density(*s.m),
-    s.dt_momentum_density(*s.m),
-    s.dt_total_energy_density(*s.m),
-    s.dt_radiation_energy_density(*s.m));
-  sc.execute<tasks::set_dudt_to_zero<D>>(flecsi::exec::on,
-    *s.m,
-    s.dt_mass_density_2(*s.m),
-    s.dt_momentum_density_2(*s.m),
-    s.dt_total_energy_density_2(*s.m),
-    s.dt_radiation_energy_density_2(*s.m));
+  sc.execute<tasks::set_dudt_to_zero<D>>(flecsi::exec::on, *s.m, s.rk_dt1(s.m));
+  sc.execute<tasks::set_dudt_to_zero<D>>(flecsi::exec::on, *s.m, s.rk_dt2(s.m));
 
   // Store the current state of evolved variables (U^n) before performing a time
   // step
   sc.execute<tasks::store_current_state<D>>(flecsi::exec::on,
     *s.m,
-    s.mass_density(*s.m),
-    s.momentum_density(*s.m),
-    s.total_energy_density(*s.m),
-    s.radiation_energy_density(*s.m),
+    std::tuple{s.mass_density(*s.m),
+      s.total_energy_density(*s.m),
+      s.radiation_energy_density(*s.m),
+      s.momentum_density(*s.m)},
     //
-    s.mass_density_n(*s.m),
-    s.momentum_density_n(*s.m),
-    s.total_energy_density_n(*s.m),
-    s.radiation_energy_density_n(*s.m));
+    s.rk_n(s.m));
 }
 
 // --------------------------------------------------------------------
@@ -132,9 +119,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.radiation_pressure_tensor(*s.m),
       s.velocity_gradient(*s.m),
       //
-      s.dt_momentum_density(*s.m),
-      s.dt_total_energy_density(*s.m),
-      s.dt_radiation_energy_density(*s.m));
+      s.rk_dt1(s.m));
   }
   else if(Stage == time_stepper::rk_stage::Second) {
     sc.execute<task::rad::explicitSourceUpdate<D>>(flecsi::exec::on,
@@ -144,9 +129,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.radiation_pressure_tensor(*s.m),
       s.velocity_gradient(*s.m),
       //
-      s.dt_momentum_density_2(*s.m),
-      s.dt_total_energy_density_2(*s.m),
-      s.dt_radiation_energy_density_2(*s.m));
+      s.rk_dt2(s.m));
   }
 #endif
   if(Stage == time_stepper::rk_stage::First) {
@@ -157,8 +140,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.velocity(*s.m),
       s.gravity_force(*s.m),
       // time-derivatives
-      s.dt_momentum_density(*s.m),
-      s.dt_total_energy_density(*s.m));
+      s.rk_dt1(s.m));
 
     // We need update_u here before we compute fluxes in the presence of
     // hydro/rad::explictSourceUpdate with body forces. See Moens'21 Eq. 24-26
@@ -166,15 +148,12 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.dt(*s.gt),
       *s.m,
       //
-      s.mass_density(*s.m),
-      s.momentum_density(*s.m),
-      s.total_energy_density(*s.m),
-      s.radiation_energy_density(*s.m),
+      std::tuple{s.mass_density(*s.m),
+        s.total_energy_density(*s.m),
+        s.radiation_energy_density(*s.m),
+        s.momentum_density(*s.m)},
       //
-      s.dt_mass_density(*s.m),
-      s.dt_momentum_density(*s.m),
-      s.dt_total_energy_density(*s.m),
-      s.dt_radiation_energy_density(*s.m));
+      s.rk_dt1(s.m));
     // Perform primitive recovery
     sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
       *s.m,
@@ -195,8 +174,7 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.velocity(*s.m),
       s.gravity_force(*s.m),
       // time-derivatives
-      s.dt_momentum_density_2(*s.m),
-      s.dt_total_energy_density_2(*s.m));
+      s.rk_dt2(s.m));
 
     // We need update_u here before we compute fluxes in the presence of
     // hydro/rad::explictSourceUpdate with body forces. See Moens'21 Eq. 24-26
@@ -204,15 +182,14 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       s.dt(*s.gt),
       *s.m,
       //
-      s.mass_density(*s.m),
-      s.momentum_density(*s.m),
-      s.total_energy_density(*s.m),
-      s.radiation_energy_density(*s.m),
+      std::tuple{
+        s.mass_density(*s.m),
+        s.total_energy_density(*s.m),
+        s.radiation_energy_density(*s.m),
+        s.momentum_density(*s.m),
+      },
       //
-      s.dt_mass_density_2(*s.m),
-      s.dt_momentum_density_2(*s.m),
-      s.dt_total_energy_density_2(*s.m),
-      s.dt_radiation_energy_density_2(*s.m));
+      s.rk_dt2(s.m));
 
     // Perform primitive recovery
     sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
@@ -235,53 +212,66 @@ RK_advance(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
   using limiter = spec::limiters::weno5z;
 
   for(std::size_t axis = 0; axis < D; axis++) {
-    // clang-format off
-    sc.execute<tasks::hydro::reconstruct<D, limiter>>(
-      flecsi::exec::on, 
+    sc.execute<tasks::hydro::reconstruct_primitives<D, limiter>>(
+      flecsi::exec::on,
       axis,
-      *s.m, s.mass_density(*s.m), s.velocity(*s.m), s.pressure(*s.m),
-      s.specific_internal_energy(*s.m),
-      s.sound_speed(*s.m),
-      s.radiation_energy_density(*s.m),
-      s.rTail(*s.m), s.rHead(*s.m), s.uTail(*s.m), s.uHead(*s.m),
-      s.pTail(*s.m), s.pHead(*s.m),  s.eTail(*s.m), s.eHead(*s.m),  s.cTail(*s.m),
-      s.cHead(*s.m), s.EradTail(*s.m), s.EradHead(*s.m),
-      s.ruTail(*s.m), s.ruHead(*s.m), s.rETail(*s.m), s.rEHead(*s.m));
+      *s.m,
+      std::vector{std::make_tuple(s.mass_density(*s.m), s.rFace(s.m)),
+        std::make_tuple(s.specific_internal_energy(*s.m), s.eFace(s.m)),
+        std::make_tuple(s.sound_speed(*s.m), s.cFace(s.m)),
+        std::make_tuple(s.pressure(*s.m), s.pFace(s.m)),
+        std::make_tuple(s.radiation_energy_density(*s.m), s.EradFace(s.m))},
+      std::vector{std::make_tuple(s.velocity(*s.m), s.uFace(s.m))});
+
+    sc.execute<tasks::hydro::reconstruct_conservatives<D>>(flecsi::exec::on,
+      *s.m,
+      s.rFace(s.m),
+      s.uFace(s.m),
+      s.eFace(s.m),
+      s.ruFace(s.m),
+      s.rEFace(s.m));
 
     if(Stage == time_stepper::rk_stage::First) {
       // Calculate K1 and save it to dt_U
-      sc.execute<tasks::hydro::compute_interface_fluxes<D>>(
-        flecsi::exec::on, 
-        axis, *s.m,
-        s.rTail(*s.m), s.rHead(*s.m), s.uTail(*s.m), s.uHead(*s.m),
-        s.pTail(*s.m), s.pHead(*s.m), s.cTail(*s.m),
-        s.cHead(*s.m), s.EradTail(*s.m), s.EradHead(*s.m),
-        s.ruTail(*s.m), s.ruHead(*s.m),
-        s.rETail(*s.m), s.rEHead(*s.m),
-        s.rF(*s.m), s.ruF(*s.m), s.rEF(*s.m), s.EradF(*s.m),
-        s.dt_mass_density(*s.m),
-        s.dt_momentum_density(*s.m),
-        s.dt_total_energy_density(*s.m),
-        s.dt_radiation_energy_density(*s.m),
+      sc.execute<tasks::hydro::compute_interface_fluxes<D>>(flecsi::exec::on,
+        axis,
+        *s.m,
+        s.rFace(s.m),
+        s.uFace(s.m),
+        s.pFace(s.m),
+        s.cFace(s.m),
+        s.EradFace(s.m),
+        s.ruFace(s.m),
+        s.rEFace(s.m),
+        // Riemann Fluxes
+        s.rF(*s.m),
+        s.ruF(*s.m),
+        s.rEF(*s.m),
+        s.EradF(*s.m),
+
+        s.rk_dt1(s.m),
         s.gravity_acc(*s.gt));
     }
     else if(Stage == time_stepper::rk_stage::Second) {
       // Calculate K2 and save it to dt_U_2
-      sc.execute<tasks::hydro::compute_interface_fluxes<D>>(
-        flecsi::exec::on, 
-        axis, *s.m,
-        s.rTail(*s.m), s.rHead(*s.m), s.uTail(*s.m), s.uHead(*s.m),
-        s.pTail(*s.m), s.pHead(*s.m), s.cTail(*s.m),
-        s.cHead(*s.m), s.EradTail(*s.m), s.EradHead(*s.m),
-        s.ruTail(*s.m), s.ruHead(*s.m),
-        s.rETail(*s.m), s.rEHead(*s.m),
-        s.rF(*s.m), s.ruF(*s.m), s.rEF(*s.m), s.EradF(*s.m),
-        s.dt_mass_density_2(*s.m),
-        s.dt_momentum_density_2(*s.m),
-        s.dt_total_energy_density_2(*s.m),
-        s.dt_radiation_energy_density_2(*s.m),
-        s.gravity_acc(*s.gt));
+      sc.execute<tasks::hydro::compute_interface_fluxes<D>>(flecsi::exec::on,
+        axis,
+        *s.m,
+        s.rFace(s.m),
+        s.uFace(s.m),
+        s.pFace(s.m),
+        s.cFace(s.m),
+        s.EradFace(s.m),
+        s.ruFace(s.m),
+        s.rEFace(s.m),
+        // Riemann Fluxes
+        s.rF(*s.m),
+        s.ruF(*s.m),
+        s.rEF(*s.m),
+        s.EradF(*s.m),
 
+        s.rk_dt2(s.m),
+        s.gravity_acc(*s.gt));
     }
     // clang-format on
   }
@@ -302,17 +292,8 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
       flecsi::exec::on,
       s.dt(*s.gt),
       *s.m,
-      //
-      s.mass_density_n(*s.m),
-      s.momentum_density_n(*s.m),
-      s.total_energy_density_n(*s.m),
-      s.radiation_energy_density_n(*s.m),
-      //
-      s.dt_mass_density(*s.m),
-      s.dt_momentum_density(*s.m),
-      s.dt_total_energy_density(*s.m),
-      s.dt_radiation_energy_density(*s.m),
-      //
+      s.rk_n(s.m),
+      s.rk_dt1(s.m),
       s.mass_density(*s.m),
       s.momentum_density(*s.m),
       s.total_energy_density(*s.m),
@@ -320,46 +301,22 @@ update_vars(control_policy<state, D> & cp, time_stepper::rk_stage Stage) {
   }
   else if(Stage == time_stepper::rk_stage::Update) {
     // First compute K1' = (K1 + K2) * 0.5
-    sc.execute<tasks::add_k1_k2<D>>(flecsi::exec::on,
-      *s.m,
-      //
-      s.dt_mass_density(*s.m),
-      s.dt_momentum_density(*s.m),
-      s.dt_total_energy_density(*s.m),
-      s.dt_radiation_energy_density(*s.m),
-      //
-      s.dt_mass_density_2(*s.m),
-      s.dt_momentum_density_2(*s.m),
-      s.dt_total_energy_density_2(*s.m),
-      s.dt_radiation_energy_density_2(*s.m));
+    sc.execute<tasks::add_k1_k2<D>>(
+      flecsi::exec::on, *s.m, s.rk_dt1(s.m), s.rk_dt2(s.m));
 
     // Now get U_n(+1) = U_n + h * K1'
-    sc.execute<tasks::update_u<D>>(flecsi::exec::on,
-      s.dt(*s.gt),
-      *s.m,
-      //
-      s.mass_density_n(*s.m),
-      s.momentum_density_n(*s.m),
-      s.total_energy_density_n(*s.m),
-      s.radiation_energy_density_n(*s.m),
-      //
-      s.dt_mass_density(*s.m),
-      s.dt_momentum_density(*s.m),
-      s.dt_total_energy_density(*s.m),
-      s.dt_radiation_energy_density(*s.m));
+    sc.execute<tasks::update_u<D>>(
+      flecsi::exec::on, s.dt(*s.gt), *s.m, s.rk_n(s.m), s.rk_dt1(s.m));
 
     // Finish by updating the values stored in U_n to U
     sc.execute<tasks::store_current_state<D>>(flecsi::exec::on,
       *s.m,
-      s.mass_density_n(*s.m),
-      s.momentum_density_n(*s.m),
-      s.total_energy_density_n(*s.m),
-      s.radiation_energy_density_n(*s.m),
+      s.rk_n(s.m),
       //
-      s.mass_density(*s.m),
-      s.momentum_density(*s.m),
-      s.total_energy_density(*s.m),
-      s.radiation_energy_density(*s.m));
+      std::tuple{s.mass_density(*s.m),
+        s.total_energy_density(*s.m),
+        s.radiation_energy_density(*s.m),
+        s.momentum_density(*s.m)});
   }
 
   // Perform primitive recovery
