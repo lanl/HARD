@@ -89,6 +89,91 @@ private:
   int flip_{0};
 };
 
+template<std::size_t D>
+struct faces {
+
+  std::tuple<field<double>::definition<mesh<D>, is::cells>, // head
+    field<double>::definition<mesh<D>, is::cells> // tail
+    >
+    f;
+
+  template<flecsi::privilege P1, flecsi::privilege P2>
+  using accessor = std::tuple<field<double>::accessor<P1, P2>,
+    field<double>::accessor<P1, P2>>;
+
+  auto operator()(const mesh<D>::ptr & s) {
+    return std::make_tuple(std::get<0>(f)(*s), std::get<1>(f)(*s));
+  }
+
+  template<class MeshAcc, class Tuple>
+  static auto mdcolex(MeshAcc && m, Tuple & a) {
+    return std::apply(
+      [&](auto &... x) {
+        return std::tuple{m.template mdcolex<is::cells>(x)...};
+      },
+      a);
+  }
+};
+
+template<std::size_t D>
+struct faces_vec {
+
+  std::tuple<typename field<vec<D>>::definition<mesh<D>, is::cells>, // head
+    typename field<vec<D>>::definition<mesh<D>, is::cells> // tail
+    >
+    f;
+
+  template<flecsi::privilege P1, flecsi::privilege P2>
+  using accessor = std::tuple<typename field<vec<D>>::accessor<P1, P2>,
+    typename field<vec<D>>::accessor<P1, P2>>;
+
+  auto operator()(const mesh<D>::ptr & s) {
+    return std::make_tuple(std::get<0>(f)(*s), std::get<1>(f)(*s));
+  }
+
+  template<class MeshAcc, class Tuple>
+  static auto mdcolex(MeshAcc && m, Tuple & a) {
+    return std::apply(
+      [&](auto &... x) {
+        return std::tuple{m.template mdcolex<is::cells>(x)...};
+      },
+      a);
+  }
+};
+
+template<std::size_t D>
+struct RK {
+  std::tuple<field<double>::definition<mesh<D>, is::cells>, // mass_density
+    field<double>::definition<mesh<D>, is::cells>, // total_energy_density
+    field<double>::definition<mesh<D>, is::cells>, // radiation_energy_density
+    typename field<vec<D>>::template definition<mesh<D>,
+      is::cells> // momentum_energy_density
+    >
+    f;
+
+  template<flecsi::privilege P1, flecsi::privilege P2>
+  using accessor = std::tuple<field<double>::accessor<P1, P2>,
+    field<double>::accessor<P1, P2>,
+    field<double>::accessor<P1, P2>,
+    typename field<vec<D>>::template accessor<P1, P2>>;
+
+  auto operator()(const mesh<D>::ptr & s) {
+    return std::make_tuple(std::get<0>(f)(*s),
+      std::get<1>(f)(*s),
+      std::get<2>(f)(*s),
+      std::get<3>(f)(*s));
+  }
+
+  template<class MeshAcc, class Tuple>
+  static auto mdcolex(MeshAcc && m, Tuple & a) {
+    return std::apply(
+      [&](auto &... x) {
+        return std::tuple{m.template mdcolex<is::cells>(x)...};
+      },
+      a);
+  }
+};
+
 } // namespace hard
 
 #endif // HARD_TYPES_HH

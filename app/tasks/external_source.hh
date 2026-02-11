@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "../numerical_algorithms/riemann_solvers.hh"
@@ -21,16 +20,15 @@ externalSource(flecsi::exec::accelerator s,
   // Terms required for computing radiation force and photon tiring
   typename field<vec<D>>::template accessor<ro, na> gravity_force_a,
   // time derivative
-  typename field<vec<D>>::template accessor<rw, na> dt_momentum_density_a,
-  field<double>::accessor<rw, na> dt_total_energy_density_a) noexcept {
+  typename RK<D>::accessor<rw, na> rk_dt_a) noexcept {
 
   auto velocity = m.template mdcolex<is::cells>(velocity_a);
   auto fg = m.template mdcolex<is::cells>(gravity_force_a);
-  auto dt_momentum_density =
-    m.template mdcolex<is::cells>(dt_momentum_density_a);
-  auto dt_total_energy_density =
-    m.template mdcolex<is::cells>(dt_total_energy_density_a);
-  // const double radiation_constant = hard::constants::cgs::radiation_constant;
+
+  auto [dt_mass_density,
+    dt_total_energy_density,
+    dt_radiation_energy_density,
+    dt_momentum_density] = RK<D>::mdcolex(m, rk_dt_a);
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {

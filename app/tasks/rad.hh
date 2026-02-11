@@ -567,20 +567,17 @@ explicitSourceUpdate(flecsi::exec::accelerator s,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<ro,
     na> gradV_a,
   // time derivative
-  typename field<vec<D>>::template accessor<rw, na> dt_momentum_density_a,
-  field<double>::accessor<rw, na> dt_total_energy_density_a,
-  field<double>::accessor<rw, na> dt_radiation_energy_density_a) noexcept {
+  typename RK<D>::accessor<rw, na> rk_dt_a) noexcept {
+
+  auto [dt_mass_density,
+    dt_total_energy_density,
+    dt_radiation_energy_density,
+    dt_momentum_density] = RK<D>::mdcolex(m, rk_dt_a);
 
   auto velocity = m.template mdcolex<is::cells>(velocity_a);
   auto fr = m.template mdcolex<is::cells>(fr_a);
   auto P_tensor = m.template mdcolex<is::cells>(P_tensor_a);
   auto gradV = m.template mdcolex<is::cells>(gradV_a);
-  auto dt_momentum_density =
-    m.template mdcolex<is::cells>(dt_momentum_density_a);
-  auto dt_total_energy_density =
-    m.template mdcolex<is::cells>(dt_total_energy_density_a);
-  auto dt_radiation_energy_density =
-    m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
   // const double radiation_constant = hard::constants::cgs::radiation_constant;
 
   if constexpr(D == 1) {

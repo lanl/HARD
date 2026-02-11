@@ -13,63 +13,16 @@ template<std::size_t Dim>
 void
 set_dudt_to_zero(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
-  field<double>::accessor<wo, na> dt_mass_density_a,
-  typename field<vec<Dim>>::template accessor<wo, na> dt_momentum_density_a,
-  field<double>::accessor<wo, na> dt_total_energy_density_a,
-  field<double>::accessor<wo, na> dt_radiation_energy_density_a) noexcept {
+  typename RK<Dim>::accessor<wo, na> rk_a) noexcept {
 
-  auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
-  auto dt_momentum_density =
-    m.template mdcolex<is::cells>(dt_momentum_density_a);
-  auto dt_total_energy_density =
-    m.template mdcolex<is::cells>(dt_total_energy_density_a);
-  auto dt_radiation_energy_density =
-    m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
+  auto [dt_mass, dt_etot, dt_erad, dt_mom] = rk_a;
 
-  using hard::tasks::util::get_mdiota_policy;
-  if constexpr(Dim == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      dt_mass_density(i) = 0.0;
-      dt_momentum_density(i).x() = 0.0;
-      dt_total_energy_density(i) = 0.0;
-      dt_radiation_energy_density(i) = 0.0;
-    }; // forall
-  }
-  else if constexpr(Dim == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(dt_mass_density,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(ji, mdpolicy_qq) {
-      auto [j, i] = ji;
-      dt_mass_density(i, j) = 0.0;
-      dt_momentum_density(i, j).x() = 0.0;
-      dt_momentum_density(i, j).y() = 0.0;
-      dt_total_energy_density(i, j) = 0.0;
-#ifdef ENABLE_RADIATION
-      dt_radiation_energy_density(i, j) = 0.0;
-#endif
-
-    }; // forall
-  }
-  else {
-    auto mdpolicy_qqq = get_mdiota_policy(dt_mass_density,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_qqq) {
-      auto [k, j, i] = kji;
-      dt_mass_density(i, j, k) = 0.0;
-      dt_momentum_density(i, j, k).x() = 0.0;
-      dt_momentum_density(i, j, k).y() = 0.0;
-      dt_momentum_density(i, j, k).z() = 0.0;
-      dt_total_energy_density(i, j, k) = 0.0;
-#ifdef ENABLE_RADIATION
-      dt_radiation_energy_density(i, j, k) = 0.0;
-#endif
-    }; // forall
-  }
+  s.executor().forall(i, dt_mass.span()) {
+    dt_mass(i) = 0.0;
+    dt_mom(i) = vec<Dim>(0.0);
+    dt_etot(i) = 0.0;
+    dt_erad(i) = 0.0;
+  }; // forall
 }
 
 //
@@ -81,83 +34,23 @@ void
 store_current_state(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   // Copied from
-  field<double>::accessor<ro, na> mass_density_a,
-  typename field<vec<Dim>>::template accessor<ro, na> momentum_density_a,
-  field<double>::accessor<ro, na> total_energy_density_a,
-  field<double>::accessor<ro, na>
-#ifdef ENABLE_RADIATION
-    radiation_energy_density_a
-#endif
-  // Copied into
-  ,
-  field<double>::accessor<wo, na> mass_density_n_a,
-  typename field<vec<Dim>>::template accessor<wo, na> momentum_density_n_a,
-  field<double>::accessor<wo, na> total_energy_density_n_a,
-  field<double>::accessor<wo, na>
-#ifdef ENABLE_RADIATION
-    radiation_energy_density_n_a
-#endif
-  ) noexcept {
+  typename RK<Dim>::accessor<ro, na> rk_a,
+  typename RK<Dim>::accessor<wo, na> rk_n_a) noexcept {
 
-  auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto mass_density_n = m.template mdcolex<is::cells>(mass_density_n_a);
-  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
-  auto momentum_density_n = m.template mdcolex<is::cells>(momentum_density_n_a);
-  auto total_energy_density =
-    m.template mdcolex<is::cells>(total_energy_density_a);
-  auto total_energy_density_n =
-    m.template mdcolex<is::cells>(total_energy_density_n_a);
+  auto [mass_n, etot_n, erad_n, mom_n] = rk_n_a;
+  auto [mass_density_a,
+    total_energy_density_a,
+    radiation_energy_density_a,
+    momentum_density_a] = rk_a;
+
+  s.executor().forall(i, mass_n.span()) {
+    mass_n(i) = mass_density_a(i);
+    mom_n(i) = momentum_density_a(i);
+    etot_n(i) = total_energy_density_a(i);
 #ifdef ENABLE_RADIATION
-  auto radiation_energy_density =
-    m.template mdcolex<is::cells>(radiation_energy_density_a);
-  auto radiation_energy_density_n =
-    m.template mdcolex<is::cells>(radiation_energy_density_n_a);
+    erad_n(i) = radiation_energy_density_a(i);
 #endif
-
-  using hard::tasks::util::get_mdiota_policy;
-  if constexpr(Dim == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      mass_density_n(i) = mass_density(i);
-      momentum_density_n(i) = momentum_density(i);
-      total_energy_density_n(i) = total_energy_density(i);
-#ifdef ENABLE_RADIATION
-      radiation_energy_density_n(i) = radiation_energy_density(i);
-#endif
-    }; // forall
-  }
-  else if constexpr(Dim == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(mass_density,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(ji, mdpolicy_qq) {
-      auto [j, i] = ji;
-      mass_density_n(i, j) = mass_density(i, j);
-      momentum_density_n(i, j) = momentum_density(i, j);
-      total_energy_density_n(i, j) = total_energy_density(i, j);
-#ifdef ENABLE_RADIATION
-      radiation_energy_density_n(i, j) = radiation_energy_density(i, j);
-#endif
-
-    }; // forall
-  }
-  else {
-    auto mdpolicy_qqq = get_mdiota_policy(mass_density,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_qqq) {
-      auto [k, j, i] = kji;
-      mass_density_n(i, j, k) = mass_density(i, j, k);
-      momentum_density_n(i, j, k) = momentum_density(i, j, k);
-      total_energy_density_n(i, j, k) = total_energy_density(i, j, k);
-#ifdef ENABLE_RADIATION
-      radiation_energy_density_n(i, j, k) = radiation_energy_density(i, j, k);
-#endif
-
-    }; // forall
-  }
+  }; // forall
 }
 
 //
@@ -169,42 +62,19 @@ update_u(flecsi::exec::accelerator s,
   single<double>::accessor<ro> dt_a,
   typename mesh<Dim>::template accessor<ro> m,
   // U^n we want to update
-  field<double>::accessor<rw, na> mass_density_a,
-  typename field<vec<Dim>>::template accessor<rw, na> momentum_density_a,
-  field<double>::accessor<rw, na> total_energy_density_a,
-  field<double>::accessor<rw, na>
-#ifdef ENABLE_RADIATION
-    radiation_energy_density_a
-#endif
-  ,
+  typename RK<Dim>::accessor<rw, na> rk_n_a,
   // Time derivatives for the state U^1
-  field<double>::accessor<ro, na> dt_mass_density_a,
-  typename field<vec<Dim>>::template accessor<ro, na> dt_momentum_density_a,
-  field<double>::accessor<ro, na> dt_total_energy_density_a,
-  field<double>::accessor<ro, na>
-#ifdef ENABLE_RADIATION
-    dt_radiation_energy_density_a
-#endif
-  ) noexcept {
+  typename RK<Dim>::accessor<ro, na> rk_dt_a) noexcept {
 
-  auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
-  auto total_energy_density =
-    m.template mdcolex<is::cells>(total_energy_density_a);
-#ifdef ENABLE_RADIATION
-  auto radiation_energy_density =
-    m.template mdcolex<is::cells>(radiation_energy_density_a);
-#endif
+  auto [mass_density,
+    total_energy_density,
+    radiation_energy_density,
+    momentum_density] = RK<Dim>::mdcolex(m, rk_n_a);
 
-  auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
-  auto dt_momentum_density =
-    m.template mdcolex<is::cells>(dt_momentum_density_a);
-  auto dt_total_energy_density =
-    m.template mdcolex<is::cells>(dt_total_energy_density_a);
-#ifdef ENABLE_RADIATION
-  auto dt_radiation_energy_density =
-    m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
-#endif
+  auto [dt_mass_density,
+    dt_total_energy_density,
+    dt_radiation_energy_density,
+    dt_momentum_density] = RK<Dim>::mdcolex(m, rk_dt_a);
 
   using hard::tasks::util::get_mdiota_policy;
 
@@ -263,38 +133,14 @@ void
 add_k1_k2(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   // K1
-  field<double>::accessor<rw, na> dt_mass_density_a,
-  typename field<vec<Dim>>::template accessor<rw, na> dt_momentum_density_a,
-  field<double>::accessor<rw, na> dt_total_energy_density_a,
-  field<double>::accessor<rw, na>
-#ifdef ENABLE_RADIATION
-    dt_radiation_energy_density_a
-#endif
-  ,
+  typename RK<Dim>::accessor<rw, na> rk_dt1_a,
   // K2
-  field<double>::accessor<ro, na> dt_mass_density_2_a,
-  typename field<vec<Dim>>::template accessor<ro, na> dt_momentum_density_2_a,
-  field<double>::accessor<ro, na> dt_total_energy_density_2_a,
-  field<double>::accessor<ro, na>
-#ifdef ENABLE_RADIATION
-    dt_radiation_energy_density_2_a
-#endif
-  ) noexcept {
+  typename RK<Dim>::accessor<ro, na> rk_dt2_a) noexcept {
   // K1
-  auto dt_r = m.template mdcolex<is::cells>(dt_mass_density_a);
-  auto dt_ru = m.template mdcolex<is::cells>(dt_momentum_density_a);
-  auto dt_te = m.template mdcolex<is::cells>(dt_total_energy_density_a);
-#ifdef ENABLE_RADIATION
-  auto dt_re = m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
-#endif
+  auto [dt_r, dt_te, dt_re, dt_ru] = RK<Dim>::mdcolex(m, rk_dt1_a);
 
   // K2
-  auto dt_r2 = m.template mdcolex<is::cells>(dt_mass_density_2_a);
-  auto dt_ru2 = m.template mdcolex<is::cells>(dt_momentum_density_2_a);
-  auto dt_te2 = m.template mdcolex<is::cells>(dt_total_energy_density_2_a);
-#ifdef ENABLE_RADIATION
-  auto dt_re2 = m.template mdcolex<is::cells>(dt_radiation_energy_density_2_a);
-#endif
+  auto [dt_r2, dt_te2, dt_re2, dt_ru2] = RK<Dim>::mdcolex(m, rk_dt2_a);
 
   using hard::tasks::util::get_mdiota_policy;
 
@@ -353,23 +199,9 @@ update_u_stage(flecsi::exec::cpu s,
   single<double>::accessor<ro> dt_a,
   typename mesh<Dim>::template accessor<ro> m,
   // U^n we want to update
-  field<double>::accessor<rw, na> mass_density_a,
-  typename field<vec<Dim>>::template accessor<rw, na> momentum_density_a,
-  field<double>::accessor<rw, na> total_energy_density_a,
-  field<double>::accessor<rw, na>
-#ifdef ENABLE_RADIATION
-    radiation_energy_density_a
-#endif
-  ,
+  typename RK<Dim>::accessor<rw, na> rk_n_a,
   // Time derivatives for the state U^1
-  field<double>::accessor<ro, na> dt_mass_density_a,
-  typename field<vec<Dim>>::template accessor<ro, na> dt_momentum_density_a,
-  field<double>::accessor<ro, na> dt_total_energy_density_a,
-  field<double>::accessor<ro, na>
-#ifdef ENABLE_RADIATION
-    dt_radiation_energy_density_a
-#endif
-  ,
+  typename RK<Dim>::accessor<ro, na> rk_dt1_a,
   // U^n+1 updated after stage
   field<double>::accessor<rw, na> mass_density_b,
   typename field<vec<Dim>>::template accessor<rw, na> momentum_density_b,
@@ -380,14 +212,10 @@ update_u_stage(flecsi::exec::cpu s,
 #endif
   ) noexcept {
 
-  auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
-  auto total_energy_density =
-    m.template mdcolex<is::cells>(total_energy_density_a);
-#ifdef ENABLE_RADIATION
-  auto radiation_energy_density =
-    m.template mdcolex<is::cells>(radiation_energy_density_a);
-#endif
+  auto [mass_density,
+    total_energy_density,
+    radiation_energy_density,
+    momentum_density] = RK<Dim>::mdcolex(m, rk_n_a);
 
   auto mass_density_new = m.template mdcolex<is::cells>(mass_density_b);
   auto momentum_density_new = m.template mdcolex<is::cells>(momentum_density_b);
@@ -398,15 +226,10 @@ update_u_stage(flecsi::exec::cpu s,
     m.template mdcolex<is::cells>(radiation_energy_density_b);
 #endif
 
-  auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
-  auto dt_momentum_density =
-    m.template mdcolex<is::cells>(dt_momentum_density_a);
-  auto dt_total_energy_density =
-    m.template mdcolex<is::cells>(dt_total_energy_density_a);
-#ifdef ENABLE_RADIATION
-  auto dt_radiation_energy_density =
-    m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
-#endif
+  auto [dt_mass_density,
+    dt_total_energy_density,
+    dt_radiation_energy_density,
+    dt_momentum_density] = RK<Dim>::mdcolex(m, rk_dt1_a);
 
   auto h = *dt_a;
   using hard::tasks::util::get_mdiota_policy;

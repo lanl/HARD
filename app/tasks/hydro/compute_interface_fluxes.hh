@@ -7,90 +7,45 @@
 
 namespace hard::tasks::hydro {
 
-//
-// Based on the reconstructed primitives and conservatives on cell interfaces,
-// compute Riemann fluxes and store them into `*F` variables, then store the
-// time derivative - (F^{i+1/2} - F^{i-1/2}) / dx into `dudt_fluxes`.
-//
 template<std::size_t Dim>
 void
 compute_interface_fluxes(flecsi::exec::cpu s,
   std::size_t face_axis,
   typename mesh<Dim>::template accessor<ro> m,
-  field<double>::accessor<wo, ro> rTail_a,
-  field<double>::accessor<wo, ro> rHead_a,
-  typename field<vec<Dim>>::template accessor<wo, ro> uTail_a,
-  typename field<vec<Dim>>::template accessor<wo, ro> uHead_a,
-  field<double>::accessor<wo, ro> pTail_a,
-  field<double>::accessor<wo, ro> pHead_a,
-  field<double>::accessor<wo, ro> cTail_a,
-  field<double>::accessor<wo, ro> cHead_a,
-  field<double>::accessor<wo, ro>
-#ifdef ENABLE_RADIATION
-    EradTail_a
-#endif
-  ,
-  field<double>::accessor<wo, ro>
-#ifdef ENABLE_RADIATION
-    EradHead_a
-#endif
-  ,
-  typename field<vec<Dim>>::template accessor<wo, ro> ruTail_a,
-  typename field<vec<Dim>>::template accessor<wo, ro> ruHead_a,
-  field<double>::accessor<wo, ro> rETail_a,
-  field<double>::accessor<wo, ro> rEHead_a,
+  typename faces<Dim>::accessor<wo, ro> rFace_a,
+  typename faces_vec<Dim>::accessor<wo, ro> uFace_a,
+  typename faces<Dim>::accessor<wo, ro> pFace_a,
+  typename faces<Dim>::accessor<wo, ro> cFace_a,
+  typename faces<Dim>::accessor<wo, ro> EradFace_a,
+  typename faces_vec<Dim>::accessor<wo, ro> ruFace_a,
+  typename faces<Dim>::accessor<wo, ro> rEFace_a,
   // Riemann fluxes at cell interfaces
   field<double>::accessor<wo, ro> rF_a,
   typename field<vec<Dim>>::template accessor<wo, ro> ruF_a,
   field<double>::accessor<wo, ro> rEF_a,
-  field<double>::accessor<wo, ro>
-#ifdef ENABLE_RADIATION
-    EradF_a
-#endif
-  ,
+  field<double>::accessor<wo, ro> EradF_a,
   // time derivative
-  field<double>::accessor<rw, na> dt_mass_density_a,
-  typename field<vec<Dim>>::template accessor<rw, ro> dt_momentum_density_a,
-  field<double>::accessor<rw, na> dt_total_energy_density_a,
-  field<double>::accessor<rw, na>
-#ifdef ENABLE_RADIATION
-    dt_radiation_energy_density_a
-#endif
-  ,
+  typename RK<Dim>::accessor<rw, na> rk_dt_a,
   typename single<vec<Dim>>::template accessor<ro> g_acc) noexcept {
   auto g = g_acc.get();
-  auto rTail = m.template mdcolex<is::cells>(rTail_a);
-  auto rHead = m.template mdcolex<is::cells>(rHead_a);
-  auto uTail = m.template mdcolex<is::cells>(uTail_a);
-  auto uHead = m.template mdcolex<is::cells>(uHead_a);
-  auto pTail = m.template mdcolex<is::cells>(pTail_a);
-  auto pHead = m.template mdcolex<is::cells>(pHead_a);
-  auto cTail = m.template mdcolex<is::cells>(cTail_a);
-  auto cHead = m.template mdcolex<is::cells>(cHead_a);
+  auto [rHead, rTail] = faces<Dim>::mdcolex(m, rFace_a);
+  auto [uHead, uTail] = faces_vec<Dim>::mdcolex(m, uFace_a);
+  auto [pHead, pTail] = faces<Dim>::mdcolex(m, pFace_a);
+  auto [cHead, cTail] = faces<Dim>::mdcolex(m, cFace_a);
+  auto [EradHead, EradTail] = faces<Dim>::mdcolex(m, EradFace_a);
+  auto [ruHead, ruTail] = faces_vec<Dim>::mdcolex(m, ruFace_a);
+  auto [rEHead, rETail] = faces<Dim>::mdcolex(m, rEFace_a);
 
-#ifdef ENABLE_RADIATION
-  auto EradTail = m.template mdcolex<is::cells>(EradTail_a);
-  auto EradHead = m.template mdcolex<is::cells>(EradHead_a);
-#endif
-  auto ruTail = m.template mdcolex<is::cells>(ruTail_a);
-  auto ruHead = m.template mdcolex<is::cells>(ruHead_a);
-  auto rETail = m.template mdcolex<is::cells>(rETail_a);
-  auto rEHead = m.template mdcolex<is::cells>(rEHead_a);
   auto rF = m.template mdcolex<is::cells>(rF_a);
   auto ruF = m.template mdcolex<is::cells>(ruF_a);
   auto rEF = m.template mdcolex<is::cells>(rEF_a);
-#ifdef ENABLE_RADIATION
   auto EradF = m.template mdcolex<is::cells>(EradF_a);
-#endif
-  auto dt_mass_density = m.template mdcolex<is::cells>(dt_mass_density_a);
-  auto dt_momentum_density =
-    m.template mdcolex<is::cells>(dt_momentum_density_a);
-  auto dt_total_energy_density =
-    m.template mdcolex<is::cells>(dt_total_energy_density_a);
-#ifdef ENABLE_RADIATION
-  auto dt_radiation_energy_density =
-    m.template mdcolex<is::cells>(dt_radiation_energy_density_a);
-#endif
+
+  auto [dt_mass_density,
+    dt_total_energy_density,
+    dt_radiation_energy_density,
+    dt_momentum_density] = RK<Dim>::mdcolex(m, rk_dt_a);
+
   using hard::tasks::util::get_mdiota_policy;
   // Compute (1 / dx^i)
   const auto one_over_dx_i = [&m]() {
