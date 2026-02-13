@@ -27,11 +27,16 @@ vcycle(control_policy<state, D> & cp, std::size_t index) {
 
     // Direct solve for a single interior point
     for(std::size_t i{0}; i < 100; i++) {
-      s.Esf.flip();
+      s.mgr.Esf.flip();
       // NOTE: We are defaulting to damped_jacobi until gauss-seidel is
       // parallelized
-      sc.execute<task::rad::damped_jacobi<D>>(
-        flecsi::exec::on, mf, s.Ew(mf), s.Esf(mf), s.Esf(mf, 1), s.Ef(mf), 0.8);
+      sc.execute<task::rad::damped_jacobi<D>>(flecsi::exec::on,
+        mf,
+        s.mgr.Ew(mf),
+        s.mgr.Esf(mf),
+        s.mgr.Esf(mf, 1),
+        s.mgr.Ef(mf),
+        0.8);
     } // for
   }
   else {
@@ -43,37 +48,52 @@ vcycle(control_policy<state, D> & cp, std::size_t index) {
     auto & mc = *s.mh[index + 1];
 
     // Pre Smoothing
-    for(std::size_t i{0}; i < s.mg_pre; ++i) {
-      s.Esf.flip();
-      sc.execute<task::rad::damped_jacobi<D>>(
-        flecsi::exec::on, mf, s.Ew(mf), s.Esf(mf), s.Esf(mf, 1), s.Ef(mf), 0.8);
+    for(std::size_t i{0}; i < s.mgr.mg_pre; ++i) {
+      s.mgr.Esf.flip();
+      sc.execute<task::rad::damped_jacobi<D>>(flecsi::exec::on,
+        mf,
+        s.mgr.Ew(mf),
+        s.mgr.Esf(mf),
+        s.mgr.Esf(mf, 1),
+        s.mgr.Ef(mf),
+        0.8);
     } // for
 
     // Recursive solve
-    sc.execute<task::rad::residual<D>>(
-      flecsi::exec::on, mf, s.Ew(mf), s.Esf(mf), s.Ef(mf), s.Resf(mf));
+    sc.execute<task::rad::residual<D>>(flecsi::exec::on,
+      mf,
+      s.mgr.Ew(mf),
+      s.mgr.Esf(mf),
+      s.mgr.Ef(mf),
+      s.mgr.Resf(mf));
 
     sc.execute<task::rad::full_weighting<D>>(
-      flecsi::exec::on, mf, mc, s.Resf(mf), s.Ef(mc));
+      flecsi::exec::on, mf, mc, s.mgr.Resf(mf), s.mgr.Ef(mc));
 
     // Initialize the solution fields for the coarser level
-    sc.execute<task::rad::const_init<D>>(flecsi::exec::on, mc, s.Esf(mc), 0.0);
     sc.execute<task::rad::const_init<D>>(
-      flecsi::exec::on, mc, s.Esf(mc, 1), 0.0);
+      flecsi::exec::on, mc, s.mgr.Esf(mc), 0.0);
+    sc.execute<task::rad::const_init<D>>(
+      flecsi::exec::on, mc, s.mgr.Esf(mc, 1), 0.0);
 
     vcycle<D>(cp, index + 1);
 
     sc.execute<task::rad::nlinear_interpolation<D>>(
-      flecsi::exec::on, mc, mf, s.Esf(mc), s.Errf(mf));
+      flecsi::exec::on, mc, mf, s.mgr.Esf(mc), s.mgr.Errf(mf));
 
     sc.execute<task::rad::correction<D>>(
-      flecsi::exec::on, mf, s.Esf(mf), s.Errf(mf));
+      flecsi::exec::on, mf, s.mgr.Esf(mf), s.mgr.Errf(mf));
 
     // Post Smoothing
-    for(std::size_t i{0}; i < s.mg_post; ++i) {
-      s.Esf.flip();
-      sc.execute<task::rad::damped_jacobi<D>>(
-        flecsi::exec::on, mf, s.Ew(mf), s.Esf(mf), s.Esf(mf, 1), s.Ef(mf), 0.8);
+    for(std::size_t i{0}; i < s.mgr.mg_post; ++i) {
+      s.mgr.Esf.flip();
+      sc.execute<task::rad::damped_jacobi<D>>(flecsi::exec::on,
+        mf,
+        s.mgr.Ew(mf),
+        s.mgr.Esf(mf),
+        s.mgr.Esf(mf, 1),
+        s.mgr.Ef(mf),
+        0.8);
     } // for
   } // if
 } // vcycle
@@ -113,26 +133,26 @@ fmg(control_policy<state, D> & cp, std::size_t index = 0) {
 
     // Set the RHS and solution field
     sc.execute<task::rad::full_weighting<D>>(
-      flecsi::exec::on, mf, mc, s.Ef(mf), s.Ef(mc));
+      flecsi::exec::on, mf, mc, s.mgr.Ef(mf), s.mgr.Ef(mc));
     sc.execute<task::rad::full_weighting<D>>(
-      flecsi::exec::on, mf, mc, s.Esf(mf), s.Esf(mc));
+      flecsi::exec::on, mf, mc, s.mgr.Esf(mf), s.mgr.Esf(mc));
 
     // Set the diffusion coefficient and the stencil (TODO)
     sc.execute<task::rad::full_weighting<D>>(
-      flecsi::exec::on, mf, mc, s.Df_x(mf), s.Df_x(mc));
+      flecsi::exec::on, mf, mc, s.mgr.Df_x(mf), s.mgr.Df_x(mc));
 
     sc.execute<task::rad::full_weighting<D>>(
-      flecsi::exec::on, mf, mc, s.Df_y(mf), s.Df_y(mc));
+      flecsi::exec::on, mf, mc, s.mgr.Df_y(mf), s.mgr.Df_y(mc));
 
     sc.execute<task::rad::full_weighting<D>>(
-      flecsi::exec::on, mf, mc, s.Df_z(mf), s.Df_z(mc));
+      flecsi::exec::on, mf, mc, s.mgr.Df_z(mf), s.mgr.Df_z(mc));
 
     sc.execute<task::rad::stencil_init<D>>(flecsi::exec::on,
       mc,
-      s.Df_x(mc),
-      s.Df_y(mc),
-      s.Df_z(mc),
-      s.Ew(mc),
+      s.mgr.Df_x(mc),
+      s.mgr.Df_y(mc),
+      s.mgr.Df_z(mc),
+      s.mgr.Ew(mc),
       s.dt(*s.gt));
 
     // Now call solve for one level deeper
@@ -140,10 +160,10 @@ fmg(control_policy<state, D> & cp, std::size_t index = 0) {
 
     // Interpolate solution back up (RHS does not change)
     sc.execute<task::rad::nlinear_interpolation<D>>(
-      flecsi::exec::on, mc, mf, s.Esf(mc), s.Esf(mf));
+      flecsi::exec::on, mc, mf, s.mgr.Esf(mc), s.mgr.Esf(mf));
 
     // Do a V-Cycle
-    for(std::size_t i{0}; i < s.mg_cycles; ++i) {
+    for(std::size_t i{0}; i < s.mgr.mg_cycles; ++i) {
       vcycle<D>(cp, index);
     } // for
   } // if

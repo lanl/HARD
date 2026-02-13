@@ -63,15 +63,15 @@ tie(const std::tuple<T, T> & tup, T & a, T & b) noexcept {
 
 //
 // Perform reconstruction of primitive variables on cell interfaces, calculate
-// corresponding conservative variables on faces, and store them into `*Head`
-// and `*Tail` variables.
+// corresponding conservative variables on faces, and store them into `*right`
+// and `*left` variables.
 //
 //
 //    |      U_i     |
 //    |       *      |
-//     ^HEAD(i)     ^Tail(i)
+//     ^right(i)     ^left(i)
 //    |              |
-//   ^Tail(i-1)       ^Head(i+1)
+//   ^left(i-1)       ^right(i+1)
 //
 //
 template<std::size_t Dim, typename Limiter>
@@ -179,11 +179,11 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
   typename faces_vec<Dim>::accessor<wo, na> ruFace_a,
   typename faces<Dim>::accessor<wo, na> rEFace_a) noexcept {
 
-  auto [rHead, rTail] = faces<Dim>::mdcolex(m, rFace_a);
-  auto [uHead, uTail] = faces_vec<Dim>::mdcolex(m, uFace_a);
-  auto [eHead, eTail] = faces<Dim>::mdcolex(m, eFace_a);
-  auto [ruHead, ruTail] = faces_vec<Dim>::mdcolex(m, ruFace_a);
-  auto [rEHead, rETail] = faces<Dim>::mdcolex(m, rEFace_a);
+  auto [rRight, rLeft] = faces<Dim>::mdcolex(m, rFace_a);
+  auto [uRight, uLeft] = faces_vec<Dim>::mdcolex(m, uFace_a);
+  auto [eRight, eLeft] = faces<Dim>::mdcolex(m, eFace_a);
+  auto [ruRight, ruLeft] = faces_vec<Dim>::mdcolex(m, ruFace_a);
+  auto [rERight, rELeft] = faces<Dim>::mdcolex(m, rEFace_a);
 
   using hard::tasks::util::get_mdiota_policy;
   using spec::utils::sqr;
@@ -193,18 +193,18 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
     s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
 
       // Compute conservative variables
-      ruHead(i) = rHead(i) * uHead(i);
-      ruTail(i) = rTail(i) * uTail(i);
-      rEHead(i) =
-        rHead(i) * eHead(i) + 0.5 * rHead(i) * uHead(i).norm_squared();
-      rETail(i) =
-        rTail(i) * eTail(i) + 0.5 * rTail(i) * uTail(i).norm_squared();
+      ruRight(i) = rRight(i) * uRight(i);
+      ruLeft(i) = rLeft(i) * uLeft(i);
+      rERight(i) =
+        rRight(i) * eRight(i) + 0.5 * rRight(i) * uRight(i).norm_squared();
+      rELeft(i) =
+        rLeft(i) * eLeft(i) + 0.5 * rLeft(i) * uLeft(i).norm_squared();
 
     }; // forall
   }
   else if constexpr(Dim == 2) {
 
-    auto mdpolicy_pp = get_mdiota_policy(rHead,
+    auto mdpolicy_pp = get_mdiota_policy(rRight,
       m.template cells<ax::y, dm::predictor>(),
       m.template cells<ax::x, dm::predictor>());
 
@@ -212,17 +212,17 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
       auto [j, i] = ji;
 
       // Compute conservative variables
-      ruHead(i, j) = rHead(i, j) * uHead(i, j);
-      ruTail(i, j) = rTail(i, j) * uTail(i, j);
-      rEHead(i, j) = rHead(i, j) * eHead(i, j) +
-                     0.5 * rHead(i, j) * uHead(i, j).norm_squared();
-      rETail(i, j) = rTail(i, j) * eTail(i, j) +
-                     0.5 * rTail(i, j) * uTail(i, j).norm_squared();
+      ruRight(i, j) = rRight(i, j) * uRight(i, j);
+      ruLeft(i, j) = rLeft(i, j) * uLeft(i, j);
+      rERight(i, j) = rRight(i, j) * eRight(i, j) +
+                      0.5 * rRight(i, j) * uRight(i, j).norm_squared();
+      rELeft(i, j) = rLeft(i, j) * eLeft(i, j) +
+                     0.5 * rLeft(i, j) * uLeft(i, j).norm_squared();
     }; // forall
   }
   else { // Dim == 3
 
-    auto mdpolicy_ppp = get_mdiota_policy(rHead,
+    auto mdpolicy_ppp = get_mdiota_policy(rRight,
       m.template cells<ax::z, dm::predictor>(),
       m.template cells<ax::y, dm::predictor>(),
       m.template cells<ax::x, dm::predictor>());
@@ -231,12 +231,12 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
       auto [k, j, i] = kji;
 
       // Compute conservative variables on faces
-      ruHead(i, j, k) = rHead(i, j, k) * uHead(i, j, k);
-      ruTail(i, j, k) = rTail(i, j, k) * uTail(i, j, k);
-      rEHead(i, j, k) = rHead(i, j, k) * eHead(i, j, k) +
-                        0.5 * rHead(i, j, k) * uHead(i, j, k).norm_squared();
-      rETail(i, j, k) = rTail(i, j, k) * eTail(i, j, k) +
-                        0.5 * rTail(i, j, k) * uTail(i, j, k).norm_squared();
+      ruRight(i, j, k) = rRight(i, j, k) * uRight(i, j, k);
+      ruLeft(i, j, k) = rLeft(i, j, k) * uLeft(i, j, k);
+      rERight(i, j, k) = rRight(i, j, k) * eRight(i, j, k) +
+                         0.5 * rRight(i, j, k) * uRight(i, j, k).norm_squared();
+      rELeft(i, j, k) = rLeft(i, j, k) * eLeft(i, j, k) +
+                        0.5 * rLeft(i, j, k) * uLeft(i, j, k).norm_squared();
     }; // forall
   }
 }

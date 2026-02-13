@@ -35,13 +35,13 @@ analyze(control_policy<state, D> & cp) {
       spec::io::name{""} << std::setfill('0') << std::setw(5) << cp.step(),
       s.t(*s.gt),
       lm,
-      std::vector{s.mass_density(lm),
-        s.pressure(lm),
-        s.sound_speed(lm),
-        s.specific_internal_energy(lm),
-        s.total_energy_density(lm),
-        s.radiation_energy_density(lm)},
-      std::vector{s.velocity(lm), s.momentum_density(lm)},
+      std::vector{s.cons.hydro.mass_density(lm),
+        s.prim.pressure(lm),
+        s.prim.sound_speed(lm),
+        s.prim.specific_internal_energy(lm),
+        s.cons.hydro.total_energy_density(lm),
+        s.cons.rad.radiation_energy_density(lm)},
+      std::vector{s.prim.velocity(lm), s.cons.hydro.momentum_density(lm)},
       std::vector<std::string>{"density",
         "pressure",
         "sound_speed",
@@ -59,11 +59,11 @@ analyze(control_policy<state, D> & cp) {
         s.catalyst_data(*s.pt),
         s.t(*s.gt),
         *s.m,
-        s.mass_density(*s.m),
-        s.velocity(*s.m),
-        s.pressure(*s.m),
-        s.total_energy_density(*s.m),
-        s.radiation_energy_density(
+        s.cons.hydro.mass_density(*s.m),
+        s.prim.velocity(*s.m),
+        s.prim.pressure(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.cons.rad.radiation_energy_density(
           *s.m)); // <<< add variables here for catalyst
 
       // Then pass catalyst_data to catalyst pipeline

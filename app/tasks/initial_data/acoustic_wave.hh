@@ -63,8 +63,8 @@ acoustic_wave(flecsi::exec::cpu s,
     };
 
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      const auto x0{m.template head<ax::x>(i)};
-      const auto x1{m.template tail<ax::x>(i)};
+      const auto x0{m.template right<ax::x>(i)};
+      const auto x1{m.template left<ax::x>(i)};
       const double ux{cs * uA * sine_quad(x0, x1)};
       mass_density(i) = r0 * (1 + rA * sine_quad(x0, x1));
 
@@ -95,10 +95,10 @@ acoustic_wave(flecsi::exec::cpu s,
 
     s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
-        const auto x0{m.template head<ax::x>(i)};
-        const auto x1{m.template tail<ax::x>(i)};
-        const auto y0{m.template head<ax::y>(j)};
-        const auto y1{m.template tail<ax::y>(j)};
+        const auto x0{m.template right<ax::x>(i)};
+        const auto x1{m.template left<ax::x>(i)};
+        const auto y0{m.template right<ax::y>(j)};
+        const auto y1{m.template left<ax::y>(j)};
 
         const double ux{cs * uA * kx * sine_quad(x0, x1, y0, y1) / k};
         const double uy{cs * uA * ky * sine_quad(x0, x1, y0, y1) / k};
@@ -146,12 +146,12 @@ acoustic_wave(flecsi::exec::cpu s,
     s.executor().forall(l, (m.template cells<ax::z, dm::quantities>())) {
       for(auto j : m.template cells<ax::y, dm::quantities>()) {
         for(auto i : m.template cells<ax::x, dm::quantities>()) {
-          const auto x0{m.template head<ax::x>(i)};
-          const auto x1{m.template tail<ax::x>(i)};
-          const auto y0{m.template head<ax::y>(j)};
-          const auto y1{m.template tail<ax::y>(j)};
-          const auto z0{m.template head<ax::z>(l)};
-          const auto z1{m.template tail<ax::z>(l)};
+          const auto x0{m.template right<ax::x>(i)};
+          const auto x1{m.template left<ax::x>(i)};
+          const auto y0{m.template right<ax::y>(j)};
+          const auto y1{m.template left<ax::y>(j)};
+          const auto z0{m.template right<ax::z>(l)};
+          const auto z1{m.template left<ax::z>(l)};
 
           const double ux{cs * uA * kx * sine_quad(x0, x1, y0, y1, z0, z1) / k};
           const double uy{cs * uA * ky * sine_quad(x0, x1, y0, y1, z0, z1) / k};
