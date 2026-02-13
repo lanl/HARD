@@ -28,13 +28,13 @@ compute_interface_fluxes(flecsi::exec::cpu s,
   typename RK<Dim>::accessor<rw, na> rk_dt_a,
   typename single<vec<Dim>>::template accessor<ro> g_acc) noexcept {
   auto g = g_acc.get();
-  auto [rHead, rTail] = faces<Dim>::mdcolex(m, rFace_a);
-  auto [uHead, uTail] = faces_vec<Dim>::mdcolex(m, uFace_a);
-  auto [pHead, pTail] = faces<Dim>::mdcolex(m, pFace_a);
-  auto [cHead, cTail] = faces<Dim>::mdcolex(m, cFace_a);
-  auto [EradHead, EradTail] = faces<Dim>::mdcolex(m, EradFace_a);
-  auto [ruHead, ruTail] = faces_vec<Dim>::mdcolex(m, ruFace_a);
-  auto [rEHead, rETail] = faces<Dim>::mdcolex(m, rEFace_a);
+  auto [rRight, rLeft] = faces<Dim>::mdcolex(m, rFace_a);
+  auto [uRight, uLeft] = faces_vec<Dim>::mdcolex(m, uFace_a);
+  auto [pRight, pLeft] = faces<Dim>::mdcolex(m, pFace_a);
+  auto [cRight, cLeft] = faces<Dim>::mdcolex(m, cFace_a);
+  auto [EradRight, EradLeft] = faces<Dim>::mdcolex(m, EradFace_a);
+  auto [ruRight, ruLeft] = faces_vec<Dim>::mdcolex(m, ruFace_a);
+  auto [rERight, rELeft] = faces<Dim>::mdcolex(m, rEFace_a);
 
   auto rF = m.template mdcolex<is::cells>(rF_a);
   auto ruF = m.template mdcolex<is::cells>(ruF_a);
@@ -73,51 +73,51 @@ compute_interface_fluxes(flecsi::exec::cpu s,
       const auto dx = m.template delta<ax::x>();
 
       // Fluxes from left and right state
-      const double pTail_wave = pTail(i - 1) + 0.5 * rTail(i - 1) * g.x() * dx;
-      const double pHead_wave = pHead(i) - 0.5 * rHead(i) * g.x() * dx;
-      const double f_r_T{ruTail(i - 1).x()};
-      const double f_r_H{ruHead(i).x()};
-      const vec<1> f_ru_T{ruTail(i - 1).x() * uTail(i - 1).x() + pTail_wave};
-      const vec<1> f_ru_H{ruHead(i).x() * uHead(i).x() + pHead_wave};
-      const double f_rE_T{(rETail(i - 1) + pTail_wave) * uTail(i - 1).x()};
-      const double f_rE_H{(rEHead(i) + pHead_wave) * uHead(i).x()};
+      const double pLeft_wave = pLeft(i - 1) + 0.5 * rLeft(i - 1) * g.x() * dx;
+      const double pRight_wave = pRight(i) - 0.5 * rRight(i) * g.x() * dx;
+      const double f_r_T{ruLeft(i - 1).x()};
+      const double f_r_H{ruRight(i).x()};
+      const vec<1> f_ru_T{ruLeft(i - 1).x() * uLeft(i - 1).x() + pLeft_wave};
+      const vec<1> f_ru_H{ruRight(i).x() * uRight(i).x() + pRight_wave};
+      const double f_rE_T{(rELeft(i - 1) + pLeft_wave) * uLeft(i - 1).x()};
+      const double f_rE_H{(rERight(i) + pRight_wave) * uRight(i).x()};
 
       // clang-format off
         rF(i) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rTail(i-1), rTail(i-1), uTail(i-1), rETail(i-1), pTail_wave, cTail(i-1), f_r_T,
-          rHead(i),   rHead(i),   uHead(i),   rEHead(i),   pHead_wave, cHead(i), f_r_H,
+          rLeft(i-1), rLeft(i-1), uLeft(i-1), rELeft(i-1), pLeft_wave, cLeft(i-1), f_r_T,
+          rRight(i),   rRight(i),   uRight(i),   rERight(i),   pRight_wave, cRight(i), f_r_H,
           "rho");
         ruF(i) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ruTail(i-1), rTail(i-1), uTail(i-1), rETail(i-1), pTail_wave, cTail(i-1), f_ru_T,
-          ruHead(i),   rHead(i),   uHead(i),   rEHead(i),   pHead_wave, cHead(i), f_ru_H,
+          ruLeft(i-1), rLeft(i-1), uLeft(i-1), rELeft(i-1), pLeft_wave, cLeft(i-1), f_ru_T,
+          ruRight(i),   rRight(i),   uRight(i),   rERight(i),   pRight_wave, cRight(i), f_ru_H,
           "rhou");
         rEF(i) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rETail(i-1), rTail(i-1), uTail(i-1), rETail(i-1), pTail_wave, cTail(i-1), f_rE_T,
-          rEHead(i),   rHead(i),   uHead(i),   rEHead(i),   pHead_wave, cHead(i), f_rE_H,
+          rELeft(i-1), rLeft(i-1), uLeft(i-1), rELeft(i-1), pLeft_wave, cLeft(i-1), f_rE_T,
+          rERight(i),   rRight(i),   uRight(i),   rERight(i),   pRight_wave, cRight(i), f_rE_H,
           "E");
       // clang-format on
 
 #ifdef ENABLE_RADIATION
 
       // min/max characteristic speeds on left
-      const double cT{cTail(i - 1)};
-      const double LminT{uTail(i - 1).x() - cT};
-      const double LmaxT{uTail(i - 1).x() + cT};
+      const double cT{cLeft(i - 1)};
+      const double LminT{uLeft(i - 1).x() - cT};
+      const double LmaxT{uLeft(i - 1).x() + cT};
 
       // min/max characteristic speeds on right
-      const double cH{cHead(i)};
-      const double LminH{uHead(i).x() - cH};
-      const double LmaxH{uHead(i).x() + cH};
+      const double cH{cRight(i)};
+      const double LminH{uRight(i).x() - cH};
+      const double LmaxH{uRight(i).x() + cH};
 
-      const double f_Erad_T{EradTail(i - 1) * uTail(i - 1).x()};
-      const double f_Erad_H{EradHead(i) * uHead(i).x()};
+      const double f_Erad_T{EradLeft(i - 1) * uLeft(i - 1).x()};
+      const double f_Erad_H{EradRight(i) * uRight(i).x()};
 
       // clang-format off
       EradF(i) = numerical_algorithms::advect_conserved<double>(
-        EradTail(i - 1), EradHead(i), f_Erad_T, f_Erad_H,
+        EradLeft(i - 1), EradRight(i), f_Erad_T, f_Erad_H,
         LminT, LmaxT, LminH, LmaxH);
       // clang-format on
 #endif
@@ -150,55 +150,55 @@ compute_interface_fluxes(flecsi::exec::cpu s,
         auto [j, i] = ji;
 
         // Fluxes from left and right state
-        const double f_r_T{ruTail(i - 1, j).x()};
-        const double f_r_H{ruHead(i, j).x()};
+        const double f_r_T{ruLeft(i - 1, j).x()};
+        const double f_r_H{ruRight(i, j).x()};
         const vec<2> f_ru_T{
 
-          ruTail(i - 1, j).x() * uTail(i - 1, j).x() + pTail(i - 1, j),
-          ruTail(i - 1, j).x() * uTail(i - 1, j).y()};
-        const vec<2> f_ru_H{ruHead(i, j).x() * uHead(i, j).x() + pHead(i, j),
-          ruHead(i, j).x() * uHead(i, j).y()};
+          ruLeft(i - 1, j).x() * uLeft(i - 1, j).x() + pLeft(i - 1, j),
+          ruLeft(i - 1, j).x() * uLeft(i - 1, j).y()};
+        const vec<2> f_ru_H{ruRight(i, j).x() * uRight(i, j).x() + pRight(i, j),
+          ruRight(i, j).x() * uRight(i, j).y()};
         const double f_rE_T{
-          (rETail(i - 1, j) + pTail(i - 1, j)) * uTail(i - 1, j).x()};
-        const double f_rE_H{(rEHead(i, j) + pHead(i, j)) * uHead(i, j).x()};
+          (rELeft(i - 1, j) + pLeft(i - 1, j)) * uLeft(i - 1, j).x()};
+        const double f_rE_H{(rERight(i, j) + pRight(i, j)) * uRight(i, j).x()};
 
         // clang-format off
-        const double pTail_wave = pTail(i-1,j) - 0.5 * rTail(i-1,j) * g.x() / one_over_dx_i[0];
-        const double pHead_wave = pHead(i,j) - 0.5 * rHead(i,j) * g.x() / one_over_dx_i[0];
+        const double pLeft_wave = pLeft(i-1,j) - 0.5 * rLeft(i-1,j) * g.x() / one_over_dx_i[0];
+        const double pRight_wave = pRight(i,j) - 0.5 * rRight(i,j) * g.x() / one_over_dx_i[0];
         rF(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rTail(i-1,j), rTail(i-1,j), uTail(i-1,j), rETail(i-1,j), pTail_wave, cTail(i-1,j), f_r_T,
-          rHead(i,j),   rHead(i,j),   uHead(i,j),   rEHead(i,j),   pHead_wave, cHead(i,j), f_r_H,
+          rLeft(i-1,j), rLeft(i-1,j), uLeft(i-1,j), rELeft(i-1,j), pLeft_wave, cLeft(i-1,j), f_r_T,
+          rRight(i,j),   rRight(i,j),   uRight(i,j),   rERight(i,j),   pRight_wave, cRight(i,j), f_r_H,
           "rho" );
         ruF(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ruTail(i-1,j), rTail(i-1,j), uTail(i-1,j), rETail(i-1,j), pTail_wave, cTail(i-1,j), f_ru_T,
-          ruHead(i,j),   rHead(i,j),   uHead(i,j),   rEHead(i,j),   pHead_wave, cHead(i,j), f_ru_H,
+          ruLeft(i-1,j), rLeft(i-1,j), uLeft(i-1,j), rELeft(i-1,j), pLeft_wave, cLeft(i-1,j), f_ru_T,
+          ruRight(i,j),   rRight(i,j),   uRight(i,j),   rERight(i,j),   pRight_wave, cRight(i,j), f_ru_H,
           "rhou" );
         rEF(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rETail(i-1,j), rTail(i-1,j), uTail(i-1,j), rETail(i-1,j), pTail_wave, cTail(i-1,j), f_rE_T,
-          rEHead(i,j),   rHead(i,j),   uHead(i,j),   rEHead(i,j),   pHead_wave, cHead(i,j), f_rE_H,
+          rELeft(i-1,j), rLeft(i-1,j), uLeft(i-1,j), rELeft(i-1,j), pLeft_wave, cLeft(i-1,j), f_rE_T,
+          rERight(i,j),   rRight(i,j),   uRight(i,j),   rERight(i,j),   pRight_wave, cRight(i,j), f_rE_H,
           "E" );
         // clang-format on
 
 #ifdef ENABLE_RADIATION
         // min/max characteristic speeds on left
-        const double cT = cTail(i - 1, j);
-        const double LminT = uTail(i - 1, j).x() - cT;
-        const double LmaxT = uTail(i - 1, j).x() + cT;
+        const double cT = cLeft(i - 1, j);
+        const double LminT = uLeft(i - 1, j).x() - cT;
+        const double LmaxT = uLeft(i - 1, j).x() + cT;
 
         // min/max characteristic speeds on right
-        const double cH = cHead(i, j);
-        const double LminH = uHead(i, j).x() - cH;
-        const double LmaxH = uHead(i, j).x() + cH;
+        const double cH = cRight(i, j);
+        const double LminH = uRight(i, j).x() - cH;
+        const double LmaxH = uRight(i, j).x() + cH;
 
-        const double f_Erad_T{EradTail(i - 1, j) * uTail(i - 1, j).x()};
-        const double f_Erad_H{EradHead(i, j) * uHead(i, j).x()};
+        const double f_Erad_T{EradLeft(i - 1, j) * uLeft(i - 1, j).x()};
+        const double f_Erad_H{EradRight(i, j) * uRight(i, j).x()};
 
         // clang-format off
         EradF(i, j) = numerical_algorithms::advect_conserved<double>(
-          EradTail(i - 1, j), EradHead(i, j), f_Erad_T, f_Erad_H, LminT,
+          EradLeft(i - 1, j), EradRight(i, j), f_Erad_T, f_Erad_H, LminT,
             LmaxT, LminH, LmaxH);
         // clang-format on
 #endif
@@ -234,54 +234,54 @@ compute_interface_fluxes(flecsi::exec::cpu s,
         auto [j, i] = ji;
 
         // Fluxes from left and right state
-        const double f_r_T{ruTail(i, j - 1).y()};
-        const double f_r_H{ruHead(i, j).y()};
-        const vec<2> f_ru_T{ruTail(i, j - 1).y() * uTail(i, j - 1).x(),
-          ruTail(i, j - 1).y() * uTail(i, j - 1).y() + pTail(i, j - 1)};
-        const vec<2> f_ru_H{ruHead(i, j).y() * uHead(i, j).x(),
-          ruHead(i, j).y() * uHead(i, j).y() + pHead(i, j)};
+        const double f_r_T{ruLeft(i, j - 1).y()};
+        const double f_r_H{ruRight(i, j).y()};
+        const vec<2> f_ru_T{ruLeft(i, j - 1).y() * uLeft(i, j - 1).x(),
+          ruLeft(i, j - 1).y() * uLeft(i, j - 1).y() + pLeft(i, j - 1)};
+        const vec<2> f_ru_H{ruRight(i, j).y() * uRight(i, j).x(),
+          ruRight(i, j).y() * uRight(i, j).y() + pRight(i, j)};
         const double f_rE_T{
-          (rETail(i, j - 1) + pTail(i, j - 1)) * uTail(i, j - 1).y()};
-        const double f_rE_H{(rEHead(i, j) + pHead(i, j)) * uHead(i, j).y()};
+          (rELeft(i, j - 1) + pLeft(i, j - 1)) * uLeft(i, j - 1).y()};
+        const double f_rE_H{(rERight(i, j) + pRight(i, j)) * uRight(i, j).y()};
 
         // clang-format off
-        const double pTail_wave = pTail(i,j-1) - 0.5 * rTail(i,j-1) * g.y() / one_over_dx_i[1];
-        const double pHead_wave = pHead(i,j) - 0.5 * rHead(i,j) * g.y() / one_over_dx_i[1];
+        const double pLeft_wave = pLeft(i,j-1) - 0.5 * rLeft(i,j-1) * g.y() / one_over_dx_i[1];
+        const double pRight_wave = pRight(i,j) - 0.5 * rRight(i,j) * g.y() / one_over_dx_i[1];
         rF(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rTail(i,j-1), rTail(i,j-1), uTail(i,j-1), rETail(i,j-1), pTail_wave, cTail(i,j-1), f_r_T,
-          rHead(i,j),   rHead(i,j),   uHead(i,j),   rEHead(i,j),   pHead_wave, cHead(i,j), f_r_H,
+          rLeft(i,j-1), rLeft(i,j-1), uLeft(i,j-1), rELeft(i,j-1), pLeft_wave, cLeft(i,j-1), f_r_T,
+          rRight(i,j),   rRight(i,j),   uRight(i,j),   rERight(i,j),   pRight_wave, cRight(i,j), f_r_H,
           "rho" );
         ruF(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ruTail(i,j-1), rTail(i,j-1), uTail(i,j-1), rETail(i,j-1), pTail_wave, cTail(i,j-1), f_ru_T,
-          ruHead(i,j),   rHead(i,j),   uHead(i,j),   rEHead(i,j),   pHead_wave, cHead(i,j), f_ru_H,
+          ruLeft(i,j-1), rLeft(i,j-1), uLeft(i,j-1), rELeft(i,j-1), pLeft_wave, cLeft(i,j-1), f_ru_T,
+          ruRight(i,j),   rRight(i,j),   uRight(i,j),   rERight(i,j),   pRight_wave, cRight(i,j), f_ru_H,
           "rhou" );
         rEF(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rETail(i,j-1), rTail(i,j-1), uTail(i,j-1), rETail(i,j-1), pTail_wave, cTail(i,j-1), f_rE_T,
-          rEHead(i,j),   rHead(i,j),   uHead(i,j),   rEHead(i,j),   pHead_wave, cHead(i,j), f_rE_H,
+          rELeft(i,j-1), rLeft(i,j-1), uLeft(i,j-1), rELeft(i,j-1), pLeft_wave, cLeft(i,j-1), f_rE_T,
+          rERight(i,j),   rRight(i,j),   uRight(i,j),   rERight(i,j),   pRight_wave, cRight(i,j), f_rE_H,
           "E" );
         // clang-format on
 
 #ifdef ENABLE_RADIATION
 
         // min/max characteristic speeds on left
-        const double cT = cTail(i, j - 1);
-        const double LminT = uTail(i, j - 1).y() - cT;
-        const double LmaxT = uTail(i, j - 1).y() + cT;
+        const double cT = cLeft(i, j - 1);
+        const double LminT = uLeft(i, j - 1).y() - cT;
+        const double LmaxT = uLeft(i, j - 1).y() + cT;
 
         // min/max characteristic speeds on right
-        const double cH = cHead(i, j);
-        const double LminH = uHead(i, j).y() - cH;
-        const double LmaxH = uHead(i, j).y() + cH;
+        const double cH = cRight(i, j);
+        const double LminH = uRight(i, j).y() - cH;
+        const double LmaxH = uRight(i, j).y() + cH;
 
-        const double f_Erad_T{EradTail(i, j - 1) * uTail(i, j - 1).y()};
-        const double f_Erad_H{EradHead(i, j) * uHead(i, j).y()};
+        const double f_Erad_T{EradLeft(i, j - 1) * uLeft(i, j - 1).y()};
+        const double f_Erad_H{EradRight(i, j) * uRight(i, j).y()};
 
         // clang-format off
         EradF(i, j) = numerical_algorithms::advect_conserved<double>(
-          EradTail(i, j - 1), EradHead(i, j), f_Erad_T, f_Erad_H,
+          EradLeft(i, j - 1), EradRight(i, j), f_Erad_T, f_Erad_H,
             LminT, LmaxT, LminH, LmaxH);
         // clang-format on
 #endif
@@ -321,60 +321,60 @@ compute_interface_fluxes(flecsi::exec::cpu s,
         auto [k, j, i] = kji;
 
         // Fluxes from left and right state
-        const double f_r_T{ruTail(i - 1, j, k).x()};
-        const double f_r_H{ruHead(i, j, k).x()};
+        const double f_r_T{ruLeft(i - 1, j, k).x()};
+        const double f_r_H{ruRight(i, j, k).x()};
         const vec<3> f_ru_T{
-          ruTail(i - 1, j, k).x() * uTail(i - 1, j, k).x() + pTail(i - 1, j, k),
-          ruTail(i - 1, j, k).x() * uTail(i - 1, j, k).y(),
-          ruTail(i - 1, j, k).x() * uTail(i - 1, j, k).z()};
+          ruLeft(i - 1, j, k).x() * uLeft(i - 1, j, k).x() + pLeft(i - 1, j, k),
+          ruLeft(i - 1, j, k).x() * uLeft(i - 1, j, k).y(),
+          ruLeft(i - 1, j, k).x() * uLeft(i - 1, j, k).z()};
         const vec<3> f_ru_H{
-          ruHead(i, j, k).x() * uHead(i, j, k).x() + pHead(i, j, k),
-          ruHead(i, j, k).x() * uHead(i, j, k).y(),
-          ruHead(i, j, k).x() * uHead(i, j, k).z()};
+          ruRight(i, j, k).x() * uRight(i, j, k).x() + pRight(i, j, k),
+          ruRight(i, j, k).x() * uRight(i, j, k).y(),
+          ruRight(i, j, k).x() * uRight(i, j, k).z()};
         const double f_rE_T{
-          (rETail(i - 1, j, k) + pTail(i - 1, j, k)) * uTail(i - 1, j, k).x()};
+          (rELeft(i - 1, j, k) + pLeft(i - 1, j, k)) * uLeft(i - 1, j, k).x()};
         const double f_rE_H{
-          (rEHead(i, j, k) + pHead(i, j, k)) * uHead(i, j, k).x()};
+          (rERight(i, j, k) + pRight(i, j, k)) * uRight(i, j, k).x()};
 
         // Advect conserved quantities
         // clang-format off
-        const double pTail_wave = pTail(i-1,j,k) + 0.5 * rTail(i-1,j,k) * g.x() / one_over_dx_i[0];
-        const double pHead_wave = pHead(i,j,k) - 0.5 * rHead(i,j,k) * g.x() / one_over_dx_i[0];
+        const double pLeft_wave = pLeft(i-1,j,k) + 0.5 * rLeft(i-1,j,k) * g.x() / one_over_dx_i[0];
+        const double pRight_wave = pRight(i,j,k) - 0.5 * rRight(i,j,k) * g.x() / one_over_dx_i[0];
         rF(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rTail(i-1,j,k), rTail(i-1,j,k), uTail(i-1,j,k), rETail(i-1,j,k), pTail_wave, cTail(i-1,j,k), f_r_T,
-          rHead(i,j,k),   rHead(i,j,k),   uHead(i,j,k),   rEHead(i,j,k),   pHead_wave, cHead(i,j,k), f_r_H,
+          rLeft(i-1,j,k), rLeft(i-1,j,k), uLeft(i-1,j,k), rELeft(i-1,j,k), pLeft_wave, cLeft(i-1,j,k), f_r_T,
+          rRight(i,j,k),   rRight(i,j,k),   uRight(i,j,k),   rERight(i,j,k),   pRight_wave, cRight(i,j,k), f_r_H,
           "rho" );
         ruF(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ruTail(i-1,j,k), rTail(i-1,j,k), uTail(i-1,j,k), rETail(i-1,j,k), pTail_wave, cTail(i-1,j,k), f_ru_T,
-          ruHead(i,j,k),   rHead(i,j,k),   uHead(i,j,k),   rEHead(i,j,k),   pHead_wave, cHead(i,j,k), f_ru_H,
+          ruLeft(i-1,j,k), rLeft(i-1,j,k), uLeft(i-1,j,k), rELeft(i-1,j,k), pLeft_wave, cLeft(i-1,j,k), f_ru_T,
+          ruRight(i,j,k),   rRight(i,j,k),   uRight(i,j,k),   rERight(i,j,k),   pRight_wave, cRight(i,j,k), f_ru_H,
           "rhou" );
         rEF(i, j,k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rETail(i-1,j,k), rTail(i-1,j,k), uTail(i-1,j,k), rETail(i-1,j,k), pTail_wave, cTail(i-1,j,k), f_rE_T,
-          rEHead(i,j,k),   rHead(i,j,k),   uHead(i,j,k),   rEHead(i,j,k),   pHead_wave, cHead(i,j,k), f_rE_H,
+          rELeft(i-1,j,k), rLeft(i-1,j,k), uLeft(i-1,j,k), rELeft(i-1,j,k), pLeft_wave, cLeft(i-1,j,k), f_rE_T,
+          rERight(i,j,k),   rRight(i,j,k),   uRight(i,j,k),   rERight(i,j,k),   pRight_wave, cRight(i,j,k), f_rE_H,
           "E" );
         // clang-format on
 
 #ifdef ENABLE_RADIATION
 
         // min/max characteristic speeds on left
-        const double cT = cTail(i - 1, j, k);
-        const double LminT = uTail(i - 1, j, k).x() - cT;
-        const double LmaxT = uTail(i - 1, j, k).x() + cT;
+        const double cT = cLeft(i - 1, j, k);
+        const double LminT = uLeft(i - 1, j, k).x() - cT;
+        const double LmaxT = uLeft(i - 1, j, k).x() + cT;
 
         // min/max characteristic speeds on right
-        const double cH = cHead(i, j, k);
-        const double LminH = uHead(i, j, k).x() - cH;
-        const double LmaxH = uHead(i, j, k).x() + cH;
+        const double cH = cRight(i, j, k);
+        const double LminH = uRight(i, j, k).x() - cH;
+        const double LmaxH = uRight(i, j, k).x() + cH;
 
-        const double f_Erad_T{EradTail(i - 1, j, k) * uTail(i - 1, j, k).x()};
-        const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).x()};
+        const double f_Erad_T{EradLeft(i - 1, j, k) * uLeft(i - 1, j, k).x()};
+        const double f_Erad_H{EradRight(i, j, k) * uRight(i, j, k).x()};
 
         // clang-format off
         EradF(i, j, k) = numerical_algorithms::advect_conserved<double>(
-          EradTail(i - 1, j, k), EradHead(i, j, k), f_Erad_T, f_Erad_H,
+          EradLeft(i - 1, j, k), EradRight(i, j, k), f_Erad_T, f_Erad_H,
             LminT, LmaxT, LminH, LmaxH);
         // clang-format on
 #endif
@@ -413,59 +413,59 @@ compute_interface_fluxes(flecsi::exec::cpu s,
         auto [k, j, i] = kji;
 
         // Fluxes from left and right state
-        const double f_r_T{ruTail(i, j - 1, k).y()};
-        const double f_r_H{ruHead(i, j, k).y()};
-        const vec<3> f_ru_T{ruTail(i, j - 1, k).y() * uTail(i, j - 1, k).x(),
-          ruTail(i, j - 1, k).y() * uTail(i, j - 1, k).y() + pTail(i, j - 1, k),
-          ruTail(i, j - 1, k).y() * uTail(i, j - 1, k).z()};
-        const vec<3> f_ru_H{ruHead(i, j, k).y() * uHead(i, j, k).x(),
-          ruHead(i, j, k).y() * uHead(i, j, k).y() + pHead(i, j, k),
-          ruHead(i, j, k).y() * uHead(i, j, k).z()};
+        const double f_r_T{ruLeft(i, j - 1, k).y()};
+        const double f_r_H{ruRight(i, j, k).y()};
+        const vec<3> f_ru_T{ruLeft(i, j - 1, k).y() * uLeft(i, j - 1, k).x(),
+          ruLeft(i, j - 1, k).y() * uLeft(i, j - 1, k).y() + pLeft(i, j - 1, k),
+          ruLeft(i, j - 1, k).y() * uLeft(i, j - 1, k).z()};
+        const vec<3> f_ru_H{ruRight(i, j, k).y() * uRight(i, j, k).x(),
+          ruRight(i, j, k).y() * uRight(i, j, k).y() + pRight(i, j, k),
+          ruRight(i, j, k).y() * uRight(i, j, k).z()};
         const double f_rE_T{
-          (rETail(i, j - 1, k) + pTail(i, j - 1, k)) * uTail(i, j - 1, k).y()};
+          (rELeft(i, j - 1, k) + pLeft(i, j - 1, k)) * uLeft(i, j - 1, k).y()};
         const double f_rE_H{
-          (rEHead(i, j, k) + pHead(i, j, k)) * uHead(i, j, k).y()};
+          (rERight(i, j, k) + pRight(i, j, k)) * uRight(i, j, k).y()};
 
         // Advect conserved quantities
 
         // clang-format off
-        const double pTail_wave = pTail(i,j-1,k) + 0.5 * rTail(i,j-1,k) * g.y() / one_over_dx_i[1];
-        const double pHead_wave = pHead(i,j,k) - 0.5 * rHead(i,j,k) * g.y() / one_over_dx_i[1];
+        const double pLeft_wave = pLeft(i,j-1,k) + 0.5 * rLeft(i,j-1,k) * g.y() / one_over_dx_i[1];
+        const double pRight_wave = pRight(i,j,k) - 0.5 * rRight(i,j,k) * g.y() / one_over_dx_i[1];
         rF(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rTail(i,j-1,k), rTail(i,j-1,k), uTail(i,j-1,k), rETail(i,j-1,k), pTail_wave, cTail(i,j-1,k), f_r_T,
-          rHead(i,j,k),   rHead(i,j,k),   uHead(i,j,k),   rEHead(i,j,k),   pHead_wave, cHead(i,j,k), f_r_H,
+          rLeft(i,j-1,k), rLeft(i,j-1,k), uLeft(i,j-1,k), rELeft(i,j-1,k), pLeft_wave, cLeft(i,j-1,k), f_r_T,
+          rRight(i,j,k),   rRight(i,j,k),   uRight(i,j,k),   rERight(i,j,k),   pRight_wave, cRight(i,j,k), f_r_H,
           "rho" );
         ruF(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ruTail(i,j-1,k), rTail(i,j-1,k), uTail(i,j-1,k), rETail(i,j-1,k), pTail_wave, cTail(i,j-1,k), f_ru_T,
-          ruHead(i,j,k),   rHead(i,j,k),   uHead(i,j,k),   rEHead(i,j,k),   pHead_wave, cHead(i,j,k), f_ru_H,
+          ruLeft(i,j-1,k), rLeft(i,j-1,k), uLeft(i,j-1,k), rELeft(i,j-1,k), pLeft_wave, cLeft(i,j-1,k), f_ru_T,
+          ruRight(i,j,k),   rRight(i,j,k),   uRight(i,j,k),   rERight(i,j,k),   pRight_wave, cRight(i,j,k), f_ru_H,
           "rhou" );
         rEF(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rETail(i,j-1,k), rTail(i,j-1,k), uTail(i,j-1,k), rETail(i,j-1,k), pTail_wave, cTail(i,j-1,k), f_rE_T,
-          rEHead(i,j,k),   rHead(i,j,k),   uHead(i,j,k),   rEHead(i,j,k),   pHead_wave, cHead(i,j,k), f_rE_H,
+          rELeft(i,j-1,k), rLeft(i,j-1,k), uLeft(i,j-1,k), rELeft(i,j-1,k), pLeft_wave, cLeft(i,j-1,k), f_rE_T,
+          rERight(i,j,k),   rRight(i,j,k),   uRight(i,j,k),   rERight(i,j,k),   pRight_wave, cRight(i,j,k), f_rE_H,
           "E" );
         // clang-format on
 
 #ifdef ENABLE_RADIATION
 
         // min/max characteristic speeds on left
-        const double cT = cTail(i, j - 1, k);
-        const double LminT = uTail(i, j - 1, k).y() - cT;
-        const double LmaxT = uTail(i, j - 1, k).y() + cT;
+        const double cT = cLeft(i, j - 1, k);
+        const double LminT = uLeft(i, j - 1, k).y() - cT;
+        const double LmaxT = uLeft(i, j - 1, k).y() + cT;
 
         // min/max characteristic speeds on right
-        const double cH = cHead(i, j, k);
-        const double LminH = uHead(i, j, k).y() - cH;
-        const double LmaxH = uHead(i, j, k).y() + cH;
+        const double cH = cRight(i, j, k);
+        const double LminH = uRight(i, j, k).y() - cH;
+        const double LmaxH = uRight(i, j, k).y() + cH;
 
-        const double f_Erad_T{EradTail(i, j - 1, k) * uTail(i, j - 1, k).y()};
-        const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).y()};
+        const double f_Erad_T{EradLeft(i, j - 1, k) * uLeft(i, j - 1, k).y()};
+        const double f_Erad_H{EradRight(i, j, k) * uRight(i, j, k).y()};
 
         // clang-format off
         EradF(i, j, k) = numerical_algorithms::advect_conserved<double>(
-          EradTail(i, j - 1, k), EradHead(i, j, k), f_Erad_T, f_Erad_H, LminT,
+          EradLeft(i, j - 1, k), EradRight(i, j, k), f_Erad_T, f_Erad_H, LminT,
             LmaxT, LminH, LmaxH);
         // clang-format on
 #endif
@@ -503,60 +503,60 @@ compute_interface_fluxes(flecsi::exec::cpu s,
         auto [k, j, i] = kji;
 
         // Fluxes from left and right state
-        const double f_r_T{ruTail(i, j, k - 1).z()};
-        const double f_r_H{ruHead(i, j, k).z()};
-        const vec<3> f_ru_T{ruTail(i, j, k - 1).z() * uTail(i, j, k - 1).x(),
-          ruTail(i, j, k - 1).z() * uTail(i, j, k - 1).y(),
-          ruTail(i, j, k - 1).z() * uTail(i, j, k - 1).z() +
-            pTail(i, j, k - 1)};
-        const vec<3> f_ru_H{ruHead(i, j, k).z() * uHead(i, j, k).x(),
-          ruHead(i, j, k).z() * uHead(i, j, k).y(),
-          ruHead(i, j, k).z() * uHead(i, j, k).z() + pHead(i, j, k)};
+        const double f_r_T{ruLeft(i, j, k - 1).z()};
+        const double f_r_H{ruRight(i, j, k).z()};
+        const vec<3> f_ru_T{ruLeft(i, j, k - 1).z() * uLeft(i, j, k - 1).x(),
+          ruLeft(i, j, k - 1).z() * uLeft(i, j, k - 1).y(),
+          ruLeft(i, j, k - 1).z() * uLeft(i, j, k - 1).z() +
+            pLeft(i, j, k - 1)};
+        const vec<3> f_ru_H{ruRight(i, j, k).z() * uRight(i, j, k).x(),
+          ruRight(i, j, k).z() * uRight(i, j, k).y(),
+          ruRight(i, j, k).z() * uRight(i, j, k).z() + pRight(i, j, k)};
         const double f_rE_T{
-          (rETail(i, j, k - 1) + pTail(i, j, k - 1)) * uTail(i, j, k - 1).z()};
+          (rELeft(i, j, k - 1) + pLeft(i, j, k - 1)) * uLeft(i, j, k - 1).z()};
         const double f_rE_H{
-          (rEHead(i, j, k) + pHead(i, j, k)) * uHead(i, j, k).z()};
+          (rERight(i, j, k) + pRight(i, j, k)) * uRight(i, j, k).z()};
 
         // Advect conserved quantities
 
         // clang-format off
-        const double pTail_wave = pTail(i,j,k-1) + 0.5 * rTail(i,j,k-1) * g.z() / one_over_dx_i[2];
-        const double pHead_wave = pHead(i,j,k) - 0.5 * rHead(i,j,k) * g.z() / one_over_dx_i[2];
+        const double pLeft_wave = pLeft(i,j,k-1) + 0.5 * rLeft(i,j,k-1) * g.z() / one_over_dx_i[2];
+        const double pRight_wave = pRight(i,j,k) - 0.5 * rRight(i,j,k) * g.z() / one_over_dx_i[2];
         rF(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rTail(i,j,k-1), rTail(i,j,k-1), uTail(i,j,k-1), rETail(i,j,k-1), pTail_wave, cTail(i,j,k-1), f_r_T,
-          rHead(i,j,k),   rHead(i,j,k),   uHead(i,j,k),   rEHead(i,j,k),   pHead_wave, cHead(i,j,k), f_r_H,
+          rLeft(i,j,k-1), rLeft(i,j,k-1), uLeft(i,j,k-1), rELeft(i,j,k-1), pLeft_wave, cLeft(i,j,k-1), f_r_T,
+          rRight(i,j,k),   rRight(i,j,k),   uRight(i,j,k),   rERight(i,j,k),   pRight_wave, cRight(i,j,k), f_r_H,
           "rho" );
         ruF(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ruTail(i,j,k-1), rTail(i,j,k-1), uTail(i,j,k-1), rETail(i,j,k-1), pTail_wave, cTail(i,j,k-1), f_ru_T,
-          ruHead(i,j,k),   rHead(i,j,k),   uHead(i,j,k),   rEHead(i,j,k),   pHead_wave, cHead(i,j,k), f_ru_H,
+          ruLeft(i,j,k-1), rLeft(i,j,k-1), uLeft(i,j,k-1), rELeft(i,j,k-1), pLeft_wave, cLeft(i,j,k-1), f_ru_T,
+          ruRight(i,j,k),   rRight(i,j,k),   uRight(i,j,k),   rERight(i,j,k),   pRight_wave, cRight(i,j,k), f_ru_H,
           "rhou" );
         rEF(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          rETail(i,j,k-1), rTail(i,j,k-1), uTail(i,j,k-1), rETail(i,j,k-1), pTail_wave, cTail(i,j,k-1), f_rE_T,
-          rEHead(i,j,k),   rHead(i,j,k),   uHead(i,j,k),   rEHead(i,j,k),   pHead_wave, cHead(i,j,k), f_rE_H,
+          rELeft(i,j,k-1), rLeft(i,j,k-1), uLeft(i,j,k-1), rELeft(i,j,k-1), pLeft_wave, cLeft(i,j,k-1), f_rE_T,
+          rERight(i,j,k),   rRight(i,j,k),   uRight(i,j,k),   rERight(i,j,k),   pRight_wave, cRight(i,j,k), f_rE_H,
           "E" );
         // clang-format on
 
 #ifdef ENABLE_RADIATION
 
         // min/max characteristic speeds on left
-        const double cT = cTail(i, j, k - 1);
-        const double LminT = uTail(i, j, k - 1).z() - cT;
-        const double LmaxT = uTail(i, j, k - 1).z() + cT;
+        const double cT = cLeft(i, j, k - 1);
+        const double LminT = uLeft(i, j, k - 1).z() - cT;
+        const double LmaxT = uLeft(i, j, k - 1).z() + cT;
 
         // min/max characteristic speeds on right
-        const double cH = cHead(i, j, k);
-        const double LminH = uHead(i, j, k).z() - cH;
-        const double LmaxH = uHead(i, j, k).z() + cH;
+        const double cH = cRight(i, j, k);
+        const double LminH = uRight(i, j, k).z() - cH;
+        const double LmaxH = uRight(i, j, k).z() + cH;
 
-        const double f_Erad_T{EradTail(i, j, k - 1) * uTail(i, j, k - 1).z()};
-        const double f_Erad_H{EradHead(i, j, k) * uHead(i, j, k).z()};
+        const double f_Erad_T{EradLeft(i, j, k - 1) * uLeft(i, j, k - 1).z()};
+        const double f_Erad_H{EradRight(i, j, k) * uRight(i, j, k).z()};
 
         // clang-format off
         EradF(i, j, k) = numerical_algorithms::advect_conserved<double>(
-          EradTail(i, j, k - 1), EradHead(i, j, k), f_Erad_T, f_Erad_H,
+          EradLeft(i, j, k - 1), EradRight(i, j, k), f_Erad_T, f_Erad_H,
             LminT, LmaxT, LminH, LmaxH);
         // clang-format on
 #endif

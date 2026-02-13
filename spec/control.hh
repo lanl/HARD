@@ -186,10 +186,9 @@ struct control_policy : flecsi::run::control_base {
     return exec_cycle;
   } // cycle_control
 
-  using evolve = cycle<cycle_control, point<cp::advance>, point<cp::analyze>>;
-
-  using control_points =
-    list<point<cp::initialize>, evolve, point<cp::finalize>>;
+  using control_points = list<point<cp::initialize>,
+    cycle<cycle_control, point<cp::advance>, point<cp::analyze>>,
+    point<cp::finalize>>;
 
 private:
   std::size_t step_{0};

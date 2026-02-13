@@ -92,8 +92,8 @@ private:
 template<std::size_t D>
 struct faces {
 
-  std::tuple<field<double>::definition<mesh<D>, is::cells>, // head
-    field<double>::definition<mesh<D>, is::cells> // tail
+  std::tuple<field<double>::definition<mesh<D>, is::cells>, // right
+    field<double>::definition<mesh<D>, is::cells> // left
     >
     f;
 
@@ -118,8 +118,8 @@ struct faces {
 template<std::size_t D>
 struct faces_vec {
 
-  std::tuple<typename field<vec<D>>::definition<mesh<D>, is::cells>, // head
-    typename field<vec<D>>::definition<mesh<D>, is::cells> // tail
+  std::tuple<typename field<vec<D>>::definition<mesh<D>, is::cells>, // right
+    typename field<vec<D>>::definition<mesh<D>, is::cells> // left
     >
     f;
 

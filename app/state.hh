@@ -59,20 +59,26 @@ struct state {
     Global parameters.
    *--------------------------------------------------------------------------*/
 
-  static inline const typename single<
-    typename mesh<D>::bmap>::template definition<global>
-    bmap;
-#ifdef ENABLE_RADIATION
-  static inline const single<double>::definition<global> kappa;
-  static inline const single<std::size_t>::definition<global> limiter_id;
-  static inline const single<std::size_t>::definition<global> closure_id;
-#endif
-  static inline const single<double>::definition<global> particle_mass;
-  static inline const field<double>::definition<global> time_boundary;
-  static inline const field<double>::definition<global> temperature_boundary;
+  struct initial_constants {
 
-  static inline const typename single<vec<D>>::template definition<global>
-    gravity_acc;
+    static inline const typename single<
+      typename mesh<D>::bmap>::template definition<global>
+      bmap;
+
+    struct radiation {
+      static inline const single<double>::definition<global> kappa;
+      static inline const single<std::size_t>::definition<global> limiter_id;
+      static inline const single<std::size_t>::definition<global> closure_id;
+    } rad;
+
+    static inline const single<double>::definition<global> particle_mass;
+    static inline const field<double>::definition<global> time_boundary;
+    static inline const field<double>::definition<global> temperature_boundary;
+
+    static inline const typename single<vec<D>>::template definition<global>
+      gravity_acc;
+
+  } icst;
 
   /*--------------------------------------------------------------------------*
     Color parameters (One per color using an index topology instance).
@@ -88,157 +94,177 @@ struct state {
     Mesh fields.
    *--------------------------------------------------------------------------*/
 
-  // Conserved quantities.
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    mass_density;
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    momentum_density;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    total_energy_density;
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    radiation_energy_density;
+  // used in action, analyse, init
+  struct conservatives {
 
-  // Primitives.
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    velocity; // u
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    pressure; // p
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    specific_internal_energy; // e
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    sound_speed; // c
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    temperature; // t
+    struct hydrodynamics {
+      // Conserved quantities.
+      static inline const field<double>::definition<mesh<D>, is::cells>
+        mass_density;
+      static inline const typename field<vec<D>>::template definition<mesh<D>,
+        is::cells>
+        momentum_density;
+      static inline const field<double>::definition<mesh<D>, is::cells>
+        total_energy_density;
+    } hydro;
 
-  // Faces.
-  faces<D> eFace;
-  faces<D> cFace;
-  faces<D> rFace;
-  faces<D> rEFace;
-  faces<D> EradFace;
-  faces<D> pFace;
+    struct radiation {
+      static inline const field<double>::definition<mesh<D>, is::cells>
+        radiation_energy_density;
+    } rad;
 
-  faces_vec<D> ruFace;
-  faces_vec<D> uFace;
+  } cons;
 
-  static inline const field<double>::definition<mesh<D>, is::cells> eTail;
-  static inline const field<double>::definition<mesh<D>, is::cells> cTail;
-  static inline const field<double>::definition<mesh<D>, is::cells> rTail;
+  // used in action, analyse, init
+  struct primitives {
+    // Primitives.
+    static inline const typename field<vec<D>>::template definition<mesh<D>,
+      is::cells>
+      velocity; // u
+    static inline const field<double>::definition<mesh<D>, is::cells>
+      pressure; // p
+    static inline const field<double>::definition<mesh<D>, is::cells>
+      specific_internal_energy; // e
+    static inline const field<double>::definition<mesh<D>, is::cells>
+      sound_speed; // c
+    static inline const field<double>::definition<mesh<D>, is::cells>
+      temperature; // t
+  } prim;
 
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    ruTail;
-  static inline const field<double>::definition<mesh<D>, is::cells> rETail;
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    uTail;
-  static inline const field<double>::definition<mesh<D>, is::cells> pTail;
-  static inline const field<double>::definition<mesh<D>, is::cells> EradTail;
+  // action
+  struct faces_rl {
+    struct hydro {
+      faces<D> eFace;
+      faces<D> cFace;
+      faces<D> rFace;
+      faces<D> rEFace;
+      faces<D> pFace;
+      faces_vec<D> ruFace;
+      faces_vec<D> uFace;
+    } hydro;
 
-  static inline const field<double>::definition<mesh<D>, is::cells> eHead;
-  static inline const field<double>::definition<mesh<D>, is::cells> cHead;
-  static inline const field<double>::definition<mesh<D>, is::cells> rHead;
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    ruHead;
-  static inline const field<double>::definition<mesh<D>, is::cells> rEHead;
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    uHead;
-  static inline const field<double>::definition<mesh<D>, is::cells> pHead;
-  static inline const field<double>::definition<mesh<D>, is::cells> EradHead;
+    struct rad {
+      faces<D> EradFace;
+    } rad;
 
-  // Riemann fluxes.
-  static inline const field<double>::definition<mesh<D>, is::cells> rF;
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    ruF;
-  static inline const field<double>::definition<mesh<D>, is::cells> rEF;
-  static inline const field<double>::definition<mesh<D>, is::cells> EradF;
+  } f;
 
-  // Radiation pressure (P^{ij})
-  static inline const typename field<spec::tensor<D,
-    spec::tensor_rank::Two>>::template definition<mesh<D>, is::cells>
-    radiation_pressure_tensor;
+  // action
+  struct rieman_fluxes {
+    struct hydro {
+      // Riemann fluxes.
+      static inline const field<double>::definition<mesh<D>, is::cells> rF;
+      static inline const typename field<vec<D>>::template definition<mesh<D>,
+        is::cells>
+        ruF;
+      static inline const field<double>::definition<mesh<D>, is::cells> rEF;
+    } hydro;
 
-  // Variables related to the diffusion (multigrid) solver
-  static inline dual_field<double, D> Esf; // Temp solution field in multigrid
-  static inline const field<double>::template definition<mesh<D>, is::cells>
-    Uf; // Outer solution field
-  static inline const field<double>::template definition<mesh<D>, is::cells>
-    Ef; // RHS of Au=f
-  static inline const field<double>::template definition<mesh<D>, is::cells>
-    Ef_temp; // RHS of Au=f in multigrid precond
-  static inline const typename field<stencil<D>>::template definition<mesh<D>,
-    is::cells>
-    Ew; // stencil weights
-  static inline const field<double>::template definition<mesh<D>, is::cells>
-    r; // rho
-  static inline const field<double>::template definition<mesh<D>, is::cells>
-    Diff; // diffusion field.
-  static inline const field<double>::template definition<mesh<D>, is::cells>
-    Df_x; // diffusion(Face) field.
-  static inline const field<double>::template definition<mesh<D>, is::cells>
-    Df_y; // diffusion(Face) field.
-  static inline const field<double>::template definition<mesh<D>, is::cells>
-    Df_z; // diffusion(Face) field.
-  static inline const field<double>::template definition<mesh<D>, is::cells>
-    Resf; // Residual field.
-  static inline const field<double>::template definition<mesh<D>, is::cells>
-    Errf; // Error field.
+    struct rad {
+      static inline const field<double>::definition<mesh<D>, is::cells> EradF;
 
-  // Number of levels that can be used.
-  std::size_t max_num_levels{0};
+    } rad;
+  } rf;
 
-  // Lowest level
-  std::size_t lowest_level{0};
+  // action, rad, init, linsolve, flecsolver
+  struct multigrid {
+    // Variables related to the diffusion (multigrid) solver
+    static inline dual_field<double, D> Esf; // Temp solution field in multigrid
+    static inline const field<double>::template definition<mesh<D>, is::cells>
+      Uf; // Outer solution field
+    static inline const field<double>::template definition<mesh<D>, is::cells>
+      Ef; // RHS of Au=f
+    static inline const field<double>::template definition<mesh<D>, is::cells>
+      Ef_temp; // RHS of Au=f in multigrid precond
+    static inline const typename field<stencil<D>>::template definition<mesh<D>,
+      is::cells>
+      Ew; // stencil weights
+    static inline const field<double>::template definition<mesh<D>, is::cells>
+      Diff; // diffusion field.
+    static inline const field<double>::template definition<mesh<D>, is::cells>
+      Df_x; // diffusion(Face) field.
+    static inline const field<double>::template definition<mesh<D>, is::cells>
+      Df_y; // diffusion(Face) field.
+    static inline const field<double>::template definition<mesh<D>, is::cells>
+      Df_z; // diffusion(Face) field.
+    static inline const field<double>::template definition<mesh<D>, is::cells>
+      Resf; // Residual field.
+    static inline const field<double>::template definition<mesh<D>, is::cells>
+      Errf; // Error field.
 
-  // Highest level.
-  std::size_t highest_level{0};
+    // Pre smoothing
+    std::size_t mg_pre{4};
 
-  // Pre smoothing
-  std::size_t mg_pre{4};
+    // Post smoothing
+    std::size_t mg_post{4};
 
-  // Post smoothing
-  std::size_t mg_post{4};
+    // Cycles
+    std::size_t mg_cycles{1};
 
-  // Cycles
-  std::size_t mg_cycles{1};
+    // Jacobi iterations in mg coarse grid
+    std::size_t jacobi_iterations;
 
-  // Jacobi iterations in mg coarse grid
-  std::size_t jacobi_iterations;
+    /*--------------------------------------------------------------------------*
+      FleCSolve
+    *--------------------------------------------------------------------------*/
 
-  // Gradient of a radiation energy density
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    gradient_rad_energy;
+#if defined(USE_FLECSOLVE) && USE_FLECSOLVE
+    flecsolve::bicgstab::settings solver_settings;
+    bool flecsolve_coarse_grid;
+    std::size_t nr_vcycles = 1;
+#endif
+    bool full_multigrid = false;
 
-  // Magnitude of the gradient of the radiation energy density
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    magnitude_gradient_rad_energy;
+  } mgr;
 
-  // Gravity force
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    gravity_force;
+  std::size_t lowest_level;
+  std::size_t highest_level;
+  std::size_t max_num_levels;
 
-  // Radiation force
-  static inline const typename field<vec<D>>::template definition<mesh<D>,
-    is::cells>
-    radiation_force;
+  // action, init
+  struct source_term {
+    struct hydrodynamics {
+      // Gravity force
+      static inline const typename field<vec<D>>::template definition<mesh<D>,
+        is::cells>
+        gravity_force;
+    } hydro;
 
-  // Dimensionless quantitiy, R
-  static inline const field<double>::definition<mesh<D>, is::cells> R_value;
+    struct radiation {
+      // Radiation force
+      static inline const typename field<vec<D>>::template definition<mesh<D>,
+        is::cells>
+        radiation_force;
+      // Radiation pressure (P^{ij})
+      static inline const typename field<spec::tensor<D,
+        spec::tensor_rank::Two>>::template definition<mesh<D>, is::cells>
+        radiation_pressure_tensor;
+    } rad;
+  } src_t;
 
-  // Flux limiter (standard/adaptive)
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    lambda_bridge;
+  struct radiation_limiter {
 
-  // Eddington Factor
-  static inline const field<double>::definition<mesh<D>, is::cells>
-    eddington_factor;
+    // Gradient of a radiation energy density
+    static inline const typename field<vec<D>>::template definition<mesh<D>,
+      is::cells>
+      gradient_rad_energy;
+
+    // Magnitude of the gradient of the radiation energy density
+    static inline const field<double>::definition<mesh<D>, is::cells>
+      magnitude_gradient_rad_energy;
+
+    // Dimensionless quantitiy, R
+    static inline const field<double>::definition<mesh<D>, is::cells> R_value;
+
+    // Flux limiter (standard/adaptive)
+    static inline const field<double>::definition<mesh<D>, is::cells>
+      lambda_bridge;
+
+    // Eddington Factor
+    static inline const field<double>::definition<mesh<D>, is::cells>
+      eddington_factor;
+
+  } rad_limiter;
 
   // Gradient of velocity
   static inline const typename field<spec::tensor<D,
@@ -249,21 +275,6 @@ struct state {
   RK<D> rk_dt1;
   RK<D> rk_dt2;
   RK<D> rk_n;
-
-  // FIXME Temporary variable for sections of the code only used for the
-  // multigroup implementation (mostly boundaries)
-  bool mg = false;
-
-  /*--------------------------------------------------------------------------*
-    FleCSolve
-  *--------------------------------------------------------------------------*/
-
-#if defined(USE_FLECSOLVE) && USE_FLECSOLVE
-  flecsolve::bicgstab::settings solver_settings;
-  bool flecsolve_coarse_grid;
-  std::size_t nr_vcycles = 1;
-#endif
-  bool full_multigrid = false;
 
 }; // struct state
 

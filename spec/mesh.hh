@@ -277,11 +277,11 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
       } // if
     } // delta
 
-    /// Return the cell head for the given axis and id. The head is the trailing
-    /// interface of the cell.
+    /// Return the cell right for the given axis and id. The right is the
+    /// trailing interface of the cell.
     /// @tparam A  The coordinate axis.
     template<ax::axis A>
-    FLECSI_INLINE_TARGET double head(std::size_t i) const {
+    FLECSI_INLINE_TARGET double right(std::size_t i) const {
       return center<A>(i) - 0.5 * delta<A>();
     } // center
 
@@ -292,11 +292,11 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
       return delta<A>() * global_id<A>(i) + 0.5 * delta<A>();
     } // center
 
-    /// Return the cell tail for the given axis and id. The tail is the leading
+    /// Return the cell left for the given axis and id. The left is the leading
     /// interface of the cell.
     /// @tparam A  The coordinate axis.
     template<ax::axis A>
-    FLECSI_INLINE_TARGET double tail(std::size_t i) const {
+    FLECSI_INLINE_TARGET double left(std::size_t i) const {
       return center<A>(i) + 0.5 * delta<A>();
     } // center
 
