@@ -26,34 +26,6 @@ set_dudt_to_zero(flecsi::exec::accelerator s,
 }
 
 //
-// Store the evolved variables U^n at t=t^n into temporary space before running
-// RK substeps.
-//
-template<std::size_t Dim>
-void
-store_current_state(flecsi::exec::accelerator s,
-  typename mesh<Dim>::template accessor<ro> m,
-  // Copied from
-  typename RK<Dim>::accessor<ro, na> rk_a,
-  typename RK<Dim>::accessor<wo, na> rk_n_a) noexcept {
-
-  auto [mass_n, etot_n, erad_n, mom_n] = rk_n_a;
-  auto [mass_density_a,
-    total_energy_density_a,
-    radiation_energy_density_a,
-    momentum_density_a] = rk_a;
-
-  s.executor().forall(i, mass_n.span()) {
-    mass_n(i) = mass_density_a(i);
-    mom_n(i) = momentum_density_a(i);
-    etot_n(i) = total_energy_density_a(i);
-#ifdef ENABLE_RADIATION
-    erad_n(i) = radiation_energy_density_a(i);
-#endif
-  }; // forall
-}
-
-//
 // Used for the RK substeps
 //
 template<std::size_t Dim>

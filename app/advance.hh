@@ -14,20 +14,6 @@ namespace hard::actions {
 
 using namespace hard::time_stepper;
 
-// Solve by operator split:
-// 0) Initialize all variables that will be used
-//
-// 1) Advance radiation terms
-//
-// 2) Do radiation advection and hydro using Heun's method
-
-inline control<state, 1>::action<initialize_time_derivative<1>, cp::advance>
-  initialize_time_derivative_1d;
-inline control<state, 2>::action<initialize_time_derivative<2>, cp::advance>
-  initialize_time_derivative_2d;
-inline control<state, 3>::action<initialize_time_derivative<3>, cp::advance>
-  initialize_time_derivative_3d;
-
 #ifdef ENABLE_RADIATION
 // ----------------------------------------------------------------------------
 //              Solve radiation diffusion and source-sink terms
@@ -74,11 +60,12 @@ inline const auto dep_advection_advance_3d =
 #endif
 // --------------------------------------------------------------------
 //              Update for next cycle
-// --------------------------------------------------------------------
+// ---------------------------------------------------------------
+-- -- -
 
-// Update the CFL limit
-inline control<state, 1>::action<update_time_step_size<1>, cp::advance>
-  update_time_step_size_1d;
+      // Update the CFL limit
+      inline control<state, 1>::action<update_time_step_size<1>, cp::advance>
+        update_time_step_size_1d;
 inline control<state, 2>::action<update_time_step_size<2>, cp::advance>
   update_time_step_size_2d;
 inline control<state, 3>::action<update_time_step_size<3>, cp::advance>
