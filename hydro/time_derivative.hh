@@ -1,0 +1,54 @@
+#ifndef HARD_HYDRO_TIME_DERIVATIVE_HH
+#define HARD_HYDRO_TIME_DERIVATIVE_HH
+
+#include "state.hh"
+
+#include "../modules/hydro/tasks/time_derivative.hh"
+
+namespace hard {
+
+template<std::size_t D>
+void
+time_derivative(control_policy<state, D> & cp) {
+  auto & s = cp.state();
+  flecsi::scheduler & sc = cp.scheduler();
+
+#ifdef HARD_ENABLE_LEGION_TRACING
+  // Legion tracing: Skip first iteration
+  if(cp.step() == 0)
+    cp.tracing.skip();
+  // Legion tracing: Create new guard
+  cp.guard.emplace(cp.tracing);
+#endif
+
+  sc.execute<tasks::init::compute_dt_weighted>(flecsi::exec::on,
+    s.dt(*s.gt),
+    s.dt_weighted(*s.gt),
+    hard::time_stepper::time_stepper_gamma);
+
+  // Set all dU_dt temporaries to zero before adding time derivative terms
+  sc.execute<tasks::hydro::set_dudt_to_zero<D>>(
+    flecsi::exec::on, s.rk_dt1(s.m));
+  sc.execute<tasks::hydro::set_dudt_to_zero<D>>(
+    flecsi::exec::on, s.rk_dt2(s.m));
+
+  // Store the current state of evolved variables (U^n) before performing a time
+  // step
+  sc.execute<tasks::hydro::store_current_state<D>>(flecsi::exec::on,
+    std::tuple{s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m)},
+    //
+    s.rk_n(s.m));
+}
+
+inline control<state, 1>::action<time_derivative<1>, cp::time_derivative>
+  time_derivative_1d;
+inline control<state, 2>::action<time_derivative<2>, cp::time_derivative>
+  time_derivative_2d;
+inline control<state, 3>::action<time_derivative<3>, cp::time_derivative>
+  time_derivative_3d;
+
+} // namespace hard
+
+#endif // HARD_HYDRO_TIME_DERIVATIVE_HH

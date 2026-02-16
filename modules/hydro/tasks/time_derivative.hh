@@ -1,27 +1,67 @@
+#ifndef HARD_MODULE_HYDRO_TIME_DERIVATIVE_HH
+#define HARD_MODULE_HYDRO_TIME_DERIVATIVE_HH
 
-#ifndef HARD_TIME_DERIVATIVE_HH
-#define HARD_TIME_DERIVATIVE_HH
-
-#include "../numerical_algorithms/time_stepper.hh"
-#include "../types.hh"
+#include "../modules/hydro/numerical_algorithms/time_stepper.hh"
+#include "types.hh"
 #include "utils.hh"
 #include <cstddef>
+#include <flecsi/utilities.hh>
 
-namespace hard::tasks {
+namespace hard::tasks::hydro {
+
+template<std::size_t D>
+double
+update_dtmin(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro> m,
+  flecsi::future<double> lmax_f) noexcept {
+
+  double lmax = lmax_f.get();
+  if constexpr(D == 1) {
+    return m.template delta<ax::x>() / lmax;
+  }
+  else if constexpr(D == 2) {
+    return std::min(m.template delta<ax::x>(), m.template delta<ax::y>()) /
+           (D * lmax);
+  }
+  else {
+    return std::min(m.template delta<ax::x>(),
+             std::min(m.template delta<ax::y>(), m.template delta<ax::z>())) /
+           (D * lmax);
+  } // if
+} // update_dtmin
 
 template<std::size_t Dim>
 void
 set_dudt_to_zero(flecsi::exec::accelerator s,
-  typename mesh<Dim>::template accessor<ro> m,
   typename RK<Dim>::accessor<wo, na> rk_a) noexcept {
 
-  auto [dt_mass, dt_etot, dt_erad, dt_mom] = rk_a;
+  auto [dt_mass, dt_etot, dt_mom] = rk_a;
 
-  s.executor().forall(i, dt_mass.span()) {
+  s.executor().forall(i, flecsi::util::iota_view({}, dt_mass.span().size())) {
     dt_mass(i) = 0.0;
     dt_mom(i) = vec<Dim>(0.0);
     dt_etot(i) = 0.0;
-    dt_erad(i) = 0.0;
+  }; // forall
+}
+
+//
+// Store the evolved variables U^n at t=t^n into temporary space before running
+// RK substeps.
+//
+template<std::size_t Dim>
+void
+store_current_state(flecsi::exec::accelerator s,
+  // Copied from
+  typename RK<Dim>::accessor<ro, na> rk_1_a,
+  typename RK<Dim>::accessor<wo, na> rk_2_a) noexcept {
+
+  auto [mass_1, etot_1, mom_1] = rk_1_a;
+  auto [mass_2, etot_2, mom_2] = rk_2_a;
+
+  s.executor().forall(i, flecsi::util::iota_view({}, mass_1.span().size())) {
+    mass_2(i) = mass_1(i);
+    mom_2(i) = mom_1(i);
+    etot_2(i) = etot_1(i);
   }; // forall
 }
 
@@ -38,15 +78,11 @@ update_u(flecsi::exec::accelerator s,
   // Time derivatives for the state U^1
   typename RK<Dim>::accessor<ro, na> rk_dt_a) noexcept {
 
-  auto [mass_density,
-    total_energy_density,
-    radiation_energy_density,
-    momentum_density] = RK<Dim>::mdcolex(m, rk_n_a);
+  auto [mass_density, total_energy_density, momentum_density] =
+    RK<Dim>::mdcolex(m, rk_n_a);
 
-  auto [dt_mass_density,
-    dt_total_energy_density,
-    dt_radiation_energy_density,
-    dt_momentum_density] = RK<Dim>::mdcolex(m, rk_dt_a);
+  auto [dt_mass_density, dt_total_energy_density, dt_momentum_density] =
+    RK<Dim>::mdcolex(m, rk_dt_a);
 
   using hard::tasks::util::get_mdiota_policy;
 
@@ -57,9 +93,6 @@ update_u(flecsi::exec::accelerator s,
       momentum_density(i) += h * dt_momentum_density(i);
       total_energy_density(i) += h * dt_total_energy_density(i);
 
-#ifdef ENABLE_RADIATION
-      radiation_energy_density(i) += h * dt_radiation_energy_density(i);
-#endif
     }; // forall
   }
   else if constexpr(Dim == 2) {
@@ -74,9 +107,6 @@ update_u(flecsi::exec::accelerator s,
       mass_density(i, j) += h * dt_mass_density(i, j);
       momentum_density(i, j) += h * dt_momentum_density(i, j);
       total_energy_density(i, j) += h * dt_total_energy_density(i, j);
-#ifdef ENABLE_RADIATION
-      radiation_energy_density(i, j) += h * dt_radiation_energy_density(i, j);
-#endif
     }; // forall
   }
   else {
@@ -92,72 +122,6 @@ update_u(flecsi::exec::accelerator s,
       mass_density(i, j, k) += h * dt_mass_density(i, j, k);
       momentum_density(i, j, k) += h * dt_momentum_density(i, j, k);
       total_energy_density(i, j, k) += h * dt_total_energy_density(i, j, k);
-#ifdef ENABLE_RADIATION
-      radiation_energy_density(i, j, k) +=
-        h * dt_radiation_energy_density(i, j, k);
-#endif
-    }; // forall
-  }
-}
-
-template<std::size_t Dim>
-void
-add_k1_k2(flecsi::exec::accelerator s,
-  typename mesh<Dim>::template accessor<ro> m,
-  // K1
-  typename RK<Dim>::accessor<rw, na> rk_dt1_a,
-  // K2
-  typename RK<Dim>::accessor<ro, na> rk_dt2_a) noexcept {
-  // K1
-  auto [dt_r, dt_te, dt_re, dt_ru] = RK<Dim>::mdcolex(m, rk_dt1_a);
-
-  // K2
-  auto [dt_r2, dt_te2, dt_re2, dt_ru2] = RK<Dim>::mdcolex(m, rk_dt2_a);
-
-  using hard::tasks::util::get_mdiota_policy;
-
-  if constexpr(Dim == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      dt_r(i) = (dt_r(i) + dt_r2(i)) * 0.5;
-      dt_ru(i) = (dt_ru(i) + dt_ru2(i)) * 0.5;
-      dt_te(i) = (dt_te(i) + dt_te2(i)) * 0.5;
-
-#ifdef ENABLE_RADIATION
-      dt_re(i) = (dt_re(i) + dt_re2(i)) * 0.5;
-#endif
-    }; // forall
-  }
-  else if constexpr(Dim == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(dt_r,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(ji, mdpolicy_qq) {
-      auto [j, i] = ji;
-      // Weights
-      dt_r(i, j) = (dt_r(i, j) + dt_r2(i, j)) * 0.5;
-      dt_ru(i, j) = (dt_ru(i, j) + dt_ru2(i, j)) * 0.5;
-      dt_te(i, j) = (dt_te(i, j) + dt_te2(i, j)) * 0.5;
-#ifdef ENABLE_RADIATION
-      dt_re(i, j) = (dt_re(i, j) + dt_re2(i, j)) * 0.5;
-#endif
-    }; // forall
-  }
-  else {
-    auto mdpolicy_qqq = get_mdiota_policy(dt_r,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_qqq) {
-      auto [k, j, i] = kji;
-
-      dt_r(i, j, k) = (dt_r(i, j, k) + dt_r2(i, j, k)) * 0.5;
-      dt_ru(i, j, k) = (dt_ru(i, j, k) + dt_ru2(i, j, k)) * 0.5;
-      dt_te(i, j, k) = (dt_te(i, j, k) + dt_te2(i, j, k)) * 0.5;
-#ifdef ENABLE_RADIATION
-      dt_re(i, j, k) = (dt_re(i, j, k) + dt_re2(i, j, k)) * 0.5;
-#endif
     }; // forall
   }
 }
@@ -177,31 +141,18 @@ update_u_stage(flecsi::exec::cpu s,
   // U^n+1 updated after stage
   field<double>::accessor<rw, na> mass_density_b,
   typename field<vec<Dim>>::template accessor<rw, na> momentum_density_b,
-  field<double>::accessor<rw, na> total_energy_density_b,
-  field<double>::accessor<rw, na>
-#ifdef ENABLE_RADIATION
-    radiation_energy_density_b
-#endif
-  ) noexcept {
+  field<double>::accessor<rw, na> total_energy_density_b) noexcept {
 
-  auto [mass_density,
-    total_energy_density,
-    radiation_energy_density,
-    momentum_density] = RK<Dim>::mdcolex(m, rk_n_a);
+  auto [mass_density, total_energy_density, momentum_density] =
+    RK<Dim>::mdcolex(m, rk_n_a);
 
   auto mass_density_new = m.template mdcolex<is::cells>(mass_density_b);
   auto momentum_density_new = m.template mdcolex<is::cells>(momentum_density_b);
   auto total_energy_density_new =
     m.template mdcolex<is::cells>(total_energy_density_b);
-#ifdef ENABLE_RADIATION
-  auto radiation_energy_density_new =
-    m.template mdcolex<is::cells>(radiation_energy_density_b);
-#endif
 
-  auto [dt_mass_density,
-    dt_total_energy_density,
-    dt_radiation_energy_density,
-    dt_momentum_density] = RK<Dim>::mdcolex(m, rk_dt1_a);
+  auto [dt_mass_density, dt_total_energy_density, dt_momentum_density] =
+    RK<Dim>::mdcolex(m, rk_dt1_a);
 
   auto h = *dt_a;
   using hard::tasks::util::get_mdiota_policy;
@@ -213,11 +164,6 @@ update_u_stage(flecsi::exec::cpu s,
         momentum_density(i) + h * dt_momentum_density(i);
       total_energy_density_new(i) =
         total_energy_density(i) + h * dt_total_energy_density(i);
-
-#ifdef ENABLE_RADIATION
-      radiation_energy_density_new(i) =
-        radiation_energy_density(i) + h * dt_radiation_energy_density(i);
-#endif
     }; // forall
   }
   else if constexpr(Dim == 2) {
@@ -232,11 +178,6 @@ update_u_stage(flecsi::exec::cpu s,
         momentum_density(i, j) + h * dt_momentum_density(i, j);
       total_energy_density_new(i, j) =
         total_energy_density(i, j) + h * dt_total_energy_density(i, j);
-
-#ifdef ENABLE_RADIATION
-      radiation_energy_density_new(i, j) =
-        radiation_energy_density(i, j) + h * dt_radiation_energy_density(i, j);
-#endif
     }; // forall
   }
   else {
@@ -253,16 +194,62 @@ update_u_stage(flecsi::exec::cpu s,
         momentum_density(i, j, k) + h * dt_momentum_density(i, j, k);
       total_energy_density_new(i, j, k) =
         total_energy_density(i, j, k) + h * dt_total_energy_density(i, j, k);
-
-#ifdef ENABLE_RADIATION
-      radiation_energy_density_new(i, j, k) =
-        radiation_energy_density(i, j, k) +
-        h * dt_radiation_energy_density(i, j, k);
-#endif
     }; // forall
   }
 }
 
-} // namespace hard::tasks
+template<std::size_t Dim>
+void
+add_k1_k2(flecsi::exec::accelerator s,
+  typename mesh<Dim>::template accessor<ro> m,
+  // K1
+  typename RK<Dim>::accessor<rw, na> rk_dt1_a,
+  // K2
+  typename RK<Dim>::accessor<ro, na> rk_dt2_a) noexcept {
+  // K1
+  auto [dt_r, dt_te, dt_ru] = RK<Dim>::mdcolex(m, rk_dt1_a);
 
-#endif // HARD_TIME_DERIVATIVE_HH
+  // K2
+  auto [dt_r2, dt_te2, dt_ru2] = RK<Dim>::mdcolex(m, rk_dt2_a);
+
+  using hard::tasks::util::get_mdiota_policy;
+
+  if constexpr(Dim == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      dt_r(i) = (dt_r(i) + dt_r2(i)) * 0.5;
+      dt_ru(i) = (dt_ru(i) + dt_ru2(i)) * 0.5;
+      dt_te(i) = (dt_te(i) + dt_te2(i)) * 0.5;
+    }; // forall
+  }
+  else if constexpr(Dim == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(dt_r,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      // Weights
+      dt_r(i, j) = (dt_r(i, j) + dt_r2(i, j)) * 0.5;
+      dt_ru(i, j) = (dt_ru(i, j) + dt_ru2(i, j)) * 0.5;
+      dt_te(i, j) = (dt_te(i, j) + dt_te2(i, j)) * 0.5;
+    }; // forall
+  }
+  else {
+    auto mdpolicy_qqq = get_mdiota_policy(dt_r,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+
+      dt_r(i, j, k) = (dt_r(i, j, k) + dt_r2(i, j, k)) * 0.5;
+      dt_ru(i, j, k) = (dt_ru(i, j, k) + dt_ru2(i, j, k)) * 0.5;
+      dt_te(i, j, k) = (dt_te(i, j, k) + dt_te2(i, j, k)) * 0.5;
+    }; // forall
+  }
+}
+
+} // namespace hard::tasks::hydro
+
+#endif // HARD_MODULE_HYDRO_TIME_DERIVATIVE_HH
