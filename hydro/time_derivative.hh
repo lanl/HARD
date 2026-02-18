@@ -27,19 +27,28 @@ time_derivative(control_policy<state, D> & cp) {
     hard::time_stepper::time_stepper_gamma);
 
   // Set all dU_dt temporaries to zero before adding time derivative terms
-  sc.execute<tasks::hydro::set_dudt_to_zero<D>>(
-    flecsi::exec::on, s.rk_dt1(s.m));
-  sc.execute<tasks::hydro::set_dudt_to_zero<D>>(
-    flecsi::exec::on, s.rk_dt2(s.m));
+  sc.execute<tasks::hydro::set_dudt_to_zero<D>>(flecsi::exec::on,
+    std::vector{// dt1
+      s.rk_dt1.mass_density()(*s.m),
+      s.rk_dt1.total_energy_density()(*s.m),
+      // dt2
+      s.rk_dt2.mass_density()(*s.m),
+      s.rk_dt2.total_energy_density()(*s.m)},
+    std::vector{// dt1
+      s.rk_dt1.momentum_energy_density()(*s.m),
+      // dt2
+      s.rk_dt2.momentum_energy_density()(*s.m)});
 
   // Store the current state of evolved variables (U^n) before performing a time
   // step
   sc.execute<tasks::hydro::store_current_state<D>>(flecsi::exec::on,
-    std::tuple{s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m)},
+    std::vector{
+      s.cons.hydro.mass_density(*s.m), s.cons.hydro.total_energy_density(*s.m)},
+    std::vector{s.cons.hydro.momentum_density(*s.m)},
     //
-    s.rk_n(s.m));
+    std::vector{
+      s.rk_n.mass_density()(*s.m), s.rk_n.total_energy_density()(*s.m)},
+    std::vector{s.rk_n.momentum_energy_density()(*s.m)});
 }
 
 inline control<state, 1>::action<time_derivative<1>, cp::time_derivative>

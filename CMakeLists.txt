@@ -26,7 +26,7 @@ set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(default_build_type "Debug")
+set(default_build_type "Release")
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS
     "Setting build type to '${default_build_type}' as none was specified.")
@@ -40,12 +40,11 @@ endif()
 # Dependencies (load early).
 #------------------------------------------------------------------------------#
 
-if(NOT FleCSI_FOUND)
-  find_package(FleCSI 2 REQUIRED)
-endif()
-
+find_package(FleCSI 2 REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(singularity-eos REQUIRED)
+find_package(flecsolve REQUIRED)
+
 
 #------------------------------------------------------------------------------#
 # Catalyst
@@ -75,24 +74,6 @@ mark_as_advanced(HARD_BENCHMARK_MODE)
 option(HARD_ENABLE_LEGION_TRACING
   "Enable Legion Tracing" OFF)
 mark_as_advanced(HARD_ENABLE_LEGION_TRACING)
-
-#------------------------------------------------------------------------------#
-# Disable Radiation
-#------------------------------------------------------------------------------#
-
-option(ENABLE_RADIATION
-  "Enable radiation in evolution" ON)
-mark_as_advanced(ENABLE_RADIATION)
-
-#------------------------------------------------------------------------------#
-# Enable flecsolve
-#------------------------------------------------------------------------------#
-
-option(ENABLE_FLECSOLVE
-       "Enable flecsolve for KSP solvers in MG" ON)
-if(ENABLE_FLECSOLVE)
-  find_package(flecsolve REQUIRED)
-endif()
 
 #------------------------------------------------------------------------------#
 # Formatting
@@ -173,7 +154,7 @@ if(ENABLE_DOCUMENTATION)
 endif()
 
 #------------------------------------------------------------------------------#
-# Testing (kept as-is).
+# Testing 
 #------------------------------------------------------------------------------#
 
 option(ENABLE_UNIT_TESTS "Enable unit tests" OFF)
@@ -187,16 +168,18 @@ if(ENABLE_UNIT_TESTS)
 endif()
 
 #------------------------------------------------------------------------------#
-# New layout: modules and apps.
+# modules and apps.
 #------------------------------------------------------------------------------#
 
 add_subdirectory(modules/common)
 add_subdirectory(modules/spec)
 add_subdirectory(modules/hydro)
+add_subdirectory(modules/rad)
 add_subdirectory(hydro)
+add_subdirectory(rad)
 
 #------------------------------------------------------------------------------#
-# Optional verification (kept as-is).
+# Optional verification 
 #------------------------------------------------------------------------------#
 
 option(ENABLE_VERIFICATION "Enable exactpack verification" OFF)

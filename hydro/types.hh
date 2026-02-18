@@ -155,6 +155,30 @@ struct RK {
     field<double>::accessor<P1, P2>,
     typename field<vec<D>>::template accessor<P1, P2>>;
 
+  auto & mass_density() {
+    return std::get<0>(f);
+  }
+
+  const auto & mass_density() const {
+    return std::get<0>(f);
+  }
+
+  auto & total_energy_density() {
+    return std::get<1>(f);
+  }
+
+  const auto & total_energy_density() const {
+    return std::get<1>(f);
+  }
+
+  auto & momentum_energy_density() {
+    return std::get<2>(f);
+  }
+
+  const auto & momentum_energy_density() const {
+    return std::get<2>(f);
+  }
+
   auto operator()(const mesh<D>::ptr & s) {
     return std::make_tuple(
       std::get<0>(f)(*s), std::get<1>(f)(*s), std::get<2>(f)(*s));

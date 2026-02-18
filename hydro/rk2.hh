@@ -22,19 +22,21 @@ RK_advance_2(control_policy<state, D> & cp) {
     s.prim.velocity(*s.m),
     s.src_t.hydro.gravity_force(*s.m),
     // time-derivatives
-    s.rk_dt2(s.m));
+    s.rk_dt2.momentum_energy_density()(*s.m),
+    s.rk_dt2.total_energy_density()(*s.m));
 
   // We need update_u here before we compute fluxes in the presence of
   // hydro:explictSourceUpdate with body forces. See Moens'21 Eq. 24-26
   sc.execute<tasks::hydro::update_u<D>>(flecsi::exec::on,
     s.dt(*s.gt),
-    *s.m,
     //
-    std::tuple{s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m)},
+    std::vector{
+      s.cons.hydro.mass_density(*s.m), s.cons.hydro.total_energy_density(*s.m)},
+    std::vector{s.cons.hydro.momentum_density(*s.m)},
     //
-    s.rk_dt2(s.m));
+    std::vector{
+      s.rk_dt2.mass_density()(*s.m), s.rk_dt2.total_energy_density()(*s.m)},
+    std::vector{s.rk_dt2.momentum_energy_density()(*s.m)});
 
   // Perform primitive recovery
   sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
@@ -100,20 +102,34 @@ update_vars_2(control_policy<state, D> & cp) {
   flecsi::scheduler & sc = cp.scheduler();
 
   // First compute K1' = (K1 + K2) * 0.5
-  sc.execute<tasks::hydro::add_k1_k2<D>>(
-    flecsi::exec::on, *s.m, s.rk_dt1(s.m), s.rk_dt2(s.m));
+  sc.execute<tasks::hydro::add_k1_k2<D>>(flecsi::exec::on,
+    std::vector{
+      s.rk_dt1.mass_density()(*s.m), s.rk_dt1.total_energy_density()(*s.m)},
+    std::vector{s.rk_dt1.momentum_energy_density()(*s.m)},
+    std::vector{
+      s.rk_dt2.mass_density()(*s.m), s.rk_dt2.total_energy_density()(*s.m)},
+    std::vector{s.rk_dt2.momentum_energy_density()(*s.m)});
 
   // Now get U_n(+1) = U_n + h * K1'
-  sc.execute<tasks::hydro::update_u<D>>(
-    flecsi::exec::on, s.dt(*s.gt), *s.m, s.rk_n(s.m), s.rk_dt1(s.m));
+  sc.execute<tasks::hydro::update_u<D>>(flecsi::exec::on,
+    s.dt(*s.gt),
+    std::vector{
+      s.rk_n.mass_density()(*s.m), s.rk_n.total_energy_density()(*s.m)},
+    std::vector{s.rk_n.momentum_energy_density()(*s.m)},
+    //
+    std::vector{
+      s.rk_dt1.mass_density()(*s.m), s.rk_dt1.total_energy_density()(*s.m)},
+    std::vector{s.rk_dt1.momentum_energy_density()(*s.m)});
 
   // Finish by updating the values stored in U_n to U
   sc.execute<tasks::hydro::store_current_state<D>>(flecsi::exec::on,
-    s.rk_n(s.m),
+    std::vector{
+      s.rk_n.mass_density()(*s.m), s.rk_n.total_energy_density()(*s.m)},
+    std::vector{s.rk_n.momentum_energy_density()(*s.m)},
     //
-    std::tuple{s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m)});
+    std::vector{
+      s.cons.hydro.mass_density(*s.m), s.cons.hydro.total_energy_density(*s.m)},
+    std::vector{s.cons.hydro.momentum_density(*s.m)});
 
   // Perform primitive recovery
   sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,

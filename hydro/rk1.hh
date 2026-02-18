@@ -26,19 +26,24 @@ RK_advance_1(control_policy<state, D> & cp) {
     s.prim.velocity(*s.m),
     s.src_t.hydro.gravity_force(*s.m),
     // time-derivatives
-    s.rk_dt1(s.m));
+    s.rk_dt1.momentum_energy_density()(*s.m),
+    s.rk_dt1.total_energy_density()(*s.m));
 
   // We need update_u here before we compute fluxes in the presence of
   // hydro::explictSourceUpdate with body forces. See Moens'21 Eq. 24-26
   sc.execute<tasks::hydro::update_u<D>>(flecsi::exec::on,
     s.dt(*s.gt),
-    *s.m,
     //
-    std::tuple{s.cons.hydro.mass_density(*s.m),
+    std::vector{
+      s.cons.hydro.mass_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m)},
+    },
+    std::vector{s.cons.hydro.momentum_density(*s.m)},
     //
-    s.rk_dt1(s.m));
+    std::vector{
+      s.rk_dt1.mass_density()(*s.m), s.rk_dt1.total_energy_density()(*s.m)},
+    std::vector{s.rk_dt1.momentum_energy_density()(*s.m)});
+
   // Perform primitive recovery
   sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
     *s.m,
@@ -103,15 +108,17 @@ update_vars(control_policy<state, D> & cp) {
   flecsi::scheduler & sc = cp.scheduler();
 
   // K2 calculation in the next RK advance
-  sc.execute<tasks::hydro::update_u_stage<D, time_stepper::rk_stage::First>>(
-    flecsi::exec::on,
+  sc.execute<tasks::hydro::update_u_stage<D>>(flecsi::exec::on,
     s.dt(*s.gt),
-    *s.m,
-    s.rk_n(s.m),
-    s.rk_dt1(s.m),
-    s.cons.hydro.mass_density(*s.m),
-    s.cons.hydro.momentum_density(*s.m),
-    s.cons.hydro.total_energy_density(*s.m));
+    std::vector{
+      s.rk_n.mass_density()(*s.m), s.rk_n.total_energy_density()(*s.m)},
+    std::vector{s.rk_n.momentum_energy_density()(*s.m)},
+    std::vector{
+      s.rk_dt1.mass_density()(*s.m), s.rk_dt1.total_energy_density()(*s.m)},
+    std::vector{s.rk_dt1.momentum_energy_density()(*s.m)},
+    std::vector{
+      s.cons.hydro.mass_density(*s.m), s.cons.hydro.total_energy_density(*s.m)},
+    std::vector{s.cons.hydro.momentum_density(*s.m)});
 
   // Perform primitive recovery
   sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,

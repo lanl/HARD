@@ -33,15 +33,21 @@ update_dtmin(flecsi::exec::cpu,
 template<std::size_t Dim>
 void
 set_dudt_to_zero(flecsi::exec::accelerator s,
-  typename RK<Dim>::accessor<wo, na> rk_a) noexcept {
+  std::vector<field<double>::accessor<rw, na>> rk_dt_v_a,
+  std::vector<typename field<vec<Dim>>::accessor<rw, na>>
+    rk_dt_vec_v_a) noexcept {
 
-  auto [dt_mass, dt_etot, dt_mom] = rk_a;
+  for(auto rk_dt_a : rk_dt_v_a) {
+    s.executor().forall(i, flecsi::util::iota_view({}, rk_dt_a.span().size())) {
+      rk_dt_a(i) = 0.0;
+    }; // forall
+  }
 
-  s.executor().forall(i, flecsi::util::iota_view({}, dt_mass.span().size())) {
-    dt_mass(i) = 0.0;
-    dt_mom(i) = vec<Dim>(0.0);
-    dt_etot(i) = 0.0;
-  }; // forall
+  for(auto rk_dt_a : rk_dt_vec_v_a) {
+    s.executor().forall(i, flecsi::util::iota_view({}, rk_dt_a.span().size())) {
+      rk_dt_a(i) = vec<Dim>(0.0);
+    }; // forall
+  }
 }
 
 //
@@ -51,18 +57,27 @@ set_dudt_to_zero(flecsi::exec::accelerator s,
 template<std::size_t Dim>
 void
 store_current_state(flecsi::exec::accelerator s,
-  // Copied from
-  typename RK<Dim>::accessor<ro, na> rk_1_a,
-  typename RK<Dim>::accessor<wo, na> rk_2_a) noexcept {
+  std::vector<field<double>::accessor<rw, na>> to_v_a,
+  std::vector<typename field<vec<Dim>>::accessor<rw, na>> to_vec_v_a,
+  std::vector<field<double>::accessor<ro, na>> from_v_a,
+  std::vector<typename field<vec<Dim>>::accessor<ro, na>>
+    from_vec_v_a) noexcept {
 
-  auto [mass_1, etot_1, mom_1] = rk_1_a;
-  auto [mass_2, etot_2, mom_2] = rk_2_a;
+  for(std::size_t i = 0; i < from_v_a.size(); ++i) {
+    auto && from_a = from_v_a[i];
+    auto && to_a = to_v_a[i];
+    s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
+      to_a(i) = from_a(i);
+    }; // forall
+  }
 
-  s.executor().forall(i, flecsi::util::iota_view({}, mass_1.span().size())) {
-    mass_2(i) = mass_1(i);
-    mom_2(i) = mom_1(i);
-    etot_2(i) = etot_1(i);
-  }; // forall
+  for(std::size_t i = 0; i < from_vec_v_a.size(); ++i) {
+    auto && from_a = from_vec_v_a[i];
+    auto && to_a = to_vec_v_a[i];
+    s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
+      to_a(i) = from_a(i);
+    }; // forall
+  }
 }
 
 //
@@ -72,56 +87,31 @@ template<std::size_t Dim>
 void
 update_u(flecsi::exec::accelerator s,
   single<double>::accessor<ro> dt_a,
-  typename mesh<Dim>::template accessor<ro> m,
   // U^n we want to update
-  typename RK<Dim>::accessor<rw, na> rk_n_a,
+  std::vector<field<double>::accessor<rw, na>> rk_n_v_a,
+  std::vector<typename field<vec<Dim>>::accessor<rw, na>> rk_n_vec_v_a,
   // Time derivatives for the state U^1
-  typename RK<Dim>::accessor<ro, na> rk_dt_a) noexcept {
+  std::vector<field<double>::accessor<ro, na>> rk_dt_v_a,
+  std::vector<typename field<vec<Dim>>::accessor<ro, na>>
+    rk_dt_vec_v_a) noexcept {
 
-  auto [mass_density, total_energy_density, momentum_density] =
-    RK<Dim>::mdcolex(m, rk_n_a);
+  auto h = *dt_a;
 
-  auto [dt_mass_density, dt_total_energy_density, dt_momentum_density] =
-    RK<Dim>::mdcolex(m, rk_dt_a);
-
-  using hard::tasks::util::get_mdiota_policy;
-
-  if constexpr(Dim == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      auto h = *dt_a;
-      mass_density(i) += h * dt_mass_density(i);
-      momentum_density(i) += h * dt_momentum_density(i);
-      total_energy_density(i) += h * dt_total_energy_density(i);
-
+  // Scalar
+  for(std::size_t i = 0; i < rk_n_v_a.size(); ++i) {
+    auto && rk_n_a = rk_n_v_a[i];
+    auto && rk_dt_a = rk_dt_v_a[i];
+    s.executor().forall(j, flecsi::util::iota_view({}, rk_n_a.span().size())) {
+      rk_n_a(j) += h * rk_dt_a(j);
     }; // forall
   }
-  else if constexpr(Dim == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(mass_density,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
-      auto h = *dt_a;
-      auto [j, i] = ji;
-      // Weights
-      mass_density(i, j) += h * dt_mass_density(i, j);
-      momentum_density(i, j) += h * dt_momentum_density(i, j);
-      total_energy_density(i, j) += h * dt_total_energy_density(i, j);
-    }; // forall
-  }
-  else {
-    auto mdpolicy_qqq = get_mdiota_policy(mass_density,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_qqq) {
-      auto h = *dt_a;
-      auto [k, j, i] = kji;
-
-      mass_density(i, j, k) += h * dt_mass_density(i, j, k);
-      momentum_density(i, j, k) += h * dt_momentum_density(i, j, k);
-      total_energy_density(i, j, k) += h * dt_total_energy_density(i, j, k);
+  // Vec<D>
+  for(std::size_t i = 0; i < rk_n_vec_v_a.size(); ++i) {
+    auto && rk_n_a = rk_n_vec_v_a[i];
+    auto && rk_dt_a = rk_dt_vec_v_a[i];
+    s.executor().forall(j, flecsi::util::iota_view({}, rk_n_a.span().size())) {
+      rk_n_a(j) += h * rk_dt_a(j);
     }; // forall
   }
 }
@@ -129,71 +119,40 @@ update_u(flecsi::exec::accelerator s,
 //
 // Used for the RK stage updates
 //
-template<std::size_t Dim, time_stepper::rk_stage stage>
+template<std::size_t Dim>
 void
 update_u_stage(flecsi::exec::cpu s,
   single<double>::accessor<ro> dt_a,
-  typename mesh<Dim>::template accessor<ro> m,
   // U^n we want to update
-  typename RK<Dim>::accessor<rw, na> rk_n_a,
+  // U^n we want to update
+  std::vector<field<double>::accessor<ro, na>> rk_n_v_a,
+  std::vector<typename field<vec<Dim>>::accessor<ro, na>> rk_n_vec_v_a,
   // Time derivatives for the state U^1
-  typename RK<Dim>::accessor<ro, na> rk_dt1_a,
+  std::vector<field<double>::accessor<ro, na>> rk_dt_v_a,
+  std::vector<typename field<vec<Dim>>::accessor<ro, na>> rk_dt_vec_v_a,
   // U^n+1 updated after stage
-  field<double>::accessor<rw, na> mass_density_b,
-  typename field<vec<Dim>>::template accessor<rw, na> momentum_density_b,
-  field<double>::accessor<rw, na> total_energy_density_b) noexcept {
-
-  auto [mass_density, total_energy_density, momentum_density] =
-    RK<Dim>::mdcolex(m, rk_n_a);
-
-  auto mass_density_new = m.template mdcolex<is::cells>(mass_density_b);
-  auto momentum_density_new = m.template mdcolex<is::cells>(momentum_density_b);
-  auto total_energy_density_new =
-    m.template mdcolex<is::cells>(total_energy_density_b);
-
-  auto [dt_mass_density, dt_total_energy_density, dt_momentum_density] =
-    RK<Dim>::mdcolex(m, rk_dt1_a);
+  std::vector<field<double>::accessor<rw, na>> rk_new_v_a,
+  std::vector<typename field<vec<Dim>>::accessor<rw, na>>
+    rk_new_vec_v_a) noexcept {
 
   auto h = *dt_a;
-  using hard::tasks::util::get_mdiota_policy;
-
-  if constexpr(Dim == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      mass_density_new(i) = mass_density(i) + h * dt_mass_density(i);
-      momentum_density_new(i) =
-        momentum_density(i) + h * dt_momentum_density(i);
-      total_energy_density_new(i) =
-        total_energy_density(i) + h * dt_total_energy_density(i);
+  // Scalar
+  for(std::size_t i = 0; i < rk_n_v_a.size(); ++i) {
+    auto && rk_n_a = rk_n_v_a[i];
+    auto && rk_dt_a = rk_dt_v_a[i];
+    auto && rk_new_a = rk_new_v_a[i];
+    s.executor().forall(j, flecsi::util::iota_view({}, rk_n_a.span().size())) {
+      rk_new_a(j) += rk_n_a(i) + h * rk_dt_a(j);
     }; // forall
   }
-  else if constexpr(Dim == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(mass_density,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
-      auto [j, i] = ji;
-      mass_density_new(i, j) = mass_density(i, j) + h * dt_mass_density(i, j);
-      momentum_density_new(i, j) =
-        momentum_density(i, j) + h * dt_momentum_density(i, j);
-      total_energy_density_new(i, j) =
-        total_energy_density(i, j) + h * dt_total_energy_density(i, j);
-    }; // forall
-  }
-  else {
-    auto mdpolicy_qqq = get_mdiota_policy(mass_density,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_qqq) {
-      auto [k, j, i] = kji;
-      mass_density_new(i, j, k) =
-        mass_density(i, j, k) + h * dt_mass_density(i, j, k);
-      momentum_density_new(i, j, k) =
-        momentum_density(i, j, k) + h * dt_momentum_density(i, j, k);
-      total_energy_density_new(i, j, k) =
-        total_energy_density(i, j, k) + h * dt_total_energy_density(i, j, k);
+  // Vec<D>
+  for(std::size_t i = 0; i < rk_n_vec_v_a.size(); ++i) {
+    auto && rk_n_a = rk_n_vec_v_a[i];
+    auto && rk_dt_a = rk_dt_vec_v_a[i];
+    auto && rk_new_a = rk_new_vec_v_a[i];
+    s.executor().forall(j, flecsi::util::iota_view({}, rk_n_a.span().size())) {
+      rk_new_a(j) += rk_n_a(j) + h * rk_dt_a(j);
     }; // forall
   }
 }
@@ -201,51 +160,29 @@ update_u_stage(flecsi::exec::cpu s,
 template<std::size_t Dim>
 void
 add_k1_k2(flecsi::exec::accelerator s,
-  typename mesh<Dim>::template accessor<ro> m,
-  // K1
-  typename RK<Dim>::accessor<rw, na> rk_dt1_a,
-  // K2
-  typename RK<Dim>::accessor<ro, na> rk_dt2_a) noexcept {
-  // K1
-  auto [dt_r, dt_te, dt_ru] = RK<Dim>::mdcolex(m, rk_dt1_a);
+  // RK1
+  std::vector<field<double>::accessor<rw, na>> rk_1_v_a,
+  std::vector<typename field<vec<Dim>>::accessor<rw, na>> rk_1_vec_v_a,
+  // RK2
+  std::vector<field<double>::accessor<ro, na>> rk_2_v_a,
+  std::vector<typename field<vec<Dim>>::accessor<ro, na>>
+    rk_2_vec_v_a) noexcept {
 
-  // K2
-  auto [dt_r2, dt_te2, dt_ru2] = RK<Dim>::mdcolex(m, rk_dt2_a);
-
-  using hard::tasks::util::get_mdiota_policy;
-
-  if constexpr(Dim == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      dt_r(i) = (dt_r(i) + dt_r2(i)) * 0.5;
-      dt_ru(i) = (dt_ru(i) + dt_ru2(i)) * 0.5;
-      dt_te(i) = (dt_te(i) + dt_te2(i)) * 0.5;
+  // Scalar
+  for(std::size_t i = 0; i < rk_1_v_a.size(); ++i) {
+    auto && rk_1_a = rk_1_v_a[i];
+    auto && rk_2_a = rk_2_v_a[i];
+    s.executor().forall(j, flecsi::util::iota_view({}, rk_1_a.span().size())) {
+      rk_1_a(j) = (rk_1_a(j) + rk_2_a(j)) * 0.5;
     }; // forall
   }
-  else if constexpr(Dim == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(dt_r,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
-      auto [j, i] = ji;
-      // Weights
-      dt_r(i, j) = (dt_r(i, j) + dt_r2(i, j)) * 0.5;
-      dt_ru(i, j) = (dt_ru(i, j) + dt_ru2(i, j)) * 0.5;
-      dt_te(i, j) = (dt_te(i, j) + dt_te2(i, j)) * 0.5;
-    }; // forall
-  }
-  else {
-    auto mdpolicy_qqq = get_mdiota_policy(dt_r,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_qqq) {
-      auto [k, j, i] = kji;
-
-      dt_r(i, j, k) = (dt_r(i, j, k) + dt_r2(i, j, k)) * 0.5;
-      dt_ru(i, j, k) = (dt_ru(i, j, k) + dt_ru2(i, j, k)) * 0.5;
-      dt_te(i, j, k) = (dt_te(i, j, k) + dt_te2(i, j, k)) * 0.5;
+  // Vec<D>
+  for(std::size_t i = 0; i < rk_1_vec_v_a.size(); ++i) {
+    auto && rk_1_a = rk_1_vec_v_a[i];
+    auto && rk_2_a = rk_2_vec_v_a[i];
+    s.executor().forall(j, flecsi::util::iota_view({}, rk_1_a.span().size())) {
+      rk_1_a(j) = (rk_1_a(j) + rk_2_a(j)) * 0.5;
     }; // forall
   }
 }
