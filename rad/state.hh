@@ -1,7 +1,8 @@
-#ifndef HARD_HYDRO_STATE_HH
-#define HARD_HYDRO_STATE_HH
+#ifndef HARD_STATE_HH
+#define HARD_STATE_HH
 
-#include "../modules/hydro/state.hh"
+#include "../modules/rad/state.hh"
+
 #include "types.hh"
 
 namespace hard {
@@ -11,13 +12,13 @@ namespace hard {
  *----------------------------------------------------------------------------*/
 
 template<std::size_t D>
-struct state : hydro::state<D> {
+struct state : rad::state<D> {
 
   flecsi::future<double> dtmin_;
 
   /*--------------------------------------------------------------------------*
     Topology slots.
-    *--------------------------------------------------------------------------*/
+   *--------------------------------------------------------------------------*/
   flecsi::topo::index::ptr ct; /* Color topology. */
   flecsi::topo::global::ptr gt;
   flecsi::topo::global::ptr dense_topology;
@@ -30,7 +31,7 @@ struct state : hydro::state<D> {
 
   /*--------------------------------------------------------------------------*
     Color parameters (One per color using an index topology instance).
-    *--------------------------------------------------------------------------*/
+   *--------------------------------------------------------------------------*/
 
   /* Maximum characteristic speed for a color. */
   static inline const typename single<vec<D>>::template definition<index> lmax;

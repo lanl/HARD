@@ -1,5 +1,5 @@
-#ifndef HARD_HYDRO_RK1_HH
-#define HARD_HYDRO_RK1_HH
+#ifndef HARD_RAD_RK1_HH
+#define HARD_RAD_RK1_HH
 
 #include "state.hh"
 
@@ -8,6 +8,9 @@
 #include "../modules/hydro/tasks/interface_fluxes.hh"
 #include "../modules/hydro/tasks/reconstruct.hh"
 #include "../modules/hydro/tasks/time_derivative.hh"
+#include "../modules/rad/tasks/interface_fluxes.hh"
+#include "../modules/rad/tasks/rad.hh"
+
 #include "../modules/spec/limiter.hh"
 
 using namespace hard;
@@ -18,6 +21,17 @@ RK_advance_1(control_policy<state, D> & cp) {
 
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
+
+  sc.execute<tasks::rad::explicitSourceUpdate<D>>(flecsi::exec::on,
+    *s.m,
+    s.prim.velocity(*s.m),
+    s.rad.src_t.radiation_force(*s.m),
+    s.rad.src_t.radiation_pressure_tensor(*s.m),
+    s.velocity_gradient(*s.m),
+    //
+    s.rk_dt1.total_energy_density()(*s.m),
+    s.rk_dt1.momentum_energy_density()(*s.m),
+    s.rad.dt_radiation_energy_density_1(*s.m));
 
   // RK Stage: 1 - Explicit source term (gravity) update for RT case in hydro
   // file
@@ -37,11 +51,13 @@ RK_advance_1(control_policy<state, D> & cp) {
     std::vector{
       s.cons.hydro.mass_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m),
     },
     std::vector{s.cons.hydro.momentum_density(*s.m)},
     //
-    std::vector{
-      s.rk_dt1.mass_density()(*s.m), s.rk_dt1.total_energy_density()(*s.m)},
+    std::vector{s.rk_dt1.mass_density()(*s.m),
+      s.rk_dt1.total_energy_density()(*s.m),
+      s.rad.dt_radiation_energy_density_1(*s.m)},
     std::vector{s.rk_dt1.momentum_energy_density()(*s.m)});
 
   // Perform primitive recovery
@@ -68,7 +84,9 @@ RK_advance_1(control_policy<state, D> & cp) {
         std::make_tuple(
           s.prim.specific_internal_energy(*s.m), s.f.hydro.eFace(s.m)),
         std::make_tuple(s.prim.sound_speed(*s.m), s.f.hydro.cFace(s.m)),
-        std::make_tuple(s.prim.pressure(*s.m), s.f.hydro.pFace(s.m))},
+        std::make_tuple(s.prim.pressure(*s.m), s.f.hydro.pFace(s.m)),
+        std::make_tuple(
+          s.rad.cons.radiation_energy_density(*s.m), s.rad.f.EradFace(s.m))},
       std::vector{
         std::make_tuple(s.prim.velocity(*s.m), s.f.hydro.uFace(s.m))});
 
@@ -97,6 +115,18 @@ RK_advance_1(control_policy<state, D> & cp) {
 
       s.rk_dt1(s.m),
       s.icst.gravity_acc(*s.gt));
+
+    // Calculate K1 and save it to dt_U
+    sc.execute<tasks::rad::compute_interface_fluxes<D>>(flecsi::exec::on,
+      axis,
+      *s.m,
+      s.f.hydro.uFace(s.m),
+      s.f.hydro.cFace(s.m),
+      s.rad.f.EradFace(s.m),
+      // Riemann Fluxes
+      s.rad.rf.EradF(*s.m),
+      //
+      s.rad.dt_radiation_energy_density_1(*s.m));
   }
 }
 
@@ -110,14 +140,17 @@ update_vars(control_policy<state, D> & cp) {
   // K2 calculation in the next RK advance
   sc.execute<tasks::hydro::update_u_stage<D>>(flecsi::exec::on,
     s.dt(*s.gt),
-    std::vector{
-      s.rk_n.mass_density()(*s.m), s.rk_n.total_energy_density()(*s.m)},
+    std::vector{s.rk_n.mass_density()(*s.m),
+      s.rk_n.total_energy_density()(*s.m),
+      s.rad.dt_radiation_energy_density_n(*s.m)},
     std::vector{s.rk_n.momentum_energy_density()(*s.m)},
-    std::vector{
-      s.rk_dt1.mass_density()(*s.m), s.rk_dt1.total_energy_density()(*s.m)},
+    std::vector{s.rk_dt1.mass_density()(*s.m),
+      s.rk_dt1.total_energy_density()(*s.m),
+      s.rad.dt_radiation_energy_density_1(*s.m)},
     std::vector{s.rk_dt1.momentum_energy_density()(*s.m)},
-    std::vector{
-      s.cons.hydro.mass_density(*s.m), s.cons.hydro.total_energy_density(*s.m)},
+    std::vector{s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m)},
     std::vector{s.cons.hydro.momentum_density(*s.m)});
 
   // Perform primitive recovery
@@ -139,6 +172,7 @@ update_vars(control_policy<state, D> & cp) {
     std::vector{s.cons.hydro.mass_density(*s.m),
       s.prim.pressure(*s.m),
       s.prim.specific_internal_energy(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m)},
     std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
 

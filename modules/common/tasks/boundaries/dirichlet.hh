@@ -1,7 +1,9 @@
 #ifndef HARD_COMMON_TASKS_BOUNDARIES_DIRICHLET_HH
 #define HARD_COMMON_TASKS_BOUNDARIES_DIRICHLET_HH
 
-#include "tasks/utils.hh"
+#include <flecsi/runtime.hh>
+
+#include "../modules/hydro/tasks/utils.hh"
 #include "types.hh"
 
 namespace hard::tasks {

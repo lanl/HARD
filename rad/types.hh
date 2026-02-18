@@ -1,5 +1,5 @@
-#ifndef HARD_HYDRO_TYPES_HH
-#define HARD_HYDRO_TYPES_HH
+#ifndef HARD_RAD_TYPES_HH
+#define HARD_RAD_TYPES_HH
 
 #include <../modules/spec/control.hh>
 #include <../modules/spec/eos.hh>
@@ -13,13 +13,13 @@ namespace hard {
  *----------------------------------------------------------------------------*/
 
 template<template<std::size_t> typename S, std::size_t D>
-using control = flecsi::run::control<spec::hydro::control_policy<S, D>>;
+using control = flecsi::run::control<spec::rad::control_policy<S, D>>;
 
 template<template<std::size_t> typename S, std::size_t D>
-using control_policy = spec::hydro::control_policy<S, D>;
+using control_policy = spec::rad::control_policy<S, D>;
 using color_distribution = flecsi::topo::narray_impl::colors;
 
-using cp = spec::hydro::cp;
+using cp = spec::rad::cp;
 template<std::size_t D>
 using mesh = spec::mesh<D>;
 using spec::field;
@@ -196,4 +196,4 @@ struct RK {
 
 } // namespace hard
 
-#endif // HARD_HYDRO_TYPES_HH
+#endif // HARD_RAD_TYPES_HH

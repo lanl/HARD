@@ -31,9 +31,11 @@ time_derivative(control_policy<state, D> & cp) {
     std::vector{// dt1
       s.rk_dt1.mass_density()(*s.m),
       s.rk_dt1.total_energy_density()(*s.m),
+      s.rad.dt_radiation_energy_density_1(*s.m),
       // dt2
       s.rk_dt2.mass_density()(*s.m),
-      s.rk_dt2.total_energy_density()(*s.m)},
+      s.rk_dt2.total_energy_density()(*s.m),
+      s.rad.dt_radiation_energy_density_2(*s.m)},
     std::vector{// dt1
       s.rk_dt1.momentum_energy_density()(*s.m),
       // dt2
@@ -42,12 +44,14 @@ time_derivative(control_policy<state, D> & cp) {
   // Store the current state of evolved variables (U^n) before performing a time
   // step
   sc.execute<tasks::hydro::store_current_state<D>>(flecsi::exec::on,
-    std::vector{
-      s.cons.hydro.mass_density(*s.m), s.cons.hydro.total_energy_density(*s.m)},
+    std::vector{s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m)},
     std::vector{s.cons.hydro.momentum_density(*s.m)},
     //
-    std::vector{
-      s.rk_n.mass_density()(*s.m), s.rk_n.total_energy_density()(*s.m)},
+    std::vector{s.rk_n.mass_density()(*s.m),
+      s.rk_n.total_energy_density()(*s.m),
+      s.rad.dt_radiation_energy_density_n(*s.m)},
     std::vector{s.rk_n.momentum_energy_density()(*s.m)});
 }
 

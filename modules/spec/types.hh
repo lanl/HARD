@@ -434,6 +434,7 @@ struct stencil {
     return s;
   }
 };
+
 } // namespace spec
 
 #endif // SPEC_TYPES_HH
