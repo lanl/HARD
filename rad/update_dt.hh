@@ -1,5 +1,5 @@
-#ifndef HARD_HYDRO_TIME_STEP_SIZE_HH
-#define HARD_HYDRO_TIME_STEP_SIZE_HH
+#ifndef HARD_HYDRO_UPDATE_DT_HH
+#define HARD_HYDRO_UPDATE_DT_HH
 
 #include "state.hh"
 
@@ -9,7 +9,7 @@
 // -----------------------------------------------------------------------------
 template<std::size_t D>
 void
-time_step_size(control_policy<state, D> & cp) {
+update_dt(control_policy<state, D> & cp) {
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
 
@@ -28,11 +28,8 @@ time_step_size(control_policy<state, D> & cp) {
 #endif
 } // update_time_step_size
 
-inline control<state, 1>::action<time_step_size<1>, cp::update_time_step_size>
-  utss_1d;
-inline control<state, 2>::action<time_step_size<2>, cp::update_time_step_size>
-  utss_2d;
-inline control<state, 3>::action<time_step_size<3>, cp::update_time_step_size>
-  utss_3d;
+inline control<state, 1>::action<update_dt<1>, cp::update_dt> udt_1d;
+inline control<state, 2>::action<update_dt<2>, cp::update_dt> udt_2d;
+inline control<state, 3>::action<update_dt<3>, cp::update_dt> udt_3d;
 
 #endif // HARD_HYDRO_TIME_STEP_SIZE_HH
