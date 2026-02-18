@@ -19,11 +19,11 @@ enum class cp {
   ///
   time_derivative,
   ///
-  RK1,
+  rk_stage_1,
   ///
-  RK2,
+  rk_stage_2,
   ///
-  update_time_step_size,
+  update_dt,
   ///
   analyze,
   ///
@@ -37,12 +37,12 @@ operator*(cp control_point) {
       return "initialize";
     case cp::time_derivative:
       return "time_derivative";
-    case cp::RK1:
-      return "RK1";
-    case cp::RK2:
-      return "RK2";
-    case cp::update_time_step_size:
-      return "update_time_step_size";
+    case cp::rk_stage_1:
+      return "rk_stage_1";
+    case cp::rk_stage_2:
+      return "rk_stage_2";
+    case cp::update_dt:
+      return "update_dt";
     case cp::analyze:
       return "analyze";
     case cp::finalize:
@@ -202,9 +202,9 @@ struct control_policy : flecsi::run::control_base {
   using control_points = list<point<cp::initialize>,
     cycle<cycle_control,
       point<cp::time_derivative>,
-      point<cp::RK1>,
-      point<cp::RK2>,
-      point<cp::update_time_step_size>,
+      point<cp::rk_stage_1>,
+      point<cp::rk_stage_2>,
+      point<cp::update_dt>,
       point<cp::analyze>>,
     point<cp::finalize>>;
 
@@ -241,13 +241,13 @@ enum class cp {
   ///
   radiation,
   ///
-  hydro_couple_radiation,
+  couple_hydro_radiation,
   ///
-  RK1,
+  rk_stage_1,
   ///
-  RK2,
+  rk_stage_2,
   ///
-  update_time_step_size,
+  update_dt,
   ///
   analyze,
   ///
@@ -263,14 +263,14 @@ operator*(cp control_point) {
       return "time_derivative";
     case cp::radiation:
       return "radiation";
-    case cp::hydro_couple_radiation:
-      return "hydro_couple_radiation";
-    case cp::RK1:
-      return "RK1";
-    case cp::RK2:
-      return "RK2";
-    case cp::update_time_step_size:
-      return "update_time_step_size";
+    case cp::couple_hydro_radiation:
+      return "couple_hydro_radiation";
+    case cp::rk_stage_1:
+      return "rk_stage_1";
+    case cp::rk_stage_2:
+      return "rk_stage_2";
+    case cp::update_dt:
+      return "update_dt";
     case cp::analyze:
       return "analyze";
     case cp::finalize:
@@ -431,10 +431,10 @@ struct control_policy : flecsi::run::control_base {
     cycle<cycle_control,
       point<cp::time_derivative>,
       point<cp::radiation>,
-      point<cp::hydro_couple_radiation>,
-      point<cp::RK1>,
-      point<cp::RK2>,
-      point<cp::update_time_step_size>,
+      point<cp::couple_hydro_radiation>,
+      point<cp::rk_stage_1>,
+      point<cp::rk_stage_2>,
+      point<cp::update_dt>,
       point<cp::analyze>>,
     point<cp::finalize>>;
 

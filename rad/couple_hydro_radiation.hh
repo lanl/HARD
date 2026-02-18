@@ -1,5 +1,5 @@
-#ifndef HARD_RAD_RK1_HH
-#define HARD_RAD_RK1_HH
+#ifndef HARD_RAD_COUPLE_HYDRO_RADIATION_HH
+#define HARD_RAD_COUPLE_HYDRO_RADIATION_HH
 
 #include "state.hh"
 
@@ -9,7 +9,7 @@ using namespace hard;
 
 template<std::size_t D>
 void
-hydro_couple_radiation(control_policy<state, D> & cp) {
+couple_hydro_radiation(control_policy<state, D> & cp) {
 
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
@@ -58,14 +58,14 @@ hydro_couple_radiation(control_policy<state, D> & cp) {
 
 } // hydro_couple_radiation
 
-inline control<state, 1>::action<hydro_couple_radiation<1>,
-  cp::hydro_couple_radiation>
-  hydro_couple_radiation_1d;
-inline control<state, 2>::action<hydro_couple_radiation<2>,
-  cp::hydro_couple_radiation>
-  hydro_couple_radiation_2d;
-inline control<state, 3>::action<hydro_couple_radiation<3>,
-  cp::hydro_couple_radiation>
-  hydro_couple_radiation_3d;
+inline control<state, 1>::action<couple_hydro_radiation<1>,
+  cp::couple_hydro_radiation>
+  couple_hydro_radiation_1d;
+inline control<state, 2>::action<couple_hydro_radiation<2>,
+  cp::couple_hydro_radiation>
+  couple_hydro_radiation_2d;
+inline control<state, 3>::action<couple_hydro_radiation<3>,
+  cp::couple_hydro_radiation>
+  couple_hydro_radiation_3d;
 
-#endif // HARD_HYDRO_RK1_HH
+#endif // HARD_RAD_COUPLE_HYDRO_RADIATION_HH

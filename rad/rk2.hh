@@ -1,5 +1,5 @@
-#ifndef HARD_HYDRO_RK2_HH
-#define HARD_HYDRO_RK2_HH
+#ifndef HARD_RAD_RK2_HH
+#define HARD_RAD_RK2_HH
 
 #include "state.hh"
 
@@ -191,16 +191,19 @@ update_vars_2(control_policy<state, D> & cp) {
 
 } // update_vars
 
-inline control<state, 1>::action<RK_advance_2<1>, cp::RK2> RK2_1d;
-inline control<state, 2>::action<RK_advance_2<2>, cp::RK2> RK2_2d;
-inline control<state, 3>::action<RK_advance_2<3>, cp::RK2> RK2_3d;
+inline control<state, 1>::action<RK_advance_2<1>, cp::rk_stage_2> rk_stage_2_1d;
+inline control<state, 2>::action<RK_advance_2<2>, cp::rk_stage_2> rk_stage_2_2d;
+inline control<state, 3>::action<RK_advance_2<3>, cp::rk_stage_2> rk_stage_2_3d;
 
-inline control<state, 1>::action<update_vars_2<1>, cp::RK2> RK2_update_2_1d;
-inline control<state, 2>::action<update_vars_2<2>, cp::RK2> RK2_update_2_2d;
-inline control<state, 3>::action<update_vars_2<3>, cp::RK2> RK2_update_2_3d;
+inline control<state, 1>::action<update_vars_2<1>, cp::rk_stage_2>
+  rk_stage_2_update_1d;
+inline control<state, 2>::action<update_vars_2<2>, cp::rk_stage_2>
+  rk_stage_2_update_2d;
+inline control<state, 3>::action<update_vars_2<3>, cp::rk_stage_2>
+  rk_stage_2_update_3d;
 
-inline const auto dep_update_2_1d = RK2_update_2_1d.add(RK2_1d);
-inline const auto dep_update_2_2d = RK2_update_2_2d.add(RK2_2d);
-inline const auto dep_update_2_3d = RK2_update_2_3d.add(RK2_3d);
+inline const auto dep_update_2_1d = rk_stage_2_update_1d.add(rk_stage_2_1d);
+inline const auto dep_update_2_2d = rk_stage_2_update_2d.add(rk_stage_2_2d);
+inline const auto dep_update_2_3d = rk_stage_2_update_3d.add(rk_stage_2_3d);
 
-#endif // HARD_HYDRO_RK2_HH
+#endif // HARD_RAD_RK2_HH

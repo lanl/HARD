@@ -5,7 +5,7 @@
 #include "rk2.hh"
 #include "state.hh"
 #include "time_derivative.hh"
-#include "time_step_size.hh"
+#include "update_dt.hh"
 
 #include <../modules/spec/runtime.hh>
 
