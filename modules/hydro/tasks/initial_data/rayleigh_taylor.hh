@@ -1,6 +1,6 @@
-#pragma once
+#ifndef HARD_HYDRO_MODULES_RAYLEIGH_TAYLOR_HH
+#define HARD_HYDRO_MODULES_RAYLEIGH_TAYLOR_HH
 
-#include "types.hh"
 #include <cmath>
 #include <cstddef>
 
@@ -161,3 +161,5 @@ rt_instability(flecsi::exec::cpu s,
 } //  rt_instability
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_HYDRO_MODULES_RAYLEIGH_TAYLOR_HH

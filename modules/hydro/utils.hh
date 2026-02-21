@@ -1,8 +1,6 @@
 #ifndef HARD_MODULE_HYDRO_UTILS_HH
 #define HARD_MODULE_HYDRO_UTILS_HH
 
-#include "types.hh"
-
 namespace hard::util {
 
 /*!

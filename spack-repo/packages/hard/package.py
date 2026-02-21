@@ -36,6 +36,7 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("python", when="+tests")
     depends_on("py-numpy", when="+tests")
     depends_on("py-yamlreader", when="+tests")
+    depends_on("py-pyyaml", when="+tests")
     depends_on("py-scipy", when="+tests")
     depends_on("py-exactpack", when="+tests")
     depends_on("py-matplotlib", when="+tests")

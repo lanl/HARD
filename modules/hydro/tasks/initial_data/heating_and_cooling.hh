@@ -1,10 +1,7 @@
-
-#pragma once
+#ifndef HARD_MODULES_HYDRO_HEATING_AND_COOLING_HH
+#define HARD_MODULES_HYDRO_HEATING_AND_COOLING_HH
 
 #include "constants.hh"
-#include "options.hh"
-#include "types.hh"
-#include <../../modules/spec/utils.hh>
 #include <cstddef>
 #include <yaml-cpp/yaml.h>
 
@@ -73,3 +70,5 @@ heating_and_cooling(flecsi::exec::cpu s,
 }
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_MODULES_HYDRO_HEATING_AND_COOLING_HH

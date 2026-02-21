@@ -1,10 +1,6 @@
-#ifndef HARD_RAD_RADIATION_HH
-#define HARD_RAD_RADIATION_HH
+#include "radiation.hh"
 
-#include "state.hh"
-
-#include "../modules/rad/linsolve.hh"
-#include "../modules/rad/tasks/rad_root.hh"
+namespace hard {
 
 template<std::size_t D>
 void
@@ -52,40 +48,40 @@ radiation(control_policy<state, D> & cp) {
     *s.m,
     s.cons.hydro.mass_density(*s.m),
     s.rad.limiter.lambda_bridge(*s.m),
-    s.mgr.Diff(*s.m),
+    s.rad.mgr.Diff(*s.m),
     s.rad.icst.kappa(*s.gt));
 
   // Initialize the diffusion coefficient
   sc.execute<tasks::rad::diffusion_init<D>>(flecsi::exec::on,
     *s.m,
-    s.mgr.Diff(*s.m),
-    s.mgr.Df_x(*s.m),
-    s.mgr.Df_y(*s.m),
-    s.mgr.Df_z(*s.m));
+    s.rad.mgr.Diff(*s.m),
+    s.rad.mgr.Df_x(*s.m),
+    s.rad.mgr.Df_y(*s.m),
+    s.rad.mgr.Df_z(*s.m));
 
   // Initialize the stencil
   sc.execute<tasks::rad::stencil_init<D>>(flecsi::exec::on,
     *s.m,
-    s.mgr.Df_x(*s.m),
-    s.mgr.Df_y(*s.m),
-    s.mgr.Df_z(*s.m),
-    s.mgr.Ew(*s.m),
+    s.rad.mgr.Df_x(*s.m),
+    s.rad.mgr.Df_y(*s.m),
+    s.rad.mgr.Df_z(*s.m),
+    s.rad.mgr.Ew(*s.m),
     s.dt_weighted(*s.gt));
 
   // Initialize fields
   sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
     *s.m,
     s.rad.cons.radiation_energy_density(*s.m),
-    s.mgr.Ef(*s.m));
+    s.rad.mgr.Ef(*s.m));
   sc.execute<tasks::rad::const_init<D>>(
-    flecsi::exec::on, *s.m, s.mgr.Esf(*s.m, 1), 0.0);
+    flecsi::exec::on, *s.m, s.rad.mgr.Esf(*s.m, 1), 0.0);
   sc.execute<tasks::rad::const_init<D>>(
-    flecsi::exec::on, *s.m, s.mgr.Resf(*s.m), 0.0);
+    flecsi::exec::on, *s.m, s.rad.mgr.Resf(*s.m), 0.0);
 
   std::chrono::time_point<std::chrono::system_clock> start_timer_rad =
     std::chrono::system_clock::now();
 
-  hard::rad::linsolve<D>(cp);
+  hard::linsolve<D>(cp);
 
   std::chrono::time_point<std::chrono::system_clock> stop_timer_rad =
     std::chrono::system_clock::now();
@@ -97,7 +93,7 @@ radiation(control_policy<state, D> & cp) {
   // Move solution from rad solver
   sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
     *s.m,
-    s.mgr.Uf(*s.m),
+    s.rad.mgr.Uf(*s.m),
     s.rad.cons.radiation_energy_density(*s.m));
 
   // Perform primitive recovery, since energy densities have changed
@@ -112,7 +108,7 @@ radiation(control_policy<state, D> & cp) {
     s.prim.sound_speed(*s.m),
     s.eos);
 
-  // and also update boundary cells
+  // Update boundary cells
   sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
     *s.m,
     s.icst.bmap(*s.gt),
@@ -122,6 +118,12 @@ radiation(control_policy<state, D> & cp) {
       s.rad.cons.radiation_energy_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m)},
     std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
+
 } // radiation_advance
 
-#endif // HARD_RAD_RADIATION_HH
+// Explicit instantiation
+template void radiation(control_policy<state, 1> &);
+template void radiation(control_policy<state, 2> &);
+template void radiation(control_policy<state, 3> &);
+
+} // namespace hard

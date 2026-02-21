@@ -1,7 +1,6 @@
+#ifndef HARD_HYDRO_MODULES_KELVIN_HELM_HH
+#define HARD_HYDRO_MODULES_KELVIN_HELM_HH
 
-#pragma once
-
-#include "types.hh"
 #include <cmath>
 #include <cstddef>
 
@@ -80,3 +79,5 @@ kh_instability(flecsi::exec::cpu s,
 } //  kh_instability
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_HYDRO_MODULES_KELVIN_HELM_HH

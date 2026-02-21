@@ -1,10 +1,7 @@
 #ifndef HARD_MODULE_RAD_STATE_HH
 #define HARD_MODULE_RAD_STATE_HH
 
-#include "../modules/hydro/state.hh"
 #include "../modules/spec/eos.hh"
-
-#include "types.hh"
 
 #include "flecsolve/operators/core.hh"
 #include "flecsolve/solvers/cg.hh"
@@ -19,7 +16,7 @@ namespace hard::rad {
  *----------------------------------------------------------------------------*/
 
 template<std::size_t D>
-struct state : hard::hydro::state<D> {
+struct state {
 
   struct rad {
 
@@ -95,6 +92,7 @@ struct state : hard::hydro::state<D> {
       flecsolve::bicgstab::settings solver_settings;
       bool flecsolve_coarse_grid;
       std::size_t nr_vcycles = 1;
+      bool full_multigrid = false;
 
     } mgr;
 

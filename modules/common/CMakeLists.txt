@@ -10,11 +10,6 @@ add_library(libcommon INTERFACE)
 add_library(libcommon::libcommon ALIAS libcommon)
 
 set(modules_headers
-  tasks/boundaries/boundary.hh
-  tasks/boundaries/dirichlet.hh
-  tasks/boundaries/flow.hh
-  tasks/boundaries/reflective.hh
-  tasks/io.hh
 )
 
 target_sources(libcommon

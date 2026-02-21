@@ -1,13 +1,5 @@
-#include "couple_hydro_radiation.hh"
-#include "finalize.hh"
-#include "init.hh"
 #include "options.hh"
-#include "radiation.hh"
-#include "rk1.hh"
-#include "rk2.hh"
 #include "state.hh"
-#include "time_derivative.hh"
-#include "update_dt.hh"
 
 #include <../modules/spec/runtime.hh>
 

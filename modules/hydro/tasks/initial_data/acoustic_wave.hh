@@ -1,9 +1,6 @@
+#ifndef HARD_MODULES_HYDRO_ACOUSTIC_WAVE_HH
+#define HARD_MODULES_HYDRO_ACOUSTIC_WAVE_HH
 
-#pragma once
-
-#include "options.hh"
-#include "types.hh"
-#include "utils.hh"
 #include <cmath>
 #include <cstddef>
 #include <cstring>
@@ -165,3 +162,5 @@ acoustic_wave(flecsi::exec::cpu s,
 } // acoustic_wave
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_MODULES_HYDRO_ACOUSTIC_WAVE_HH

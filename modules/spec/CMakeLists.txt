@@ -20,6 +20,12 @@ set(modules_headers
   runtime.hh
   types.hh
   utils.hh
+  tasks/boundaries/boundary.hh
+  tasks/boundaries/dirichlet.hh
+  tasks/boundaries/flow.hh
+  tasks/boundaries/reflective.hh
+  tasks/io.hh
+
 )
 
 # Add headers explicitly so IDEs show them and installs/exports can reference them.

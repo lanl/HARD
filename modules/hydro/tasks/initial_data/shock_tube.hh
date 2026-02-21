@@ -1,8 +1,6 @@
+#ifndef HARD_HYDRO_MODULES_SHOCK_TUBE_HH
+#define HARD_HYDRO_MODULES_SHOCK_TUBE_HH
 
-#pragma once
-
-#include "types.hh"
-#include "utils.hh"
 #include <cmath>
 #include <cstddef>
 
@@ -137,3 +135,5 @@ shock(flecsi::exec::cpu s,
 } // shock
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_HYDRO_MODULES_SHOCK_TUBE_HH
