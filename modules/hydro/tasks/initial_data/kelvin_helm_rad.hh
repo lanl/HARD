@@ -1,11 +1,9 @@
-#pragma once
+#ifndef HARD_HYDRO_MODULES_KELVIN_HELM_RAD_HH
+#define HARD_HYDRO_MODULES_KELVIN_HELM_RAD_HH
 
 #include "../../constants.hh"
-#include "../../options.hh"
-#include "../../types.hh"
 #include <cmath>
 #include <cstddef>
-#include <spec/utils.hh>
 #include <yaml-cpp/yaml.h>
 
 namespace hard::tasks::initial_data {
@@ -178,3 +176,5 @@ kh_instability_rad(flecsi::exec::cpu s,
 } //  kh_instability
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_HYDRO_MODULES_KELVIN_HELM_RAD_HH

@@ -5,6 +5,14 @@
 
 add_executable(rad
   rad.cc
+  actions/init.cc
+  actions/finalize.cc
+  actions/rk_stage_1.cc
+  actions/rk_stage_2.cc
+  actions/couple_hydro_radiation.cc
+  actions/radiation.cc
+  actions/update_dt.cc
+  actions/time_derivative.cc
 )
 
 target_include_directories(rad
@@ -30,3 +38,8 @@ target_compile_definitions(rad
     $<$<BOOL:${HARD_WRITE_CONTROL_INFO}>:HARD_WRITE_CONTROL_INFO>
     $<$<BOOL:${ENABLE_RADIATION}>:ENABLE_RADIATION>
 )
+
+if(ENABLE_CATALYST)
+  target_link_libraries(hydro PRIVATE catalyst::catalyst)
+  target_compile_definitions(hydro PRIVATE ENABLE_CATALYST)
+endif()

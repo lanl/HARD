@@ -1,9 +1,6 @@
 #ifndef HARD_MODULE_HYDRO_EXTERNAL_SOURCE_HH
 #define HARD_MODULE_HYDRO_EXTERNAL_SOURCE_HH
 
-//#include "../numerical_algorithms/riemann_solvers.hh"
-#include "types.hh"
-#include "utils.hh"
 #include <cstddef>
 
 namespace hard::tasks {

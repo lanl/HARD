@@ -1,7 +1,6 @@
 #ifndef HARD_MODULE_HYDRO_RECONSTRUCT_HH
 #define HARD_MODULE_HYDRO_RECONSTRUCT_HH
 
-#include "types.hh"
 #include <cstddef>
 
 namespace hard::tasks::hydro {
@@ -76,7 +75,7 @@ tie(const std::tuple<T, T> & tup, T & a, T & b) noexcept {
 //
 template<std::size_t Dim, typename Limiter>
 void
-reconstruct_primitives(flecsi::exec::accelerator s,
+reconstruct_primitives_f(flecsi::exec::accelerator s,
   std::size_t reconstruction_axis,
   typename mesh<Dim>::template accessor<ro> m,
   // cell-centered primitive varibles
@@ -166,6 +165,32 @@ reconstruct_primitives(flecsi::exec::accelerator s,
       };
     }
   }
+}
+
+template<std::size_t Dim, typename Limiter>
+void
+reconstruct_primitives(flecsi::exec::accelerator s,
+  std::size_t reconstruction_axis,
+  typename mesh<Dim>::template accessor<ro> m,
+  // cell-centered primitive varibles
+  std::vector<std::tuple<field<double>::accessor<ro, na>,
+    typename faces<Dim>::accessor<wo, na>>> cons_faces_a,
+  std::vector<std::tuple<typename field<vec<Dim>>::accessor<ro, na>,
+    typename faces_vec<Dim>::accessor<wo, na>>> cons_faces_vec_a) noexcept {
+  reconstruct_primitives_f<Dim, Limiter>(
+    s, reconstruction_axis, m, cons_faces_a, cons_faces_vec_a);
+}
+
+template<std::size_t Dim, typename Limiter>
+void
+reconstruct_primitives_scalar(flecsi::exec::accelerator s,
+  std::size_t reconstruction_axis,
+  typename mesh<Dim>::template accessor<ro> m,
+  // cell-centered primitive varibles
+  std::vector<std::tuple<field<double>::accessor<ro, na>,
+    typename faces<Dim>::accessor<wo, na>>> cons_faces_a) noexcept {
+  reconstruct_primitives_f<Dim, Limiter>(
+    s, reconstruction_axis, m, cons_faces_a, {});
 }
 
 template<std::size_t Dim>

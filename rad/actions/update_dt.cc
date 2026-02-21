@@ -1,7 +1,6 @@
-#ifndef HARD_HYDRO_UPDATE_DT_HH
-#define HARD_HYDRO_UPDATE_DT_HH
+#include "update_dt.hh"
 
-#include "state.hh"
+namespace hard {
 
 // -----------------------------------------------------------------------------
 //  Compute max characteristic speeds, and determine dt_min() for the next
@@ -32,4 +31,4 @@ inline control<state, 1>::action<update_dt<1>, cp::update_dt> udt_1d;
 inline control<state, 2>::action<update_dt<2>, cp::update_dt> udt_2d;
 inline control<state, 3>::action<update_dt<3>, cp::update_dt> udt_3d;
 
-#endif // HARD_HYDRO_TIME_STEP_SIZE_HH
+} // namespace hard

@@ -1,11 +1,8 @@
-
-#pragma once
+#ifndef HARD_MODULES_HYDRO_HEATING_AND_COOLING_AFLD_HH
+#define HARD_MODULES_HYDRO_HEATING_AND_COOLING_AFLD_HH
 
 #include "../../constants.hh"
-#include "../../options.hh"
-#include "../../types.hh"
 #include <cstddef>
-#include <spec/utils.hh>
 #include <yaml-cpp/yaml.h>
 
 namespace hard::tasks::initial_data {
@@ -73,3 +70,5 @@ heating_and_cooling_afld(flecsi::exec::accelerator s,
 }
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_MODULES_HYDRO_HEATING_AND_COOLING_AFLD_HH

@@ -1,12 +1,11 @@
-#ifndef FLECSOLVERS_HH
-#define FLECSOLVERS_HH
+#ifndef HARD_MODULES_RAD_FLECSOLVERS_HH
+#define HARD_MODULES_RAD_FLECSOLVERS_HH
 
 #include "flecsi/execution.hh"
 #include "flecsi/flog.hh"
 
-#include "../modules/common/tasks/boundaries/boundary.hh"
-#include "state.hh"
-#include "types.hh"
+#include "../modules/rad/tasks/rad.hh"
+#include "../modules/spec/tasks/boundaries/boundary.hh"
 
 #include "flecsolve/operators/core.hh"
 #include "flecsolve/solvers/cg.hh"
@@ -14,7 +13,7 @@
 #include "flecsolve/solvers/gmres.hh"
 #include "flecsolve/vectors/topo_view.hh"
 
-namespace hard::rad {
+namespace hard {
 
 template<std::size_t D>
 struct solver_parameters {
@@ -35,7 +34,7 @@ struct operator_t : flecsolve::op::base<solver_parameters<D>> {
     flecsi::scheduler & sc = params.sc.get();
     sc.execute<tasks::rad::apply_operator<D>>(flecsi::exec::on,
       y.data.topo(),
-      std::move(params.s.get().mgr.Ew(y.data.topo())),
+      std::move(params.s.get().rad.mgr.Ew(y.data.topo())),
       y.data.ref(),
       x.data.ref());
     // flecsi::execute<task::rad::apply_radiation_boundary<D>>(flecsi::exec::on,
@@ -69,27 +68,27 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
     sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
       y.data.topo(),
       x.data.ref(),
-      params.s.get().mgr.Ef_temp(x.data.topo()));
+      params.s.get().rad.mgr.Ef_temp(x.data.topo()));
 
     // Zero solution vector
     sc.execute<tasks::rad::const_init<D>>(flecsi::exec::on,
       y.data.topo(),
-      params.s.get().mgr.Esf(y.data.topo()),
+      params.s.get().rad.mgr.Esf(y.data.topo()),
       0.0);
     sc.execute<tasks::rad::const_init<D>>(flecsi::exec::on,
       y.data.topo(),
-      params.s.get().mgr.Esf(y.data.topo(), 1),
+      params.s.get().rad.mgr.Esf(y.data.topo(), 1),
       0.0);
     sc.execute<tasks::rad::const_init<D>>(flecsi::exec::on,
       y.data.topo(),
-      params.s.get().mgr.Resf(y.data.topo()),
+      params.s.get().rad.mgr.Resf(y.data.topo()),
       0.0);
 
     _vcycle(std::move(params.s), 0);
 
     sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
       y.data.topo(),
-      params.s.get().mgr.Esf(y.data.topo()),
+      params.s.get().rad.mgr.Esf(y.data.topo()),
       y.data.ref());
   }
 
@@ -103,15 +102,15 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
     if(level == s.lowest_level) {
 
       for(std::size_t i{0}; i < params.jacobi_iterations; i++) {
-        s.mgr.Esf.flip();
+        s.rad.mgr.Esf.flip();
         // NOTE: We are defaulting to damped_jacobi until gauss-seidel is
         // parallelized
         sc.execute<tasks::rad::damped_jacobi<D>>(flecsi::exec::on,
           mf,
-          s.mgr.Ew(mf),
-          s.mgr.Esf(mf),
-          s.mgr.Esf(mf, 1),
-          s.mgr.Ef_temp(mf),
+          s.rad.mgr.Ew(mf),
+          s.rad.mgr.Esf(mf),
+          s.rad.mgr.Esf(mf, 1),
+          s.rad.mgr.Ef_temp(mf),
           0.8);
       } // for
 
@@ -136,69 +135,69 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
       auto & mc = *s.mh[index + 1];
       // Pre Smoothing
 
-      for(std::size_t i{0}; i < s.mgr.mg_pre; ++i) {
-        s.mgr.Esf.flip();
+      for(std::size_t i{0}; i < s.rad.mgr.mg_pre; ++i) {
+        s.rad.mgr.Esf.flip();
         sc.execute<tasks::rad::damped_jacobi<D>>(flecsi::exec::on,
           mf,
-          s.mgr.Ew(mf),
-          s.mgr.Esf(mf),
-          s.mgr.Esf(mf, 1),
-          s.mgr.Ef_temp(mf),
+          s.rad.mgr.Ew(mf),
+          s.rad.mgr.Esf(mf),
+          s.rad.mgr.Esf(mf, 1),
+          s.rad.mgr.Ef_temp(mf),
           0.8);
       } // for
 
       // Set the diffusion coefficient and the stencil (TODO)
       sc.execute<tasks::rad::cell_centered_weighting<D>>(
-        flecsi::exec::on, mf, mc, s.mgr.Df_x(mf), s.mgr.Df_x(mc));
+        flecsi::exec::on, mf, mc, s.rad.mgr.Df_x(mf), s.rad.mgr.Df_x(mc));
 
       sc.execute<tasks::rad::cell_centered_weighting<D>>(
-        flecsi::exec::on, mf, mc, s.mgr.Df_y(mf), s.mgr.Df_y(mc));
+        flecsi::exec::on, mf, mc, s.rad.mgr.Df_y(mf), s.rad.mgr.Df_y(mc));
 
       sc.execute<tasks::rad::cell_centered_weighting<D>>(
-        flecsi::exec::on, mf, mc, s.mgr.Df_z(mf), s.mgr.Df_z(mc));
+        flecsi::exec::on, mf, mc, s.rad.mgr.Df_z(mf), s.rad.mgr.Df_z(mc));
 
       sc.execute<tasks::rad::stencil_init<D>>(flecsi::exec::on,
         mc,
-        s.mgr.Df_x(mc),
-        s.mgr.Df_y(mc),
-        s.mgr.Df_z(mc),
-        s.mgr.Ew(mc),
+        s.rad.mgr.Df_x(mc),
+        s.rad.mgr.Df_y(mc),
+        s.rad.mgr.Df_z(mc),
+        s.rad.mgr.Ew(mc),
         s.dt(*s.gt));
 
       // Recursive solve
       sc.execute<tasks::rad::residual<D>>(flecsi::exec::on,
         mf,
-        s.mgr.Ew(mf),
-        s.mgr.Esf(mf),
-        s.mgr.Ef_temp(mf),
-        s.mgr.Resf(mf));
+        s.rad.mgr.Ew(mf),
+        s.rad.mgr.Esf(mf),
+        s.rad.mgr.Ef_temp(mf),
+        s.rad.mgr.Resf(mf));
 
       sc.execute<tasks::rad::cell_centered_weighting<D>>(
-        flecsi::exec::on, mf, mc, s.mgr.Resf(mf), s.mgr.Ef_temp(mc));
+        flecsi::exec::on, mf, mc, s.rad.mgr.Resf(mf), s.rad.mgr.Ef_temp(mc));
 
       // Initialize the solution fields for the coarser level
       sc.execute<tasks::rad::const_init<D>>(
-        flecsi::exec::on, mc, s.mgr.Esf(mc), 0.0);
+        flecsi::exec::on, mc, s.rad.mgr.Esf(mc), 0.0);
       sc.execute<tasks::rad::const_init<D>>(
-        flecsi::exec::on, mc, s.mgr.Esf(mc, 1), 0.0);
+        flecsi::exec::on, mc, s.rad.mgr.Esf(mc, 1), 0.0);
 
       _vcycle(s, index + 1);
 
       sc.execute<tasks::rad::cell_centered_interpolation<D>>(
-        flecsi::exec::on, mc, mf, s.mgr.Esf(mc), s.mgr.Errf(mf));
+        flecsi::exec::on, mc, mf, s.rad.mgr.Esf(mc), s.rad.mgr.Errf(mf));
 
       sc.execute<tasks::rad::correction<D>>(
-        flecsi::exec::on, mf, s.mgr.Esf(mf), s.mgr.Errf(mf));
+        flecsi::exec::on, mf, s.rad.mgr.Esf(mf), s.rad.mgr.Errf(mf));
 
       // Post Smoothing
-      for(std::size_t i{0}; i < s.mgr.mg_post; ++i) {
-        s.mgr.Esf.flip();
+      for(std::size_t i{0}; i < s.rad.mgr.mg_post; ++i) {
+        s.rad.mgr.Esf.flip();
         sc.execute<tasks::rad::damped_jacobi<D>>(flecsi::exec::on,
           mf,
-          s.mgr.Ew(mf),
-          s.mgr.Esf(mf),
-          s.mgr.Esf(mf, 1),
-          s.mgr.Ef_temp(mf),
+          s.rad.mgr.Ew(mf),
+          s.rad.mgr.Esf(mf),
+          s.rad.mgr.Esf(mf, 1),
+          s.rad.mgr.Ef_temp(mf),
           0.8);
       } // for
     } // if
@@ -407,6 +406,6 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
   };
 };
 
-} // namespace hard::rad
+} // namespace hard
 
 #endif

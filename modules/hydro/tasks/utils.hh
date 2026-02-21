@@ -2,7 +2,6 @@
 #define HARD_MODULE_HYDRO_TASKS_UTIL_HH
 
 #include "../constants.hh"
-#include "../types.hh"
 #include <singularity-eos/base/root-finding-1d/root_finding.hpp>
 
 #include <sstream>

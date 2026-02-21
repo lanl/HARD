@@ -2,7 +2,6 @@
 #define HARD_MODULE_HYDRO_INTERFACE_FLUXES_HH
 
 #include "../numerical_algorithms/riemann_solvers.hh"
-#include "types.hh"
 #include <cstddef>
 
 namespace hard::tasks::hydro {

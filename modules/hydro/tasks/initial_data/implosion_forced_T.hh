@@ -1,8 +1,7 @@
-
-#pragma once
+#ifndef HARD_HYDRO_MODULES_IMPLOSION_FORCED_T_HH
+#define HARD_HYDRO_MODULES_IMPLOSION_FORCED_T_HH
 
 #include "../../constants.hh"
-#include "../../types.hh"
 #include <cstddef>
 #include <spec/utils.hh>
 #include <yaml-cpp/yaml.h>
@@ -86,3 +85,5 @@ implosion_forced_T(flecsi::exec::cpu s,
 }
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_HYDRO_MODULES_IMPLOSION_FORCED_T_HH

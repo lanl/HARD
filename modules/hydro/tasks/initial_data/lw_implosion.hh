@@ -1,6 +1,6 @@
-#pragma once
+#ifndef HARD_HYDRO_MODULES_LW_IMPLOSION_HH
+#define HARD_HYDRO_MODULES_LW_IMPLOSION_HH
 
-#include "types.hh"
 #include <cmath>
 #include <cstddef>
 
@@ -57,3 +57,5 @@ lw_implosion(flecsi::exec::cpu s,
 }
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_HYDRO_MODULES_LW_IMPLOSION_HH

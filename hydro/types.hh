@@ -1,6 +1,8 @@
 #ifndef HARD_HYDRO_TYPES_HH
 #define HARD_HYDRO_TYPES_HH
 
+#include <../modules/hydro/types.hh>
+
 #include <../modules/spec/control.hh>
 #include <../modules/spec/eos.hh>
 #include <../modules/spec/types.hh>

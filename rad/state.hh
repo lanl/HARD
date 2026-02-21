@@ -1,9 +1,10 @@
 #ifndef HARD_STATE_HH
 #define HARD_STATE_HH
 
-#include "../modules/rad/state.hh"
-
 #include "types.hh"
+
+#include "../modules/hydro/state.hh"
+#include "../modules/rad/state.hh"
 
 namespace hard {
 
@@ -12,7 +13,7 @@ namespace hard {
  *----------------------------------------------------------------------------*/
 
 template<std::size_t D>
-struct state : rad::state<D> {
+struct state : rad::state<D>, hydro::state<D> {
 
   flecsi::future<double> dtmin_;
 

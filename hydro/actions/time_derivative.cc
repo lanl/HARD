@@ -1,9 +1,4 @@
-#ifndef HARD_HYDRO_TIME_DERIVATIVE_HH
-#define HARD_HYDRO_TIME_DERIVATIVE_HH
-
-#include "state.hh"
-
-#include "../modules/hydro/tasks/time_derivative.hh"
+#include "time_derivative.hh"
 
 namespace hard {
 
@@ -31,11 +26,9 @@ time_derivative(control_policy<state, D> & cp) {
     std::vector{// dt1
       s.rk_dt1.mass_density()(*s.m),
       s.rk_dt1.total_energy_density()(*s.m),
-      s.rad.dt_radiation_energy_density_1(*s.m),
       // dt2
       s.rk_dt2.mass_density()(*s.m),
-      s.rk_dt2.total_energy_density()(*s.m),
-      s.rad.dt_radiation_energy_density_2(*s.m)},
+      s.rk_dt2.total_energy_density()(*s.m)},
     std::vector{// dt1
       s.rk_dt1.momentum_energy_density()(*s.m),
       // dt2
@@ -44,24 +37,17 @@ time_derivative(control_policy<state, D> & cp) {
   // Store the current state of evolved variables (U^n) before performing a time
   // step
   sc.execute<tasks::hydro::store_current_state<D>>(flecsi::exec::on,
-    std::vector{s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.rad.cons.radiation_energy_density(*s.m)},
+    std::vector{
+      s.cons.hydro.mass_density(*s.m), s.cons.hydro.total_energy_density(*s.m)},
     std::vector{s.cons.hydro.momentum_density(*s.m)},
     //
-    std::vector{s.rk_n.mass_density()(*s.m),
-      s.rk_n.total_energy_density()(*s.m),
-      s.rad.dt_radiation_energy_density_n(*s.m)},
+    std::vector{
+      s.rk_n.mass_density()(*s.m), s.rk_n.total_energy_density()(*s.m)},
     std::vector{s.rk_n.momentum_energy_density()(*s.m)});
 }
 
-inline control<state, 1>::action<time_derivative<1>, cp::time_derivative>
-  time_derivative_1d;
-inline control<state, 2>::action<time_derivative<2>, cp::time_derivative>
-  time_derivative_2d;
-inline control<state, 3>::action<time_derivative<3>, cp::time_derivative>
-  time_derivative_3d;
+template void time_derivative(control_policy<state, 1> &);
+template void time_derivative(control_policy<state, 2> &);
+template void time_derivative(control_policy<state, 3> &);
 
 } // namespace hard
-
-#endif // HARD_HYDRO_TIME_DERIVATIVE_HH

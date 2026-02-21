@@ -210,7 +210,7 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   endif()
 
   execute_process(
-    COMMAND ${Python3_EXECUTABLE} -c "import pyyaml"
+    COMMAND ${Python3_EXECUTABLE} -c "import yaml"
     RESULT_VARIABLE PYYAML_FOUND
     OUTPUT_QUIET
     ERROR_QUIET

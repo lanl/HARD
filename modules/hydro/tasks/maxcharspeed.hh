@@ -1,7 +1,6 @@
 #ifndef HARD_MODULE_HYDRO_MAXCHARSPEED_HH
 #define HARD_MODULE_HYDRO_MAXCHARSPEED_HH
 
-#include "../utils.hh"
 #include <cstddef>
 
 namespace hard::tasks::hydro {

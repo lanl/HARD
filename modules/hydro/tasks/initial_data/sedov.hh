@@ -1,9 +1,8 @@
-
-#pragma once
+#ifndef HARD_HYDRO_MODULES_SEDOV_HH
+#define HARD_HYDRO_MODULES_SEDOV_HH
 
 #include "../modules/spec/utils.hh"
 #include "constants.hh"
-#include "types.hh"
 #include <cmath>
 #include <cstddef>
 #include <yaml-cpp/yaml.h>
@@ -92,3 +91,5 @@ sedov_blast(flecsi::exec::cpu s,
 }
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_HYDRO_MODULES_SEDOV_HH

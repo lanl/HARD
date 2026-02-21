@@ -2,7 +2,6 @@
 #define HARD_MODULE_HYDRO_TASKS_INIT_HH
 
 #include "../constants.hh"
-#include "types.hh"
 #include <cmath>
 #include <flecsi/flog.hh>
 

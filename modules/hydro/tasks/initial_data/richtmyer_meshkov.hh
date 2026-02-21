@@ -1,9 +1,7 @@
-#pragma once
+#ifndef HARD_HYDRO_MODULES_RICHTMYER_MESHKOV_HH
+#define HARD_HYDRO_MODULES_RICHTMYER_MESHKOV_HH
 
 #include "../../constants.hh"
-#include "../../options.hh"
-#include "../../types.hh"
-#include "../utils.hh"
 #include <cmath>
 #include <cstddef>
 #include <yaml-cpp/yaml.h>
@@ -115,3 +113,5 @@ richtmyer_meshkov(flecsi::exec::cpu s,
 }
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_HYDRO_MODULES_RICHTMYER_MESHKOV_HH

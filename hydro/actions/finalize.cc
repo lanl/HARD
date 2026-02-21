@@ -1,10 +1,4 @@
-#ifndef HARD_HYDRO_FINALIZE_HH
-#define HARD_HYDRO_FINALIZE_HH
-
-#include "state.hh"
-
-#include <../modules/spec/io.hh>
-#include <flecsi/flog.hh>
+#include "finalize.hh"
 
 namespace hard {
 
@@ -17,5 +11,3 @@ inline control<state, 2>::action<finalize<2>, cp::finalize> finalize2_action;
 inline control<state, 3>::action<finalize<3>, cp::finalize> finalize3_action;
 
 } // namespace hard
-
-#endif // HARD_HYDRO_FINALIZE_HH

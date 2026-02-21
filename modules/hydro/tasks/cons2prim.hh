@@ -2,8 +2,6 @@
 #define HARD_MODULE_HYDRO_CONS2PRIM_HH
 
 #include "../modules/spec/eos.hh"
-#include "../utils.hh"
-#include "types.hh"
 #include <cstddef>
 
 namespace hard::tasks::hydro {

@@ -1385,43 +1385,6 @@ correction(flecsi::exec::accelerator s,
   } // if
 } // correction
 
-// Linear interpolation for boundary temperature
-double
-interp_e_boundary(flecsi::exec::cpu,
-  single<double>::accessor<flecsi::ro> t,
-  field<double>::accessor<flecsi::ro> time_boundary,
-  field<double>::accessor<flecsi::ro> temperature_boundary) noexcept {
-
-  auto get_energy = [](const double & temperature) -> double {
-    return constants::cgs::radiation_constant *
-           spec::utils::sqr(spec::utils::sqr(temperature));
-  };
-
-  // Is it the first or last value?
-  std::size_t i_end{time_boundary.span().size()};
-  if(t <= time_boundary[0]) {
-    return get_energy(temperature_boundary[0]);
-  }
-  if(t >= time_boundary[i_end - 1]) {
-    return get_energy(temperature_boundary[i_end - 1]);
-  }
-
-  for(std::size_t i{0}; i < (i_end - 1); i++) {
-    if((t >= time_boundary[i]) && (t <= time_boundary[i + 1])) {
-      double dx{time_boundary[i + 1] - time_boundary[i]};
-      double dy{temperature_boundary[i + 1] - temperature_boundary[i]};
-
-      // Found point, return
-      return get_energy(
-        dy * (time_boundary[i + 1] - t) / dx + temperature_boundary[i]);
-    };
-  }
-
-  // We should never reach this line
-  assert(false && "Linear interpolation failed");
-  return 0;
-} // interp_e_boundary
-
 } // namespace hard::tasks::rad
 
 #endif // HARD_MODULE_RAD_TASKS_RAD_HH
