@@ -11,7 +11,7 @@ using hard::tasks::util::get_mdiota_policy;
 // test case)
 template<std::size_t D>
 void
-externalSource(flecsi::exec::accelerator s,
+external_source(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   // Primitive variables
   typename field<vec<D>>::template accessor<ro, na> velocity_a,

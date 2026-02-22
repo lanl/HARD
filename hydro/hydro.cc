@@ -18,8 +18,8 @@ main(int argc, char ** argv) {
   // Output the control model and actions if the user has enabled
   // HARD_WRITE_CONTROL_INFO.
 #if defined(HARD_WRITE_CONTROL_INFO)
-  control<state, 3>::write_graph("HARD", "cm.dot");
-  control<state, 3>::write_actions("HARD", "actions.dot");
+  control<state, 1>::write_graph("HARD", "cm.dot");
+  control<state, 1>::write_actions("HARD", "actions.dot");
 #endif
 
   const flecsi::getopt g;
