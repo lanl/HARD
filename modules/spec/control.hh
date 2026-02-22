@@ -34,19 +34,19 @@ inline const char *
 operator*(cp control_point) {
   switch(control_point) {
     case cp::initialize:
-      return "initialize";
+      return "hydro_initialize";
     case cp::time_derivative:
-      return "time_derivative";
+      return "hydro_time_derivative";
     case cp::rk_stage_1:
-      return "rk_stage_1";
+      return "hydro_rk_stage_1";
     case cp::rk_stage_2:
-      return "rk_stage_2";
+      return "hydro_rk_stage_2";
     case cp::update_dt:
-      return "update_dt";
+      return "hydro_update_dt";
     case cp::analyze:
-      return "analyze";
+      return "hydro_analyze";
     case cp::finalize:
-      return "finalize";
+      return "hydro_finalize";
   }
   flog_fatal("invalid control point");
 }
@@ -241,9 +241,11 @@ enum class cp {
   ///
   radiation,
   ///
-  couple_hydro_radiation,
+  couple_hydro_radiation_1,
   ///
   rk_stage_1,
+  ///
+  couple_hydro_radiation_2,
   ///
   rk_stage_2,
   ///
@@ -258,23 +260,25 @@ inline const char *
 operator*(cp control_point) {
   switch(control_point) {
     case cp::initialize:
-      return "initialize";
+      return "rad_initialize";
     case cp::time_derivative:
-      return "time_derivative";
+      return "rad_time_derivative";
     case cp::radiation:
-      return "radiation";
-    case cp::couple_hydro_radiation:
-      return "couple_hydro_radiation";
+      return "rad_radiation";
+    case cp::couple_hydro_radiation_1:
+      return "couple_hydro_radiation_1";
     case cp::rk_stage_1:
-      return "rk_stage_1";
+      return "rad_rk_stage_1";
+    case cp::couple_hydro_radiation_2:
+      return "couple_hydro_radiation_2";
     case cp::rk_stage_2:
-      return "rk_stage_2";
+      return "rad_rk_stage_2";
     case cp::update_dt:
-      return "update_dt";
+      return "rad_update_dt";
     case cp::analyze:
-      return "analyze";
+      return "rad_analyze";
     case cp::finalize:
-      return "finalize";
+      return "rad_finalize";
   }
   flog_fatal("invalid control point");
 }
@@ -431,8 +435,9 @@ struct control_policy : flecsi::run::control_base {
     cycle<cycle_control,
       point<cp::time_derivative>,
       point<cp::radiation>,
-      point<cp::couple_hydro_radiation>,
+      point<cp::couple_hydro_radiation_1>,
       point<cp::rk_stage_1>,
+      point<cp::couple_hydro_radiation_2>,
       point<cp::rk_stage_2>,
       point<cp::update_dt>,
       point<cp::analyze>>,

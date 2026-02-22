@@ -13,6 +13,7 @@ add_executable(rad
   actions/radiation.cc
   actions/update_dt.cc
   actions/time_derivative.cc
+  ../hydro/actions/rk_stage_1.cc
 )
 
 target_include_directories(rad

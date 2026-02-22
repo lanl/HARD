@@ -15,23 +15,23 @@
 namespace hard {
 
 template<std::size_t D>
-void RK_advance_1(control_policy<state, D> & cp);
+void hydro_RK_advance_1(control_policy<state, D> & cp);
 
 template<std::size_t D>
-void update_vars(control_policy<state, D> & cp);
+void hydro_update_vars(control_policy<state, D> & cp);
 
-inline control<state, 1>::action<RK_advance_1<1>, cp::rk_stage_1>
+inline control<state, 1>::action<hydro_RK_advance_1<1>, cp::rk_stage_1>
   hydro_rk_stage_1_1d;
-inline control<state, 2>::action<RK_advance_1<2>, cp::rk_stage_1>
+inline control<state, 2>::action<hydro_RK_advance_1<2>, cp::rk_stage_1>
   hydro_rk_stage_1_2d;
-inline control<state, 3>::action<RK_advance_1<3>, cp::rk_stage_1>
+inline control<state, 3>::action<hydro_RK_advance_1<3>, cp::rk_stage_1>
   hydro_rk_stage_1_3d;
 
-inline control<state, 1>::action<update_vars<1>, cp::rk_stage_1>
+inline control<state, 1>::action<hydro_update_vars<1>, cp::rk_stage_1>
   hydro_rk_stage_1_update_1d;
-inline control<state, 2>::action<update_vars<2>, cp::rk_stage_1>
+inline control<state, 2>::action<hydro_update_vars<2>, cp::rk_stage_1>
   hydro_rk_stage_1_update_2d;
-inline control<state, 3>::action<update_vars<3>, cp::rk_stage_1>
+inline control<state, 3>::action<hydro_update_vars<3>, cp::rk_stage_1>
   hydro_rk_stage_1_update_3d;
 
 inline const auto hydro_dep_update_1d =
