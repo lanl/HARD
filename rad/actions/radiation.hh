@@ -2,6 +2,7 @@
 #define HARD_RAD_RADIATION_HH
 
 #include "state.hh"
+#include "utils.hh"
 
 #include "../modules/hydro/tasks/cons2prim.hh"
 #include "../modules/rad/linsolve.hh"

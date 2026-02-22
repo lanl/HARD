@@ -10,6 +10,20 @@ namespace hard::tasks::util {
 
 enum bl { low, high, none };
 
+// Utility function to display variables associated with a name
+template<std::size_t D>
+void
+display(std::vector<std::tuple<std::string, field<double>::accessor<ro, ro>>>
+    v_f) noexcept {
+  for(auto & vv : v_f) {
+    auto [s, v] = vv;
+    std::cout << s << ":" << '\n';
+    for(int i = 0; i < v.span().size(); ++i) {
+      std::cout << v[i] << '\n';
+    }
+  }
+}
+
 /*
   Find the specific internal energy consitent with the given density and
   pressure.

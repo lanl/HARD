@@ -4,7 +4,7 @@ namespace hard {
 
 template<std::size_t D>
 void
-RK_advance_1(control_policy<state, D> & cp) {
+hydro_RK_advance_1(control_policy<state, D> & cp) {
 
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
@@ -89,7 +89,7 @@ RK_advance_1(control_policy<state, D> & cp) {
 
 template<std::size_t D>
 void
-update_vars(control_policy<state, D> & cp) {
+hydro_update_vars(control_policy<state, D> & cp) {
 
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
@@ -131,12 +131,12 @@ update_vars(control_policy<state, D> & cp) {
 
 } // update_vars
 
-template void RK_advance_1(control_policy<state, 1> &);
-template void RK_advance_1(control_policy<state, 2> &);
-template void RK_advance_1(control_policy<state, 3> &);
+template void hydro_RK_advance_1(control_policy<state, 1> &);
+template void hydro_RK_advance_1(control_policy<state, 2> &);
+template void hydro_RK_advance_1(control_policy<state, 3> &);
 
-template void update_vars(control_policy<state, 1> &);
-template void update_vars(control_policy<state, 2> &);
-template void update_vars(control_policy<state, 3> &);
+template void hydro_update_vars(control_policy<state, 1> &);
+template void hydro_update_vars(control_policy<state, 2> &);
+template void hydro_update_vars(control_policy<state, 3> &);
 
 } // namespace hard

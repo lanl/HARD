@@ -38,16 +38,26 @@ inline control<state, 2>::action<update_vars<2>, cp::rk_stage_1>
 inline control<state, 3>::action<update_vars<3>, cp::rk_stage_1>
   rad_rk_stage_1_update_3d;
 
+//  hydro_rk_stage_1 -> rad_rk_stage_1
 inline const auto dep_hydro_1d = rad_rk_stage_1_1d.add(hydro_rk_stage_1_1d);
 inline const auto dep_hydro_2d = rad_rk_stage_1_2d.add(hydro_rk_stage_1_2d);
 inline const auto dep_hydro_3d = rad_rk_stage_1_3d.add(hydro_rk_stage_1_3d);
 
+// rad_rk_stage_1 -> hydro_update_var
+inline const auto dep_hydro_update_1d =
+  hydro_rk_stage_1_update_1d.add(rad_rk_stage_1_1d);
+inline const auto dep_hydro_update_2d =
+  hydro_rk_stage_1_update_2d.add(rad_rk_stage_1_2d);
+inline const auto dep_hydro_update_3d =
+  hydro_rk_stage_1_update_3d.add(rad_rk_stage_1_3d);
+
+// hydro_update_var -> rad_update_var
 inline const auto dep_update_1d =
-  rad_rk_stage_1_update_1d.add(rad_rk_stage_1_1d);
+  rad_rk_stage_1_update_1d.add(hydro_rk_stage_1_update_1d);
 inline const auto dep_update_2d =
-  rad_rk_stage_1_update_2d.add(rad_rk_stage_1_2d);
+  rad_rk_stage_1_update_2d.add(hydro_rk_stage_1_update_2d);
 inline const auto dep_update_3d =
-  rad_rk_stage_1_update_3d.add(rad_rk_stage_1_3d);
+  rad_rk_stage_1_update_3d.add(hydro_rk_stage_1_update_3d);
 
 } // namespace hard
 

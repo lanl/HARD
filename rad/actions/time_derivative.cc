@@ -39,15 +39,14 @@ time_derivative(control_policy<state, D> & cp) {
   // Store the current state of evolved variables (U^n) before performing a time
   // step
   sc.execute<tasks::hydro::store_current_state<D>>(flecsi::exec::on,
-    std::vector{s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.rad.cons.radiation_energy_density(*s.m)},
-    std::vector{s.cons.hydro.momentum_density(*s.m)},
-    //
-    std::vector{s.rk_n.mass_density()(*s.m),
-      s.rk_n.total_energy_density()(*s.m),
-      s.rad.dt_radiation_energy_density_n(*s.m)},
-    std::vector{s.rk_n.momentum_energy_density()(*s.m)});
+    std::vector{std::make_tuple(
+                  s.cons.hydro.mass_density(*s.m), s.rk_n.mass_density()(*s.m)),
+      std::make_tuple(s.cons.hydro.total_energy_density(*s.m),
+        s.rk_n.total_energy_density()(*s.m)),
+      std::make_tuple(s.rad.cons.radiation_energy_density(*s.m),
+        s.rad.dt_radiation_energy_density_n(*s.m))},
+    std::vector{std::make_tuple(s.cons.hydro.momentum_density(*s.m),
+      s.rk_n.momentum_energy_density()(*s.m))});
 }
 
 inline control<state, 1>::action<time_derivative<1>, cp::time_derivative>

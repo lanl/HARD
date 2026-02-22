@@ -4,7 +4,9 @@
 #include "flecsi/execution.hh"
 #include "flecsi/flog.hh"
 
+#include "../modules/rad/tasks/operators.hh"
 #include "../modules/rad/tasks/rad.hh"
+
 #include "../modules/spec/tasks/boundaries/boundary.hh"
 
 #include "flecsolve/operators/core.hh"
