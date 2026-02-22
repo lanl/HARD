@@ -349,6 +349,7 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
   sc.execute<tasks::init::init_time>(
     flecsi::exec::on, s.t(*s.gt), config["t0"].as<double>());
+
 } // initialize
 
 template void initialize(control_policy<state, 1> &);
