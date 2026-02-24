@@ -4,6 +4,8 @@
 #include "flecsi/execution.hh"
 #include "flecsi/flog.hh"
 
+#include "../modules/rad/tasks/operators.hh"
+
 #include "flecsolvers.hh"
 #include "tasks/rad.hh"
 

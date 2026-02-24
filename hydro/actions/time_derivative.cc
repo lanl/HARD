@@ -1,4 +1,8 @@
-#include "time_derivative.hh"
+#include "state.hh"
+#include "utils.hh"
+
+#include "../modules/hydro/tasks/init.hh"
+#include "../modules/hydro/tasks/time_derivative.hh"
 
 namespace hard {
 
@@ -36,17 +40,27 @@ time_derivative(control_policy<state, D> & cp) {
 
   // Store the current state of evolved variables (U^n) before performing a time
   // step
+  // clang-format off
   sc.execute<tasks::hydro::store_current_state<D>>(flecsi::exec::on,
-    std::vector{std::make_tuple(
-                  s.cons.hydro.mass_density(*s.m), s.rk_n.mass_density()(*s.m)),
-      std::make_tuple(s.cons.hydro.total_energy_density(*s.m),
+    std::vector{
+      std::make_tuple(
+        s.cons.hydro.mass_density(*s.m),
+        s.rk_n.mass_density()(*s.m)),
+      std::make_tuple(
+        s.cons.hydro.total_energy_density(*s.m),
         s.rk_n.total_energy_density()(*s.m))},
-    std::vector{std::make_tuple(s.cons.hydro.momentum_density(*s.m),
-      s.rk_n.momentum_energy_density()(*s.m))});
+    std::vector{
+      std::make_tuple(
+        s.cons.hydro.momentum_density(*s.m),
+        s.rk_n.momentum_energy_density()(*s.m))});
+  // clang-format on
 }
 
-template void time_derivative(control_policy<state, 1> &);
-template void time_derivative(control_policy<state, 2> &);
-template void time_derivative(control_policy<state, 3> &);
+inline control<state, 1>::action<time_derivative<1>, cp::time_derivative>
+  time_derivative_1d;
+inline control<state, 2>::action<time_derivative<2>, cp::time_derivative>
+  time_derivative_2d;
+inline control<state, 3>::action<time_derivative<3>, cp::time_derivative>
+  time_derivative_3d;
 
 } // namespace hard

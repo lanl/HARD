@@ -1,4 +1,8 @@
-#include "update_dt.hh"
+#include "state.hh"
+#include "utils.hh"
+
+#include "../modules/hydro/tasks/maxcharspeed.hh"
+#include "../modules/hydro/tasks/time_derivative.hh"
 
 namespace hard {
 
@@ -27,8 +31,8 @@ update_dt(control_policy<state, D> & cp) {
 #endif
 } // update_time_step_size
 
-template void update_dt(control_policy<state, 1> &);
-template void update_dt(control_policy<state, 2> &);
-template void update_dt(control_policy<state, 3> &);
+inline control<state, 1>::action<update_dt<1>, cp::update_dt> udt_1d;
+inline control<state, 2>::action<update_dt<2>, cp::update_dt> udt_2d;
+inline control<state, 3>::action<update_dt<3>, cp::update_dt> udt_3d;
 
 } // namespace hard
