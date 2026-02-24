@@ -1,4 +1,8 @@
-#include "update_dt.hh"
+#include "state.hh"
+#include "utils.hh"
+
+#include "../modules/hydro/tasks/maxcharspeed.hh"
+#include "../modules/hydro/tasks/time_derivative.hh"
 
 namespace hard {
 

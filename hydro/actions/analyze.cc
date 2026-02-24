@@ -1,4 +1,8 @@
-#include "analyze.hh"
+#include "state.hh"
+#include "utils.hh"
+
+#include <../modules/spec/tasks/io.hh>
+#include <flecsi/flog.hh>
 
 namespace hard {
 
@@ -34,16 +38,15 @@ analyze(control_policy<state, D> & cp) {
         "pressure",
         "sound_speed",
         "specific_internal_energy",
-        "total_energy_density",
-        "radiation_energy_density"},
+        "total_energy_density"},
       std::vector<std::string>{"velocity", "momentum_density"});
   } // if
 #endif
 
 } // analyze
 
-template void analyze(control_policy<state, 1> &);
-template void analyze(control_policy<state, 2> &);
-template void analyze(control_policy<state, 3> &);
+inline control<state, 1>::action<analyze<1>, cp::analyze> analyze_1d;
+inline control<state, 2>::action<analyze<2>, cp::analyze> analyze_2d;
+inline control<state, 3>::action<analyze<3>, cp::analyze> analyze_3d;
 
 } // namespace hard

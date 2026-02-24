@@ -1,4 +1,7 @@
-#include "couple_hydro_radiation.hh"
+#include "state.hh"
+#include "utils.hh"
+
+#include "../modules/rad/tasks/rad.hh"
 
 namespace hard {
 
@@ -53,8 +56,24 @@ couple_hydro_radiation(control_policy<state, D> & cp) {
 
 } // hydro_couple_radiation
 
-template void couple_hydro_radiation(control_policy<state, 1> &);
-template void couple_hydro_radiation(control_policy<state, 2> &);
-template void couple_hydro_radiation(control_policy<state, 3> &);
+inline control<state, 1>::action<couple_hydro_radiation<1>,
+  cp::couple_hydro_radiation_1>
+  couple_hydro_radiation_1_1d;
+inline control<state, 2>::action<couple_hydro_radiation<2>,
+  cp::couple_hydro_radiation_1>
+  couple_hydro_radiation_1_2d;
+inline control<state, 3>::action<couple_hydro_radiation<3>,
+  cp::couple_hydro_radiation_1>
+  couple_hydro_radiation_1_3d;
+
+inline control<state, 1>::action<couple_hydro_radiation<1>,
+  cp::couple_hydro_radiation_2>
+  couple_hydro_radiation_2_1d;
+inline control<state, 2>::action<couple_hydro_radiation<2>,
+  cp::couple_hydro_radiation_2>
+  couple_hydro_radiation_2_2d;
+inline control<state, 3>::action<couple_hydro_radiation<3>,
+  cp::couple_hydro_radiation_2>
+  couple_hydro_radiation_2_3d;
 
 } // namespace hard

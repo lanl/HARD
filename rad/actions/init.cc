@@ -1,4 +1,20 @@
-#include "init.hh"
+#include "options.hh"
+#include "state.hh"
+#include "types.hh"
+#include "utils.hh"
+
+#include "../modules/hydro/tasks/cons2prim.hh"
+#include "../modules/hydro/tasks/init.hh"
+#include "../modules/hydro/tasks/maxcharspeed.hh"
+#include "../modules/hydro/tasks/time_derivative.hh"
+#include "../modules/rad/tasks/init.hh"
+#include "../modules/rad/tasks/initial_data/all_initial_data.hh"
+#include "../modules/spec/eos.hh"
+#include "../modules/spec/tasks/boundaries/boundary.hh"
+#include "../modules/spec/tasks/io.hh"
+
+#include <flecsi/flog.hh>
+#include <yaml-cpp/yaml.h>
 
 namespace hard {
 
@@ -39,7 +55,7 @@ initialize(control_policy<state, D> & cp) {
   s.rad.mgr.full_multigrid =
     config["linear_solver"]["full_multigrid"].IsDefined()
       ? config["linear_solver"]["full_multigrid"].as<bool>()
-      : false;
+      : true;
 
   /*--------------------------------------------------------------------------*
     Global and color topology allocations.

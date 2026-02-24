@@ -1,9 +1,12 @@
 #ifndef HARD_MODULES_HYDRO_TASKS_OPERATORS_HH
 #define HARD_MODULES_HYDRO_TASKS_OPERATORS_HH
 
+#include "utils.hh"
+
 namespace hard::tasks::rad {
 
-  
+using hard::tasks::util::get_mdiota_policy;
+
 template<std::size_t D>
 void
 full_weighting(flecsi::exec::accelerator s,
@@ -286,7 +289,7 @@ cell_centered_interpolation(flecsi::exec::accelerator s,
     };
   } // if
 }
-  
+
 template<std::size_t D>
 void
 apply_operator(flecsi::exec::accelerator s,
@@ -337,7 +340,6 @@ apply_operator(flecsi::exec::accelerator s,
     }; // forall
   } // if
 } // Ax_op
-
 
 template<std::size_t D>
 void
@@ -401,7 +403,6 @@ damped_jacobi(flecsi::exec::accelerator s,
   } // if
 } // damped_jacobi
 
-  
 template<std::size_t D>
 void
 residual(flecsi::exec::accelerator s,
