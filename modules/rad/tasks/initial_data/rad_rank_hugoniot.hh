@@ -46,13 +46,13 @@ rad_RH(flecsi::exec::cpu s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, ro> r_a,
   typename field<vec<D>>::template accessor<wo, ro> ru_a,
-  field<double>::accessor<wo, ro> rE_a,
+  field<double>::accessor<wo, ro> r_e_a,
   field<double>::accessor<wo, ro> Erad_a,
   const double gamma,
   single<double>::accessor<ro> particle_mass_a) {
   auto r = m.template mdcolex<is::cells>(r_a);
   auto ru = m.template mdcolex<is::cells>(ru_a);
-  auto rE = m.template mdcolex<is::cells>(rE_a);
+  auto r_e = m.template mdcolex<is::cells>(r_e_a);
   auto Erad = m.template mdcolex<is::cells>(Erad_a);
   auto const particle_mass = *particle_mass_a;
   const double mult = 1.0 / (gamma - 1.0);
@@ -67,18 +67,18 @@ rad_RH(flecsi::exec::cpu s,
       if(x < T::x0) {
         r(i) = T::rL;
         ru(i).x() = T::rL * T::uL;
-        rE(i) = mult * kb * T::TL * T::rL / (particle_mass) +
-                (0.5 * T::rL * T::uL * T::uL);
+        r_e(i) = mult * kb * T::TL * T::rL / (particle_mass) +
+                 (0.5 * T::rL * T::uL * T::uL);
         Erad(i) = a * T::TL * T::TL * T::TL * T::TL;
       }
       else {
         r(i) = T::rR;
         ru(i).x() = T::rR * T::uR;
-        rE(i) = mult * kb * T::TR * T::rR / (particle_mass) +
-                (0.5 * T::rR * T::uR * T::uR);
+        r_e(i) = mult * kb * T::TR * T::rR / (particle_mass) +
+                 (0.5 * T::rR * T::uR * T::uR);
         Erad(i) = a * T::TR * T::TR * T::TR * T::TR;
       } // if
-      if(rE(i) <= 0) {
+      if(r_e(i) <= 0) {
         std::cout << "TotalE is negative for i = " << i << std::endl;
       }
     }; // for
@@ -92,16 +92,16 @@ rad_RH(flecsi::exec::cpu s,
           r(i, j) = T::rL;
           ru(i, j).x() = T::rL * T::uL;
           ru(i, j).y() = T::rL * T::vL;
-          rE(i, j) = mult * kb * T::TL * T::rL / (particle_mass) +
-                     (0.5 * T::rL * T::uL * T::uL);
+          r_e(i, j) = mult * kb * T::TL * T::rL / (particle_mass) +
+                      (0.5 * T::rL * T::uL * T::uL);
           Erad(i, j) = a * T::TL * T::TL * T::TL * T::TL;
         }
         else {
           r(i, j) = T::rR;
           ru(i, j).x() = T::rR * T::uR;
           ru(i, j).y() = T::rR * T::vR;
-          rE(i, j) = mult * kb * T::TR * T::rR / (particle_mass) +
-                     (0.5 * T::rR * T::uR * T::uR);
+          r_e(i, j) = mult * kb * T::TR * T::rR / (particle_mass) +
+                      (0.5 * T::rR * T::uR * T::uR);
           Erad(i, j) = a * T::TR * T::TR * T::TR * T::TR;
         } // if
       } // for
@@ -118,8 +118,8 @@ rad_RH(flecsi::exec::cpu s,
             ru(i, j, k).x() = T::rL * T::uL;
             ru(i, j, k).y() = T::rL * T::vL;
             ru(i, j, k).z() = T::rL * T::wL;
-            rE(i, j, k) = mult * kb * T::TL * T::rL / (particle_mass) +
-                          (0.5 * T::rL * T::uL * T::uL);
+            r_e(i, j, k) = mult * kb * T::TL * T::rL / (particle_mass) +
+                           (0.5 * T::rL * T::uL * T::uL);
             Erad(i, j, k) = a * T::TL * T::TL * T::TL * T::TL;
           }
           else {
@@ -127,8 +127,8 @@ rad_RH(flecsi::exec::cpu s,
             ru(i, j, k).x() = T::rR * T::uR;
             ru(i, j, k).y() = T::rR * T::vR;
             ru(i, j, k).z() = T::rR * T::wR;
-            rE(i, j, k) = mult * kb * T::TR * T::rR / (particle_mass) +
-                          (0.5 * T::rR * T::uR * T::uR);
+            r_e(i, j, k) = mult * kb * T::TR * T::rR / (particle_mass) +
+                           (0.5 * T::rR * T::uR * T::uR);
             Erad(i, j, k) = a * T::TR * T::TR * T::TR * T::TR;
           } // if
         } // for

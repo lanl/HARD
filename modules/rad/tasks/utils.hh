@@ -100,7 +100,7 @@ print_conserved(flecsi::exec::cpu,
     flog(info) << ss.str() << std::endl;
   }
   {
-    auto rE = m.template mdcolex<is::cells>(rE_a);
+    auto r_e = m.template mdcolex<is::cells>(rE_a);
     std::stringstream ss;
     ss << "TOTAL ENERGY:" << std::endl;
     for(auto j : m.template cells<ax::y, DM, true>()) {

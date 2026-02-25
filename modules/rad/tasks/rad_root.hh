@@ -17,7 +17,7 @@ update_energy_density(flecsi::exec::accelerator s,
   field<double>::accessor<ro, na> r_a,
   typename field<vec<D>>::template accessor<ro, na> u_a,
   field<double>::accessor<rw, na> temperature_a,
-  field<double>::accessor<rw, na> rE_a,
+  field<double>::accessor<rw, na> r_e_a,
   field<double>::accessor<rw, na> radiation_energy_density_a,
   single<double>::accessor<ro> kappa_a,
   single<double>::accessor<ro> dt_a,
@@ -28,7 +28,7 @@ update_energy_density(flecsi::exec::accelerator s,
   auto r = m.template mdcolex<is::cells>(r_a);
   auto u = m.template mdcolex<is::cells>(u_a);
   auto temperature = m.template mdcolex<is::cells>(temperature_a);
-  auto rE = m.template mdcolex<is::cells>(rE_a);
+  auto r_e = m.template mdcolex<is::cells>(r_e_a);
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
   auto const kappa = *kappa_a;
@@ -61,7 +61,7 @@ update_energy_density(flecsi::exec::accelerator s,
       // auto const gamma = *gamma_a;
 
       const double ke = 0.5 * r(i) * u(i).norm_squared(); // kinetic energy
-      const double en = rE(i) - ke; // internal energy
+      const double en = r_e(i) - ke; // internal energy
       assert(en >= 0 && "Internal energy is negative");
 
       // getting temperature from EOS, this should be inital guess
@@ -82,7 +82,7 @@ update_energy_density(flecsi::exec::accelerator s,
       assert(up_en >= 0 && "Updated internal energy is negative");
 
       radiation_energy_density(i) = up_En;
-      rE(i) = up_en + ke;
+      r_e(i) = up_en + ke;
       temperature(i) = up_Tn;
     }; // for
   }
@@ -98,7 +98,7 @@ update_energy_density(flecsi::exec::accelerator s,
 
       const double ke =
         0.5 * r(i, j) * u(i, j).norm_squared(); // kinetic energy
-      const double en = rE(i, j) - ke; // internal energy
+      const double en = r_e(i, j) - ke; // internal energy
       assert(en >= 0 && "Internal energy is negative");
 
       temperature(i, j) = eos.tRhoSie(r(i, j), en);
@@ -117,7 +117,7 @@ update_energy_density(flecsi::exec::accelerator s,
       assert(up_en >= 0 && "Updated internal energy is negative");
 
       radiation_energy_density(i, j) = up_En;
-      rE(i, j) = up_en + ke;
+      r_e(i, j) = up_en + ke;
       temperature(i, j) = up_Tn;
     }; // forall
   }
@@ -132,7 +132,7 @@ update_energy_density(flecsi::exec::accelerator s,
 
       const double ke =
         0.5 * r(i, j, k) * u(i, j, k).norm_squared(); // kinetic energy
-      const double en = rE(i, j, k) - ke; // internal energy
+      const double en = r_e(i, j, k) - ke; // internal energy
       assert(en >= 0 && "Internal energy is negative");
 
       temperature(i, j, k) = eos.tRhoSie(r(i, j, k), en);
@@ -151,7 +151,7 @@ update_energy_density(flecsi::exec::accelerator s,
       assert(up_en >= 0 && "Updated internal energy is negative");
 
       radiation_energy_density(i, j, k) = up_En;
-      rE(i, j, k) = up_en + ke;
+      r_e(i, j, k) = up_en + ke;
       temperature(i, j, k) = up_Tn;
     };
   }

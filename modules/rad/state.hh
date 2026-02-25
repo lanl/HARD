@@ -39,11 +39,11 @@ struct state {
     } cons;
 
     struct faces_rl {
-      faces<D> EradFace;
+      faces<D> erad_face;
     } f;
 
     struct rieman_fluxes {
-      static inline const field<double>::definition<mesh<D>, is::cells> EradF;
+      static inline const field<double>::definition<mesh<D>, is::cells> erad_f;
     } rf;
 
     struct multigrid {

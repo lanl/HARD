@@ -96,4 +96,32 @@ When cmake has completed, simply run make:
 $ make
 ```
 
+# Code Formatting and Style
+
+HARD enforces consistent code formatting and naming conventions to maintain code quality and readability.
+
+## Formatting Requirements
+
+All code must be formatted using `clang-format` before submitting a merge request. This is **mandatory** for any MR to be merged.
+
+To format your code, run:
+```
+$ make format
+```
+
+This command will automatically format all source files according to the project's style guidelines.
+
+## Naming Conventions
+
+HARD uses **snake_case** for all variable, function, and file names. This convention must be followed consistently throughout the codebase.
+
+Examples:
+- Variables: `mass_density`, `velocity_field`, `time_step`
+- Functions: `compute_flux()`, `update_state()`, `initialize_mesh()`
+- Files: `riemann_solvers.hh`, `interface_fluxes.cc`
+
+**Note:** Before submitting any merge request, ensure that:
+1. Your code is properly formatted with `make format`
+2. All naming follows the snake_case convention
+
 <!-- vim: set tabstop=2 shiftwidth=2 expandtab fo=cqt tw=72 : -->

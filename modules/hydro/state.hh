@@ -76,13 +76,13 @@ struct state {
   // action
   struct faces_rl {
     struct hydro {
-      faces<D> eFace;
-      faces<D> cFace;
-      faces<D> rFace;
-      faces<D> rEFace;
-      faces<D> pFace;
-      faces_vec<D> ruFace;
-      faces_vec<D> uFace;
+      faces<D> e_face;
+      faces<D> c_face;
+      faces<D> r_face;
+      faces<D> re_face;
+      faces<D> p_face;
+      faces_vec<D> ru_face;
+      faces_vec<D> u_face;
     } hydro;
   } f;
 
@@ -90,11 +90,11 @@ struct state {
   struct rieman_fluxes {
     struct hydro {
       // Riemann fluxes.
-      static inline const field<double>::definition<mesh<D>, is::cells> rF;
+      static inline const field<double>::definition<mesh<D>, is::cells> r_f;
       static inline const typename field<vec<D>>::template definition<mesh<D>,
         is::cells>
-        ruF;
-      static inline const field<double>::definition<mesh<D>, is::cells> rEF;
+        ru_f;
+      static inline const field<double>::definition<mesh<D>, is::cells> re_f;
     } hydro;
   } rf;
 
