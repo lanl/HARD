@@ -49,7 +49,7 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
 
     set(TEST_VERIFY_SCRIPT "${CMAKE_SOURCE_DIR}/scripts/test_verify.sh")
     set(TEST_DISTRIBUTED_SCRIPT "${CMAKE_SOURCE_DIR}/scripts/test_distributed.sh")
-    set(TEST_CONVERGENCE_SCRIPT "${CMAKE_SOURCE_DIR}/scripts/test_distributed.sh")
+    set(TEST_CONVERGENCE_SCRIPT "${CMAKE_SOURCE_DIR}/scripts/test_convergence.sh")
     
     file(MAKE_DIRECTORY
       ${CMAKE_BINARY_DIR}/tests/rk_3d
