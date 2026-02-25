@@ -28,20 +28,18 @@ analyze(control_policy<state, D> & cp) {
       spec::io::name{""} << std::setfill('0') << std::setw(5) << cp.step(),
       s.t(*s.gt),
       lm,
-      std::vector{s.cons.hydro.mass_density(lm),
-        s.prim.pressure(lm),
-        s.prim.sound_speed(lm),
-        s.prim.specific_internal_energy(lm),
-        s.cons.hydro.total_energy_density(lm),
-        s.rad.cons.radiation_energy_density(lm)},
-      std::vector{s.prim.velocity(lm), s.cons.hydro.momentum_density(lm)},
-      std::vector<std::string>{"density",
-        "pressure",
-        "sound_speed",
-        "specific_internal_energy",
-        "total_energy_density",
-        "radiation_energy_density"},
-      std::vector<std::string>{"velocity", "momentum_density"});
+      std::vector{std::make_tuple(s.cons.hydro.mass_density(lm), "density"),
+        std::make_tuple(s.prim.pressure(lm), "pressure"),
+        std::make_tuple(s.prim.sound_speed(lm), "sound_speed"),
+        std::make_tuple(
+          s.prim.specific_internal_energy(lm), "specific_internal_energy"),
+        std::make_tuple(
+          s.cons.hydro.total_energy_density(lm), "total_energy_density"),
+        std::make_tuple(
+          s.rad.cons.radiation_energy_density(lm), "radiation_energy_density")},
+      std::vector{std::make_tuple(s.prim.velocity(lm), "velocity"),
+        std::make_tuple(
+          s.cons.hydro.momentum_density(lm), "momentum_density")});
   } // if
 #endif
 

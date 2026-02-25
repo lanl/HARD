@@ -126,9 +126,8 @@ radiation(control_policy<state, D> & cp) {
 
 } // radiation_advance
 
-// Explicit instantiation
-template void radiation(control_policy<state, 1> &);
-template void radiation(control_policy<state, 2> &);
-template void radiation(control_policy<state, 3> &);
+inline control<state, 1>::action<radiation<1>, cp::radiation> radiation_1d;
+inline control<state, 2>::action<radiation<2>, cp::radiation> radiation_2d;
+inline control<state, 3>::action<radiation<3>, cp::radiation> radiation_3d;
 
 } // namespace hard

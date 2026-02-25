@@ -55,7 +55,7 @@ initialize(control_policy<state, D> & cp) {
   s.rad.mgr.full_multigrid =
     config["linear_solver"]["full_multigrid"].IsDefined()
       ? config["linear_solver"]["full_multigrid"].as<bool>()
-      : true;
+      : false;
 
   /*--------------------------------------------------------------------------*
     Global and color topology allocations.
