@@ -147,7 +147,7 @@ compute_interface_fluxes(flecsi::exec::cpu s,
           ru_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_ru_H,
           "rhou" );
         re_f(i, j) =
-          numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
+          numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
           re_left(i-1,j), r_left(i-1,j), u_left(i-1,j), re_left(i-1,j), pLeft_wave, c_left(i-1,j), f_rE_T,
           re_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_rE_H,
           "E" );
