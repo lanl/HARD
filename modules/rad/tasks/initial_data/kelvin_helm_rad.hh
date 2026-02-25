@@ -53,7 +53,7 @@ kh_instability_rad(flecsi::exec::cpu s,
     config["problem_parameters"]["fluid_x_velocity_high"].as<double>();
   const double vH =
     config["problem_parameters"]["fluid_y_velocity_high"].as<double>();
-  double wH{0};
+  double w_h{0};
 
   // L is the lighter fluid at top
   const double rL =
@@ -64,14 +64,14 @@ kh_instability_rad(flecsi::exec::cpu s,
     config["problem_parameters"]["fluid_x_velocity_low"].as<double>();
   const double vL =
     config["problem_parameters"]["fluid_y_velocity_low"].as<double>();
-  double wL{0};
+  double w_l{0};
 
   if constexpr(D == 3) {
     // setting density and velocity
     // H is the heavier fluid at bottom
-    wH = config["problem_parameters"]["fluid_z_velocity_high"].as<double>();
+    w_h = config["problem_parameters"]["fluid_z_velocity_high"].as<double>();
     // L is the lighter fluid at top
-    wL = config["problem_parameters"]["fluid_z_velocity_low"].as<double>();
+    w_l = config["problem_parameters"]["fluid_z_velocity_low"].as<double>();
   }
 
   // setting fluid separation and velocity perturbation fractions and
@@ -148,7 +148,7 @@ kh_instability_rad(flecsi::exec::cpu s,
             mass_density(i, j, k) = rL;
             momentum_density(i, j, k).x() = rL * uL;
             momentum_density(i, j, k).y() = rL * vL;
-            momentum_density(i, j, k).z() = rL * wL;
+            momentum_density(i, j, k).z() = rL * w_l;
             const double e = util::find_sie(eos, rL, pL);
             total_energy_density(i, j, k) = rL * e + 0.5 * rL * (vL * vL);
           }
@@ -156,7 +156,7 @@ kh_instability_rad(flecsi::exec::cpu s,
             mass_density(i, j, k) = rH;
             momentum_density(i, j, k).x() = rH * uH;
             momentum_density(i, j, k).y() = rH * vH;
-            momentum_density(i, j, k).z() = rH * wH;
+            momentum_density(i, j, k).z() = rH * w_h;
             const double e = util::find_sie(eos, rH, pH);
             total_energy_density(i, j, k) = rH * e + 0.5 * rH * (vH * vH);
           } // if

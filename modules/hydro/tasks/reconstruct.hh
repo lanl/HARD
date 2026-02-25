@@ -204,11 +204,11 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
   typename faces_vec<Dim>::accessor<wo, na> ruFace_a,
   typename faces<Dim>::accessor<wo, na> rEFace_a) noexcept {
 
-  auto [rRight, rLeft] = faces<Dim>::mdcolex(m, rFace_a);
-  auto [uRight, uLeft] = faces_vec<Dim>::mdcolex(m, uFace_a);
-  auto [eRight, eLeft] = faces<Dim>::mdcolex(m, eFace_a);
-  auto [ruRight, ruLeft] = faces_vec<Dim>::mdcolex(m, ruFace_a);
-  auto [rERight, rELeft] = faces<Dim>::mdcolex(m, rEFace_a);
+  auto [r_right, r_left] = faces<Dim>::mdcolex(m, rFace_a);
+  auto [u_right, u_left] = faces_vec<Dim>::mdcolex(m, uFace_a);
+  auto [e_right, e_left] = faces<Dim>::mdcolex(m, eFace_a);
+  auto [ru_right, ru_left] = faces_vec<Dim>::mdcolex(m, ruFace_a);
+  auto [re_right, re_left] = faces<Dim>::mdcolex(m, rEFace_a);
 
   using hard::tasks::util::get_mdiota_policy;
   using spec::utils::sqr;
@@ -218,18 +218,18 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
     s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
 
       // Compute conservative variables
-      ruRight(i) = rRight(i) * uRight(i);
-      ruLeft(i) = rLeft(i) * uLeft(i);
-      rERight(i) =
-        rRight(i) * eRight(i) + 0.5 * rRight(i) * uRight(i).norm_squared();
-      rELeft(i) =
-        rLeft(i) * eLeft(i) + 0.5 * rLeft(i) * uLeft(i).norm_squared();
+      ru_right(i) = r_right(i) * u_right(i);
+      ru_left(i) = r_left(i) * u_left(i);
+      re_right(i) =
+        r_right(i) * e_right(i) + 0.5 * r_right(i) * u_right(i).norm_squared();
+      re_left(i) =
+        r_left(i) * e_left(i) + 0.5 * r_left(i) * u_left(i).norm_squared();
 
     }; // forall
   }
   else if constexpr(Dim == 2) {
 
-    auto mdpolicy_pp = get_mdiota_policy(rRight,
+    auto mdpolicy_pp = get_mdiota_policy(r_right,
       m.template cells<ax::y, dm::predictor>(),
       m.template cells<ax::x, dm::predictor>());
 
@@ -237,17 +237,17 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
       auto [j, i] = ji;
 
       // Compute conservative variables
-      ruRight(i, j) = rRight(i, j) * uRight(i, j);
-      ruLeft(i, j) = rLeft(i, j) * uLeft(i, j);
-      rERight(i, j) = rRight(i, j) * eRight(i, j) +
-                      0.5 * rRight(i, j) * uRight(i, j).norm_squared();
-      rELeft(i, j) = rLeft(i, j) * eLeft(i, j) +
-                     0.5 * rLeft(i, j) * uLeft(i, j).norm_squared();
+      ru_right(i, j) = r_right(i, j) * u_right(i, j);
+      ru_left(i, j) = r_left(i, j) * u_left(i, j);
+      re_right(i, j) = r_right(i, j) * e_right(i, j) +
+                       0.5 * r_right(i, j) * u_right(i, j).norm_squared();
+      re_left(i, j) = r_left(i, j) * e_left(i, j) +
+                      0.5 * r_left(i, j) * u_left(i, j).norm_squared();
     }; // forall
   }
   else { // Dim == 3
 
-    auto mdpolicy_ppp = get_mdiota_policy(rRight,
+    auto mdpolicy_ppp = get_mdiota_policy(r_right,
       m.template cells<ax::z, dm::predictor>(),
       m.template cells<ax::y, dm::predictor>(),
       m.template cells<ax::x, dm::predictor>());
@@ -256,12 +256,13 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
       auto [k, j, i] = kji;
 
       // Compute conservative variables on faces
-      ruRight(i, j, k) = rRight(i, j, k) * uRight(i, j, k);
-      ruLeft(i, j, k) = rLeft(i, j, k) * uLeft(i, j, k);
-      rERight(i, j, k) = rRight(i, j, k) * eRight(i, j, k) +
-                         0.5 * rRight(i, j, k) * uRight(i, j, k).norm_squared();
-      rELeft(i, j, k) = rLeft(i, j, k) * eLeft(i, j, k) +
-                        0.5 * rLeft(i, j, k) * uLeft(i, j, k).norm_squared();
+      ru_right(i, j, k) = r_right(i, j, k) * u_right(i, j, k);
+      ru_left(i, j, k) = r_left(i, j, k) * u_left(i, j, k);
+      re_right(i, j, k) =
+        r_right(i, j, k) * e_right(i, j, k) +
+        0.5 * r_right(i, j, k) * u_right(i, j, k).norm_squared();
+      re_left(i, j, k) = r_left(i, j, k) * e_left(i, j, k) +
+                         0.5 * r_left(i, j, k) * u_left(i, j, k).norm_squared();
     }; // forall
   }
 }

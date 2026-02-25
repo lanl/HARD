@@ -140,15 +140,15 @@ getGradV(flecsi::exec::accelerator s,
   typename field<vec<D>>::template accessor<ro, ro> u_a) noexcept {
 
   auto u = m.template mdcolex<is::cells>(u_a);
-  auto gradV = m.template mdcolex<is::cells>(gradV_a);
+  auto grad_v = m.template mdcolex<is::cells>(gradV_a);
 
   if constexpr(D == 1) {
     const double one_over_12dx = 1.0 / (12.0 * m.template delta<ax::x>());
 
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      gradV(i).xx = (u(i - 2).x() - 8.0 * u(i - 1).x() + 8.0 * u(i + 1).x() -
-                      u(i + 2).x()) *
-                    one_over_12dx;
+      grad_v(i).xx = (u(i - 2).x() - 8.0 * u(i - 1).x() + 8.0 * u(i + 1).x() -
+                       u(i + 2).x()) *
+                     one_over_12dx;
     };
   }
   else if constexpr(D == 2) {
@@ -162,19 +162,19 @@ getGradV(flecsi::exec::accelerator s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
-      gradV(i, j).xx = (u(i - 2, j).x() - 8.0 * u(i - 1, j).x() +
-                         8.0 * u(i + 1, j).x() - u(i + 2, j).x()) *
-                       one_over_12dx;
-      gradV(i, j).xy = (u(i, j - 2).x() - 8.0 * u(i, j - 1).x() +
-                         8.0 * u(i, j + 1).x() - u(i, j + 2).x()) *
-                       one_over_12dy;
+      grad_v(i, j).xx = (u(i - 2, j).x() - 8.0 * u(i - 1, j).x() +
+                          8.0 * u(i + 1, j).x() - u(i + 2, j).x()) *
+                        one_over_12dx;
+      grad_v(i, j).xy = (u(i, j - 2).x() - 8.0 * u(i, j - 1).x() +
+                          8.0 * u(i, j + 1).x() - u(i, j + 2).x()) *
+                        one_over_12dy;
 
-      gradV(i, j).yx = (u(i - 2, j).y() - 8.0 * u(i - 1, j).y() +
-                         8.0 * u(i + 1, j).y() - u(i + 2, j).y()) *
-                       one_over_12dx;
-      gradV(i, j).yy = (u(i, j - 2).y() - 8.0 * u(i, j - 1).y() +
-                         8.0 * u(i, j + 1).y() - u(i, j + 2).y()) *
-                       one_over_12dy;
+      grad_v(i, j).yx = (u(i - 2, j).y() - 8.0 * u(i - 1, j).y() +
+                          8.0 * u(i + 1, j).y() - u(i + 2, j).y()) *
+                        one_over_12dx;
+      grad_v(i, j).yy = (u(i, j - 2).y() - 8.0 * u(i, j - 1).y() +
+                          8.0 * u(i, j + 1).y() - u(i, j + 2).y()) *
+                        one_over_12dy;
     };
   }
   else {
@@ -189,35 +189,35 @@ getGradV(flecsi::exec::accelerator s,
 
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
-      gradV(i, j, k).xx = (u(i - 2, j, k).x() - 8.0 * u(i - 1, j, k).x() +
-                            8.0 * u(i + 1, j, k).x() - u(i + 2, j, k).x()) *
-                          one_over_12dx;
-      gradV(i, j, k).xy = (u(i, j - 2, k).x() - 8.0 * u(i, j - 1, k).x() +
-                            8.0 * u(i, j + 1, k).x() - u(i, j + 2, k).x()) *
-                          one_over_12dy;
-      gradV(i, j, k).xz = (u(i, j, k - 2).x() - 8.0 * u(i, j, k - 1).x() +
-                            8.0 * u(i, j, k + 1).x() - u(i, j, k + 2).x()) *
-                          one_over_12dz;
+      grad_v(i, j, k).xx = (u(i - 2, j, k).x() - 8.0 * u(i - 1, j, k).x() +
+                             8.0 * u(i + 1, j, k).x() - u(i + 2, j, k).x()) *
+                           one_over_12dx;
+      grad_v(i, j, k).xy = (u(i, j - 2, k).x() - 8.0 * u(i, j - 1, k).x() +
+                             8.0 * u(i, j + 1, k).x() - u(i, j + 2, k).x()) *
+                           one_over_12dy;
+      grad_v(i, j, k).xz = (u(i, j, k - 2).x() - 8.0 * u(i, j, k - 1).x() +
+                             8.0 * u(i, j, k + 1).x() - u(i, j, k + 2).x()) *
+                           one_over_12dz;
 
-      gradV(i, j, k).yx = (u(i - 2, j, k).y() - 8.0 * u(i - 1, j, k).y() +
-                            8.0 * u(i + 1, j, k).y() - u(i + 2, j, k).y()) *
-                          one_over_12dx;
-      gradV(i, j, k).yy = (u(i, j - 2, k).y() - 8.0 * u(i, j - 1, k).y() +
-                            8.0 * u(i, j + 1, k).y() - u(i, j + 2, k).y()) *
-                          one_over_12dy;
-      gradV(i, j, k).yz = (u(i, j, k - 2).y() - 8.0 * u(i, j, k - 1).y() +
-                            8.0 * u(i, j, k + 1).y() - u(i, j, k + 2).y()) *
-                          one_over_12dz;
+      grad_v(i, j, k).yx = (u(i - 2, j, k).y() - 8.0 * u(i - 1, j, k).y() +
+                             8.0 * u(i + 1, j, k).y() - u(i + 2, j, k).y()) *
+                           one_over_12dx;
+      grad_v(i, j, k).yy = (u(i, j - 2, k).y() - 8.0 * u(i, j - 1, k).y() +
+                             8.0 * u(i, j + 1, k).y() - u(i, j + 2, k).y()) *
+                           one_over_12dy;
+      grad_v(i, j, k).yz = (u(i, j, k - 2).y() - 8.0 * u(i, j, k - 1).y() +
+                             8.0 * u(i, j, k + 1).y() - u(i, j, k + 2).y()) *
+                           one_over_12dz;
 
-      gradV(i, j, k).zx = (u(i - 2, j, k).z() - 8.0 * u(i - 1, j, k).z() +
-                            8.0 * u(i + 1, j, k).z() - u(i + 2, j, k).z()) *
-                          one_over_12dx;
-      gradV(i, j, k).zy = (u(i, j - 2, k).z() - 8.0 * u(i, j - 1, k).z() +
-                            8.0 * u(i, j + 1, k).z() - u(i, j + 2, k).z()) *
-                          one_over_12dy;
-      gradV(i, j, k).zz = (u(i, j, k - 2).z() - 8.0 * u(i, j, k - 1).z() +
-                            8.0 * u(i, j, k + 1).z() - u(i, j, k + 2).z()) *
-                          one_over_12dz;
+      grad_v(i, j, k).zx = (u(i - 2, j, k).z() - 8.0 * u(i - 1, j, k).z() +
+                             8.0 * u(i + 1, j, k).z() - u(i + 2, j, k).z()) *
+                           one_over_12dx;
+      grad_v(i, j, k).zy = (u(i, j - 2, k).z() - 8.0 * u(i, j - 1, k).z() +
+                             8.0 * u(i, j + 1, k).z() - u(i, j + 2, k).z()) *
+                           one_over_12dy;
+      grad_v(i, j, k).zz = (u(i, j, k - 2).z() - 8.0 * u(i, j, k - 1).z() +
+                             8.0 * u(i, j, k + 1).z() - u(i, j, k + 2).z()) *
+                           one_over_12dz;
     };
   }
 } // getGradV
@@ -279,8 +279,8 @@ getTensorP(flecsi::exec::accelerator s,
 
   auto P_tensor = m.template mdcolex<is::cells>(P_tensor_a);
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
-  auto gradEsf = m.template mdcolex<is::cells>(gradEsf_a);
-  auto gradE_mag = m.template mdcolex<is::cells>(gradE_mag_a);
+  auto grad_esf = m.template mdcolex<is::cells>(gradEsf_a);
+  auto grad_e_mag = m.template mdcolex<is::cells>(gradE_mag_a);
   auto edd_factor = m.template mdcolex<is::cells>(edd_factor_a);
 
   const double zero_guard = 1.0e-15;
@@ -299,8 +299,8 @@ getTensorP(flecsi::exec::accelerator s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
-      const double nx = gradEsf(i, j).x() / (gradE_mag(i, j) + zero_guard);
-      const double ny = gradEsf(i, j).y() / (gradE_mag(i, j) + zero_guard);
+      const double nx = grad_esf(i, j).x() / (grad_e_mag(i, j) + zero_guard);
+      const double ny = grad_esf(i, j).y() / (grad_e_mag(i, j) + zero_guard);
 
       const double f = edd_factor(i, j);
 
@@ -322,11 +322,11 @@ getTensorP(flecsi::exec::accelerator s,
       auto [k, j, i] = kji;
 
       const double nx =
-        gradEsf(i, j, k).x() / (gradE_mag(i, j, k) + zero_guard);
+        grad_esf(i, j, k).x() / (grad_e_mag(i, j, k) + zero_guard);
       const double ny =
-        gradEsf(i, j, k).y() / (gradE_mag(i, j, k) + zero_guard);
+        grad_esf(i, j, k).y() / (grad_e_mag(i, j, k) + zero_guard);
       const double nz =
-        gradEsf(i, j, k).z() / (gradE_mag(i, j, k) + zero_guard);
+        grad_esf(i, j, k).z() / (grad_e_mag(i, j, k) + zero_guard);
 
       const double f = edd_factor(i, j, k);
 
@@ -358,14 +358,14 @@ getGradE(flecsi::exec::accelerator s,
   field<double>::accessor<ro, ro> Esf_a,
   typename field<vec<D>>::template accessor<wo, ro> gradEsf_a) noexcept {
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
-  auto gradEsf = m.template mdcolex<is::cells>(gradEsf_a);
+  auto grad_esf = m.template mdcolex<is::cells>(gradEsf_a);
 
   if constexpr(D == 1) {
     const double one_over_12dx = 1.0 / (12.0 * m.template delta<ax::x>());
 
     // Application of the 5-stencil central differencing:
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      gradEsf(i).x() =
+      grad_esf(i).x() =
         (Esf(i - 2) - 8.0 * Esf(i - 1) + 8.0 * Esf(i + 1) - Esf(i + 2)) *
         one_over_12dx;
     }; // for
@@ -382,12 +382,12 @@ getGradE(flecsi::exec::accelerator s,
       auto [j, i] = ji;
 
       // Application of the 5-stencil central differencing:
-      gradEsf(i, j).x() = (Esf(i - 2, j) - 8.0 * Esf(i - 1, j) +
-                            8.0 * Esf(i + 1, j) - Esf(i + 2, j)) *
-                          one_over_12dx;
-      gradEsf(i, j).y() = (Esf(i, j - 2) - 8.0 * Esf(i, j - 1) +
-                            8.0 * Esf(i, j + 1) - Esf(i, j + 2)) *
-                          one_over_12dy;
+      grad_esf(i, j).x() = (Esf(i - 2, j) - 8.0 * Esf(i - 1, j) +
+                             8.0 * Esf(i + 1, j) - Esf(i + 2, j)) *
+                           one_over_12dx;
+      grad_esf(i, j).y() = (Esf(i, j - 2) - 8.0 * Esf(i, j - 1) +
+                             8.0 * Esf(i, j + 1) - Esf(i, j + 2)) *
+                           one_over_12dy;
     }; // forall
   }
   else {
@@ -404,15 +404,15 @@ getGradE(flecsi::exec::accelerator s,
       auto [k, j, i] = kji;
 
       // Application of the 5-stencil central differencing:
-      gradEsf(i, j, k).x() = (Esf(i - 2, j, k) - 8.0 * Esf(i - 1, j, k) +
-                               8.0 * Esf(i + 1, j, k) - Esf(i + 2, j, k)) *
-                             one_over_12dx;
-      gradEsf(i, j, k).y() = (Esf(i, j - 2, k) - 8.0 * Esf(i, j - 1, k) +
-                               8.0 * Esf(i, j + 1, k) - Esf(i, j + 2, k)) *
-                             one_over_12dy;
-      gradEsf(i, j, k).z() = (Esf(i, j, k - 2) - 8.0 * Esf(i, j, k - 1) +
-                               8.0 * Esf(i, j, k + 1) - Esf(i, j, k + 2)) *
-                             one_over_12dz;
+      grad_esf(i, j, k).x() = (Esf(i - 2, j, k) - 8.0 * Esf(i - 1, j, k) +
+                                8.0 * Esf(i + 1, j, k) - Esf(i + 2, j, k)) *
+                              one_over_12dx;
+      grad_esf(i, j, k).y() = (Esf(i, j - 2, k) - 8.0 * Esf(i, j - 1, k) +
+                                8.0 * Esf(i, j + 1, k) - Esf(i, j + 2, k)) *
+                              one_over_12dy;
+      grad_esf(i, j, k).z() = (Esf(i, j, k - 2) - 8.0 * Esf(i, j, k - 1) +
+                                8.0 * Esf(i, j, k + 1) - Esf(i, j, k + 2)) *
+                              one_over_12dz;
     };
   }
 } // getGradE
@@ -441,8 +441,8 @@ getLambda(flecsi::exec::accelerator s,
 
   auto r = m.template mdcolex<is::cells>(r_a);
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
-  auto gradEsf = m.template mdcolex<is::cells>(gradEsf_a);
-  auto gradE_mag = m.template mdcolex<is::cells>(gradE_mag_a);
+  auto grad_esf = m.template mdcolex<is::cells>(gradEsf_a);
+  auto grad_e_mag = m.template mdcolex<is::cells>(gradE_mag_a);
   auto R = m.template mdcolex<is::cells>(R_a);
   auto lambda = m.template mdcolex<is::cells>(lambda_a);
 
@@ -451,8 +451,8 @@ getLambda(flecsi::exec::accelerator s,
       auto const kappa = *kappa_a;
       const double zero_guard = 1.0e-15;
 
-      gradE_mag(i) = std::abs(gradEsf(i).x());
-      R(i) = gradE_mag(i) / (kappa * r(i) * Esf(i) + zero_guard);
+      grad_e_mag(i) = std::abs(grad_esf(i).x());
+      R(i) = grad_e_mag(i) / (kappa * r(i) * Esf(i) + zero_guard);
       lambda(i) = AFLDlambda(R(i), *limiter_id_a);
     };
   }
@@ -465,8 +465,8 @@ getLambda(flecsi::exec::accelerator s,
       const double zero_guard = 1.0e-15;
 
       auto [j, i] = ji;
-      gradE_mag(i, j) = gradEsf(i, j).norm();
-      R(i, j) = gradE_mag(i, j) / (kappa * r(i, j) * Esf(i, j) + zero_guard);
+      grad_e_mag(i, j) = grad_esf(i, j).norm();
+      R(i, j) = grad_e_mag(i, j) / (kappa * r(i, j) * Esf(i, j) + zero_guard);
       lambda(i, j) = AFLDlambda(R(i, j), *limiter_id_a);
     };
   }
@@ -480,9 +480,9 @@ getLambda(flecsi::exec::accelerator s,
       const double zero_guard = 1.0e-15;
 
       auto [k, j, i] = kji;
-      gradE_mag(i, j, k) = gradEsf(i, j, k).norm();
+      grad_e_mag(i, j, k) = grad_esf(i, j, k).norm();
       R(i, j, k) =
-        gradE_mag(i, j, k) / (kappa * r(i, j, k) * Esf(i, j, k) + zero_guard);
+        grad_e_mag(i, j, k) / (kappa * r(i, j, k) * Esf(i, j, k) + zero_guard);
       lambda(i, j, k) = AFLDlambda(R(i, j, k), *limiter_id_a);
     };
   }
@@ -498,12 +498,12 @@ getRadForce(flecsi::exec::accelerator s,
   typename field<vec<D>>::template accessor<wo, na> fr_a) noexcept {
 
   auto lambda = m.template mdcolex<is::cells>(lambda_a);
-  auto gradEsf = m.template mdcolex<is::cells>(gradEsf_a);
+  auto grad_esf = m.template mdcolex<is::cells>(gradEsf_a);
   auto fr = m.template mdcolex<is::cells>(fr_a);
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      fr(i).x() = -lambda(i) * gradEsf(i).x();
+      fr(i).x() = -lambda(i) * grad_esf(i).x();
     };
   }
   else if constexpr(D == 2) {
@@ -513,8 +513,8 @@ getRadForce(flecsi::exec::accelerator s,
 
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
-      fr(i, j).x() = -lambda(i, j) * gradEsf(i, j).x();
-      fr(i, j).y() = -lambda(i, j) * gradEsf(i, j).y();
+      fr(i, j).x() = -lambda(i, j) * grad_esf(i, j).x();
+      fr(i, j).y() = -lambda(i, j) * grad_esf(i, j).y();
     };
   }
   else {
@@ -524,9 +524,9 @@ getRadForce(flecsi::exec::accelerator s,
       m.template cells<ax::x, dm::quantities>());
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
-      fr(i, j, k).x() = -lambda(i, j, k) * gradEsf(i, j, k).x();
-      fr(i, j, k).y() = -lambda(i, j, k) * gradEsf(i, j, k).y();
-      fr(i, j, k).z() = -lambda(i, j, k) * gradEsf(i, j, k).z();
+      fr(i, j, k).x() = -lambda(i, j, k) * grad_esf(i, j, k).x();
+      fr(i, j, k).y() = -lambda(i, j, k) * grad_esf(i, j, k).y();
+      fr(i, j, k).z() = -lambda(i, j, k) * grad_esf(i, j, k).z();
     };
   }
 } // getRadForce
@@ -554,7 +554,7 @@ explicit_source_update(flecsi::exec::accelerator s,
   auto velocity = m.template mdcolex<is::cells>(velocity_a);
   auto fr = m.template mdcolex<is::cells>(fr_a);
   auto P_tensor = m.template mdcolex<is::cells>(P_tensor_a);
-  auto gradV = m.template mdcolex<is::cells>(gradV_a);
+  auto grad_v = m.template mdcolex<is::cells>(gradV_a);
 
   auto dt_momentum_density =
     m.template mdcolex<is::cells>(dt_momentum_energy_density_a);
@@ -576,9 +576,9 @@ explicit_source_update(flecsi::exec::accelerator s,
       // work done by the radiative force: vdot_fr(i) = u(i).x() * fr(i).x()
       dt_total_energy_density(i) += velocity(i).x() * fr(i).x();
 
-      // Subtracting the photon tiring term, (P::gradV), from the radiation
+      // Subtracting the photon tiring term, (P::grad_v), from the radiation
       // energy density in each cell. See Eq(34) in Moens2022.
-      dt_radiation_energy_density(i) += -P_tensor(i).xx * gradV(i).xx;
+      dt_radiation_energy_density(i) += -P_tensor(i).xx * grad_v(i).xx;
 
       // TODO:
       // Add the source from the temperature
@@ -604,13 +604,13 @@ explicit_source_update(flecsi::exec::accelerator s,
       dt_total_energy_density(i, j) +=
         velocity(i, j).x() * fr(i, j).x() + velocity(i, j).y() * fr(i, j).y();
 
-      // Subtracting the photon tiring term, (P::gradV), from the radiation
+      // Subtracting the photon tiring term, (P::grad_v), from the radiation
       // energy density in each cell. See Eq(34) in Moens2022.
       dt_radiation_energy_density(i, j) +=
-        -(P_tensor(i, j).xx * gradV(i, j).xx +
-          P_tensor(i, j).xy * gradV(i, j).xy +
-          P_tensor(i, j).yx * gradV(i, j).yx +
-          P_tensor(i, j).yy * gradV(i, j).yy);
+        -(P_tensor(i, j).xx * grad_v(i, j).xx +
+          P_tensor(i, j).xy * grad_v(i, j).xy +
+          P_tensor(i, j).yx * grad_v(i, j).yx +
+          P_tensor(i, j).yy * grad_v(i, j).yy);
     };
   }
   else {
@@ -633,18 +633,18 @@ explicit_source_update(flecsi::exec::accelerator s,
         velocity(i, j, k).y() * fr(i, j, k).y() +
         velocity(i, j, k).z() * fr(i, j, k).z();
 
-      // Subtracting the photon tiring term, (P::gradV), from the radiation
+      // Subtracting the photon tiring term, (P::grad_v), from the radiation
       // energy density in each cell. See Eq(34) in Moens et al. 2022.
       dt_radiation_energy_density(i, j, k) +=
-        -(P_tensor(i, j, k).xx * gradV(i, j, k).xx +
-          P_tensor(i, j, k).xy * gradV(i, j, k).xy +
-          P_tensor(i, j, k).xz * gradV(i, j, k).xz +
-          P_tensor(i, j, k).yx * gradV(i, j, k).yx +
-          P_tensor(i, j, k).yy * gradV(i, j, k).yy +
-          P_tensor(i, j, k).yz * gradV(i, j, k).yz +
-          P_tensor(i, j, k).zx * gradV(i, j, k).zx +
-          P_tensor(i, j, k).zy * gradV(i, j, k).zy +
-          P_tensor(i, j, k).zz * gradV(i, j, k).zz);
+        -(P_tensor(i, j, k).xx * grad_v(i, j, k).xx +
+          P_tensor(i, j, k).xy * grad_v(i, j, k).xy +
+          P_tensor(i, j, k).xz * grad_v(i, j, k).xz +
+          P_tensor(i, j, k).yx * grad_v(i, j, k).yx +
+          P_tensor(i, j, k).yy * grad_v(i, j, k).yy +
+          P_tensor(i, j, k).yz * grad_v(i, j, k).yz +
+          P_tensor(i, j, k).zx * grad_v(i, j, k).zx +
+          P_tensor(i, j, k).zy * grad_v(i, j, k).zy +
+          P_tensor(i, j, k).zz * grad_v(i, j, k).zz);
     }; // forall
   }
 } // explicitSourceUpdate

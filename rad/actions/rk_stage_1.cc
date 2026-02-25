@@ -85,47 +85,47 @@ RK_advance_1(control_policy<state, D> & cp) {
       std::vector{
         std::make_tuple(
           s.cons.hydro.mass_density(*s.m),
-          s.f.hydro.rFace(s.m)),
+          s.f.hydro.r_face(s.m)),
         std::make_tuple(
           s.prim.specific_internal_energy(*s.m),
-          s.f.hydro.eFace(s.m)),
+          s.f.hydro.e_face(s.m)),
         std::make_tuple(
           s.prim.sound_speed(*s.m),
-          s.f.hydro.cFace(s.m)),
+          s.f.hydro.c_face(s.m)),
         std::make_tuple(
           s.rad.cons.radiation_energy_density(*s.m),
-          s.rad.f.EradFace(s.m)),
+          s.rad.f.erad_face(s.m)),
         std::make_tuple(
           s.prim.pressure(*s.m),
-          s.f.hydro.pFace(s.m))},
+          s.f.hydro.p_face(s.m))},
       std::vector{
         std::make_tuple(
           s.prim.velocity(*s.m),
-          s.f.hydro.uFace(s.m))});
+          s.f.hydro.u_face(s.m))});
     // clang-format on
 
     sc.execute<tasks::hydro::reconstruct_conservatives<D>>(flecsi::exec::on,
       *s.m,
-      s.f.hydro.rFace(s.m),
-      s.f.hydro.uFace(s.m),
-      s.f.hydro.eFace(s.m),
-      s.f.hydro.ruFace(s.m),
-      s.f.hydro.rEFace(s.m));
+      s.f.hydro.r_face(s.m),
+      s.f.hydro.u_face(s.m),
+      s.f.hydro.e_face(s.m),
+      s.f.hydro.ru_face(s.m),
+      s.f.hydro.re_face(s.m));
 
     // Calculate K1 and save it to dt_U
     sc.execute<tasks::hydro::compute_interface_fluxes<D>>(flecsi::exec::on,
       axis,
       *s.m,
-      s.f.hydro.rFace(s.m),
-      s.f.hydro.uFace(s.m),
-      s.f.hydro.pFace(s.m),
-      s.f.hydro.cFace(s.m),
-      s.f.hydro.ruFace(s.m),
-      s.f.hydro.rEFace(s.m),
+      s.f.hydro.r_face(s.m),
+      s.f.hydro.u_face(s.m),
+      s.f.hydro.p_face(s.m),
+      s.f.hydro.c_face(s.m),
+      s.f.hydro.ru_face(s.m),
+      s.f.hydro.re_face(s.m),
       // Riemann Fluxes
-      s.rf.hydro.rF(*s.m),
-      s.rf.hydro.ruF(*s.m),
-      s.rf.hydro.rEF(*s.m),
+      s.rf.hydro.r_f(*s.m),
+      s.rf.hydro.ru_f(*s.m),
+      s.rf.hydro.re_f(*s.m),
 
       s.rk_dt1(s.m),
       s.icst.gravity_acc(*s.gt));
@@ -134,11 +134,11 @@ RK_advance_1(control_policy<state, D> & cp) {
     sc.execute<tasks::rad::compute_interface_fluxes<D>>(flecsi::exec::on,
       axis,
       *s.m,
-      s.f.hydro.uFace(s.m),
-      s.f.hydro.cFace(s.m),
-      s.rad.f.EradFace(s.m),
+      s.f.hydro.u_face(s.m),
+      s.f.hydro.c_face(s.m),
+      s.rad.f.erad_face(s.m),
       // Riemann Fluxes
-      s.rad.rf.EradF(*s.m),
+      s.rad.rf.erad_f(*s.m),
       //
       s.rad.dt_radiation_energy_density_1(*s.m));
   }
