@@ -44,3 +44,5 @@ if(ENABLE_CATALYST)
   target_link_libraries(hydro PRIVATE catalyst::catalyst)
   target_compile_definitions(hydro PRIVATE ENABLE_CATALYST)
 endif()
+
+install(TARGETS rad)
