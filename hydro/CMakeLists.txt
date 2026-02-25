@@ -110,3 +110,5 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
 
   endif()
 endif()
+
+install(TARGETS hydro)
