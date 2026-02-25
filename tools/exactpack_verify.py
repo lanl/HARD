@@ -38,7 +38,7 @@ class ProblemData(object):
             self.labels = ["Density", "Pressure", "Velocity"]
             self.tolerances = [1e-2, 1e-2, 5e-1]
         elif dim == 2:
-            self.usecols = [0, 3, 4, 5, 6, 11, 12]
+            self.usecols = [0, 3, 4, 5, 6, 10, 11]
             self.extract = ["density", "pressure", "velocity_x", "velocity_y"]
             self.labels = ["Density", "Pressure", "Velocity x", "Velocity y"]
             self.tolerances = [1e-2, 1e-2, 5e-1, 5e-1]

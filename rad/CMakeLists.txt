@@ -5,6 +5,7 @@
 
 add_executable(rad
   rad.cc
+  actions/analyze.cc
   actions/init.cc
   actions/finalize.cc
   actions/rk_stage_1.cc
