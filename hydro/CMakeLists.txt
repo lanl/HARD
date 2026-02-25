@@ -6,7 +6,7 @@
 add_executable(hydro
   hydro.cc
   actions/init.cc
-  actions/time_derivative.cc
+  actions/rhs.cc
   actions/rk_stage_1.cc
   actions/rk_stage_2.cc
   actions/update_dt.cc

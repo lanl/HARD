@@ -13,7 +13,7 @@ add_library(libhydro::libhydro ALIAS libhydro)
 set(modules_headers
   tasks/cons2prim.hh
   tasks/external_source.hh
-  tasks/time_derivative.hh
+  tasks/rhs.hh
   tasks/interface_fluxes.hh
   tasks/reconstruct.hh
 )

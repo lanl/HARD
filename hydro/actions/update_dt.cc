@@ -2,7 +2,7 @@
 #include "utils.hh"
 
 #include "../modules/hydro/tasks/maxcharspeed.hh"
-#include "../modules/hydro/tasks/time_derivative.hh"
+#include "../modules/hydro/tasks/rhs.hh"
 
 namespace hard {
 

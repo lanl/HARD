@@ -2,13 +2,13 @@
 #include "utils.hh"
 
 #include "../modules/hydro/tasks/init.hh"
-#include "../modules/hydro/tasks/time_derivative.hh"
+#include "../modules/hydro/tasks/rhs.hh"
 
 namespace hard {
 
 template<std::size_t D>
 void
-time_derivative(control_policy<state, D> & cp) {
+rhs(control_policy<state, D> & cp) {
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
 
@@ -30,11 +30,9 @@ time_derivative(control_policy<state, D> & cp) {
     std::vector{// dt1
       s.rk_dt1.mass_density()(*s.m),
       s.rk_dt1.total_energy_density()(*s.m),
-      s.rad.dt_radiation_energy_density_1(*s.m),
       // dt2
       s.rk_dt2.mass_density()(*s.m),
-      s.rk_dt2.total_energy_density()(*s.m),
-      s.rad.dt_radiation_energy_density_2(*s.m)},
+      s.rk_dt2.total_energy_density()(*s.m)},
     std::vector{// dt1
       s.rk_dt1.momentum_energy_density()(*s.m),
       // dt2
@@ -50,10 +48,7 @@ time_derivative(control_policy<state, D> & cp) {
         s.rk_n.mass_density()(*s.m)),
       std::make_tuple(
         s.cons.hydro.total_energy_density(*s.m),
-        s.rk_n.total_energy_density()(*s.m)),
-      std::make_tuple(
-        s.rad.cons.radiation_energy_density(*s.m),
-        s.rad.dt_radiation_energy_density_n(*s.m))},
+        s.rk_n.total_energy_density()(*s.m))},
     std::vector{
       std::make_tuple(
         s.cons.hydro.momentum_density(*s.m),
@@ -61,11 +56,8 @@ time_derivative(control_policy<state, D> & cp) {
   // clang-format on
 }
 
-inline control<state, 1>::action<time_derivative<1>, cp::time_derivative>
-  time_derivative_1d;
-inline control<state, 2>::action<time_derivative<2>, cp::time_derivative>
-  time_derivative_2d;
-inline control<state, 3>::action<time_derivative<3>, cp::time_derivative>
-  time_derivative_3d;
+inline control<state, 1>::action<rhs<1>, cp::rhs> rhs_1d;
+inline control<state, 2>::action<rhs<2>, cp::rhs> rhs_2d;
+inline control<state, 3>::action<rhs<3>, cp::rhs> rhs_3d;
 
 } // namespace hard

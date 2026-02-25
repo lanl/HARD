@@ -17,7 +17,7 @@ enum class cp {
   ///
   initialize,
   ///
-  time_derivative,
+  rhs,
   ///
   rk_stage_1,
   ///
@@ -35,8 +35,8 @@ operator*(cp control_point) {
   switch(control_point) {
     case cp::initialize:
       return "hydro_initialize";
-    case cp::time_derivative:
-      return "hydro_time_derivative";
+    case cp::rhs:
+      return "hydro_rhs";
     case cp::rk_stage_1:
       return "hydro_rk_stage_1";
     case cp::rk_stage_2:
@@ -201,7 +201,7 @@ struct control_policy : flecsi::run::control_base {
 
   using control_points = list<point<cp::initialize>,
     cycle<cycle_control,
-      point<cp::time_derivative>,
+      point<cp::rhs>,
       point<cp::rk_stage_1>,
       point<cp::rk_stage_2>,
       point<cp::update_dt>,
@@ -237,7 +237,7 @@ enum class cp {
   ///
   initialize,
   ///
-  time_derivative,
+  rhs,
   ///
   radiation,
   ///
@@ -261,8 +261,8 @@ operator*(cp control_point) {
   switch(control_point) {
     case cp::initialize:
       return "rad_initialize";
-    case cp::time_derivative:
-      return "rad_time_derivative";
+    case cp::rhs:
+      return "rad_rhs";
     case cp::radiation:
       return "rad_radiation";
     case cp::couple_hydro_radiation_1:
@@ -433,7 +433,7 @@ struct control_policy : flecsi::run::control_base {
 
   using control_points = list<point<cp::initialize>,
     cycle<cycle_control,
-      point<cp::time_derivative>,
+      point<cp::rhs>,
       point<cp::radiation>,
       point<cp::couple_hydro_radiation_1>,
       point<cp::rk_stage_1>,

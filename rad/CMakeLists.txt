@@ -13,7 +13,7 @@ add_executable(rad
   actions/couple_hydro_radiation.cc
   actions/radiation.cc
   actions/update_dt.cc
-  actions/time_derivative.cc
+  actions/rhs.cc
 )
 
 target_include_directories(rad

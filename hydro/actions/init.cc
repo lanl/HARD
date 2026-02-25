@@ -6,7 +6,7 @@
 #include "../modules/hydro/tasks/init.hh"
 #include "../modules/hydro/tasks/initial_data/all_initial_data.hh"
 #include "../modules/hydro/tasks/maxcharspeed.hh"
-#include "../modules/hydro/tasks/time_derivative.hh"
+#include "../modules/hydro/tasks/rhs.hh"
 #include "../modules/spec/eos.hh"
 #include "../modules/spec/tasks/boundaries/boundary.hh"
 #include "../modules/spec/tasks/io.hh"

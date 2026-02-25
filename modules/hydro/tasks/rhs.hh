@@ -1,5 +1,5 @@
-#ifndef HARD_MODULE_HYDRO_TIME_DERIVATIVE_HH
-#define HARD_MODULE_HYDRO_TIME_DERIVATIVE_HH
+#ifndef HARD_MODULE_HYDRO_RHS_HH
+#define HARD_MODULE_HYDRO_RHS_HH
 
 #include "../modules/hydro/numerical_algorithms/time_stepper.hh"
 #include <cstddef>
@@ -191,4 +191,4 @@ add_k1_k2(flecsi::exec::accelerator s,
 
 } // namespace hard::tasks::hydro
 
-#endif // HARD_MODULE_HYDRO_TIME_DERIVATIVE_HH
+#endif // HARD_MODULE_HYDRO_RHS_HH
