@@ -33,7 +33,7 @@ class ProblemData(object):
         self.tolerances: float | list[float]
 
         if dim == 1:
-            self.usecols = [0, 2, 3, 4, 9]
+            self.usecols = [0, 2, 3, 4, 8]
             self.extract = ["density", "pressure", "velocity"]
             self.labels = ["Density", "Pressure", "Velocity"]
             self.tolerances = [1e-2, 1e-2, 5e-1]
