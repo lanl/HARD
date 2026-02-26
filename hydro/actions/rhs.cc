@@ -1,5 +1,4 @@
 #include "state.hh"
-#include "utils.hh"
 
 #include "../modules/hydro/tasks/init.hh"
 #include "../modules/hydro/tasks/rhs.hh"

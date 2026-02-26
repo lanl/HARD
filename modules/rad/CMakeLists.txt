@@ -10,12 +10,25 @@ add_library(librad::librad ALIAS librad)
 
 # You asked for an explicit list pattern; keep it as a set() so it is deterministic.
 set(modules_headers
+  state.hh
+  constants.hh
+  flecsolvers.hh
+  types.hh
+  linsolve.hh
   tasks/init.hh
   tasks/rad.hh
   tasks/rad_root.hh
-  state.hh
-  utils.hh
-  constants.hh
+  tasks/interface_fluxes.hh
+  tasks/operators.hh
+  tasks/time_derivative.hh
+  tasks/utils.hh
+  tasks/initial_data/all_initial_data.hh
+  tasks/initial_data/heating_and_cooling_afld.hh
+  tasks/initial_data/heating_and_cooling.hh
+  tasks/initial_data/implosion_forced_T.hh
+  tasks/initial_data/kelvin_helm_rad.hh
+  tasks/initial_data/rad_rank_hugoniot.hh
+  tasks/initial_data/richtmyer_meshkov.hh
 )
 
 target_sources(librad

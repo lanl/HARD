@@ -13,13 +13,12 @@ add_library(libspec::libspec ALIAS libspec)
 set(modules_headers
   control.hh
   eos.hh
+  io.hh
   labels.hh
   limiter.hh
   mesh.hh
-  rad_function.hh
   runtime.hh
   types.hh
-  utils.hh
   tasks/boundaries/boundary.hh
   tasks/boundaries/dirichlet.hh
   tasks/boundaries/flow.hh

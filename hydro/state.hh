@@ -4,6 +4,8 @@
 #include "../modules/hydro/state.hh"
 #include "types.hh"
 
+#include "../modules/hydro/tasks/utils.hh"
+
 namespace hard {
 
 /*----------------------------------------------------------------------------*

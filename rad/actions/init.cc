@@ -1,8 +1,9 @@
+#include "../modules/rad/tasks/utils.hh"
 #include "options.hh"
 #include "state.hh"
 #include "types.hh"
-#include "utils.hh"
 
+#include "../modules/common/utils.hh"
 #include "../modules/hydro/tasks/cons2prim.hh"
 #include "../modules/hydro/tasks/init.hh"
 #include "../modules/hydro/tasks/maxcharspeed.hh"
@@ -22,6 +23,7 @@ template<std::size_t D>
 void
 initialize(control_policy<state, D> & cp) {
   using namespace flecsi;
+  using namespace common::utils;
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
 
@@ -210,7 +212,7 @@ initialize(control_policy<state, D> & cp) {
            cdcfg = config["color_distribution"].as<color_distribution>()]() {
       return (FLECSI_BACKEND == FLECSI_BACKEND_legion) ||
 
-                 util::axes_colors<D>(cdcfg) == sc.runtime().processes()
+                 axes_colors<D>(cdcfg) == sc.runtime().processes()
                ? std::optional<color_distribution>(cdcfg)
                : std::nullopt;
     }();

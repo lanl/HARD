@@ -1,6 +1,7 @@
 #ifndef HARD_MODULE_HYDRO_RECONSTRUCT_HH
 #define HARD_MODULE_HYDRO_RECONSTRUCT_HH
 
+#include "../modules/common/tasks/utils.hh"
 #include <cstddef>
 
 namespace hard::tasks::hydro {
@@ -84,7 +85,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
   std::vector<std::tuple<typename field<vec<Dim>>::accessor<ro, na>,
     typename faces_vec<Dim>::accessor<wo, na>>> cons_faces_vec_a) noexcept {
 
-  using hard::tasks::util::get_mdiota_policy;
+  using common::tasks::utils::get_mdiota_policy;
   using spec::utils::sqr;
 
   auto ra = reconstruction_axis;
@@ -210,7 +211,7 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
   auto [ru_right, ru_left] = faces_vec<Dim>::mdcolex(m, ruFace_a);
   auto [re_right, re_left] = faces<Dim>::mdcolex(m, rEFace_a);
 
-  using hard::tasks::util::get_mdiota_policy;
+  using common::tasks::utils::get_mdiota_policy;
   using spec::utils::sqr;
 
   if constexpr(Dim == 1) {
