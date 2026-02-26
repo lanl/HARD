@@ -92,9 +92,7 @@ kh_instability_rad(flecsi::exec::cpu s,
 
   // setting temperature
   double rad_temp = 0;
-#ifdef ENABLE_RADIATION
   rad_temp = config["problem_parameters"]["rad_temp"].as<double>();
-#endif
 
   if constexpr(D == 1) {
     assert(

@@ -153,21 +153,50 @@ update_vars(control_policy<state, D> & cp) {
 
   // K2 calculation in the next RK advance
   // clang-format off
-  sc.execute<tasks::hydro::update_u_stage_scalar<D>>(flecsi::exec::on,
+  sc.execute<tasks::hydro::update_u_stage<D>>(flecsi::exec::on,
     s.dt(*s.gt),
     std::vector{
       std::make_tuple(
+        s.rk_n.mass_density()(*s.m),
+        s.rk_dt1.mass_density()(*s.m),
+        s.cons.hydro.mass_density(*s.m)),
+      std::make_tuple(
         s.rad.dt_radiation_energy_density_n(*s.m),
         s.rad.dt_radiation_energy_density_1(*s.m),
-        s.rad.cons.radiation_energy_density(*s.m))});
+        s.rad.cons.radiation_energy_density(*s.m)),
+      std::make_tuple(
+        s.rk_n.total_energy_density()(*s.m),
+        s.rk_dt1.total_energy_density()(*s.m),
+        s.cons.hydro.total_energy_density(*s.m))},
+    std::vector{
+      std::make_tuple(
+        s.rk_n.momentum_energy_density()(*s.m),
+        s.rk_dt1.momentum_energy_density()(*s.m),
+        s.cons.hydro.momentum_density(*s.m))});
   // clang-format on
 
+  // Perform primitive recovery
+  sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
+    *s.m,
+    s.cons.hydro.mass_density(*s.m),
+    s.cons.hydro.momentum_density(*s.m),
+    s.cons.hydro.total_energy_density(*s.m),
+    s.prim.velocity(*s.m),
+    s.prim.pressure(*s.m),
+    s.prim.specific_internal_energy(*s.m),
+    s.prim.sound_speed(*s.m),
+    s.eos);
+
   // Update boundary cells
-  sc.execute<tasks::apply_boundaries_scalar<D>>(flecsi::exec::on,
+  sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
     *s.m,
     s.icst.bmap(*s.gt),
-    std::vector{s.rad.cons.radiation_energy_density(*s.m)});
-
+    std::vector{s.cons.hydro.mass_density(*s.m),
+      s.prim.pressure(*s.m),
+      s.prim.specific_internal_energy(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m)},
+    std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
 } // update_vars
 
 inline control<state, 1>::action<RK_advance_1<1>, cp::rk_stage_1>
