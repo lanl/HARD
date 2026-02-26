@@ -11,11 +11,25 @@ add_library(libhydro::libhydro ALIAS libhydro)
 
 # You asked for an explicit list pattern; keep it as a set() so it is deterministic.
 set(modules_headers
+  constants.hh
+  state.hh
+  types.hh
+  numerical_algorithms/riemann_solvers.hh
+  numerical_algorithms/time_stepper.hh
   tasks/cons2prim.hh
   tasks/external_source.hh
+  tasks/init.hh
   tasks/rhs.hh
   tasks/interface_fluxes.hh
   tasks/reconstruct.hh
+  tasks/maxcharspeed.hh
+  tasks/utils.hh
+  tasks/initial_data/acoustic_wave.hh
+  tasks/initial_data/kelvin_helm.hh
+  tasks/initial_data/lw_implosion.hh
+  tasks/initial_data/rayleigh_taylor.hh
+  tasks/initial_data/sedov.hh
+  tasks/initial_data/shock_tube.hh
 )
 
 target_sources(libhydro

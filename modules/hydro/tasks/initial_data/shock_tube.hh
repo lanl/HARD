@@ -1,6 +1,7 @@
 #ifndef HARD_HYDRO_MODULES_SHOCK_TUBE_HH
 #define HARD_HYDRO_MODULES_SHOCK_TUBE_HH
 
+#include "../modules/common/tasks/utils.hh"
 #include <cmath>
 #include <cstddef>
 
@@ -58,7 +59,8 @@ shock(flecsi::exec::cpu s,
   typename field<vec<D>>::template accessor<rw, ro> momentum_density_a,
   field<double>::accessor<rw, ro> total_energy_density_a,
   const eos::eos_wrapper & eos) {
-  using hard::tasks::util::get_mdiota_policy;
+
+  using common::tasks::utils::get_mdiota_policy;
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);

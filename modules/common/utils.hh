@@ -1,9 +1,7 @@
-#ifndef HARD_MODULE_HYDRO_UTILS_HH
-#define HARD_MODULE_HYDRO_UTILS_HH
+#ifndef HARD_MODULES_COMMON_UTILS_HH
+#define HARD_MODULES_COMMON_UTILS_HH
 
-#include "types.hh"
-
-namespace hard::util {
+namespace common::utils {
 
 /*!
   Return the total number of colors across all axes from the given @em colors
@@ -13,9 +11,9 @@ namespace hard::util {
 
   @param cd The @em colors data structure of axis colors.
  */
-template<std::size_t D>
+template<std::size_t D, class CD>
 std::size_t
-axes_colors(color_distribution const & cd) {
+axes_colors(CD const & cd) {
   if(D == 1) {
     return cd[0];
   }
@@ -27,6 +25,6 @@ axes_colors(color_distribution const & cd) {
   }
 } // colors
 
-} // namespace hard::util
+} // namespace common::utils
 
-#endif // HARD_MODULE_HYDRO_UTILS_HH
+#endif // HARD_MODULES_COMMON_UTILS_HH

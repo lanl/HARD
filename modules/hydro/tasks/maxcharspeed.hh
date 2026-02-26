@@ -1,6 +1,7 @@
 #ifndef HARD_MODULE_HYDRO_MAXCHARSPEED_HH
 #define HARD_MODULE_HYDRO_MAXCHARSPEED_HH
 
+#include "../modules/common/tasks/utils.hh"
 #include <cstddef>
 
 namespace hard::tasks::hydro {
@@ -11,7 +12,7 @@ update_max_characteristic_speed(flecsi::exec::accelerator s,
   field<double>::accessor<ro, na> r_a,
   typename field<vec<D>>::template accessor<ro, na> u_a,
   field<double>::accessor<ro, na> c_a) noexcept {
-  using hard::tasks::util::get_mdiota_policy;
+  using common::tasks::utils::get_mdiota_policy;
   namespace fold = flecsi::exec::fold;
 
   auto density = m.template mdcolex<is::cells>(r_a);

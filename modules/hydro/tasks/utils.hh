@@ -10,20 +10,6 @@ namespace hard::tasks::util {
 
 enum bl { low, high, none };
 
-// Utility function to display variables associated with a name
-template<std::size_t D>
-void
-display(std::vector<std::tuple<std::string, field<double>::accessor<ro, ro>>>
-    v_f) noexcept {
-  for(auto & vv : v_f) {
-    auto [s, v] = vv;
-    std::cout << s << ":" << '\n';
-    for(int i = 0; i < v.span().size(); ++i) {
-      std::cout << v[i] << '\n';
-    }
-  }
-}
-
 /*
   Find the specific internal energy consitent with the given density and
   pressure.
@@ -45,38 +31,6 @@ find_sie(E const & eos,
   assert(s == Status::SUCCESS && "specific internal energy root finder failed");
   return sie;
 } // find_sie
-
-// Here, we need to get the updated Temperature via root-finding
-// We have the form like:
-// F(T) = e(rho, T) - e^n - a / (1 + a) * (ar * T^4 - En)
-//  where a = dt * kappa * c
-template<typename E>
-auto FLECSI_INLINE_TARGET
-find_temp(E const & eos,
-  const double_t r,
-  const double_t e,
-  const double_t gt,
-  const double_t kappa,
-  const double_t En,
-  const double_t dt) {
-
-  using namespace RootFinding1D;
-  double_t t{gt};
-  const double_t min{eos.tRhoSie(r, 1.0e-50)};
-  const double_t max{eos.tRhoSie(r, 1.0e20)};
-  const double_t ar{constants::cgs::radiation_constant};
-  const double_t a{dt * kappa * constants::cgs::speed_of_light};
-
-  auto kernel = [&eos, r, a, ar, En](double_t t) {
-    return eos.eRhoT(r, t) + a / (1 + a) * (ar * pow(t, 4.0) - En);
-  };
-
-  [[maybe_unused]] auto s =
-    regula_falsi(kernel, e, gt, min, max, 1.0e-12, 1.0e-12, t);
-  assert(s == Status::SUCCESS && "specific internal energy root finder failed");
-  return t;
-
-} // find_temp
 
 template<dm::domain DM, std::size_t D>
 inline void
@@ -215,40 +169,6 @@ print_primitives(flecsi::exec::cpu,
     flog(info) << ss.str() << std::endl;
   }
 } // print_primitives
-
-template<class M, typename IT>
-FLECSI_INLINE_TARGET auto
-get_mdiota_policy(const M & m, const IT & it1, const IT & it2) {
-  using flecsi::exec::mdiota_view;
-  using flecsi::exec::sub_range;
-
-  auto b1 = *it1.begin();
-  auto e1 = *it1.end();
-
-  auto b2 = *it2.begin();
-  auto e2 = *it2.end();
-
-  return mdiota_view(m, sub_range{b1, e1}, sub_range{b2, e2});
-} // get_mdiota_policy
-
-template<class M, typename IT>
-FLECSI_INLINE_TARGET auto
-get_mdiota_policy(const M & m, const IT & it1, const IT & it2, const IT & it3) {
-  using flecsi::exec::mdiota_view;
-  using flecsi::exec::sub_range;
-
-  auto b1 = *it1.begin();
-  auto e1 = *it1.end();
-
-  auto b2 = *it2.begin();
-  auto e2 = *it2.end();
-
-  auto b3 = *it3.begin();
-  auto e3 = *it3.end();
-
-  return mdiota_view(
-    m, sub_range{b1, e1}, sub_range{b2, e2}, sub_range{b3, e3});
-} // get_mdiota_policy
 
 } // namespace hard::tasks::util
 

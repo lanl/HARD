@@ -3,6 +3,8 @@
 
 #include <cstddef>
 
+#include "../modules/common/tasks/utils.hh"
+
 #include "dirichlet.hh"
 #include "flow.hh"
 #include "reflective.hh"
@@ -74,7 +76,7 @@ apply_boundary(flecsi::exec::accelerator & s,
   std::vector<typename field<T>::template accessor<rw, ro>> & f_a,
   double value = 0) noexcept {
 
-  using hard::tasks::util::get_mdiota_policy;
+  using common::tasks::utils::get_mdiota_policy;
 
   const size_t ghost_zone_size = m.ghost_zone_size();
 

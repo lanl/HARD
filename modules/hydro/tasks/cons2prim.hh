@@ -1,6 +1,7 @@
 #ifndef HARD_MODULE_HYDRO_CONS2PRIM_HH
 #define HARD_MODULE_HYDRO_CONS2PRIM_HH
 
+#include "../modules/common/tasks/utils.hh"
 #include "../modules/spec/eos.hh"
 #include <cstddef>
 
@@ -19,7 +20,7 @@ conservative_to_primitive(flecsi::exec::accelerator s,
   field<double>::accessor<wo, na> soundspeed_a,
   eos::eos_wrapper const & eos) noexcept {
 
-  using hard::tasks::util::get_mdiota_policy;
+  using common::tasks::utils::get_mdiota_policy;
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);

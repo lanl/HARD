@@ -46,3 +46,9 @@ if(ENABLE_CATALYST)
 endif()
 
 install(TARGETS rad)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/configs/
+  DESTINATION share/HARD/rad/configs
+  FILES_MATCHING PATTERN "*.yaml"
+  PATTERN "ci_configs" EXCLUDE
+)

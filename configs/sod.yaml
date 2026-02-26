@@ -11,8 +11,8 @@ cfl: 0.3
 max_dt: 1.0
 log_frequency: 500
 output_frequency: 500
-levels: [8, 8, 8]
-lowest_level: 8
+levels: [5, 5, 5]
+lowest_level: 5
 coords:
   - [0.0, 0.0, 0.0]
   - [1.0, 1.0, 1.0]

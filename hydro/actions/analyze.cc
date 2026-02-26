@@ -1,5 +1,4 @@
 #include "state.hh"
-#include "utils.hh"
 
 #include <../modules/spec/tasks/io.hh>
 #include <flecsi/flog.hh>

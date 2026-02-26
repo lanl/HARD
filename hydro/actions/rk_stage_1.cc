@@ -1,5 +1,4 @@
 #include "state.hh"
-#include "utils.hh"
 
 #include "../modules/hydro/tasks/cons2prim.hh"
 #include "../modules/hydro/tasks/external_source.hh"

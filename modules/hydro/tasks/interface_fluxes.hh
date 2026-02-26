@@ -1,6 +1,7 @@
 #ifndef HARD_MODULE_HYDRO_INTERFACE_FLUXES_HH
 #define HARD_MODULE_HYDRO_INTERFACE_FLUXES_HH
 
+#include "../modules/common/tasks/utils.hh"
 #include "../numerical_algorithms/riemann_solvers.hh"
 #include <cstddef>
 
@@ -39,7 +40,7 @@ compute_interface_fluxes(flecsi::exec::cpu s,
   auto [dt_mass_density, dt_total_energy_density, dt_momentum_density] =
     RK<Dim>::mdcolex(m, rk_dt_a);
 
-  using hard::tasks::util::get_mdiota_policy;
+  using common::tasks::utils::get_mdiota_policy;
   // Compute (1 / dx^i)
   const auto one_over_dx_i = [&m]() {
     if constexpr(Dim == 1) {

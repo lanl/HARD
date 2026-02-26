@@ -1,7 +1,6 @@
 #ifndef HARD_COMMON_TASKS_BOUNDARIES_FLOW_HH
 #define HARD_COMMON_TASKS_BOUNDARIES_FLOW_HH
 
-#include "tasks/utils.hh"
 #include "types.hh"
 
 namespace hard::tasks {

@@ -42,14 +42,24 @@ if(ENABLE_CATALYST)
   target_compile_definitions(hydro PRIVATE ENABLE_CATALYST)
 endif()
 
+if(ENABLE_UNIT_TESTS)
+
+  set(FLECSI_UNIT_MAIN ${CMAKE_SOURCE_DIR}/hydro/tests/main.cc)
+
+  flecsi_add_test(mesh
+    SOURCES
+    tests/mesh.cc
+  )
+
+endif()
 
 if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
 
   if(ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
 
-    set(TEST_VERIFY_SCRIPT "${CMAKE_SOURCE_DIR}/scripts/test_verify.sh")
-    set(TEST_DISTRIBUTED_SCRIPT "${CMAKE_SOURCE_DIR}/scripts/test_distributed.sh")
-    set(TEST_CONVERGENCE_SCRIPT "${CMAKE_SOURCE_DIR}/scripts/test_convergence.sh")
+    set(TEST_VERIFY_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_verify.sh")
+    set(TEST_DISTRIBUTED_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_distributed.sh")
+    set(TEST_CONVERGENCE_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_convergence.sh")
     
     file(MAKE_DIRECTORY
       ${CMAKE_BINARY_DIR}/tests/rk_3d
@@ -112,3 +122,9 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
 endif()
 
 install(TARGETS hydro)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/configs/
+  DESTINATION share/HARD/hydro/configs
+  FILES_MATCHING PATTERN "*.yaml"
+  PATTERN "ci_configs" EXCLUDE
+)

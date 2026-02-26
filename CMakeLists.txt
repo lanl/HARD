@@ -160,7 +160,6 @@ endif()
 option(ENABLE_UNIT_TESTS "Enable unit tests" OFF)
 mark_as_advanced(ENABLE_UNIT_TESTS)
 
-set(FLECSI_UNIT_MAIN ${CMAKE_SOURCE_DIR}/app/tests/main.cc)
 include(FleCSI/unit)
 
 if(ENABLE_UNIT_TESTS)
@@ -179,7 +178,7 @@ add_subdirectory(hydro)
 add_subdirectory(rad)
 
 #------------------------------------------------------------------------------#
-# Optional verification 
+# Optional verification
 #------------------------------------------------------------------------------#
 
 option(ENABLE_VERIFICATION "Enable exactpack verification" OFF)

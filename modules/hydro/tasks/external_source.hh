@@ -1,11 +1,10 @@
 #ifndef HARD_MODULE_HYDRO_EXTERNAL_SOURCE_HH
 #define HARD_MODULE_HYDRO_EXTERNAL_SOURCE_HH
 
+#include "../modules/common/tasks/utils.hh"
 #include <cstddef>
 
 namespace hard::tasks {
-
-using hard::tasks::util::get_mdiota_policy;
 
 // Gravity force and work terms. (Explicit source terms) (for RT instability
 // test case)
@@ -20,6 +19,8 @@ external_source(flecsi::exec::accelerator s,
   // time derivative
   typename field<vec<D>>::template accessor<rw, na> dt_momentum_density_a,
   field<double>::accessor<rw, na> dt_total_energy_density_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
 
   auto velocity = m.template mdcolex<is::cells>(velocity_a);
   auto fg = m.template mdcolex<is::cells>(gravity_force_a);

@@ -10,6 +10,8 @@ add_library(libcommon INTERFACE)
 add_library(libcommon::libcommon ALIAS libcommon)
 
 set(modules_headers
+  utils.hh
+  tasks/utils.hh
 )
 
 target_sources(libcommon
