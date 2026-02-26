@@ -15,14 +15,13 @@ class Hard(CMakePackage, CudaPackage):
 
     variant("catalyst", default=False, description="Enable catalyst for paraview interface")
     variant("radiation", default=True, description="Enable support for radiation physics")
-    variant("flecsolve", default=True, description="Enable flecsolve linear solvers in the radiation solver")
     variant("tests", default=False, description="Enable unit tests")
     variant("verification", default=False, description="Enable physics verification tests")
     variant("format", default=False, description="Enable format target")
 
     depends_on("flecsi@2.4: +flog")
     depends_on("flecsi +cuda", when="+cuda")
-    depends_on("flecsolve", when="+flecsolve")
+    depends_on("flecsolve")
     depends_on("libcatalyst", when="+catalyst")
     #depends_on("paraview@5.12.1+libcatalyst+python", when="+catalyst")
     depends_on("yaml-cpp@0.8:")
@@ -55,8 +54,6 @@ class Hard(CMakePackage, CudaPackage):
             self.define_from_variant("ENABLE_UNIT_TESTS", "tests"),
             self.define_from_variant("ENABLE_VERIFICATION", "verification"),
             self.define_from_variant("ENABLE_CATALYST", "catalyst"),
-            self.define_from_variant("ENABLE_RADIATION", "radiation"),
-            self.define_from_variant("ENABLE_FLECSOLVE", "flecsolve")
         ]
 
         return options
