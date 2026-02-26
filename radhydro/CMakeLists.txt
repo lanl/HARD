@@ -1,10 +1,10 @@
-# rad/CMakeLists.txt
+# radhydro/CMakeLists.txt
 #------------------------------------------------------------------------------#
 # Rad application (executable).
 #------------------------------------------------------------------------------#
 
-add_executable(rad
-  rad.cc
+add_executable(radhydro
+  radhydro.cc
   actions/analyze.cc
   actions/init.cc
   actions/finalize.cc
@@ -16,12 +16,12 @@ add_executable(rad
   actions/rhs.cc
 )
 
-target_include_directories(rad
+target_include_directories(radhydro
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(rad
+target_link_libraries(radhydro
   PRIVATE
     libcommon::libcommon
     libhydro::libhydro
@@ -32,7 +32,7 @@ target_link_libraries(rad
     FleCSI::FleCSI
 )
 
-target_compile_definitions(rad
+target_compile_definitions(radhydro
   PRIVATE
     $<$<BOOL:${HARD_BENCHMARK_MODE}>:HARD_BENCHMARK_MODE>
     $<$<BOOL:${HARD_ENABLE_LEGION_TRACING}>:HARD_ENABLE_LEGION_TRACING>
@@ -44,10 +44,10 @@ if(ENABLE_CATALYST)
   target_compile_definitions(hydro PRIVATE ENABLE_CATALYST)
 endif()
 
-install(TARGETS rad)
+install(TARGETS radhydro)
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/configs/
-  DESTINATION share/HARD/rad/configs
+  DESTINATION share/HARD/radhydro/configs
   FILES_MATCHING PATTERN "*.yaml"
   PATTERN "ci_configs" EXCLUDE
 )

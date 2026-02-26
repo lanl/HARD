@@ -175,7 +175,7 @@ add_subdirectory(modules/spec)
 add_subdirectory(modules/hydro)
 add_subdirectory(modules/rad)
 add_subdirectory(hydro)
-add_subdirectory(rad)
+add_subdirectory(radhydro)
 
 #------------------------------------------------------------------------------#
 # Optional verification
