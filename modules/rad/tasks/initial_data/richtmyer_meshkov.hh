@@ -51,10 +51,8 @@ richtmyer_meshkov(flecsi::exec::cpu s,
   // for defining shock
   const double y_shock = interface + 0.01;
 
-#ifdef ENABLE_RADIATION
   // constant for the radiation energy
   const double a = hard::constants::cgs::radiation_constant;
-#endif
 
   // temperature for radiation
   const double rad_temp =
@@ -100,12 +98,8 @@ richtmyer_meshkov(flecsi::exec::cpu s,
         const double e = util::find_sie(eos, rho, p);
         const double kinetic = 0.5 * rho * vy * vy;
         total_energy_density(i, j) = rho * e + kinetic;
-        radiation_energy_density(i, j) = 0;
-
-#ifdef ENABLE_RADIATION
         radiation_energy_density(i, j) =
           a * spec::utils::sqr(spec::utils::sqr(rad_temp));
-#endif
       }
     };
   }
