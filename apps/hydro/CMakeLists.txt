@@ -68,37 +68,37 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
     # Accuracy tests
     add_test(NAME accuracy_rk_1d
       COMMAND ${TEST_VERIFY_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/hydro/hydro
+      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
       ${CMAKE_SOURCE_DIR}/configs/ci_configs/rk.yaml -d1
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
     add_test(NAME accuracy_sod_1d
       COMMAND ${TEST_VERIFY_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/hydro/hydro
+      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
       ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod.yaml -d1
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
     add_test(NAME accuracy_leblanc_1d
       COMMAND ${TEST_VERIFY_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/hydro/hydro
+      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
       ${CMAKE_SOURCE_DIR}/configs/ci_configs/leblanc.yaml -d1
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
     # add_test(NAME accuracy_sedov_1d
     #   COMMAND ${TEST_VERIFY_SCRIPT}
-    #   ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/hydro/hydro
+    #   ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
     #   ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.yaml -d1
     #   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     # )
     add_test(NAME accuracy_acoustic_1d
       COMMAND ${TEST_VERIFY_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/hydro/hydro
+      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
       ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d1
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
     add_test(NAME accuracy_acoustic_2d
       COMMAND ${TEST_VERIFY_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/hydro/hydro
+      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
       ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d2
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
@@ -106,13 +106,13 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
     # Distributed tests
     add_test(NAME hard-distributed
       COMMAND ${TEST_DISTRIBUTED_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/hydro/hydro
+      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
       ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.yaml -d1)
 
     # Convergence tests
     add_test(NAME convergence_testing
       COMMAND ${TEST_CONVERGENCE_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/hydro/hydro
+      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
       6 10
       ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_convergence.yaml -d1
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
