@@ -11,7 +11,7 @@ namespace tasks::init {
 
 template<std::size_t D>
 void inline initialize_gravity_force(flecsi::exec::cpu,
-  typename field<vec<D>>::template accessor<wo, wo> gravity_force_a) {
+  typename field<vec<D>>::template accessor<wo, wo> gravity_force_a) noexcept {
   auto gf = gravity_force_a.span();
   // initialize gravity force with zero
   std::fill(gf.begin(), gf.end(), vec<D>{0.0});
@@ -20,7 +20,7 @@ void inline initialize_gravity_force(flecsi::exec::cpu,
 template<std::size_t D>
 void inline initialize_gravity_acc(
   typename single<vec<D>>::template accessor<wo> gravity_acc_a,
-  vec<D> k) {
+  vec<D> k) noexcept {
   (*gravity_acc_a) = k;
 } // initialize_gravity_acc
 
@@ -44,7 +44,7 @@ init_time(flecsi::exec::cpu,
 
 void inline set_t_boundary(flecsi::exec::cpu,
   field<double>::accessor<wo> t_boundary,
-  std::vector<double> copy_values) {
+  std::vector<double> copy_values) noexcept {
 
   for(std::size_t i{0}; i < t_boundary.span().size(); i++) {
     t_boundary[i] = copy_values[i];
@@ -57,7 +57,7 @@ void inline set_t_boundary(flecsi::exec::cpu,
 
 void inline convert_temperature(flecsi::exec::cpu,
   field<double>::accessor<rw> temperature,
-  std::string const & unit) {
+  std::string const & unit) noexcept {
 
   assert((unit == "Kelvin" || unit == "eV") && "Unsupported temperature unit");
 
@@ -79,7 +79,7 @@ void inline convert_temperature(flecsi::exec::cpu,
  *----------------------------------------------------------------------------*/
 
 void inline particle_mass(single<double>::accessor<wo> particle_mass_a,
-  double mean_molecular_weight) {
+  double mean_molecular_weight) noexcept {
   (*particle_mass_a) = mean_molecular_weight * constants::cgs::proton_mass;
 } // particle_mass
 
@@ -111,7 +111,7 @@ touch(typename mesh<D>::template accessor<ro>, // m,
   field<double>::accessor<wo, wo>, // rF_a,
   typename field<vec<D>>::template accessor<wo, wo>, // ruF_a,
   field<double>::accessor<wo, wo> // rEF_a
-) {} // touch
+  ) noexcept {} // touch
 
 template<std::size_t D>
 inline void
@@ -137,7 +137,7 @@ touch1(typename mesh<D>::template accessor<ro>, // m,
   field<double>::accessor<wo, wo>, // rF_a,
   typename field<vec<D>>::template accessor<wo, wo>, // ruF_a,
   field<double>::accessor<wo, wo> // rEF_a
-) {} // touch
+  ) noexcept {} // touch
 
 } // namespace tasks::init
 } // namespace hard

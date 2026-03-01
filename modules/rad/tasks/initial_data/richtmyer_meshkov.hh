@@ -2,9 +2,9 @@
 #define HARD_MODULES_RAD_TASKS_INITIAL_RICHTMYER_MESHKOV_HH
 
 #include "../../constants.hh"
+#include "../utils.hh"
 #include "options.hh"
 #include "types.hh"
-#include "../utils.hh"
 #include <cmath>
 #include <cstddef>
 #include <yaml-cpp/yaml.h>
