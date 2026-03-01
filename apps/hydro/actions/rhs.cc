@@ -1,8 +1,7 @@
-#include "../modules/rad/tasks/utils.hh"
 #include "state.hh"
 
-#include "../modules/hydro/tasks/init.hh"
-#include "../modules/hydro/tasks/rhs.hh"
+#include "hydro/tasks/init.hh"
+#include "hydro/tasks/rhs.hh"
 
 namespace hard {
 
@@ -30,11 +29,9 @@ rhs(control_policy<state, D> & cp) {
     std::vector{// dt1
       s.rk_dt1.mass_density()(*s.m),
       s.rk_dt1.total_energy_density()(*s.m),
-      s.rad.dt_radiation_energy_density_1(*s.m),
       // dt2
       s.rk_dt2.mass_density()(*s.m),
-      s.rk_dt2.total_energy_density()(*s.m),
-      s.rad.dt_radiation_energy_density_2(*s.m)},
+      s.rk_dt2.total_energy_density()(*s.m)},
     std::vector{// dt1
       s.rk_dt1.momentum_energy_density()(*s.m),
       // dt2
@@ -50,10 +47,7 @@ rhs(control_policy<state, D> & cp) {
         s.rk_n.mass_density()(*s.m)),
       std::make_tuple(
         s.cons.hydro.total_energy_density(*s.m),
-        s.rk_n.total_energy_density()(*s.m)),
-      std::make_tuple(
-        s.rad.cons.radiation_energy_density(*s.m),
-        s.rad.dt_radiation_energy_density_n(*s.m))},
+        s.rk_n.total_energy_density()(*s.m))},
     std::vector{
       std::make_tuple(
         s.cons.hydro.momentum_density(*s.m),

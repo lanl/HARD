@@ -1,7 +1,7 @@
+#ifndef HARD_MODULES_RAD_TASKS_INITIAL_IMPLOSION_FORCED_T_HH
+#define HARD_MODULES_RAD_TASKS_INITIAL_IMPLOSION_FORCED_T_HH
 
-#pragma once
-
-#include "constants.hh"
+#include "../../constants.hh"
 #include "types.hh"
 #include <../modules/spec/utils.hh>
 #include <cstddef>
@@ -86,3 +86,5 @@ implosion_forced_T(flecsi::exec::cpu s,
 }
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_MODULES_RAD_TASKS_INITIAL_IMPLOSION_FORCED_T_HH

@@ -3,8 +3,8 @@
 
 #include "types.hh"
 
-#include "../modules/hydro/state.hh"
-#include "../modules/rad/state.hh"
+#include "hydro/state.hh"
+#include "rad/state.hh"
 
 namespace hard {
 

@@ -38,7 +38,8 @@ target_sources(librad
 
 target_include_directories(librad
   INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/modules>
+    $<INSTALL_INTERFACE:include>   # if you install later
 )
 
 # libhydro uses the shared spec module + external deps.

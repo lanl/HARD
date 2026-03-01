@@ -1,10 +1,10 @@
 #ifndef HARD_HYDRO_STATE_HH
 #define HARD_HYDRO_STATE_HH
 
-#include "../modules/hydro/state.hh"
+#include "hydro/state.hh"
 #include "types.hh"
 
-#include "../modules/hydro/tasks/utils.hh"
+#include "hydro/tasks/utils.hh"
 
 namespace hard {
 

@@ -1,8 +1,8 @@
-#include "../modules/rad/tasks/utils.hh"
+#include "rad/tasks/utils.hh"
 #include "state.hh"
 
-#include "../modules/hydro/tasks/maxcharspeed.hh"
-#include "../modules/hydro/tasks/rhs.hh"
+#include "hydro/tasks/maxcharspeed.hh"
+#include "hydro/tasks/rhs.hh"
 
 namespace hard {
 

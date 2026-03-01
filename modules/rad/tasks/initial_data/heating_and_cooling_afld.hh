@@ -1,7 +1,7 @@
+#ifndef HARD_MODULES_RAD_TASKS_INITIAL_HEATING_AND_COOLING_AFLD_HH
+#define HARD_MODULES_RAD_TASKS_INITIAL_HEATING_AND_COOLING_AFLD_HH
 
-#pragma once
-
-#include "constants.hh"
+#include "../../constants.hh"
 #include "options.hh"
 #include "types.hh"
 #include <../modules/spec/utils.hh>
@@ -73,3 +73,5 @@ heating_and_cooling_afld(flecsi::exec::accelerator s,
 }
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_MODULES_RAD_TASKS_INITIAL_HEATING_AND_COOLING_AFLD_HH

@@ -1,7 +1,7 @@
 #include "state.hh"
 
-#include "../modules/hydro/tasks/maxcharspeed.hh"
-#include "../modules/hydro/tasks/rhs.hh"
+#include "hydro/tasks/maxcharspeed.hh"
+#include "hydro/tasks/rhs.hh"
 
 namespace hard {
 

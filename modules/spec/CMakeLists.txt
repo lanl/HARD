@@ -35,7 +35,8 @@ target_sources(libspec
 
 target_include_directories(libspec
   INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/modules>
+    $<INSTALL_INTERFACE:include>   # if you install later
 )
 
 # Spec headers may depend on these (keep only what headers actually use).
