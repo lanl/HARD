@@ -1,6 +1,7 @@
+#include "rad/tasks/utils.hh"
 #include "state.hh"
 
-#include <../modules/spec/tasks/io.hh>
+#include <spec/tasks/io.hh>
 #include <flecsi/flog.hh>
 
 namespace hard {
@@ -33,11 +34,12 @@ analyze(control_policy<state, D> & cp) {
         std::make_tuple(
           s.prim.specific_internal_energy(lm), "specific_internal_energy"),
         std::make_tuple(
-          s.cons.hydro.total_energy_density(lm), "total_energy_density")},
+          s.cons.hydro.total_energy_density(lm), "total_energy_density"),
+        std::make_tuple(
+          s.rad.cons.radiation_energy_density(lm), "radiation_energy_density")},
       std::vector{std::make_tuple(s.prim.velocity(lm), "velocity"),
         std::make_tuple(
           s.cons.hydro.momentum_density(lm), "momentum_density")});
-
   } // if
 #endif
 

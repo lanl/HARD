@@ -3,7 +3,7 @@
 #include "flecsi/topology.hh"
 #include "flecsi/util/unit.hh"
 
-#include "../../modules/spec/mesh.hh"
+#include "../../../modules/spec/mesh.hh"
 
 using namespace flecsi;
 using namespace flecsi::data;

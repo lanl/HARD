@@ -1,9 +1,10 @@
-#pragma once
+#ifndef HARD_MODULES_RAD_TASKS_INITIAL_RICHTMYER_MESHKOV_HH
+#define HARD_MODULES_RAD_TASKS_INITIAL_RICHTMYER_MESHKOV_HH
 
-#include "constants.hh"
+#include "../../constants.hh"
 #include "options.hh"
 #include "types.hh"
-#include "utils.hh"
+#include "../utils.hh"
 #include <cmath>
 #include <cstddef>
 #include <yaml-cpp/yaml.h>
@@ -109,3 +110,5 @@ richtmyer_meshkov(flecsi::exec::cpu s,
 }
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_MODULES_RAD_TASKS_INITIAL_RICHTMYER_MESHKOV_HH

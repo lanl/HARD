@@ -1,6 +1,6 @@
 #include "state.hh"
 
-#include <../modules/spec/io.hh>
+#include <spec/io.hh>
 #include <flecsi/flog.hh>
 
 namespace hard::action {

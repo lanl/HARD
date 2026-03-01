@@ -1,47 +1,46 @@
 #include "state.hh"
 
-#include "../modules/hydro/tasks/cons2prim.hh"
-#include "../modules/hydro/tasks/external_source.hh"
-#include "../modules/hydro/tasks/interface_fluxes.hh"
-#include "../modules/hydro/tasks/reconstruct.hh"
-#include "../modules/hydro/tasks/rhs.hh"
-#include "../modules/spec/limiter.hh"
-#include "../modules/spec/tasks/boundaries/boundary.hh"
+#include "hydro/tasks/cons2prim.hh"
+#include "hydro/tasks/external_source.hh"
+#include "hydro/tasks/interface_fluxes.hh"
+#include "hydro/tasks/reconstruct.hh"
+#include "hydro/tasks/rhs.hh"
+#include "spec/limiter.hh"
+#include "spec/tasks/boundaries/boundary.hh"
 
 namespace hard {
 
 template<std::size_t D>
 void
-hydro_RK_advance_1(control_policy<state, D> & cp) {
+RK_advance_2(control_policy<state, D> & cp) {
 
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
 
-  // RK Stage: 1 - Explicit source term (gravity) update for RT case in hydro
-  // file
   sc.execute<tasks::external_source<D>>(flecsi::exec::on,
     *s.m,
     s.prim.velocity(*s.m),
     s.src_t.hydro.gravity_force(*s.m),
     // time-derivatives
-    s.rk_dt1.momentum_energy_density()(*s.m),
-    s.rk_dt1.total_energy_density()(*s.m));
+    s.rk_dt2.momentum_energy_density()(*s.m),
+    s.rk_dt2.total_energy_density()(*s.m));
 
   // We need update_u here before we compute fluxes in the presence of
-  // hydro::explict_source_update with body forces. See Moens'21 Eq. 24-26
+  // hydro:explictSourceUpdate with body forces. See Moens'21 Eq. 24-26
   // clang-format off
   sc.execute<tasks::hydro::update_u<D>>(flecsi::exec::on,
     s.dt(*s.gt),
+    //
     std::vector{
       std::make_tuple(
-        s.rk_dt1.mass_density()(*s.m),
+        s.rk_dt2.mass_density()(*s.m),
         s.cons.hydro.mass_density(*s.m)),
       std::make_tuple(
-        s.rk_dt1.total_energy_density()(*s.m),
+        s.rk_dt2.total_energy_density()(*s.m),
         s.cons.hydro.total_energy_density(*s.m))},
     std::vector{
       std::make_tuple(
-        s.rk_dt1.momentum_energy_density()(*s.m),
+        s.rk_dt2.momentum_energy_density()(*s.m),
         s.cons.hydro.momentum_density(*s.m))});
   // clang-format on
 
@@ -92,7 +91,7 @@ hydro_RK_advance_1(control_policy<state, D> & cp) {
       s.f.hydro.ru_face(s.m),
       s.f.hydro.re_face(s.m));
 
-    // Calculate K1 and save it to dt_U
+    // Calculate K2 and save it to dt_U_2
     sc.execute<tasks::hydro::compute_interface_fluxes<D>>(flecsi::exec::on,
       axis,
       *s.m,
@@ -107,37 +106,66 @@ hydro_RK_advance_1(control_policy<state, D> & cp) {
       s.rf.hydro.ru_f(*s.m),
       s.rf.hydro.re_f(*s.m),
 
-      s.rk_dt1(s.m),
+      s.rk_dt2(s.m),
       s.icst.gravity_acc(*s.gt));
   }
 }
 
 template<std::size_t D>
 void
-hydro_update_vars(control_policy<state, D> & cp) {
+update_vars_2(control_policy<state, D> & cp) {
 
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
 
-  // K2 calculation in the next RK advance
+  // First compute K1' = (K1 + K2) * 0.5
   // clang-format off
-  sc.execute<tasks::hydro::update_u_stage<D>>(flecsi::exec::on,
+  sc.execute<tasks::hydro::add_k1_k2<D>>(flecsi::exec::on,
+    std::vector{
+      std::make_tuple(
+        s.rk_dt1.mass_density()(*s.m),
+        s.rk_dt2.mass_density()(*s.m)),
+      std::make_tuple(
+        s.rk_dt1.total_energy_density()(*s.m),
+        s.rk_dt2.total_energy_density()(*s.m))},
+    std::vector{
+      std::make_tuple(
+        s.rk_dt1.momentum_energy_density()(*s.m),
+        s.rk_dt2.momentum_energy_density()(*s.m))});
+  // clang-format on
+
+  // Now get U_n(+1) = U_n + h * K1'
+  // clang-format off
+  sc.execute<tasks::hydro::update_u<D>>(flecsi::exec::on,
     s.dt(*s.gt),
     std::vector{
       std::make_tuple(
-        s.rk_n.mass_density()(*s.m),
         s.rk_dt1.mass_density()(*s.m),
+        s.rk_n.mass_density()(*s.m)),
+      std::make_tuple(
+        s.rk_dt1.total_energy_density()(*s.m),
+        s.rk_n.total_energy_density()(*s.m))},
+    std::vector{
+      std::make_tuple(
+        s.rk_dt1.momentum_energy_density()(*s.m),
+        s.rk_n.momentum_energy_density()(*s.m))});
+  // clang-format on
+
+  // Finish by updating the values stored in U_n to U
+  // clang-format off
+  sc.execute<tasks::hydro::store_current_state<D>>(flecsi::exec::on,
+    std::vector{
+      std::make_tuple(
+        s.rk_n.mass_density()(*s.m),
         s.cons.hydro.mass_density(*s.m)),
       std::make_tuple(
         s.rk_n.total_energy_density()(*s.m),
-        s.rk_dt1.total_energy_density()(*s.m),
         s.cons.hydro.total_energy_density(*s.m))},
     std::vector{
       std::make_tuple(
         s.rk_n.momentum_energy_density()(*s.m),
-        s.rk_dt1.momentum_energy_density()(*s.m),
         s.cons.hydro.momentum_density(*s.m))});
-  // clang-format on
+  // clang-format off
 
   // Perform primitive recovery
   sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
@@ -163,25 +191,25 @@ hydro_update_vars(control_policy<state, D> & cp) {
 
 } // update_vars
 
-inline control<state, 1>::action<hydro_RK_advance_1<1>, cp::rk_stage_1>
-  hydro_rk_stage_1_1d;
-inline control<state, 2>::action<hydro_RK_advance_1<2>, cp::rk_stage_1>
-  hydro_rk_stage_1_2d;
-inline control<state, 3>::action<hydro_RK_advance_1<3>, cp::rk_stage_1>
-  hydro_rk_stage_1_3d;
+inline control<state, 1>::action<RK_advance_2<1>, cp::rk_stage_2>
+  hydro_rk_stage_2_1d;
+inline control<state, 2>::action<RK_advance_2<2>, cp::rk_stage_2>
+  hydro_rk_stage_2_2d;
+inline control<state, 3>::action<RK_advance_2<3>, cp::rk_stage_2>
+  hydro_rk_stage_2_3d;
 
-inline control<state, 1>::action<hydro_update_vars<1>, cp::rk_stage_1>
-  hydro_rk_stage_1_update_1d;
-inline control<state, 2>::action<hydro_update_vars<2>, cp::rk_stage_1>
-  hydro_rk_stage_1_update_2d;
-inline control<state, 3>::action<hydro_update_vars<3>, cp::rk_stage_1>
-  hydro_rk_stage_1_update_3d;
+inline control<state, 1>::action<update_vars_2<1>, cp::rk_stage_2>
+  hydro_rk_stage_2_update_1d;
+inline control<state, 2>::action<update_vars_2<2>, cp::rk_stage_2>
+  hydro_rk_stage_2_update_2d;
+inline control<state, 3>::action<update_vars_2<3>, cp::rk_stage_2>
+  hydro_rk_stage_2_update_3d;
 
-inline const auto hydro_dep_update_1d =
-  hydro_rk_stage_1_update_1d.add(hydro_rk_stage_1_1d);
-inline const auto hydro_dep_update_2d =
-  hydro_rk_stage_1_update_2d.add(hydro_rk_stage_1_2d);
-inline const auto hydro_dep_update_3d =
-  hydro_rk_stage_1_update_3d.add(hydro_rk_stage_1_3d);
+inline const auto dep_update_2_1d =
+  hydro_rk_stage_2_update_1d.add(hydro_rk_stage_2_1d);
+inline const auto dep_update_2_2d =
+  hydro_rk_stage_2_update_2d.add(hydro_rk_stage_2_2d);
+inline const auto dep_update_2_3d =
+  hydro_rk_stage_2_update_3d.add(hydro_rk_stage_2_3d);
 
 } // namespace hard

@@ -1,35 +1,21 @@
-#include "../modules/rad/tasks/utils.hh"
 #include "state.hh"
 
-#include "../modules/hydro/tasks/cons2prim.hh"
-#include "../modules/hydro/tasks/external_source.hh"
-#include "../modules/hydro/tasks/interface_fluxes.hh"
-#include "../modules/hydro/tasks/reconstruct.hh"
-#include "../modules/hydro/tasks/rhs.hh"
-#include "../modules/rad/tasks/interface_fluxes.hh"
-#include "../modules/rad/tasks/rad.hh"
-#include "../modules/spec/limiter.hh"
-#include "../modules/spec/tasks/boundaries/boundary.hh"
+#include "hydro/tasks/cons2prim.hh"
+#include "hydro/tasks/external_source.hh"
+#include "hydro/tasks/interface_fluxes.hh"
+#include "hydro/tasks/reconstruct.hh"
+#include "hydro/tasks/rhs.hh"
+#include "spec/limiter.hh"
+#include "spec/tasks/boundaries/boundary.hh"
 
 namespace hard {
 
 template<std::size_t D>
 void
-RK_advance_1(control_policy<state, D> & cp) {
+hydro_RK_advance_1(control_policy<state, D> & cp) {
 
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
-
-  sc.execute<tasks::rad::explicit_source_update<D>>(flecsi::exec::on,
-    *s.m,
-    s.prim.velocity(*s.m),
-    s.rad.src_t.radiation_force(*s.m),
-    s.rad.src_t.radiation_pressure_tensor(*s.m),
-    s.velocity_gradient(*s.m),
-    //
-    s.rk_dt1.total_energy_density()(*s.m),
-    s.rk_dt1.momentum_energy_density()(*s.m),
-    s.rad.dt_radiation_energy_density_1(*s.m));
 
   // RK Stage: 1 - Explicit source term (gravity) update for RT case in hydro
   // file
@@ -52,10 +38,7 @@ RK_advance_1(control_policy<state, D> & cp) {
         s.cons.hydro.mass_density(*s.m)),
       std::make_tuple(
         s.rk_dt1.total_energy_density()(*s.m),
-        s.cons.hydro.total_energy_density(*s.m)),
-      std::make_tuple(
-        s.rad.dt_radiation_energy_density_1(*s.m),
-        s.rad.cons.radiation_energy_density(*s.m))},
+        s.cons.hydro.total_energy_density(*s.m))},
     std::vector{
       std::make_tuple(
         s.rk_dt1.momentum_energy_density()(*s.m),
@@ -93,9 +76,6 @@ RK_advance_1(control_policy<state, D> & cp) {
           s.prim.sound_speed(*s.m),
           s.f.hydro.c_face(s.m)),
         std::make_tuple(
-          s.rad.cons.radiation_energy_density(*s.m),
-          s.rad.f.erad_face(s.m)),
-        std::make_tuple(
           s.prim.pressure(*s.m),
           s.f.hydro.p_face(s.m))},
       std::vector{
@@ -129,24 +109,12 @@ RK_advance_1(control_policy<state, D> & cp) {
 
       s.rk_dt1(s.m),
       s.icst.gravity_acc(*s.gt));
-
-    // Calculate K1 and save it to dt_U
-    sc.execute<tasks::rad::compute_interface_fluxes<D>>(flecsi::exec::on,
-      axis,
-      *s.m,
-      s.f.hydro.u_face(s.m),
-      s.f.hydro.c_face(s.m),
-      s.rad.f.erad_face(s.m),
-      // Riemann Fluxes
-      s.rad.rf.erad_f(*s.m),
-      //
-      s.rad.dt_radiation_energy_density_1(*s.m));
   }
 }
 
 template<std::size_t D>
 void
-update_vars(control_policy<state, D> & cp) {
+hydro_update_vars(control_policy<state, D> & cp) {
 
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
@@ -160,10 +128,6 @@ update_vars(control_policy<state, D> & cp) {
         s.rk_n.mass_density()(*s.m),
         s.rk_dt1.mass_density()(*s.m),
         s.cons.hydro.mass_density(*s.m)),
-      std::make_tuple(
-        s.rad.dt_radiation_energy_density_n(*s.m),
-        s.rad.dt_radiation_energy_density_1(*s.m),
-        s.rad.cons.radiation_energy_density(*s.m)),
       std::make_tuple(
         s.rk_n.total_energy_density()(*s.m),
         s.rk_dt1.total_energy_density()(*s.m),
@@ -194,31 +158,30 @@ update_vars(control_policy<state, D> & cp) {
     std::vector{s.cons.hydro.mass_density(*s.m),
       s.prim.pressure(*s.m),
       s.prim.specific_internal_energy(*s.m),
-      s.rad.cons.radiation_energy_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m)},
     std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
+
 } // update_vars
 
-inline control<state, 1>::action<RK_advance_1<1>, cp::rk_stage_1>
-  rad_rk_stage_1_1d;
-inline control<state, 2>::action<RK_advance_1<2>, cp::rk_stage_1>
-  rad_rk_stage_1_2d;
-inline control<state, 3>::action<RK_advance_1<3>, cp::rk_stage_1>
-  rad_rk_stage_1_3d;
+inline control<state, 1>::action<hydro_RK_advance_1<1>, cp::rk_stage_1>
+  hydro_rk_stage_1_1d;
+inline control<state, 2>::action<hydro_RK_advance_1<2>, cp::rk_stage_1>
+  hydro_rk_stage_1_2d;
+inline control<state, 3>::action<hydro_RK_advance_1<3>, cp::rk_stage_1>
+  hydro_rk_stage_1_3d;
 
-inline control<state, 1>::action<update_vars<1>, cp::rk_stage_1>
-  rad_rk_stage_1_update_1d;
-inline control<state, 2>::action<update_vars<2>, cp::rk_stage_1>
-  rad_rk_stage_1_update_2d;
-inline control<state, 3>::action<update_vars<3>, cp::rk_stage_1>
-  rad_rk_stage_1_update_3d;
+inline control<state, 1>::action<hydro_update_vars<1>, cp::rk_stage_1>
+  hydro_rk_stage_1_update_1d;
+inline control<state, 2>::action<hydro_update_vars<2>, cp::rk_stage_1>
+  hydro_rk_stage_1_update_2d;
+inline control<state, 3>::action<hydro_update_vars<3>, cp::rk_stage_1>
+  hydro_rk_stage_1_update_3d;
 
-//  hydro_rk_stage_1 -> rad_rk_stage_1
-inline const auto dep_update_1d =
-  rad_rk_stage_1_update_1d.add(rad_rk_stage_1_1d);
-inline const auto dep_update_2d =
-  rad_rk_stage_1_update_2d.add(rad_rk_stage_1_2d);
-inline const auto dep_update_3d =
-  rad_rk_stage_1_update_3d.add(rad_rk_stage_1_3d);
+inline const auto hydro_dep_update_1d =
+  hydro_rk_stage_1_update_1d.add(hydro_rk_stage_1_1d);
+inline const auto hydro_dep_update_2d =
+  hydro_rk_stage_1_update_2d.add(hydro_rk_stage_1_2d);
+inline const auto hydro_dep_update_3d =
+  hydro_rk_stage_1_update_3d.add(hydro_rk_stage_1_3d);
 
 } // namespace hard

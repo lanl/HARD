@@ -1,9 +1,9 @@
-#include "../modules/rad/tasks/utils.hh"
+#include "rad/tasks/utils.hh"
 #include "state.hh"
 
-#include "../modules/hydro/tasks/cons2prim.hh"
-#include "../modules/rad/linsolve.hh"
-#include "../modules/rad/tasks/rad_root.hh"
+#include "hydro/tasks/cons2prim.hh"
+#include "rad/linsolve.hh"
+#include "rad/tasks/rad_root.hh"
 
 namespace hard {
 

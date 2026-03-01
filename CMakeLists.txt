@@ -174,8 +174,8 @@ add_subdirectory(modules/common)
 add_subdirectory(modules/spec)
 add_subdirectory(modules/hydro)
 add_subdirectory(modules/rad)
-add_subdirectory(hydro)
-add_subdirectory(radhydro)
+add_subdirectory(apps/hydro)
+add_subdirectory(apps/radhydro)
 
 #------------------------------------------------------------------------------#
 # Optional verification

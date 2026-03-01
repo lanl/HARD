@@ -1,15 +1,18 @@
+#include "rad/tasks/utils.hh"
 #include "options.hh"
 #include "state.hh"
+#include "types.hh"
 
-#include "../modules/common/utils.hh"
-#include "../modules/hydro/tasks/cons2prim.hh"
-#include "../modules/hydro/tasks/init.hh"
-#include "../modules/hydro/tasks/initial_data/all_initial_data.hh"
-#include "../modules/hydro/tasks/maxcharspeed.hh"
-#include "../modules/hydro/tasks/rhs.hh"
-#include "../modules/spec/eos.hh"
-#include "../modules/spec/tasks/boundaries/boundary.hh"
-#include "../modules/spec/tasks/io.hh"
+#include "common/utils.hh"
+#include "hydro/tasks/cons2prim.hh"
+#include "hydro/tasks/init.hh"
+#include "hydro/tasks/maxcharspeed.hh"
+#include "hydro/tasks/rhs.hh"
+#include "rad/tasks/init.hh"
+#include "rad/tasks/initial_data/all_initial_data.hh"
+#include "spec/eos.hh"
+#include "spec/tasks/boundaries/boundary.hh"
+#include "spec/tasks/io.hh"
 
 #include <flecsi/flog.hh>
 #include <yaml-cpp/yaml.h>
@@ -25,6 +28,36 @@ initialize(control_policy<state, D> & cp) {
   flecsi::scheduler & sc = cp.scheduler();
 
   YAML::Node config = YAML::LoadFile(opt::config.value());
+
+  /*--------------------------------------------------------------------------*
+    Solver.
+   *--------------------------------------------------------------------------*/
+
+  s.rad.mgr.solver_settings.maxiter =
+    config["linear_solver"]["maxiter"].IsDefined()
+      ? config["linear_solver"]["maxiter"].as<int>()
+      : 50;
+  s.rad.mgr.solver_settings.rtol =
+    config["linear_solver"]["rtol"].IsDefined()
+      ? config["linear_solver"]["rtol"].as<double>()
+      : 1e-12;
+  s.rad.mgr.solver_settings.use_zero_guess =
+    config["linear_solver"]["use_zero_guess"].IsDefined()
+      ? config["linear_solver"]["use_zero_guess"].as<bool>()
+      : true;
+  s.rad.mgr.flecsolve_coarse_grid =
+    config["linear_solver"]["flecsolve_coarse_grid"].IsDefined()
+      ? config["linear_solver"]["flecsolve_coarse_grid"].as<bool>()
+      : true;
+  s.rad.mgr.jacobi_iterations =
+    config["linear_solver"]["jacobi_iterations"].IsDefined()
+      ? config["linear_solver"]["jacobi_iterations"].as<double>()
+      : 100;
+
+  s.rad.mgr.full_multigrid =
+    config["linear_solver"]["full_multigrid"].IsDefined()
+      ? config["linear_solver"]["full_multigrid"].as<bool>()
+      : false;
 
   /*--------------------------------------------------------------------------*
     Global and color topology allocations.
@@ -101,6 +134,27 @@ initialize(control_policy<state, D> & cp) {
     execute<tasks::init::convert_temperature>(flecsi::exec::on,
       s.icst.temperature_boundary(*s.dense_topology),
       config["temperature_units"].as<std::string>());
+
+  /*--------------------------------------------------------------------------*
+    Kappa.
+    *--------------------------------------------------------------------------*/
+
+  execute<tasks::init::kappa>(
+    s.rad.icst.kappa(*s.gt), config["kappa"].as<double>());
+
+  /*--------------------------------------------------------------------------*
+    Adaptive FLD Check, Closure ID and Limiter ID
+   *--------------------------------------------------------------------------*/
+
+  // Default is limiter = 1 and closure = 3
+  std::size_t ci = config["closure_id"].IsDefined()
+                     ? config["closure_id"].as<std::size_t>()
+                     : 3;
+  std::size_t li = config["limiter_id"].IsDefined()
+                     ? config["limiter_id"].as<std::size_t>()
+                     : 1;
+  sc.execute<tasks::init::closure_id>(s.rad.icst.closure_id(*s.gt), ci);
+  sc.execute<tasks::init::limiter_id>(s.rad.icst.limiter_id(*s.gt), li);
 
   /*--------------------------------------------------------------------------*
     Gravity Acceleration
@@ -250,77 +304,76 @@ initialize(control_policy<state, D> & cp) {
   execute<tasks::init::initialize_gravity_force<D>>(
     flecsi::exec::on, s.src_t.hydro.gravity_force(*s.m));
 
-  if(config["problem"].as<std::string>() == "sod") {
-    execute<
-      tasks::initial_data::shock<tasks::initial_data::shock_tubes::sod, D>>(
-      flecsi::exec::on,
+  // Ritchmyer-Meshkov works with both radiation on and off
+  if(config["problem"].as<std::string>() == "richtmyer-meshkov") {
+    execute<tasks::initial_data::richtmyer_meshkov<D>>(flecsi::exec::on,
       *s.m,
       s.cons.hydro.mass_density(*s.m),
       s.cons.hydro.momentum_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m),
       s.eos);
   }
-  else if(config["problem"].as<std::string>() == "rankine-hugoniot") {
-    execute<tasks::initial_data::
-        shock<tasks::initial_data::shock_tubes::rankine_hugoniot, D>>(
-      flecsi::exec::on,
+  else if(config["problem"].as<std::string>() == "heating_and_cooling") {
+    if(config["eos"].as<std::string>() != "ideal")
+      flog_fatal("Heating and cooling test only supports Ideal Gas eos");
+    execute<tasks::initial_data::heating_and_cooling<D>>(flecsi::exec::on,
       *s.m,
       s.cons.hydro.mass_density(*s.m),
       s.cons.hydro.momentum_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m),
-      s.eos);
-  }
-  else if(config["problem"].as<std::string>() == "leblanc") {
-    execute<
-      tasks::initial_data::shock<tasks::initial_data::shock_tubes::leblanc, D>>(
-      flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.eos);
-  }
-  else if(config["problem"].as<std::string>() == "acoustic-wave") {
-    execute<tasks::initial_data::acoustic_wave<D>>(flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.eos);
-  }
-  else if(config["problem"].as<std::string>() == "kh-test") {
-    execute<tasks::initial_data::kh_instability<D>>(flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.eos);
-  }
-  // Rayleigh-Taylor setup
-  else if(config["problem"].as<std::string>() == "rt-test") {
-    execute<tasks::initial_data::rt_instability<D>>(flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.src_t.hydro.gravity_force(*s.m),
-      s.icst.gravity_acc(*s.gt),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.eos);
-  }
-  else if(config["problem"].as<std::string>() == "sedov") {
-    execute<tasks::initial_data::sedov_blast<D>>(flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m));
-  }
-  else if(config["problem"].as<std::string>() == "lw-implosion") {
-    execute<tasks::initial_data::lw_implosion<D>>(flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m),
+      s.icst.particle_mass(*s.gt),
       config["gamma"].as<double>());
+  }
+  // Heating and Cooling for AFLD
+  else if(config["problem"].as<std::string>() == "heating-cooling-afld") {
+    if(config["eos"].as<std::string>() != "ideal")
+      flog_fatal("Heating and cooling test only supports Ideal Gas eos");
+    sc.execute<tasks::initial_data::heating_and_cooling_afld<D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m),
+      s.icst.particle_mass(*s.gt),
+      config["gamma"].as<double>());
+  }
+  else if(config["problem"].as<std::string>() == "implosion") {
+    execute<tasks::initial_data::implosion_forced_T<D>>(flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m),
+      s.icst.temperature_boundary(*s.dense_topology),
+      s.icst.particle_mass(*s.gt),
+      config["gamma"].as<double>());
+  }
+  // FIXME: This problem has not been tested for correctness
+  else if(config["problem"].as<std::string>() == "rad-rh") {
+    execute<tasks::initial_data::
+        rad_RH<tasks::initial_data::rad_shock::rad_rankine_hugoniot, D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m),
+      config["gamma"].as<double>(),
+      s.icst.particle_mass(*s.gt));
+  }
+  // Kelvin Helmholtz with radiation setup
+  else if(config["problem"].as<std::string>() == "kh-rad-test") {
+
+    execute<tasks::initial_data::kh_instability_rad<D>>(flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m),
+      s.eos);
   }
   else {
     flog_fatal(
@@ -356,6 +409,7 @@ initialize(control_policy<state, D> & cp) {
     std::vector{s.cons.hydro.mass_density(*s.m),
       s.prim.pressure(*s.m),
       s.prim.specific_internal_energy(*s.m),
+      s.rad.cons.radiation_energy_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m)},
     std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
 
@@ -364,7 +418,6 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
   sc.execute<tasks::init::init_time>(
     flecsi::exec::on, s.t(*s.gt), config["t0"].as<double>());
-
 } // initialize
 
 inline control<state, 1>::action<initialize<1>, cp::initialize> init_1d;

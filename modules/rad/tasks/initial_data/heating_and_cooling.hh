@@ -1,10 +1,10 @@
+#ifndef HARD_MODULES_RAD_TASKS_INITIAL_HEATING_AND_COOLING_HH
+#define HARD_MODULES_RAD_TASKS_INITIAL_HEATING_AND_COOLING_HH
 
-#pragma once
-
-#include "constants.hh"
+#include "../../constants.hh"
 #include "options.hh"
 #include "types.hh"
-#include <../../modules/spec/utils.hh>
+#include <spec/utils.hh>
 #include <cstddef>
 #include <yaml-cpp/yaml.h>
 
@@ -73,3 +73,5 @@ heating_and_cooling(flecsi::exec::cpu s,
 }
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_MODULES_RAD_TASKS_INITIAL_HEATING_AND_COOLING_HH

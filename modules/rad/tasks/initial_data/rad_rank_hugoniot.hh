@@ -1,6 +1,7 @@
-#pragma once
+#ifndef HARD_MODULES_RAD_TASKS_INITIAL_RAK_RANK_HUGONIOT_HH
+#define HARD_MODULES_RAD_TASKS_INITIAL_RAK_RANK_HUGONIOT_HH
 
-#include "constants.hh"
+#include "../../constants.hh"
 #include "types.hh"
 #include <cmath>
 #include <cstddef>
@@ -138,3 +139,5 @@ rad_RH(flecsi::exec::cpu s,
 } // rad_RH
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_MODULES_RAD_TASKS_INITIAL_RAK_RANK_HUGONIOT_HH

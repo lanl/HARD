@@ -1,7 +1,7 @@
 #include "options.hh"
 #include "state.hh"
 
-#include <../modules/spec/runtime.hh>
+#include <spec/runtime.hh>
 
 #include <flecsi/runtime.hh>
 #include <yaml-cpp/yaml.h>

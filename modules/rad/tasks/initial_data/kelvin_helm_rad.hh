@@ -1,6 +1,7 @@
-#pragma once
+#ifndef HARD_MODULES_RAD_TASKS_INITIAL_KELVIN_HELM_RAD_HH
+#define HARD_MODULES_RAD_TASKS_INITIAL_KELVIN_HELM_RAD_HH
 
-#include "constants.hh"
+#include "../../constants.hh"
 #include "options.hh"
 #include "types.hh"
 #include <../modules/spec/utils.hh>
@@ -176,3 +177,5 @@ kh_instability_rad(flecsi::exec::cpu s,
 } //  kh_instability
 
 } // namespace hard::tasks::initial_data
+
+#endif // HARD_MODULES_RAD_TASKS_INITIAL_KELVIN_HELM_RAD_HH

@@ -43,7 +43,7 @@ endif()
 
 if(ENABLE_UNIT_TESTS)
 
-  set(FLECSI_UNIT_MAIN ${CMAKE_SOURCE_DIR}/hydro/tests/main.cc)
+  set(FLECSI_UNIT_MAIN ${CMAKE_SOURCE_DIR}/apps/hydro/tests/main.cc)
 
   flecsi_add_test(mesh
     SOURCES

@@ -1,7 +1,7 @@
-#include "../modules/rad/tasks/utils.hh"
+#include "rad/tasks/utils.hh"
 #include "state.hh"
 
-#include "../modules/rad/tasks/rad.hh"
+#include "rad/tasks/rad.hh"
 
 namespace hard {
 
