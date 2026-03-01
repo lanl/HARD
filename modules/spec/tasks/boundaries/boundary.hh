@@ -21,7 +21,7 @@ template<std::size_t D>
 typename mesh<D>::periodic_axes
 init_boundaries(flecsi::exec::cpu,
   typename single<typename mesh<D>::bmap>::template accessor<wo> bmap_a,
-  std::array<std::array<bd::boundary_type, 2>, D> bnds) {
+  std::array<std::array<bd::boundary_type, 2>, D> bnds) noexcept {
   auto & bmap = *bmap_a;
   constexpr auto periodic = mesh<D>::boundary_type::periodic;
 

@@ -4,8 +4,8 @@
 #include "../../constants.hh"
 #include "options.hh"
 #include "types.hh"
-#include <spec/utils.hh>
 #include <cstddef>
+#include <spec/utils.hh>
 #include <yaml-cpp/yaml.h>
 
 namespace hard::tasks::initial_data {

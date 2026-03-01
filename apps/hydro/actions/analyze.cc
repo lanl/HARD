@@ -1,7 +1,7 @@
 #include "state.hh"
 
-#include <spec/tasks/io.hh>
 #include <flecsi/flog.hh>
+#include <spec/tasks/io.hh>
 
 namespace hard {
 
