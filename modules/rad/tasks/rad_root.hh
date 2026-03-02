@@ -52,13 +52,6 @@ update_energy_density(flecsi::exec::accelerator s,
 
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       auto & dt_weighted = *dt_a;
-      // NOTE: a1 and a2 are constants defined in the paper Moens et al (2022)
-      // FIXME: The variables "a1" and "a2" do not exist, remove comment
-      // above?
-
-      // TODO: verify these variables are not computed by each thread, and
-      // stored in each thread register
-      // auto const gamma = *gamma_a;
 
       const double ke = 0.5 * r(i) * u(i).norm_squared(); // kinetic energy
       const double en = r_e(i) - ke; // internal energy
