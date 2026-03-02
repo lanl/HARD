@@ -1,15 +1,8 @@
 #include "rad/tasks/utils.hh"
 #include "state.hh"
 
-#include "hydro/tasks/cons2prim.hh"
-#include "hydro/tasks/external_source.hh"
-#include "hydro/tasks/interface_fluxes.hh"
-#include "hydro/tasks/reconstruct.hh"
-#include "hydro/tasks/rhs.hh"
 #include "rad/tasks/interface_fluxes.hh"
 #include "rad/tasks/rad.hh"
-#include "spec/limiter.hh"
-#include "spec/tasks/boundaries/boundary.hh"
 
 #include "../../actions/rk_stages/rk_stage_1.hh"
 
