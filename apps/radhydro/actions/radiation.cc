@@ -79,6 +79,8 @@ radiation(control_policy<state, D> & cp) {
     s.rad.cons.radiation_energy_density(*s.m),
     s.rad.mgr.Ef(*s.m));
   sc.execute<tasks::rad::const_init<D>>(
+    flecsi::exec::on, *s.m, s.rad.mgr.Esf(*s.m), 0.0);
+  sc.execute<tasks::rad::const_init<D>>(
     flecsi::exec::on, *s.m, s.rad.mgr.Esf(*s.m, 1), 0.0);
   sc.execute<tasks::rad::const_init<D>>(
     flecsi::exec::on, *s.m, s.rad.mgr.Resf(*s.m), 0.0);
