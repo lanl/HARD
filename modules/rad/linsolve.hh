@@ -27,8 +27,7 @@ vcycle(control_policy<state, D> & cp, std::size_t index) {
   if(level == s.lowest_level) {
 
     // FIXME: Remove when finished with debugging
-    // flog(warn) << "Direct solve level(index): " << level << "(" << index <<
-    // ")"
+    // flog(warn) << "Direct level(index): " << level << "(" << index << ")"
     //            << std::endl;
 
     // Direct solve for a single interior point
@@ -113,9 +112,9 @@ fmg(control_policy<state, D> & cp, std::size_t index = 0) {
 
   // The scheme requires:
   // 1) Go to a coarser grid, adapt all and repeat this step
-  // 2) If in the deeper level, direct solve or do a V-Cycle for a number of
-
-  // iterations 3) Come back up, interpolate, and do a V-Cycle
+  // 2) If in the deepest level, direct solve or do a V-Cycle for a number of
+  // iterations
+  // 3) Come back up, interpolate, and do a V-Cycle
 
   // Find current level
   std::size_t level{s.highest_level - index};
