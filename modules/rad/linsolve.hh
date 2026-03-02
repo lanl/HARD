@@ -255,7 +255,7 @@ linsolve(control_policy<state, D> & cp) {
                 << std::endl;
 
     sc.execute<tasks::rad::copy_field<D>>(
-      flecsi::exec::on, *s.m, s.rad.mgr.Uf(mf), s.rad.cons.Esf(mf));
+      flecsi::exec::on, *s.m, s.rad.mgr.Uf(mf), s.rad.mgr.Esf(mf));
   }
 } // linsolve
 } // namespace hard

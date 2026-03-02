@@ -24,12 +24,14 @@ All the options below are present under `linear_solver`:
   Boolean to define if the initial guess is 0. Default is `true`.
 
 `flecsolve_coarse_grid`
-  Boolean to define if we use the coarse grid in flecsolve. Default is `true`.
+  Boolean to define if we use the coarse grid in flecsolve. Default is
+  `true`.
 
 `jocabi_iterations`
   Define the maximum number of Jacobi iterations. Default is `100`.
 
 `full_multigrid`
-  Boolean to define if we use the full multigrid solver. Default is `true`.
+  Boolean to define if we use the full multigrid solver. Default is
+  `false`.
 
 .. vim: set tabstop=2 shiftwidth=2 expandtab fo=cqt tw=72 :
