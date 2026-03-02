@@ -92,6 +92,9 @@ private:
 template<std::size_t D>
 struct faces {
 
+  using ref = flecsi::field<double>::Reference<mesh<D>, is::cells>;
+  using ref_pair = std::tuple<ref, ref>;
+
   std::tuple<field<double>::definition<mesh<D>, is::cells>, // right
     field<double>::definition<mesh<D>, is::cells> // left
     >
