@@ -98,7 +98,7 @@ radiation(control_policy<state, D> & cp) {
   // Move solution from rad solver
   sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
     *s.m,
-    s.rad.mgr.Uf(*s.m),
+    s.rad.mgr.Esf(*s.m),
     s.rad.cons.radiation_energy_density(*s.m));
 
   // Perform primitive recovery, since energy densities have changed
