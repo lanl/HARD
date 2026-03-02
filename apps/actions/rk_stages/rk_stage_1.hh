@@ -17,13 +17,14 @@ using field_double =
 template<std::size_t D>
 using face_pair = typename hard::faces<D>::ref_pair;
 
-template<std::size_t D>
+template<std::size_t D, class F = std::nullptr_t>
 void
 advance_rk_stage_1(state<D> & s,
   flecsi::scheduler & sc,
   // conservative, dt1, face
   std::vector<std::tuple<field_double<D>, field_double<D>, face_pair<D>>> v_t =
-    {}) {
+    {},
+  F f = nullptr) {
 
   // RK Stage: 1 - Explicit source term (gravity) update for RT case in hydro
   // file
@@ -120,9 +121,11 @@ advance_rk_stage_1(state<D> & s,
       s.rf.hydro.r_f(*s.m),
       s.rf.hydro.ru_f(*s.m),
       s.rf.hydro.re_f(*s.m),
-
       s.rk_dt1(s.m),
       s.icst.gravity_acc(*s.gt));
+
+    // Apply function if present
+    f(axis);
   }
 }
 
