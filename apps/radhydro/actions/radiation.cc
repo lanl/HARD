@@ -91,9 +91,9 @@ radiation(control_policy<state, D> & cp) {
   std::chrono::time_point<std::chrono::system_clock> stop_timer_rad =
     std::chrono::system_clock::now();
 
-  flog(info) << " Radiation Timing: "
-             << (stop_timer_rad - start_timer_rad).count() * 1e-9 << " [s] "
-             << std::endl;
+  flog(trace) << " Radiation Timing: "
+              << (stop_timer_rad - start_timer_rad).count() * 1e-9 << " [s] "
+              << std::endl;
 
   // Move solution from rad solver
   sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
