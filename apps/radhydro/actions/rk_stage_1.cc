@@ -30,20 +30,19 @@ RK_advance_1(control_policy<state, D> & cp) {
     sc,
     std::vector{std::make_tuple(s.rad.cons.radiation_energy_density(*s.m),
       s.rad.dt_radiation_energy_density_1(*s.m),
-      s.rad.f.erad_face(s.m))});
+      s.rad.f.erad_face(s.m))},
+    [&](auto & axis) {
+      sc.execute<tasks::rad::compute_interface_fluxes<D>>(flecsi::exec::on,
+        axis,
+        *s.m,
+        s.f.hydro.u_face(s.m),
+        s.f.hydro.c_face(s.m),
+        s.rad.f.erad_face(s.m),
+        // Riemann Fluxes
+        s.rad.rf.erad_f(*s.m),
 
-  // Calculate K1 and save it to dt_U
-  // sc.execute<tasks::rad::compute_interface_fluxes<D>>(flecsi::exec::on,
-  //  axis,
-  //  *s.m,
-  //  s.f.hydro.u_face(s.m),
-  //  s.f.hydro.c_face(s.m),
-  //  s.rad.f.erad_face(s.m),
-  // Riemann Fluxes
-  //  s.rad.rf.erad_f(*s.m),
-  //
-  //  s.rad.dt_radiation_energy_density_1(*s.m));
-  //}
+        s.rad.dt_radiation_energy_density_1(*s.m));
+    });
 }
 
 template<std::size_t D>
