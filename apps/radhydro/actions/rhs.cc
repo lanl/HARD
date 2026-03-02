@@ -19,13 +19,12 @@ rhs(control_policy<state, D> & cp) {
   cp.guard.emplace(cp.tracing);
 #endif
 
-  actions::rhs(s, sc,
-   std::vector{
-     std::make_tuple(
-       s.rad.cons.radiation_energy_density(*s.m),
-       s.rad.dt_radiation_energy_density_1(*s.m),
-       s.rad.dt_radiation_energy_density_2(*s.m),
-       s.rad.dt_radiation_energy_density_n(*s.m))});
+  actions::rhs(s,
+    sc,
+    std::vector{std::make_tuple(s.rad.cons.radiation_energy_density(*s.m),
+      s.rad.dt_radiation_energy_density_1(*s.m),
+      s.rad.dt_radiation_energy_density_2(*s.m),
+      s.rad.dt_radiation_energy_density_n(*s.m))});
 }
 
 inline control<state, 1>::action<rhs<1>, cp::rhs> rhs_1d;
