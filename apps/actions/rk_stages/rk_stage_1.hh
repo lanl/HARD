@@ -1,6 +1,14 @@
 #ifndef HARD_APPS_ACTIONS_RK_STAGE_1_HH
 #define HARD_APPS_ACTIONS_RK_STAGE_1_HH
 
+#include "hydro/tasks/cons2prim.hh"
+#include "hydro/tasks/external_source.hh"
+#include "hydro/tasks/interface_fluxes.hh"
+#include "hydro/tasks/reconstruct.hh"
+#include "hydro/tasks/rhs.hh"
+#include "spec/limiter.hh"
+#include "spec/tasks/boundaries/boundary.hh"
+
 namespace hard::actions {
 
 template<std::size_t D>
