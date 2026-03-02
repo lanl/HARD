@@ -1,8 +1,7 @@
 #include "rad/tasks/utils.hh"
 #include "state.hh"
 
-#include "hydro/tasks/maxcharspeed.hh"
-#include "hydro/tasks/rhs.hh"
+#include "../../actions/update_dt/update_dt.hh"
 
 namespace hard {
 
@@ -16,15 +15,7 @@ update_dt(control_policy<state, D> & cp) {
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
 
-  auto lmax_f = sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
-    flecsi::exec::on,
-    *s.m,
-    s.cons.hydro.mass_density(*s.m),
-    s.prim.velocity(*s.m),
-    s.prim.sound_speed(*s.m));
-
-  s.dtmin_ = sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
-    flecsi::exec::on, *s.m, lmax_f);
+  actions::update_dt(s, sc);
 
 #ifdef HARD_ENABLE_LEGION_TRACING
   cp.guard.reset();
