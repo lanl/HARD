@@ -180,7 +180,7 @@ update_rk_stage_2(state<D> & s,
         s.cons.hydro.total_energy_density(*s.m))};
 
     for(auto & v : v_t) {
-      scalar_v.push_back(std::make_tuple(std::get<2>(v), std::get<0>(v)));
+      scalar_v.push_back(std::make_tuple(std::get<3>(v), std::get<0>(v)));
     }
 
     // Finish by updating the values stored in U_n to U
