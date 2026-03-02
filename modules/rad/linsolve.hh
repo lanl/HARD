@@ -226,7 +226,8 @@ linsolve(control_policy<state, D> & cp) {
       s.rad.mgr.Ef(mf),
       s.rad.mgr.Resf(mf));
     auto r = flecsolve::vec::make(s.rad.mgr.Resf(mf));
-    flog(info) << "final res norm radiation: " << r.l2norm().get() << std::endl;
+    flog(trace) << "final res norm radiation: " << r.l2norm().get()
+                << std::endl;
   }
   else {
     // flecsolve vectors
@@ -240,8 +241,8 @@ linsolve(control_policy<state, D> & cp) {
     auto iters = slv_info.iters;
     auto res_norm_final = slv_info.res_norm_final;
 
-    flog(info) << "final res norm radiation (flecsolve): " << res_norm_final
-               << " iter: " << iters << std::endl;
+    flog(trace) << "final res norm radiation (flecsolve): " << res_norm_final
+                << " iter: " << iters << std::endl;
 
     sc.execute<tasks::rad::residual<D>>(flecsi::exec::on,
       mf,
@@ -250,7 +251,8 @@ linsolve(control_policy<state, D> & cp) {
       s.rad.mgr.Ef(mf),
       s.rad.mgr.Resf(mf));
     auto r = flecsolve::vec::make(s.rad.mgr.Resf(mf));
-    flog(info) << "final res norm radiation: " << r.l2norm().get() << std::endl;
+    flog(trace) << "final res norm radiation: " << r.l2norm().get()
+                << std::endl;
   }
 } // linsolve
 } // namespace hard
