@@ -91,8 +91,8 @@ struct state {
 
       flecsolve::bicgstab::settings solver_settings;
       bool flecsolve_coarse_grid;
+      bool full_multigrid;
       std::size_t nr_vcycles = 1;
-      bool full_multigrid = false;
 
     } mgr;
 
