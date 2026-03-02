@@ -253,6 +253,9 @@ linsolve(control_policy<state, D> & cp) {
     auto r = flecsolve::vec::make(s.rad.mgr.Resf(mf));
     flog(trace) << "final res norm radiation: " << r.l2norm().get()
                 << std::endl;
+
+    sc.execute<tasks::rad::copy_field<D>>(
+      flecsi::exec::on, *s.m, s.rad.mgr.Uf(mf), s.rad.cons.Esf(mf));
   }
 } // linsolve
 } // namespace hard
