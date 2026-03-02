@@ -5,7 +5,7 @@ namespace hard::actions {
 
 template<std::size_t D>
 void
-init_eos(state<D> & s, flecsi::scheduler & sc, YAML::Node & config) {
+init_eos(state<D> & s, YAML::Node & config) {
   /*--------------------------------------------------------------------------*
      Equation of State
     *--------------------------------------------------------------------------*/
@@ -141,8 +141,7 @@ void
 init_topologies(state<D> & s,
   flecsi::scheduler & sc,
   std::vector<double> & time,
-  std::vector<double> & temperature,
-  YAML::Node & config) {
+  std::vector<double> & temperature) {
 
   /*--------------------------------------------------------------------------*
     Global and color topology allocations.

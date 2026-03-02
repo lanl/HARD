@@ -67,7 +67,7 @@ initialize(control_policy<state, D> & cp) {
 
   std::vector<double> time;
   std::vector<double> temperature;
-  actions::init_topologies(s, sc, time, temperature, config);
+  actions::init_topologies(s, sc, time, temperature);
 
   /*--------------------------------------------------------------------------*
     Set boundaries.
@@ -126,7 +126,7 @@ initialize(control_policy<state, D> & cp) {
     Equation of State
    *--------------------------------------------------------------------------*/
 
-  actions::init_eos(s, sc, config);
+  actions::init_eos(s, config);
 
   /*--------------------------------------------------------------------------*
     Initialize problem state.

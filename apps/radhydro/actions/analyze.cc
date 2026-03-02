@@ -18,8 +18,8 @@ analyze(control_policy<state, D> & cp) {
   auto lm = data::launch::make(sc, *s.m);
 
   actions::analyze(cp,
-    std::vector{std::make_tuple(s.rad.cons.radiation_energy_density(lm),
-      std::string("radiation_energy_density"))});
+    std::vector{std::make_tuple(
+      s.rad.cons.radiation_energy_density(lm), "radiation_energy_density")});
 
 } // analyze
 
