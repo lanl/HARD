@@ -119,7 +119,8 @@ advance_rk_stage_2(state<D> & s,
       s.icst.gravity_acc(*s.gt));
 
     // Apply function if present
-    f(axis);
+    if constexpr(!std::is_same_v<F, std::nullptr_t>)
+      f(axis);
   }
 }
 

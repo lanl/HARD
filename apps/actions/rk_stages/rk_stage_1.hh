@@ -125,12 +125,12 @@ advance_rk_stage_1(state<D> & s,
       s.icst.gravity_acc(*s.gt));
 
     // Apply function if present
-    f(axis);
+    if constexpr(!std::is_same_v<F, std::nullptr_t>)
+      f(axis);
   }
 }
 
 template<std::size_t D>
-
 void
 update_rk_stage_1(state<D> & s,
   flecsi::scheduler & sc,
