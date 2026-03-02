@@ -4,3 +4,5 @@ build*/
 /app/tasks/.nfs*
 
 .vscode/*
+
+compile_commands.json
