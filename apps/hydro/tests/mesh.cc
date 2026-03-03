@@ -59,8 +59,8 @@ init_mesh(scheduler & s, typename mesh<D>::ptr & m) {
   std::size_t levels = 5;
 
   std::size_t lowest_level = levels;
-  std::size_t highest_level = levels;
-  std::size_t max_num_levels = highest_level - lowest_level + 1;
+  std::size_t min_highest_level = levels;
+  std::size_t max_num_levels = min_highest_level - lowest_level + 1;
 
   typename mesh<D>::grect geom;
   geom[0][0] = 0.;

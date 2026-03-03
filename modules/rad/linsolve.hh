@@ -22,7 +22,7 @@ vcycle(control_policy<state, D> & cp, std::size_t index) {
   auto & mf = *s.mh[index];
 
   // Find current level
-  std::size_t level{s.highest_level - index};
+  std::size_t level{s.min_highest_level - index};
 
   if(level == s.lowest_level) {
 
@@ -117,7 +117,7 @@ fmg(control_policy<state, D> & cp, std::size_t index = 0) {
   // 3) Come back up, interpolate, and do a V-Cycle
 
   // Find current level
-  std::size_t level{s.highest_level - index};
+  std::size_t level{s.min_highest_level - index};
 
   // Deepest level
   if(level == s.lowest_level) {
