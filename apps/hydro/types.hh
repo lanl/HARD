@@ -123,14 +123,15 @@ struct faces {
 template<std::size_t D>
 struct faces_vec {
 
-  std::tuple<typename field<vec<D>>::definition<mesh<D>, is::cells>, // right
-    typename field<vec<D>>::definition<mesh<D>, is::cells> // left
+  std::tuple<
+    typename field<vec<D>>::template definition<mesh<D>, is::cells>, // right
+    typename field<vec<D>>::template definition<mesh<D>, is::cells> // left
     >
     f;
 
   template<flecsi::privilege P1, flecsi::privilege P2>
-  using accessor = std::tuple<typename field<vec<D>>::accessor<P1, P2>,
-    typename field<vec<D>>::accessor<P1, P2>>;
+  using accessor = std::tuple<typename field<vec<D>>::template accessor<P1, P2>,
+    typename field<vec<D>>::template accessor<P1, P2>>;
 
   auto operator()(const mesh<D>::ptr & s) {
     return std::make_tuple(std::get<0>(f)(*s), std::get<1>(f)(*s));
