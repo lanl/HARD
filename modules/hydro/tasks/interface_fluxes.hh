@@ -12,18 +12,18 @@ void
 compute_interface_fluxes(flecsi::exec::cpu s,
   std::size_t face_axis,
   typename mesh<Dim>::template accessor<ro> m,
-  typename faces<Dim>::accessor<ro, ro> r_face_a,
-  typename faces_vec<Dim>::accessor<ro, ro> uFace_a,
-  typename faces<Dim>::accessor<ro, ro> pFace_a,
-  typename faces<Dim>::accessor<ro, ro> cFace_a,
-  typename faces_vec<Dim>::accessor<ro, ro> ru_face_a,
-  typename faces<Dim>::accessor<ro, ro> re_face_a,
+  typename faces<Dim>::template accessor<ro, ro> r_face_a,
+  typename faces_vec<Dim>::template accessor<ro, ro> uFace_a,
+  typename faces<Dim>::template accessor<ro, ro> pFace_a,
+  typename faces<Dim>::template accessor<ro, ro> cFace_a,
+  typename faces_vec<Dim>::template accessor<ro, ro> ru_face_a,
+  typename faces<Dim>::template accessor<ro, ro> re_face_a,
   // Riemann fluxes at cell interfaces
   field<double>::accessor<wo, ro> r_f_a,
   typename field<vec<Dim>>::template accessor<wo, ro> ru_f_a,
   field<double>::accessor<wo, ro> re_f_a,
   // time derivative
-  typename RK<Dim>::accessor<rw, na> rk_dt_a,
+  typename RK<Dim>::template accessor<rw, na> rk_dt_a,
   typename single<vec<Dim>>::template accessor<ro> g_acc) noexcept {
   auto g = g_acc.get();
   auto [r_right, r_left] = faces<Dim>::mdcolex(m, r_face_a);

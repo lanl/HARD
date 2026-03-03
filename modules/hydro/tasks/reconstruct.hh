@@ -81,9 +81,10 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   // cell-centered primitive varibles
   std::vector<std::tuple<field<double>::accessor<ro, na>,
-    typename faces<Dim>::accessor<wo, na>>> cons_faces_a,
-  std::vector<std::tuple<typename field<vec<Dim>>::accessor<ro, na>,
-    typename faces_vec<Dim>::accessor<wo, na>>> cons_faces_vec_a) noexcept {
+    typename faces<Dim>::template accessor<wo, na>>> cons_faces_a,
+  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
+    typename faces_vec<Dim>::template accessor<wo, na>>>
+    cons_faces_vec_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
   using spec::utils::sqr;
@@ -175,9 +176,10 @@ reconstruct_primitives(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   // cell-centered primitive varibles
   std::vector<std::tuple<field<double>::accessor<ro, na>,
-    typename faces<Dim>::accessor<wo, na>>> cons_faces_a,
-  std::vector<std::tuple<typename field<vec<Dim>>::accessor<ro, na>,
-    typename faces_vec<Dim>::accessor<wo, na>>> cons_faces_vec_a) noexcept {
+    typename faces<Dim>::template accessor<wo, na>>> cons_faces_a,
+  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
+    typename faces_vec<Dim>::template accessor<wo, na>>>
+    cons_faces_vec_a) noexcept {
   reconstruct_primitives_f<Dim, Limiter>(
     s, reconstruction_axis, m, cons_faces_a, cons_faces_vec_a);
 }
@@ -189,7 +191,7 @@ reconstruct_primitives_scalar(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   // cell-centered primitive varibles
   std::vector<std::tuple<field<double>::accessor<ro, na>,
-    typename faces<Dim>::accessor<wo, na>>> cons_faces_a) noexcept {
+    typename faces<Dim>::template accessor<wo, na>>> cons_faces_a) noexcept {
   reconstruct_primitives_f<Dim, Limiter>(
     s, reconstruction_axis, m, cons_faces_a, {});
 }
@@ -198,12 +200,12 @@ template<std::size_t Dim>
 void
 reconstruct_conservatives(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
-  typename faces<Dim>::accessor<ro, na> rFace_a,
-  typename faces_vec<Dim>::accessor<ro, na> uFace_a,
-  typename faces<Dim>::accessor<ro, na> eFace_a,
+  typename faces<Dim>::template accessor<ro, na> rFace_a,
+  typename faces_vec<Dim>::template accessor<ro, na> uFace_a,
+  typename faces<Dim>::template accessor<ro, na> eFace_a,
   // reconstructed conservatives on faces
-  typename faces_vec<Dim>::accessor<wo, na> ruFace_a,
-  typename faces<Dim>::accessor<wo, na> rEFace_a) noexcept {
+  typename faces_vec<Dim>::template accessor<wo, na> ruFace_a,
+  typename faces<Dim>::template accessor<wo, na> rEFace_a) noexcept {
 
   auto [r_right, r_left] = faces<Dim>::mdcolex(m, rFace_a);
   auto [u_right, u_left] = faces_vec<Dim>::mdcolex(m, uFace_a);

@@ -32,7 +32,7 @@ template<std::size_t Dim>
 void
 set_dudt_to_zero(flecsi::exec::accelerator s,
   std::vector<field<double>::accessor<wo, na>> rk_dt_v_a,
-  std::vector<typename field<vec<Dim>>::accessor<wo, na>>
+  std::vector<typename field<vec<Dim>>::template accessor<wo, na>>
     rk_dt_vec_v_a) noexcept {
 
   for(auto rk_dt_a : rk_dt_v_a) {
@@ -57,8 +57,8 @@ void
 store_current_state(flecsi::exec::accelerator s,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<wo, na>>> v_a,
-  std::vector<std::tuple<typename field<vec<Dim>>::accessor<ro, na>,
-    typename field<vec<Dim>>::accessor<wo, na>>> vec_v_a) noexcept {
+  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
+    typename field<vec<Dim>>::template accessor<wo, na>>> vec_v_a) noexcept {
 
   for(auto & [from_a, to_a] : v_a) {
     s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
@@ -82,8 +82,8 @@ update_u(flecsi::exec::accelerator s,
   single<double>::accessor<ro> dt_a,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<rw, na>>> v_a,
-  std::vector<std::tuple<typename field<vec<Dim>>::accessor<ro, na>,
-    typename field<vec<Dim>>::accessor<rw, na>>> vec_v_a) noexcept {
+  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
+    typename field<vec<Dim>>::template accessor<rw, na>>> vec_v_a) noexcept {
 
   auto h = *dt_a;
 
@@ -129,9 +129,9 @@ update_u_stage(flecsi::exec::cpu s,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<ro, na>,
     field<double>::accessor<wo, na>>> v_a,
-  std::vector<std::tuple<typename field<vec<Dim>>::accessor<ro, na>,
-    typename field<vec<Dim>>::accessor<ro, na>,
-    typename field<vec<Dim>>::accessor<wo, na>>> vec_v_a) noexcept {
+  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
+    typename field<vec<Dim>>::template accessor<ro, na>,
+    typename field<vec<Dim>>::template accessor<wo, na>>> vec_v_a) noexcept {
 
   auto h = *dt_a;
   // Scalar
@@ -171,8 +171,8 @@ void
 add_k1_k2(flecsi::exec::accelerator s,
   std::vector<std::tuple<field<double>::accessor<rw, na>,
     field<double>::accessor<ro, na>>> v_a,
-  std::vector<std::tuple<typename field<vec<Dim>>::accessor<rw, na>,
-    typename field<vec<Dim>>::accessor<ro, na>>> vec_v_a) noexcept {
+  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<rw, na>,
+    typename field<vec<Dim>>::template accessor<ro, na>>> vec_v_a) noexcept {
 
   // Scalar
   for(auto & [rk_1_a, rk_2_a] : v_a) {

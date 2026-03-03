@@ -12,9 +12,9 @@ void
 compute_interface_fluxes(flecsi::exec::cpu s,
   std::size_t face_axis,
   typename mesh<Dim>::template accessor<ro> m,
-  typename faces_vec<Dim>::accessor<ro, ro> uFace_a,
-  typename faces<Dim>::accessor<ro, ro> cFace_a,
-  typename faces<Dim>::accessor<ro, ro> erad_face_a,
+  typename faces_vec<Dim>::template accessor<ro, ro> uFace_a,
+  typename faces<Dim>::template accessor<ro, ro> cFace_a,
+  typename faces<Dim>::template accessor<ro, ro> erad_face_a,
   // Riemann fluxes at cell interfaces
   field<double>::accessor<wo, ro> erad_f_a,
   // time derivative
