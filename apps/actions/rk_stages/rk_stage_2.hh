@@ -26,6 +26,8 @@ advance_rk_stage_2(state<D> & s,
     {},
   F f = nullptr) {
 
+  // RK Stage: 2 - Explicit source term (gravity) update for RT case in hydro
+  // file
   sc.execute<tasks::external_source<D>>(flecsi::exec::on,
     *s.m,
     s.prim.velocity(*s.m),
@@ -45,7 +47,7 @@ advance_rk_stage_2(state<D> & s,
     }
 
     // We need update_u here before we compute fluxes in the presence of
-    // hydro:explictSourceUpdate with body forces. See Moens'21 Eq. 24-26
+    // hydro::explict_source_update with body forces. See Moens'21 Eq. 24-26
     sc.execute<tasks::hydro::update_u<D>>(flecsi::exec::on,
       s.dt(*s.gt),
       scalar_v,
