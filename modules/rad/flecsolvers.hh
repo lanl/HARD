@@ -98,7 +98,7 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
     flecsi::scheduler & sc = params.sc.get();
 
     // Find current level
-    std::size_t level{s.highest_level - index};
+    std::size_t level{s.min_highest_level - index};
 
     if(level == s.lowest_level) {
 
@@ -248,7 +248,7 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
     flecsi::scheduler & sc = params.sc.get();
 
     // Find current level
-    std::size_t level{s.mgr.highest_level - index};
+    std::size_t level{s.mgr.min_highest_level - index};
 
     if(level == s.mgr.lowest_level) {
 
@@ -359,7 +359,7 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
     flecsi::scheduler & sc = params.sc.get();
 
     // Find current level
-    std::size_t level{s.mgr.highest_level - index};
+    std::size_t level{s.mgr.min_highest_level - index};
 
     // Deepest level
     if(level == s.mgr.lowest_level) {

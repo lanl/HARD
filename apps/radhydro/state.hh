@@ -41,7 +41,7 @@ struct state : rad::state<D>, hydro::state<D> {
     dt_weighted;
 
   std::size_t lowest_level;
-  std::size_t highest_level;
+  std::size_t min_highest_level;
   std::size_t max_num_levels;
 
 }; // struct state
