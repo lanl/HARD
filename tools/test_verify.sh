@@ -18,4 +18,3 @@ if [ -d ./artifacts ] && [ $dimension == 1 ]; then
     # Save the plots as artifacts
     mv *.png ./artifacts
 fi
-
