@@ -22,5 +22,3 @@ done
 make convergence CONFIG=$config_file DIMENSION=$dimension
 
 rm -rf output*
-
-
