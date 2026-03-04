@@ -26,40 +26,25 @@ set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(default_build_type "Debug")
+set(default_build_type "Release")
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS
     "Setting build type to '${default_build_type}' as none was specified.")
   set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
       STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
     "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
 #------------------------------------------------------------------------------#
-# Find the FleCSI package. This must be done early so that the FleCSI cmake
-# packages will be available to the project, e.g., 'include(FleCSI/sphinx)'.
-#
-# CMake documentation for FleCSI client applications is included in the
-# FleCSI userguide.
+# Dependencies (load early).
 #------------------------------------------------------------------------------#
 
-if(NOT FleCSI_FOUND)
-  find_package(FleCSI 2 REQUIRED)
-endif()
-
-#------------------------------------------------------------------------------#
-# Yaml
-#------------------------------------------------------------------------------#
-
+find_package(FleCSI 2 REQUIRED)
 find_package(yaml-cpp REQUIRED)
-
-#------------------------------------------------------------------------------#
-# Singularity
-#------------------------------------------------------------------------------#
-
 find_package(singularity-eos REQUIRED)
+find_package(flecsolve REQUIRED)
+
 
 #------------------------------------------------------------------------------#
 # Catalyst
@@ -86,32 +71,9 @@ option(HARD_BENCHMARK_MODE
   "Benchmark mode disables I/O and adds time measurement" OFF)
 mark_as_advanced(HARD_BENCHMARK_MODE)
 
-#------------------------------------------------------------------------------#
-# Benchmark Mode
-#------------------------------------------------------------------------------#
-
 option(HARD_ENABLE_LEGION_TRACING
   "Enable Legion Tracing" OFF)
 mark_as_advanced(HARD_ENABLE_LEGION_TRACING)
-
-#------------------------------------------------------------------------------#
-# Disable Radiation
-#------------------------------------------------------------------------------#
-
-option(ENABLE_RADIATION
-  "Enable radiation in evolution" ON)
-mark_as_advanced(ENABLE_RADIATION)
-
-#------------------------------------------------------------------------------#
-# Enable flecsolve
-#------------------------------------------------------------------------------#
-
-option(ENABLE_FLECSOLVE
-       "Enable flecsolve for KSP solvers in MG" ON)
-# mark_as_advanced(ENABLE_FLECSOLVE)
-if(ENABLE_FLECSOLVE)
-       find_package(flecsolve REQUIRED)
-endif()
 
 #------------------------------------------------------------------------------#
 # Formatting
@@ -132,17 +94,13 @@ if(ENABLE_FORMAT)
 endif()
 
 #------------------------------------------------------------------------------#
-# Documentation
+# Documentation (kept as-is; optional).
 #------------------------------------------------------------------------------#
 
 option(ENABLE_DOCUMENTATION "Enable documentation" OFF)
 mark_as_advanced(ENABLE_DOCUMENTATION)
 
 if(ENABLE_DOCUMENTATION)
-  #----------------------------------------------------------------------------#
-  # README.md figure
-  #----------------------------------------------------------------------------#
-
   find_package(LATEX REQUIRED)
   find_program(PDFTOPPM_EXECUTABLE pdftoppm PATHS /usr/bin)
   add_custom_target(structure
@@ -151,10 +109,6 @@ if(ENABLE_DOCUMENTATION)
       ${PDFTOPPM_EXECUTABLE} -jpeg structure.pdf > structure.jpg
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
-
-  #----------------------------------------------------------------------------#
-  # Sphinx
-  #----------------------------------------------------------------------------#
 
   include(FleCSI/sphinx)
 
@@ -165,7 +119,6 @@ if(ENABLE_DOCUMENTATION)
   file(RENAME ${CMAKE_BINARY_DIR}/sphinx
     ${CMAKE_BINARY_DIR}/.sphinx
   )
-  # Create output directory
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/.sphinx/hard/src)
   execute_process(COMMAND
     ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/spec
@@ -201,39 +154,31 @@ if(ENABLE_DOCUMENTATION)
 endif()
 
 #------------------------------------------------------------------------------#
-# Add library.
+# Testing 
 #------------------------------------------------------------------------------#
 
-add_library(Spec INTERFACE)
-add_library(Spec::Spec ALIAS Spec)
-target_include_directories(Spec
-  INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-add_subdirectory(spec)
-
-#------------------------------------------------------------------------------#
-# Testing
-#------------------------------------------------------------------------------#
 option(ENABLE_UNIT_TESTS "Enable unit tests" OFF)
 mark_as_advanced(ENABLE_UNIT_TESTS)
 
-set(FLECSI_UNIT_MAIN ${CMAKE_SOURCE_DIR}/app/tests/main.cc)
 include(FleCSI/unit)
 
 if(ENABLE_UNIT_TESTS)
   flecsi_enable_testing()
 endif()
 
+#------------------------------------------------------------------------------#
+# modules and apps.
+#------------------------------------------------------------------------------#
+
+add_subdirectory(modules/common)
+add_subdirectory(modules/spec)
+add_subdirectory(modules/hydro)
+add_subdirectory(modules/rad)
+add_subdirectory(apps/hydro)
+add_subdirectory(apps/radhydro)
 
 #------------------------------------------------------------------------------#
-# Add apps.
-#------------------------------------------------------------------------------#
-
-add_subdirectory(app)
-
-#------------------------------------------------------------------------------#
-# Add apps.
+# Optional verification
 #------------------------------------------------------------------------------#
 
 option(ENABLE_VERIFICATION "Enable exactpack verification" OFF)
@@ -242,7 +187,7 @@ mark_as_advanced(ENABLE_FORMAT)
 if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
 
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
-  # We need the exactpack package
+
   execute_process(
     COMMAND ${Python3_EXECUTABLE} -c "import exactpack"
     RESULT_VARIABLE EXACTPACK_FOUND
@@ -259,21 +204,19 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
     OUTPUT_QUIET
     ERROR_QUIET
   )
-  if(NOT EXACTPACK_FOUND EQUAL 0)
+  if(NOT MATPLOTLIB_FOUND EQUAL 0)
     message(FATAL_ERROR "Matplotlib Python module not found. Please install it (e.g., with 'pip install matplotlib').")
   endif()
 
   execute_process(
-    COMMAND ${Python3_EXECUTABLE} -c "import pyyaml"
+    COMMAND ${Python3_EXECUTABLE} -c "import yaml"
     RESULT_VARIABLE PYYAML_FOUND
     OUTPUT_QUIET
     ERROR_QUIET
   )
-  if(NOT EXACTPACK_FOUND EQUAL 0)
+  if(NOT PYYAML_FOUND EQUAL 0)
     message(FATAL_ERROR "Yaml Python module not found. Please install it (e.g., with 'pip install pyyaml').")
   endif()
-
-
 
   set(CHECK_SCRIPT ${CMAKE_SOURCE_DIR}/tools/exactpack_verify.py)
   set(CONVERGENCE_SCRIPT ${CMAKE_SOURCE_DIR}/tools/convergence_verify.py)
@@ -289,7 +232,7 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   )
 
   add_custom_target(convergence
-COMMAND ${Python3_EXECUTABLE} ${CONVERGENCE_SCRIPT} \$\(CONFIG\) \$\(DIMENSION\)
+    COMMAND ${Python3_EXECUTABLE} ${CONVERGENCE_SCRIPT} \$\(CONFIG\) \$\(DIMENSION\)
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     VERBATIM
   )
