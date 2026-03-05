@@ -8,12 +8,12 @@
 // NOTE: These #includes need to keep this relative order
 // clang-format off
 #include "tests_level_set_utils.hh"
-#include "spec/level_set/ls_core.hh"
+#include "../../../modules/gfm/tasks/ls_core.hh"
 // clang-format on
 
 using namespace flecsi::exec;
 
-using namespace spec::level_set::core;
+using namespace hard::tasks::level_set;
 using namespace tests::level_set_utils;
 using flecsi::execute;
 using flecsi::scheduler;

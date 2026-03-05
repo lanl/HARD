@@ -1,9 +1,11 @@
 #ifndef HARD_MODULES_GFM_STATE_HH
 #define HARD_MODULES_GFM_STATE_HH
 
+#include "types.hh"
+
 namespace hard::gfm {
 template<std::size_t D>
-struct gfm {
+struct state {
 
   // Level set
   // Signed distance-like scalar and integer material label per cell
@@ -25,6 +27,27 @@ struct gfm {
   static inline const field<int>::definition<mesh<D>, is::cells> label;
   static inline const field<int>::definition<mesh<D>, is::cells> frozen_label;
 #endif
+
+  // Gradient component and unit normal
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
+    dp; // dp
+
+  static inline const typename field<vec<D>>::template definition<mesh<D>,
+    is::cells>
+    norm; // dp
+
+  static inline const field<double>::definition<mesh<D>, is::cells> q_scalar;
+  static inline const field<double>::definition<mesh<D>, is::cells>
+    q_scalar_known;
+  static inline const field<double>::definition<mesh<D>, is::cells> q_scalar1;
+  static inline const field<double>::definition<mesh<D>, is::cells> q_scalar2;
+  static inline const field<double>::definition<mesh<D>, is::cells>
+    q_new_scalar;
+  // RHS for extrapolation
+  // TODO : Maybe don't need this?
+  static inline const field<double>::definition<mesh<D>, is::cells> q_rhs,
+    q_rhs1;
 };
 } // namespace hard::gfm
 #endif

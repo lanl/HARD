@@ -1,14 +1,14 @@
 #ifndef HARD_MODULES_GFM_TASKS_LS_CORE_HH
 #define HARD_MODULES_GFM_TASKS_LS_CORE_HH
 
-#include "../../app/tasks/utils.hh"
 #include "../mesh.hh"
+#include "../modules/common/tasks/utils.hh"
 #include "../state.hh"
 #include "spec/labels.hh"
 
 using namespace hard::tasks::util;
 
-namespace spec::level_set::core {
+namespace hard::tasks::level_set {
 
 namespace task {
 
@@ -597,6 +597,6 @@ ssprk3_step(
     s.label(*s.m));
 } // ssprk3_step
 #endif
-} // namespace spec::level_set::core
+} // namespace hard::tasks::level_set
 
 #endif

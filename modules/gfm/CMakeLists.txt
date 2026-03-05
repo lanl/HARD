@@ -11,6 +11,7 @@ add_library(libgfm::libgfm ALIAS libgfm)
 
 # You asked for an explicit list pattern; keep it as a set() so it is deterministic.
 set(modules_headers
+  types.hh
   state.hh
   tasks/ls_core.hh
 )
