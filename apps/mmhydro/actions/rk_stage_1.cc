@@ -1,5 +1,6 @@
 #include "state.hh"
 
+#include "gfm/tasks/extrapolation.hh"
 #include "hydro/tasks/cons2prim.hh"
 #include "hydro/tasks/external_source.hh"
 #include "hydro/tasks/interface_fluxes.hh"

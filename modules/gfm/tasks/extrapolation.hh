@@ -2,10 +2,11 @@
 #define HARD_MODULES_GFM_TASKS_EXTRAPOLATION_HH
 
 #include "../../common/tasks/utils.hh"
+#include "../../hydro/state.hh"
 #include "../../spec/labels.hh"
 #include "../../spec/limiter.hh"
+#include "../../spec/mesh.hh"
 #include "../state.hh"
-#include "../types.hh"
 #include <cmath>
 #include <cstddef>
 
@@ -14,7 +15,7 @@ namespace hard::tasks::extrapolation {
 // Upwind derivative with TVD blend between 1st-order and 2nd-order upwind.
 // Uses minmod limiter.
 // NOTE: In Aslam's paper, they are using minmod limter in
-// "phi_mm(r) = max(0,min(1,r))" where r is limiter ratio form.
+// "psi_mm(r = max(0,min(1,r))" where r is limiter ratio form.
 // This should be identical to minmod on slopes for monotone data which HARD
 // is already equipped with
 
@@ -46,8 +47,8 @@ gradu_1d(std::array<double, sten_size> u, double a, double dx) {
       // 2nd-order upwind (biased)
       const double d1 = (u[2] - u[1]) / dx;
       const double d2 = (3.0 * u[2] - 4.0 * u[1] + u[0]) / (2.0 * dx);
-      const double phi = limiter::reconstruct(u[0], u[1], u[2]);
-      return d1 + phi * (d2 - d1);
+      const double psi = limiter(u[0], u[1], u[2]);
+      return d1 + psi * (d2 - d1);
     }
   }
   else {
@@ -59,8 +60,8 @@ gradu_1d(std::array<double, sten_size> u, double a, double dx) {
       // 2nd-order downwind (biased)
       const double d1 = (u[2] - u[1]) / dx;
       const double d2 = (-3.0 * u[2] + 4.0 * u[3] - u[4]) / (2.0 * dx);
-      const double phi = limiter::reconstruct(u[2], u[4], u[4]);
-      return d1 + phi * (d2 - d1);
+      const double psi = limiter(u[2], u[4], u[4]);
+      return d1 + psi * (d2 - d1);
     }
   }
 }
@@ -72,7 +73,9 @@ void
 gradient_centered(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> psi_a,
-  typename field<vec<D>>::template accessor<rw, ro> dp_a) {
+  typename field<vec<D>>::template accessor<rw, ro> dp_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
 
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto dp = m.template mdcolex<is::cells>(dp_a);
@@ -117,13 +120,15 @@ gradient_centered(flecsi::exec::accelerator s,
   }
 }
 
-// Unit normal computation: n = \nabla phi / |\nabla phi|
+// Unit normal computation: n = \nabla psi / |\nabla psi|
 template<std::size_t D>
 void
 unit_normals(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro> dp_a,
-  typename field<double>::template accessor<rw> norm_a) {
+  typename field<double>::template accessor<rw> norm_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
 
   auto dp = m.template mdcolex<is::cells>(dp_a);
   auto norm = m.template mdcolex<is::cells>(norm_a);
@@ -178,7 +183,9 @@ extend_constant_normal(flecsi::exec::accelerator s,
   typename field<double>::template accessor<ro, ro> norm_a,
   double dtau,
   typename field<double>::template accessor<ro> q_scalar_a,
-  typename field<double>::template accessor<rw> q_new_scalar_a) {
+  typename field<double>::template accessor<rw> q_new_scalar_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
 
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto norm = m.template mdcolex<is::cells>(norm_a);
@@ -248,7 +255,7 @@ extend_constant_normal(flecsi::exec::accelerator s,
 }
 
 // ----------------------------
-// RHS: R(u) = - H(phi) * (n · grad(u))  in phi>0, else 0.
+// RHS: R(u) = - H(psi) * (n · grad(u))  in psi>0, else 0.
 // grad(u) computed with 2nd-order upwind + MinMod for each component.
 // ----------------------------
 
@@ -257,14 +264,14 @@ void
 rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro> q_scalar_a,
-  typename field<double>::template accessor<ro> phi_a,
+  typename field<double>::template accessor<ro> psi_a,
   typename field<double>::template accessor<ro> norm_a,
-  typename field<double>::template accessor<rw> rhs_a) {
+  typename field<double>::template accessor<rw> rhs_a) noexcept {
 
-  using hard::extrapolation::gradu_1d;
+  using common::tasks::utils::get_mdiota_policy;
 
   auto q = m.template mdcolex<is::cells>(q_scalar_a);
-  auto phi = m.template mdcolex<is::cells>(phi_a);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
   auto norm = m.template mdcolex<is::cells>(norm_a);
   auto rhs = m.template mdcolex<is::cells>(rhs_a);
 
@@ -273,7 +280,7 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
 
-      if(phi(i) <= 0.0) {
+      if(psi(i) <= 0.0) {
         rhs(i) = 0.0;
         return;
       }
@@ -294,7 +301,7 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
-      if(phi(i, j) <= 0.0) {
+      if(psi(i, j) <= 0.0) {
         rhs(i, j) = 0.0;
         return;
       }
@@ -325,7 +332,7 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
-      if(phi(i, j, k) <= 0.0) {
+      if(psi(i, j, k) <= 0.0) {
         rhs(i, j, k) = 0.0;
         return;
       }
@@ -369,7 +376,7 @@ template<std::size_t D, std::size_t STEP>
 void
 advance_q_rk2(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro> phi_a,
+  typename field<double>::template accessor<ro> psi_a,
   typename field<double>::template accessor<ro> q_scalar_known_a,
   typename field<double>::template accessor<ro> q_scalar_a, // base q^n
   typename field<double>::template accessor<ro> rhs_a, // rhs at base or stage
@@ -377,11 +384,13 @@ advance_q_rk2(flecsi::exec::accelerator s,
     q_scalar_stage_a, // q^(1) (only used in STEP=2)
   typename field<double>::template accessor<wo>
     q_scalar_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
-  const double dt) {
+  const double dt) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
 
   static_assert(STEP == 1 || STEP == 2, "STEP is 1 or 2");
 
-  auto phi = m.template mdcolex<is::cells>(phi_a);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
   auto q_known = m.template mdcolex<is::cells>(q_scalar_known_a);
   auto q = m.template mdcolex<is::cells>(q_scalar_a);
   auto rhs = m.template mdcolex<is::cells>(rhs_a);
@@ -392,7 +401,7 @@ advance_q_rk2(flecsi::exec::accelerator s,
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      if(is_known(phi(i))) {
+      if(is_known(psi(i))) {
         q_new(i) = q_known(i);
         return;
       }
@@ -413,7 +422,7 @@ advance_q_rk2(flecsi::exec::accelerator s,
 
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
-      if(is_known(phi(i, j))) {
+      if(is_known(psi(i, j))) {
         q_new(i, j) = q_known(i, j);
         return;
       }
@@ -434,7 +443,7 @@ advance_q_rk2(flecsi::exec::accelerator s,
 
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
-      if(is_known(phi(i, j, k))) {
+      if(is_known(psi(i, j, k))) {
         q_new(i, j, k) = q_known(i, j, k);
         return;
       }
@@ -464,45 +473,45 @@ rk2_constant_extrapolation_step(control_policy<hard::state, D> & cp) {
   sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
     flecsi::exec::on,
     *s.m,
-    s.q_scalar(*s.m),
-    s.phi(*s.m),
-    s.norm(*s.m),
-    s.q_rhs(*s.m));
+    s.expt.q_scalar(*s.m),
+    s.ls.psi(*s.m),
+    s.expt.norm(*s.m),
+    s.expt.q_rhs(*s.m));
 
   // q1 = q^n + dt * rhs(q^n)
   sc.execute<tasks::extrapolation::advance_q_rk2<D, 1>>(flecsi::exec::on,
     *s.m,
-    s.phi(*s.m),
-    s.q_scalar_known(*s.m),
-    s.q_scalar(*s.m),
-    s.q_rhs(*s.m),
-    s.q_scalar2(*s.m), // dummy (unused in STEP=1)
-    s.q_sclar1(*s.m), // output stage-1
-    s.dtau(s.gt));
+    s.ls.psi(*s.m),
+    s.expt.q_scalar_known(*s.m),
+    s.expt.q_scalar(*s.m),
+    s.expt.q_rhs(*s.m),
+    s.expt.q_scalar2(*s.m), // dummy (unused in STEP=1)
+    s.expt.q_sclar1(*s.m), // output stage-1
+    s.dt(s.gt)); // dtau in the origianl work
 
   // Stage 2: rhs(q1) -> rhs1
   sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
     flecsi::exec::on,
     *s.m,
-    s.q_scalar1(*s.m),
-    s.phi(*s.m),
-    s.norm(*s.m),
-    s.q_rhs1(*s.m));
+    s.expt.q_scalar1(*s.m),
+    s.ls.psi(*s.m),
+    s.expt.norm(*s.m),
+    s.expt.q_rhs1(*s.m));
 
   // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
   sc.execute<tasks::extrapolation::advance_q_rk2<D, 2>>(flecsi::exec::on,
     *s.m,
-    s.phi(*s.m),
-    s.q_scalar_known(*s.m),
-    s.q_scalar(*s.m), // q^n
-    s.q_rhs1(*s.m), // rhs(q1)
-    s.q_scalar1(*s.m), // q_stage
-    s.q_scalar2(*s.m), // q_new
-    s.dtau(s.gt));
+    s.ls.psi(*s.m),
+    s.expt.q_scalar_known(*s.m),
+    s.expt.q_scalar(*s.m), // q^n
+    s.expt.q_rhs1(*s.m), // rhs(q1)
+    s.expt.q_scalar1(*s.m), // q_stage
+    s.expt.q_scalar2(*s.m), // q_new
+    s.dt(s.gt)); // dtau in original work
 
   // Swap
-  sc.execute<hard::tasks::util::copy_scal_field<dm::quantities, D, double>>(
-    flecsi::exec::on, *s.m, s.q_scalar2(*s.m), s.q_scalar(*s.m));
+ // sc.execute<hard::tasks::util::copy_scal_field<dm::quantities, D, double>>(
+ //   flecsi::exec::on, *s.m, s.expt.q_scalar2(*s.m), s.expt.q_scalar(*s.m));
 }
 
 } // namespace hard::extrapolation
