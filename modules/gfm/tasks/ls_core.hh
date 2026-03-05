@@ -1,10 +1,11 @@
 #ifndef HARD_MODULES_GFM_TASKS_LS_CORE_HH
 #define HARD_MODULES_GFM_TASKS_LS_CORE_HH
 
-#include "../mesh.hh"
-#include "../modules/common/tasks/utils.hh"
+#include "../../common/tasks/utils.hh"
+#include "../../hydro/state.hh"
+#include "../../spec/labels.hh"
+#include "../../spec/mesh.hh"
 #include "../state.hh"
-#include "spec/labels.hh"
 
 using namespace hard::tasks::util;
 
@@ -26,6 +27,8 @@ freeze_material(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<int>::template accessor<ro, ro> material_a,
   typename field<int>::template accessor<wo, ro> frozen_material_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
 
   auto mat = m.template mdcolex<is::cells>(material_a);
   auto fmat = m.template mdcolex<is::cells>(frozen_material_a);
@@ -65,6 +68,8 @@ rhs_upwind(flecsi::exec::accelerator s,
   typename field<vec<D>>::template accessor<ro, ro> velocity_a,
   typename field<int>::template accessor<ro, ro> frozen_material_a,
   typename field<double>::template accessor<wo, ro> rhs_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
 
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto vel = m.template mdcolex<is::cells>(velocity_a);
@@ -202,6 +207,8 @@ advance_psi(flecsi::exec::accelerator s,
     psi_out_a, // stage output (psi1/psi2/psi3)
   typename single<double>::template accessor<ro> dt_a) noexcept {
 
+  using common::tasks::utils::get_mdiota_policy;
+
   static_assert(STEP >= 1 && STEP <= 3, "STEP is 1, 2 or 3");
 
   auto psi_n0 = m.template mdcolex<is::cells>(psi_n0_a);
@@ -277,6 +284,8 @@ determine_psi(flecsi::exec::accelerator s,
   typename field<double>::template accessor<wo, ro> psi_a, // psi^{n+1}
   typename field<int>::template accessor<ro, ro> frozen_material_a, // L^n
   typename field<int>::template accessor<wo, ro> material_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
 
   auto fpsi = m.template mdcolex<is::cells>(frozen_psi_a);
   auto psi = m.template mdcolex<is::cells>(psi_a);
@@ -445,73 +454,73 @@ ssprk3_step(
 
   // 0) Freeze material for this entire time step: Lfrozen = L^n
   sc.execute<task::freeze_material<D>>(
-    flecsi::exec::on, *s.m, s.material(*s.m), s.frozen_material(*s.m));
+    flecsi::exec::on, *s.m, s.ls.material(*s.m), s.ls.frozen_material(*s.m));
 
   // Stage 1: k = L(psi^n, L^n); psi1 = psi^n + dt*k
   sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
     *s.m,
-    s.psi(*s.m),
-    s.velocity(*s.m),
-    s.frozen_material(*s.m),
-    s.rhs(*s.m));
+    s.ls.psi(*s.m),
+    s.prim.velocity(*s.m),
+    s.ls.frozen_material(*s.m),
+    s.ls.rhs(*s.m));
 
   sc.execute<task::advance_psi<D, 1>>(flecsi::exec::on,
     *s.m,
-    s.psi(*s.m), // psi^n
-    s.rhs(*s.m), // k(psi^n)
-    s.psi2(*s.m), // unused for step1 (kept for signature consistency)
-    s.psi1(*s.m), // psi1
+    s.ls.psi(*s.m), // psi^n
+    s.ls.rhs(*s.m), // k(psi^n)
+    s.ls.psi2(*s.m), // unused for step1 (kept for signature consistency)
+    s.ls.psi1(*s.m), // psi1
     s.dt(*s.gt));
 
 #ifdef IN_TEST
   sc.execute<tests::level_set_utils::copy_test_vel<D>>(
-    flecsi::exec::on, *s.m, s.velocity(*s.m), s.t(*s.gt));
+    flecsi::exec::on, *s.m, s.prim.velocity(*s.m), s.t(*s.gt));
 #endif // IN_TEST
 
   // Stage 2: k = L(psi1, L^n); psi2 = 0.75*psi^n + 0.25*(psi1 + dt*k)
   sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
     *s.m,
-    s.psi1(*s.m),
-    s.velocity(*s.m),
-    s.frozen_material(*s.m),
-    s.rhs(*s.m));
+    s.ls.psi1(*s.m),
+    s.prim.velocity(*s.m),
+    s.ls.frozen_material(*s.m),
+    s.ls.rhs(*s.m));
 
   sc.execute<task::advance_psi<D, 2>>(flecsi::exec::on,
     *s.m,
-    s.psi(*s.m), // psi^n
-    s.rhs(*s.m), // k(psi1)
-    s.psi1(*s.m), // psi_prev = psi1
-    s.psi2(*s.m), // psi2
+    s.ls.psi(*s.m), // psi^n
+    s.ls.rhs(*s.m), // k(psi1)
+    s.ls.psi1(*s.m), // psi_prev = psi1
+    s.ls.psi2(*s.m), // psi2
     s.dt(*s.gt));
 
 #ifdef IN_TEST
   sc.execute<tests::level_set_utils::copy_test_vel<D>>(
-    flecsi::exec::on, *s.m, s.velocity(*s.m), s.t(*s.gt));
+    flecsi::exec::on, *s.m, s.prim.velocity(*s.m), s.t(*s.gt));
 #endif // IN_TEST
 
   // Stage 3: k = L(psi2, L^n); psi3 = 1/3*psi^n + 2/3*(psi2 + dt*k)
   sc.execute<task::rhs_upwind<D>>(flecsi::exec::on,
     *s.m,
-    s.psi2(*s.m),
-    s.velocity(*s.m),
-    s.frozen_material(*s.m),
-    s.rhs(*s.m));
+    s.ls.psi2(*s.m),
+    s.prim.velocity(*s.m),
+    s.ls.frozen_material(*s.m),
+    s.ls.rhs(*s.m));
 
   sc.execute<task::advance_psi<D, 3>>(flecsi::exec::on,
     *s.m,
-    s.psi(*s.m), // psi^n
-    s.rhs(*s.m), // k(psi2)
-    s.psi2(*s.m), // psi_prev = psi2
-    s.psi3(*s.m), // psi3
+    s.ls.psi(*s.m), // psi^n
+    s.ls.rhs(*s.m), // k(psi2)
+    s.ls.psi2(*s.m), // psi_prev = psi2
+    s.ls.psi3(*s.m), // psi3
     s.dt(*s.gt));
 
   // Algorithm 1 post-process: (psi3, L^n) -> (psi^{n+1}, L^{n+1})
   sc.execute<task::determine_psi<D>>(flecsi::exec::on,
     *s.m,
-    s.psi3(*s.m), // frozen_psi = psi3
-    s.psi(*s.m), // output psi^{n+1}
-    s.frozen_material(*s.m), // L^n
-    s.material(*s.m)); // output L^{n+1}
+    s.ls.psi3(*s.m), // frozen_psi = psi3
+    s.ls.psi(*s.m), // output psi^{n+1}
+    s.ls.frozen_material(*s.m), // L^n
+    s.ls.material(*s.m)); // output L^{n+1}
 }
 
 #if 0
