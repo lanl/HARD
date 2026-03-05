@@ -76,8 +76,7 @@ struct radiation {
       s.dt_weighted(*s.gt));
 
     // Initialize fields
-    sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
-      *s.m,
+    sc.execute<common::tasks::utils::copy_scalar<D>>(flecsi::exec::on,
       s.rad.cons.radiation_energy_density(*s.m),
       s.rad.mgr.Ef(*s.m));
     sc.execute<tasks::rad::const_init<D>>(
@@ -100,8 +99,7 @@ struct radiation {
                 << std::endl;
 
     // Move solution from rad solver
-    sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
-      *s.m,
+    sc.execute<common::tasks::utils::copy_scalar<D>>(flecsi::exec::on,
       s.rad.mgr.Esf(*s.m),
       s.rad.cons.radiation_energy_density(*s.m));
 

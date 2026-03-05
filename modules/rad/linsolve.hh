@@ -253,8 +253,8 @@ linsolve(control_policy<state, D> & cp) {
     flog(trace) << "final res norm radiation: " << r.l2norm().get()
                 << std::endl;
 
-    sc.execute<tasks::rad::copy_field<D>>(
-      flecsi::exec::on, *s.m, s.rad.mgr.Uf(mf), s.rad.mgr.Esf(mf));
+    sc.execute<common::tasks::utils::copy_scalar<D>>(
+      flecsi::exec::on, s.rad.mgr.Uf(mf), s.rad.mgr.Esf(mf));
   }
 } // linsolve
 } // namespace hard

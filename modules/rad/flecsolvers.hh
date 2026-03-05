@@ -66,8 +66,7 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
 
     flecsi::scheduler & sc = params.sc.get();
 
-    sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
-      y.data.topo(),
+    sc.execute<common::tasks::utils::copy_scalar<D>>(flecsi::exec::on,
       x.data.ref(),
       params.s.get().rad.mgr.Ef_temp(x.data.topo()));
 
@@ -87,8 +86,7 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
 
     _vcycle(std::move(params.s), 0);
 
-    sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
-      y.data.topo(),
+    sc.execute<common::tasks::utils::copy_scalar<D>>(flecsi::exec::on,
       params.s.get().rad.mgr.Esf(y.data.topo()),
       y.data.ref());
   }
@@ -218,10 +216,8 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
     flecsi::scheduler & sc = params.sc.get();
 
     // Rhs = r // NO NEED
-    sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
-      y.data.topo(),
-      x.data.ref(),
-      params.s.get().Ef_temp(x.data.topo()));
+    sc.execute<common::tasks::utils::copy_scalar<D>>(
+      flecsi::exec::on, x.data.ref(), params.s.get().Ef_temp(x.data.topo()));
 
     // Zero solution vector
     sc.execute<tasks::rad::const_init<D>>(
@@ -237,10 +233,8 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
 
     _fmg(std::move(params.s), 0);
 
-    sc.execute<tasks::rad::copy_field<D>>(flecsi::exec::on,
-      y.data.topo(),
-      params.s.get().mgr.Esf(y.data.topo()),
-      y.data.ref());
+    sc.execute<common::tasks::utils::copy_scalar<D>>(
+      flecsi::exec::on, params.s.get().mgr.Esf(y.data.topo()), y.data.ref());
   }
 
   void _vcycle(state<D> & s, std::size_t index) const {
