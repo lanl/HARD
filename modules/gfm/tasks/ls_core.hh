@@ -1,9 +1,9 @@
-#ifndef SPEC_LS_CORE_HH
-#define SPEC_LS_CORE_HH
+#ifndef HARD_MODULES_GFM_TASKS_LS_CORE_HH
+#define HARD_MODULES_GFM_TASKS_LS_CORE_HH
 
-#include "../../app/state.hh"
 #include "../../app/tasks/utils.hh"
 #include "../mesh.hh"
+#include "../state.hh"
 #include "spec/labels.hh"
 
 using namespace hard::tasks::util;
