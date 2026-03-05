@@ -789,44 +789,6 @@ const_init(flecsi::exec::accelerator s,
 
 template<std::size_t D>
 void
-copy_field(flecsi::exec::accelerator s,
-  typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, na> from_a,
-  typename field<double>::template accessor<wo, na> to_a) noexcept {
-
-  auto from = m.template mdcolex<is::cells>(from_a);
-  auto to = m.template mdcolex<is::cells>(to_a);
-
-  if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      to(i) = from(i);
-    }; // forall
-  }
-  else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(to,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(ji, mdpolicy_qq) {
-      auto [j, i] = ji;
-      to(i, j) = from(i, j);
-    }; // forall
-  }
-  else if constexpr(D == 3) {
-    auto mdpolicy_qqq = get_mdiota_policy(to,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_qqq) {
-      auto [k, j, i] = kji;
-      to(i, j, k) = from(i, j, k);
-    }; // forall
-  }
-} // copy_field
-
-template<std::size_t D>
-void
 stencil_init(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> Df_xa,

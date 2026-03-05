@@ -1,5 +1,6 @@
 #include "options.hh"
 #include "state.hh"
+#include "types.hh"
 
 #include "common/utils.hh"
 #include "hydro/tasks/cons2prim.hh"

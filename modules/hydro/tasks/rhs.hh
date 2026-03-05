@@ -49,31 +49,6 @@ set_dudt_to_zero(flecsi::exec::accelerator s,
 }
 
 //
-// Store the evolved variables U^n at t=t^n into temporary space before running
-// RK substeps.
-//
-template<std::size_t Dim>
-void
-store_current_state(flecsi::exec::accelerator s,
-  std::vector<std::tuple<field<double>::accessor<ro, na>,
-    field<double>::accessor<wo, na>>> v_a,
-  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
-    typename field<vec<Dim>>::template accessor<wo, na>>> vec_v_a) noexcept {
-
-  for(auto & [from_a, to_a] : v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
-      to_a(i) = from_a(i);
-    }; // forall
-  }
-
-  for(auto & [from_a, to_a] : vec_v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
-      to_a(i) = from_a(i);
-    }; // forall
-  }
-}
-
-//
 // Used for the RK substeps
 //
 template<std::size_t Dim>

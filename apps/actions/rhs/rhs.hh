@@ -1,6 +1,7 @@
 #ifndef HARD_APPS_ACTIONS_RHS_HH
 #define HARD_APPS_ACTIONS_RHS_HH
 
+#include "common/tasks/utils.hh"
 #include "hydro/tasks/init.hh"
 #include "hydro/tasks/rhs.hh"
 
@@ -48,7 +49,6 @@ rhs(state<D> & s,
   }
 
   {
-
     auto scalar_v = std::vector{std::make_tuple(s.cons.hydro.mass_density(*s.m),
                                   s.rk_n.mass_density()(*s.m)),
       std::make_tuple(s.cons.hydro.total_energy_density(*s.m),
@@ -60,14 +60,11 @@ rhs(state<D> & s,
 
     // Store the current state of evolved variables (U^n) before performing a
     // time step
-    // clang-format off
-  sc.execute<tasks::hydro::store_current_state<D>>(flecsi::exec::on,
-    scalar_v,
-    std::vector{
-      std::make_tuple(
-        s.cons.hydro.momentum_density(*s.m),
+    sc.execute<common::tasks::utils::copy_scalar_v_vector<D, vec<D>>>(
+      flecsi::exec::on,
+      scalar_v,
+      std::vector{std::make_tuple(s.cons.hydro.momentum_density(*s.m),
         s.rk_n.momentum_energy_density()(*s.m))});
-    // clang-format on
   }
 }
 
