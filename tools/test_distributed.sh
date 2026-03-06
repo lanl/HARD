@@ -6,8 +6,11 @@ hard_executable="$2"
 config_file="$3"
 additional_args="$4"
 
+# HPX runs
+export HPX_COMMANDLINE_OPTIONS="--hpx:os-threads 1 --hpx:info"
+
 # Run the executable twice
-rm *.csv
+rm -f *.csv
 ls
 echo "Starting.."
 OMP_NUM_THREADS=1 "$mpi_executable" -np 1 "$hard_executable" "$config_file" $additional_args
