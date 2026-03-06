@@ -101,7 +101,7 @@ kh_instability_rad(flecsi::exec::cpu s,
       "Kelvin-Helmholtz instability problem for D == 1 is not implemented");
   }
   else if constexpr(D == 2) {
-    s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
+    for(auto j : m.template cells<ax::y, dm::quantities>()) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);
@@ -136,7 +136,7 @@ kh_instability_rad(flecsi::exec::cpu s,
     }; // forall
   }
   else /* D == 3 */ {
-    s.executor().forall(k, (m.template cells<ax::z, dm::quantities>())) {
+    for(auto k : m.template cells<ax::z, dm::quantities>()) {
       for(auto j : m.template cells<ax::y, dm::quantities>()) {
         for(auto i : m.template cells<ax::x, dm::quantities>()) {
           const auto x = m.template center<ax::x>(i);

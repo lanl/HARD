@@ -124,7 +124,7 @@ update_u_scalar(flecsi::exec::accelerator s,
 //
 template<std::size_t Dim>
 void
-update_u_stage(flecsi::exec::cpu s,
+update_u_stage(flecsi::exec::accelerator s,
   single<double>::accessor<ro> dt_a,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<ro, na>,
@@ -151,7 +151,7 @@ update_u_stage(flecsi::exec::cpu s,
 
 template<std::size_t Dim>
 void
-update_u_stage_scalar(flecsi::exec::cpu s,
+update_u_stage_scalar(flecsi::exec::accelerator s,
   single<double>::accessor<ro> dt_a,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<ro, na>,
