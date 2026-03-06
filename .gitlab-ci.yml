@@ -1,92 +1,19 @@
-stages:
-  - prepare
-  - prechecks
-  - mpi
-  - legion
-    #  - cuda
+#------------------------------------------------------------------------------#
+# FleCSI Gitlab CI: Main
+#------------------------------------------------------------------------------#
 
+stages:
+  - Checks
+  - MPI backend
+  - HPX backend
+  - Legion backend
+  
 variables:
-  PROJECT_NAME: hard
-  GIT_SUBMODULE_STRATEGY: normal
-  ENABLE_CDASH: false
-  ENABLED_CLUSTERS: "darwin"
-  # use this variable if there is a deployment MR you want to use instead
-  PROJECT_SPACK_ENV_VERSION: "2025-11-29"
-  V100_CONSTRAINT: "--constraint=\"cpu_family:haswell&(gpu1_model:Tesla_V100S-PCIE-32GB|gpu1_model:Tesla_V100-PCIE-32GB)\""
-  HSA_OVERRIDE_CPU_AFFINITY_DEBUG: 0
-  #AMD_SERIALIZE_KERNEL: 3
-  #AMD_SERIALIZE_COPY: 3
+  ENABLED_CLUSTERS: darwin
 
 include:
  - .gitlab/common.yml
-
-format:
-  extends: [.ascgit_job, .darwin_job, .darwin_regular_job, .clang_format]
-  stage: prechecks
-
-###############################################################################
-# Darwin
-###############################################################################
-
-darwin_hard_test_mpi:
-  stage: mpi
-  extends: [.ascgit_job, .darwin_job, .darwin_regular_job, .build_and_test]
-  needs: []
-  variables:
-    SPACK_ENV_NAME: "custom-file"
-    SPACK_ENV_FILE: ${CI_PROJECT_DIR}/spack-repo/custom/hard_spack_mpi.yaml
-  artifacts:
-    name: "plots-$CI_JOB_ID"      # visible label in the UI
-    paths:
-      - ./build/artifacts/        # grab everything under that folder
-    when: always                  # even if the tests fail, keep the files
-    expire_in: 1 week             # or 'never' if you want to keep them forever
-
-darwin_hard_radiation_test_mpi:
-  stage: mpi
-  extends: [.ascgit_job, .darwin_job, .darwin_regular_job, .build_and_test]
-  needs: []
-  variables:
-    SPACK_ENV_NAME: "custom-file"
-    SPACK_ENV_FILE: ${CI_PROJECT_DIR}/spack-repo/custom/hard_radiation_spack_mpi.yaml
-
-darwin_hard_test_legion:
-  stage: legion
-  extends: [.ascgit_job, .darwin_job, .darwin_regular_job, .build_and_test]
-  needs: []
-  variables:
-    SPACK_ENV_NAME: "custom-file"
-    SPACK_ENV_FILE: ${CI_PROJECT_DIR}/spack-repo/custom/hard_spack_legion.yaml
-
-darwin_hard_radiation_test_legion:
-  stage: legion
-  extends: [.ascgit_job, .darwin_job, .darwin_regular_job, .build_and_test]
-  needs: []
-  variables:
-    SPACK_ENV_NAME: "custom-file"
-    SPACK_ENV_FILE: ${CI_PROJECT_DIR}/spack-repo/custom/hard_radiation_spack_legion.yaml
-
-darwin_catalyst_build_mpi:
-  stage: mpi
-  extends: [.ascgit_job, .darwin_job, .darwin_regular_job, .build_and_test]
-  needs: []
-  variables:
-    SPACK_ENV_NAME: "custom-file"
-    SPACK_ENV_FILE: ${CI_PROJECT_DIR}/spack-repo/custom/hard_catalyst_build_mpi.yaml
-
-# For cuda
-#darwin_hard_test_mpi_cuda:
-#  stage: cuda
-#  extends: [.ascgit_job, .darwin_job_with_cuda, .darwin_regular_job, .build_and_test]
-#  needs: []
-#  variables:
-#    SPACK_ENV_NAME: "custom-file"
-#    SPACK_ENV_FILE: ${CI_PROJECT_DIR}/spack-repo/custom/hard_spack_cuda.yaml
-
-#darwin_hard_radiation_mpi_cuda:
-#  stage: cuda
-#  extends: [.ascgit_job, .darwin_job_with_cuda, .darwin_regular_job, .build_and_test]
-#  needs: []
-#  variables:
-#    SPACK_ENV_NAME: "custom-file"
-#    SPACK_ENV_FILE: ${CI_PROJECT_DIR}/spack-repo/custom/hard_radiation_spack_cuda.yaml
+ - .gitlab/checks.yml
+ - .gitlab/mpi.yml
+ - .gitlab/hpx.yml
+ - .gitlab/legion.yml
