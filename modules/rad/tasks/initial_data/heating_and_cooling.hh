@@ -58,7 +58,7 @@ heating_and_cooling(flecsi::exec::cpu s,
     spec::utils::sqr(spec::utils::sqr(radiation_temperature));
 
   if constexpr(Dim == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    for(auto i : m.template cells<ax::x, dm::quantities>()) {
       mass_density(i) = mass_density_v;
       momentum_density(i).x() = 0.0;
 

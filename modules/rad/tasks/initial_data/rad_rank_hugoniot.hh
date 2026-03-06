@@ -62,7 +62,7 @@ rad_RH(flecsi::exec::cpu s,
   const double a = hard::constants::cgs::radiation_constant;
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    for(auto i : m.template cells<ax::x, dm::quantities>()) {
       const auto x = m.template center<ax::x>(i);
 
       if(x < T::x0) {
@@ -85,7 +85,7 @@ rad_RH(flecsi::exec::cpu s,
     }; // for
   }
   else if constexpr(D == 2) {
-    s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
+    for(auto j : m.template cells<ax::y, dm::quantities>()) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x = m.template center<ax::x>(i);
 
@@ -109,7 +109,7 @@ rad_RH(flecsi::exec::cpu s,
     }; // for
   }
   else /* D == 3 */ {
-    s.executor().forall(k, (m.template cells<ax::z, dm::quantities>())) {
+    for(auto k : m.template cells<ax::z, dm::quantities>()) {
       for(auto j : m.template cells<ax::y, dm::quantities>()) {
         for(auto i : m.template cells<ax::x, dm::quantities>()) {
           const auto x = m.template center<ax::x>(i);
