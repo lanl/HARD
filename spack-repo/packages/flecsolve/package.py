@@ -4,7 +4,7 @@
 
 from spack.package import *
 
-class Flecsolve(CMakePackage):
+class Flecsolve(CMakePackage, CudaPackage):
     """Solvers package built on top of FleCSI"""
 
     homepage="https://github.com/lanl/flecsolve.git"
