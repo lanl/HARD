@@ -11,7 +11,7 @@ class Default(BuildEnvironment, CMake):
         return super().ci_message(args, post_alloc_init="source .gitlab/kessel.sh")
 
     def build(self, args):
-        """Build (with FLOG)"""
+        """Build"""
         cmake_args = [
             self.define("ENABLE_FLOG", True),
             self.define("ENABLE_UNIT_TESTS", True),
