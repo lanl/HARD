@@ -5,7 +5,7 @@ from pathlib import Path
 
 class Format(BuildEnvironment, CMake):
     steps = ["env", "configure", "check_format"]
-
+    allow_lockfile_changes = True
     build_dir = environment(Path.cwd() / "build_format")
     spack_env = environment("format")
     project_spec = environment("hard+format")

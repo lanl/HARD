@@ -4,7 +4,7 @@ from kessel.workflows.base.cmake import CMake
 
 class Default(BuildEnvironment, CMake):
     steps = ["env", "configure", "build", "test", "install"]
-
+    allow_lockfile_changes = True
     project_spec = environment("hard+tests+verification")
 
     def ci_message(self, args):
