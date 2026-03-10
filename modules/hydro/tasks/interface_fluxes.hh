@@ -25,7 +25,6 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
   // time derivative
   typename RK<Dim>::template accessor<rw, na> rk_dt_a,
   typename single<vec<Dim>>::template accessor<ro> g_acc) noexcept {
-  auto g = g_acc.get();
   auto [r_right, r_left] = faces<Dim>::mdcolex(m, r_face_a);
   auto [u_right, u_left] = faces_vec<Dim>::mdcolex(m, uFace_a);
   auto [p_right, p_left] = faces<Dim>::mdcolex(m, pFace_a);
@@ -65,7 +64,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
 #endif
     s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
       const auto dx = m.template delta<ax::x>();
-
+      auto g = g_acc.get();
       // Fluxes from left and right state
       const double pLeft_wave =
         p_left(i - 1) + 0.5 * r_left(i - 1) * g.x() * dx;
@@ -81,18 +80,16 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         r_f(i) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
           r_left(i-1), r_left(i-1), u_left(i-1), re_left(i-1), pLeft_wave, c_left(i-1), f_r_T,
-          r_right(i),   r_right(i),   u_right(i),   re_right(i),   pRight_wave, c_right(i), f_r_H,
-          "rho");
+            r_right(i),   r_right(i),   u_right(i),   re_right(i),   pRight_wave, c_right(i), f_r_H,
+            numerical_algorithms::field_tag::rho);
         ru_f(i) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
           ru_left(i-1), r_left(i-1), u_left(i-1), re_left(i-1), pLeft_wave, c_left(i-1), f_ru_T,
-          ru_right(i),   r_right(i),   u_right(i),   re_right(i),   pRight_wave, c_right(i), f_ru_H,
-          "rhou");
+            ru_right(i),   r_right(i),   u_right(i),   re_right(i),   pRight_wave, c_right(i), f_ru_H, numerical_algorithms::field_tag::ru);
         re_f(i) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
           re_left(i-1), r_left(i-1), u_left(i-1), re_left(i-1), pLeft_wave, c_left(i-1), f_rE_T,
-          re_right(i),   r_right(i),   u_right(i),   re_right(i),   pRight_wave, c_right(i), f_rE_H,
-          "E");
+            re_right(i),   r_right(i),   u_right(i),   re_right(i),   pRight_wave, c_right(i), f_rE_H, numerical_algorithms::field_tag::re);
       // clang-format on
 
     }; // forall
@@ -116,7 +113,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::x, dm::corrector>());
 
       s.executor().forall(ji, mdpolicy_qc) {
-
+        auto g = g_acc.get();
         auto [j, i] = ji;
 
         // Fluxes from left and right state
@@ -141,17 +138,17 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
           r_left(i-1,j), r_left(i-1,j), u_left(i-1,j), re_left(i-1,j), pLeft_wave, c_left(i-1,j), f_r_T,
           r_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_r_H,
-          "rho" );
+           numerical_algorithms::field_tag::rho);
         ru_f(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
           ru_left(i-1,j), r_left(i-1,j), u_left(i-1,j), re_left(i-1,j), pLeft_wave, c_left(i-1,j), f_ru_T,
           ru_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_ru_H,
-          "rhou" );
+          numerical_algorithms::field_tag::ru);
         re_f(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
           re_left(i-1,j), r_left(i-1,j), u_left(i-1,j), re_left(i-1,j), pLeft_wave, c_left(i-1,j), f_rE_T,
           re_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_rE_H,
-          "E" );
+          numerical_algorithms::field_tag::re);
         // clang-format on
       }; // forall
 
@@ -176,7 +173,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::x, dm::quantities>());
 
       s.executor().forall(ji, mdpolicy_cq) {
-
+        auto g = g_acc.get();
         auto [j, i] = ji;
 
         // Fluxes from left and right state
@@ -198,17 +195,17 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
           r_left(i,j-1), r_left(i,j-1), u_left(i,j-1), re_left(i,j-1), pLeft_wave, c_left(i,j-1), f_r_T,
           r_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_r_H,
-          "rho" );
+           numerical_algorithms::field_tag::rho);
         ru_f(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
           ru_left(i,j-1), r_left(i,j-1), u_left(i,j-1), re_left(i,j-1), pLeft_wave, c_left(i,j-1), f_ru_T,
           ru_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_ru_H,
-          "rhou" );
+          numerical_algorithms::field_tag::ru);
         re_f(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
           re_left(i,j-1), r_left(i,j-1), u_left(i,j-1), re_left(i,j-1), pLeft_wave, c_left(i,j-1), f_rE_T,
           re_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_rE_H,
-          "E" );
+          numerical_algorithms::field_tag::re);
         // clang-format on
       }; // forall
 
@@ -237,7 +234,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::x, dm::corrector>());
 
       s.executor().forall(kji, mdpolicy_qqc) {
-
+        auto g = g_acc.get();
         auto [k, j, i] = kji;
 
         // Fluxes from left and right state
@@ -264,17 +261,17 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
           r_left(i-1,j,k), r_left(i-1,j,k), u_left(i-1,j,k), re_left(i-1,j,k), pLeft_wave, c_left(i-1,j,k), f_r_T,
           r_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_r_H,
-          "rho" );
+           numerical_algorithms::field_tag::rho);
         ru_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
           ru_left(i-1,j,k), r_left(i-1,j,k), u_left(i-1,j,k), re_left(i-1,j,k), pLeft_wave, c_left(i-1,j,k), f_ru_T,
           ru_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_ru_H,
-          "rhou" );
+          numerical_algorithms::field_tag::ru);
         re_f(i, j,k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
           re_left(i-1,j,k), r_left(i-1,j,k), u_left(i-1,j,k), re_left(i-1,j,k), pLeft_wave, c_left(i-1,j,k), f_rE_T,
           re_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_rE_H,
-          "E" );
+          numerical_algorithms::field_tag::re);
         // clang-format on
 
       }; // forall
@@ -303,7 +300,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::x, dm::quantities>());
 
       s.executor().forall(kji, mdpolicy_qcq) {
-
+        auto g = g_acc.get();
         auto [k, j, i] = kji;
 
         // Fluxes from left and right state
@@ -330,17 +327,17 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
           r_left(i,j-1,k), r_left(i,j-1,k), u_left(i,j-1,k), re_left(i,j-1,k), pLeft_wave, c_left(i,j-1,k), f_r_T,
           r_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_r_H,
-          "rho" );
+           numerical_algorithms::field_tag::rho);
         ru_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
           ru_left(i,j-1,k), r_left(i,j-1,k), u_left(i,j-1,k), re_left(i,j-1,k), pLeft_wave, c_left(i,j-1,k), f_ru_T,
           ru_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_ru_H,
-          "rhou" );
+          numerical_algorithms::field_tag::ru);
         re_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
           re_left(i,j-1,k), r_left(i,j-1,k), u_left(i,j-1,k), re_left(i,j-1,k), pLeft_wave, c_left(i,j-1,k), f_rE_T,
           re_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_rE_H,
-          "E" );
+          numerical_algorithms::field_tag::re);
         // clang-format on
       }; // forall
 
@@ -367,7 +364,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::x, dm::quantities>());
 
       s.executor().forall(kji, mdpolicy_cqq) {
-
+        auto g = g_acc.get();
         auto [k, j, i] = kji;
 
         // Fluxes from left and right state
@@ -394,17 +391,17 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
           r_left(i,j,k-1), r_left(i,j,k-1), u_left(i,j,k-1), re_left(i,j,k-1), pLeft_wave, c_left(i,j,k-1), f_r_T,
           r_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_r_H,
-          "rho" );
+           numerical_algorithms::field_tag::rho);
         ru_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
           ru_left(i,j,k-1), r_left(i,j,k-1), u_left(i,j,k-1), re_left(i,j,k-1), pLeft_wave, c_left(i,j,k-1), f_ru_T,
           ru_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_ru_H,
-          "rhou" );
+          numerical_algorithms::field_tag::ru);
         re_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
           re_left(i,j,k-1), r_left(i,j,k-1), u_left(i,j,k-1), re_left(i,j,k-1), pLeft_wave, c_left(i,j,k-1), f_rE_T,
           re_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_rE_H,
-          "E" );
+          numerical_algorithms::field_tag::re);
         // clang-format on
       }; // forall
 

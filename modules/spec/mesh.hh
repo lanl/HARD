@@ -45,7 +45,7 @@ struct help<3> {
 
 struct srange {
   std::size_t beg, end;
-  std::size_t size() const {
+  FLECSI_INLINE_TARGET std::size_t size() const {
     return end - beg;
   }
 };
@@ -71,7 +71,7 @@ translate(flecsi::util::id & x,
 }
 
 template<std::size_t... Index>
-flecsi::util::id
+FLECSI_INLINE_TARGET flecsi::util::id
 translate_index(flecsi::util::id x,
   const std::array<srange, sizeof...(Index)> & subrange,
   const std::array<std::size_t, sizeof...(Index)> & extents,

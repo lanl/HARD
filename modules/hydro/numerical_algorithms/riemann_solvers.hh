@@ -8,6 +8,8 @@
 
 namespace hard::numerical_algorithms {
 
+enum class field_tag { rho, ru, re };
+
 // Applies hll fluxes to a homogeneous conservation equation
 template<typename T>
 FLECSI_INLINE_TARGET T
@@ -74,7 +76,7 @@ compute_U_star(const double u_l_n,
   const double s_l,
   const double s_r,
   const double s_star,
-  const std::string & var_name) {
+  const field_tag & ft) {
 
   T u_l_star(0.0);
   T u_r_star(0.0);
@@ -83,11 +85,11 @@ compute_U_star(const double u_l_n,
   double const fac_r = rho_r * (s_r - u_r_n) / (s_r - s_star);
 
   if constexpr(std::is_same_v<T, double>) {
-    if(var_name == "rho") {
+    if(ft == field_tag::rho) {
       u_l_star = fac_l;
       u_r_star = fac_r;
     }
-    else if(var_name == "E") {
+    else if(ft == field_tag::re) {
       u_l_star =
         fac_l * (e_l / rho_l +
                   (s_star - u_l_n) * (s_star + p_l / (rho_l * (s_l - u_l_n))));
@@ -100,7 +102,7 @@ compute_U_star(const double u_l_n,
     }
   }
   else if constexpr(std::is_same_v<T, vec<Dim>>) {
-    if(var_name == "rhou") {
+    if(ft == field_tag::ru) {
       u_l_star = fac_l * vel_l_star;
       u_r_star = fac_r * vel_r_star;
     }
@@ -162,7 +164,7 @@ compute_HLLC_fluxes(std::size_t fa,
   const double p_r,
   const double c_r,
   const T f_r,
-  const std::string & var_name) {
+  const field_tag & ft) {
 
   double u_l_n = 0.0, u_r_n = 0.0;
 
@@ -202,7 +204,7 @@ compute_HLLC_fluxes(std::size_t fa,
 
   // clang-format off
   auto [u_l_star, u_r_star] = compute_U_star<Dim, T>(u_l_n, u_r_n,
-    vel_l_star, vel_r_star, rho_l, rho_r, e_l, e_r, p_l, p_r, s_l, s_r, s_star, var_name);
+    vel_l_star, vel_r_star, rho_l, rho_r, e_l, e_r, p_l, p_r, s_l, s_r, s_star, ft);
   // clang-format on
 
   return compute_F_star<T>(
