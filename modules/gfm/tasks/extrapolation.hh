@@ -7,6 +7,7 @@
 #include "../../spec/limiter.hh"
 #include "../../spec/mesh.hh"
 #include "../state.hh"
+#include <array>
 #include <cmath>
 #include <cstddef>
 
@@ -30,37 +31,58 @@ namespace hard::tasks::extrapolation {
 //           u[0]      u[1]      u[2]
 //
 
+inline double
+psi_mm(double r) {
+  // Original minmod in Aslam's paper limiter in ratio form: max(0, min(1, r))
+  if(r <= 0.0)
+    return 0.0;
+  return (r < 1.0) ? r : 1.0;
+}
+
 template<std::size_t sten_size = 5>
 double
-gradu_1d(std::array<double, sten_size> u, double a, double dx) {
+gradu_1d(const std::array<double, sten_size> & u, double a, double dx) {
   static_assert(
     sten_size == 3 || sten_size == 5, "Stencil size must be 3 or 5");
 
-  using limiter = spec::limiters::genminmod;
+  // TODO : Check limiter in HARD is functional as expected
+  // using limiter = spec::limiters::genminmod;
 
-  if(a >= 0.0) {
-    if constexpr(sten_size == 3) {
-      // 1st order upwind
+  if constexpr(sten_size == 3) {
+    // Plain 1st order upwind using u = {u_{i-1}, u_i, u_{i+1}}
+    if(a >= 0.0)
       return (u[1] - u[0]) / dx;
-    }
-    else {
-      // 2nd-order upwind (biased)
-      const double d1 = (u[2] - u[1]) / dx;
-      const double d2 = (3.0 * u[2] - 4.0 * u[1] + u[0]) / (2.0 * dx);
-      const double psi = limiter(u[0], u[1], u[2]);
-      return d1 + psi * (d2 - d1);
-    }
+    else
+      return (u[2] - u[1]) / dx;
   }
   else {
-    if constexpr(sten_size == 3) {
-      // 1st order downwind
-      return (u[2] - u[1]) / dx;
+    // 5-point version: u = {u_{i-2}, u_{i-1}, u_i, u_{i+1}, u_{i+2}}
+    constexpr double eps = 1e-14;
+    if(a >= 0.0) {
+      // 1st order upwind derivative at i
+      const double d1 = (u[2] - u[1]) / dx;
+
+      // 2nd order upwind (biased left) derivative at i
+      const double d2 = (3.0 * u[2] - 4.0 * u[1] + u[0]) / (2.0 * dx);
+
+      // Ratio of consecutive gradients (upwind-side / downwind-side)
+      const double du_up = (u[2] - u[1]);
+      const double du_down = (u[3] - u[2]);
+      const double r = du_down / (du_up + ((du_up >= 0.0) ? eps : -eps));
+
+      const double psi = psi_mm(r);
+      return d1 + psi * (d2 - d1);
     }
     else {
-      // 2nd-order downwind (biased)
-      const double d1 = (u[2] - u[1]) / dx;
+      // a < 0 : upwind is to the right
+      const double d1 = (u[3] - u[2]) / dx;
       const double d2 = (-3.0 * u[2] + 4.0 * u[3] - u[4]) / (2.0 * dx);
-      const double psi = limiter(u[2], u[4], u[4]);
+
+      const double du_up = (u[3] - u[2]);
+      const double du_down = (u[2] - u[1]);
+      const double r = du_down / (du_up + ((du_up >= 0.0) ? eps : -eps));
+
+      const double psi = psi_mm(r);
       return d1 + psi * (d2 - d1);
     }
   }
@@ -84,7 +106,7 @@ gradient_centered(flecsi::exec::accelerator s,
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      dp(i).x = (psi(i + 1) - psi(i - 1)) * div_dx;
+      dp(i).x() = (psi(i + 1) - psi(i - 1)) * div_dx;
     };
   }
   else if constexpr(D == 2) {
@@ -97,8 +119,8 @@ gradient_centered(flecsi::exec::accelerator s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
-      dp(i, j).x = (psi(i + 1, j) - psi(i - 1, j)) * div_dx;
-      dp(i, j).y = (psi(i, j + 1) - psi(i, j - 1)) * div_dy;
+      dp(i, j).x() = (psi(i + 1, j) - psi(i - 1, j)) * div_dx;
+      dp(i, j).y() = (psi(i, j + 1) - psi(i, j - 1)) * div_dy;
     };
   }
   else /* D == 3 */ {
@@ -113,9 +135,9 @@ gradient_centered(flecsi::exec::accelerator s,
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
-      dp(i, j, k).x = (psi(i + 1, j, k) - psi(i - 1, j, k)) * div_dx;
-      dp(i, j, k).y = (psi(i, j + 1, k) - psi(i, j - 1, k)) * div_dy;
-      dp(i, j, k).z = (psi(i, j, k + 1) - psi(i, j, k - 1)) * div_dz;
+      dp(i, j, k).x() = (psi(i + 1, j, k) - psi(i - 1, j, k)) * div_dx;
+      dp(i, j, k).y() = (psi(i, j + 1, k) - psi(i, j - 1, k)) * div_dy;
+      dp(i, j, k).z() = (psi(i, j, k + 1) - psi(i, j, k - 1)) * div_dz;
     };
   }
 }
@@ -125,8 +147,8 @@ template<std::size_t D>
 void
 unit_normals(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro> dp_a,
-  typename field<double>::template accessor<rw> normal_a) noexcept {
+  typename field<vec<D>>::template accessor<ro, ro> dp_a,
+  typename field<vec<D>>::template accessor<rw, ro> normal_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
@@ -137,7 +159,7 @@ unit_normals(flecsi::exec::accelerator s,
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      normal(i).x = dp(i).x / (dp(i).normal() + eps);
+      normal(i).x() = dp(i).x() / (dp(i).norm() + eps);
     };
   }
   else if constexpr(D == 2) {
@@ -148,10 +170,10 @@ unit_normals(flecsi::exec::accelerator s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
-      const double inv_mag = 1.0 / (dp(i, j).normal() + eps);
+      const double inv_mag = 1.0 / (dp(i, j).norm() + eps);
 
-      normal(i, j).x = dp(i, j).x * inv_mag;
-      normal(i, j).y = dp(i, j).y * inv_mag;
+      normal(i, j).x() = dp(i, j).x() * inv_mag;
+      normal(i, j).y() = dp(i, j).y() * inv_mag;
     };
   }
   else /* D == 3 */ {
@@ -163,15 +185,17 @@ unit_normals(flecsi::exec::accelerator s,
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
-      const double inv_mag = 1.0 / (dp(i, j, k).normal() + eps);
+      const double inv_mag = 1.0 / (dp(i, j, k).norm() + eps);
 
-      normal(i, j, k).x = dp(i, j, k).x * inv_mag;
-      normal(i, j, k).y = dp(i, j, k).y * inv_mag;
-      normal(i, j, k).z = dp(i, j, k).z * inv_mag;
+      normal(i, j, k).x() = dp(i, j, k).x() * inv_mag;
+      normal(i, j, k).y() = dp(i, j, k).y() * inv_mag;
+      normal(i, j, k).z() = dp(i, j, k).z() * inv_mag;
     };
   }
 }
 
+// TODO :Remove?
+#if 0
 // constant-normal extrapolation utility
 // Extends scalar q off the interface (one forward Euler step of
 // \partial tau q  + sign(\psi) n·\nabla q = 0 ).
@@ -180,7 +204,7 @@ void
 extend_constant_normal(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> psi_a,
-  typename field<double>::template accessor<ro, ro> normal_a,
+  typename field<vec<D>>::template accessor<ro, ro> normal_a,
   double dtau,
   typename field<double>::template accessor<ro> q_scalar_a,
   typename field<double>::template accessor<rw> q_new_scalar_a) noexcept {
@@ -249,10 +273,10 @@ extend_constant_normal(flecsi::exec::accelerator s,
                                       (normal(i, j, k).x * dqx * inv_dx +
                                         normal(i, j, k).y * dqy * inv_dy +
                                         normal(i, j, k).z * dqz * inv_dz);
-      ;
     };
   }
 }
+#endif
 
 // ----------------------------
 // RHS: R(u) = - H(psi) * (n · grad(u))  in psi>0, else 0.
@@ -263,10 +287,10 @@ template<std::size_t D>
 void
 rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro> q_scalar_a,
-  typename field<double>::template accessor<ro> psi_a,
-  typename field<double>::template accessor<ro> normal_a,
-  typename field<double>::template accessor<rw> rhs_a) noexcept {
+  typename field<double>::template accessor<ro, ro> q_scalar_a,
+  typename field<double>::template accessor<wo, ro> psi_a,
+  typename field<vec<D>>::template accessor<wo, ro> normal_a,
+  typename field<double>::template accessor<wo, ro> rhs_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
@@ -285,10 +309,10 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         return;
       }
 
-      const double ax = normal(i).x;
+      const double ax = normal(i).x();
 
-      rhs(i) =
-        -ax * gradu_1d({q(i - 2), q(i - 1), q(i), q(i + 1), q(i + 2)}, ax, dx);
+      rhs(i) = -ax * gradu_1d<5>(
+                       {q(i - 2), q(i - 1), q(i), q(i + 1), q(i + 2)}, ax, dx);
     };
   }
   else if constexpr(D == 2) {
@@ -306,15 +330,15 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         return;
       }
 
-      const double ax = normal(i, j).x;
-      const double ay = normal(i, j).y;
+      const double ax = normal(i, j).x();
+      const double ay = normal(i, j).y();
 
       // clang-format off
       rhs(i, j) =
-        -(ax * gradu_1d(
+        -(ax * gradu_1d<5>(
           {q(i - 2, j), q(i - 1, j), q(i, j), q(i + 1, j), q(i + 2, j)},
           ax, dx) +
-        ay * gradu_1d(
+        ay * gradu_1d<5>(
           {q(i, j - 2), q(i, j - 1), q(i, j), q(i, j + 1), q(i, j + 2)},
           ay, dy));
       // clang-format on
@@ -337,27 +361,27 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         return;
       }
 
-      const double ax = normal(i, j, k).x;
-      const double ay = normal(i, j, k).y;
-      const double az = normal(i, k, k).z;
+      const double ax = normal(i, j, k).x();
+      const double ay = normal(i, j, k).y();
+      const double az = normal(i, j, k).z();
 
       // clang-format off
       rhs(i, j, k) =
-        -(ax * gradu_1d(
+        -(ax * gradu_1d<5>(
           {q(i - 2, j, k),
             q(i - 1, j, k),
             q(i, j, k),
             q(i + 1, j, k),
             q(i + 2, j, k)},
           ax, dx) +
-        ay * gradu_1d(
+        ay * gradu_1d<5>(
           {q(i, j - 2, k),
             q(i, j - 1, k),
             q(i, j, k),
             q(i, j + 1, k),
             q(i, j + 2, k)},
           ay, dy) +
-        az * gradu_1d(
+        az * gradu_1d<5>(
           {q(i, j, k - 2),
             q(i, j, k - 1),
             q(i, j, k),
@@ -376,15 +400,16 @@ template<std::size_t D, std::size_t STEP>
 void
 advance_q_rk2(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro> psi_a,
-  typename field<double>::template accessor<ro> q_scalar_known_a,
-  typename field<double>::template accessor<ro> q_scalar_a, // base q^n
-  typename field<double>::template accessor<ro> rhs_a, // rhs at base or stage
-  typename field<double>::template accessor<ro>
+  typename field<double>::template accessor<ro, ro> psi_a,
+  typename field<double>::template accessor<ro, ro> q_scalar_known_a,
+  typename field<double>::template accessor<ro, ro> q_scalar_a, // base q^n
+  typename field<double>::template accessor<ro, ro>
+    rhs_a, // rhs at base or stage
+  typename field<double>::template accessor<ro, ro>
     q_scalar_stage_a, // q^(1) (only used in STEP=2)
-  typename field<double>::template accessor<wo>
+  typename field<double>::template accessor<wo, ro>
     q_scalar_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
-  const double dt) noexcept {
+  typename single<double>::template accessor<ro> dt_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
@@ -396,6 +421,8 @@ advance_q_rk2(flecsi::exec::accelerator s,
   auto rhs = m.template mdcolex<is::cells>(rhs_a);
   auto q_stage = m.template mdcolex<is::cells>(q_scalar_stage_a);
   auto q_new = m.template mdcolex<is::cells>(q_scalar_new_a);
+
+  const double dt = *dt_a;
 
   auto is_known = [](double ph) { return (ph <= 0.0); };
 
@@ -460,60 +487,5 @@ advance_q_rk2(flecsi::exec::accelerator s,
 }
 
 } // namespace hard::tasks::extrapolation
-
-namespace hard::extrapolation {
-
-template<std::size_t D>
-void
-rk2_constant_extrapolation_step(control_policy<hard::state, D> & cp) {
-  auto & s = cp.state();
-  flecsi::scheduler & sc = cp.scheduler();
-
-  // Stage 1: rhs(q^n) -> rhs
-  sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
-    flecsi::exec::on,
-    *s.m,
-    s.extp.q_scalar(*s.m),
-    s.ls.psi(*s.m),
-    s.extp.normal(*s.m),
-    s.extp.q_rhs(*s.m));
-
-  // q1 = q^n + dt * rhs(q^n)
-  sc.execute<tasks::extrapolation::advance_q_rk2<D, 1>>(flecsi::exec::on,
-    *s.m,
-    s.ls.psi(*s.m),
-    s.extp.q_scalar_known(*s.m),
-    s.extp.q_scalar(*s.m),
-    s.extp.q_rhs(*s.m),
-    s.extp.q_scalar2(*s.m), // dummy (unused in STEP=1)
-    s.extp.q_sclar1(*s.m), // output stage-1
-    s.dt(s.gt)); // dtau in the origianl work
-
-  // Stage 2: rhs(q1) -> rhs1
-  sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
-    flecsi::exec::on,
-    *s.m,
-    s.extp.q_scalar1(*s.m),
-    s.ls.psi(*s.m),
-    s.extp.normal(*s.m),
-    s.extp.q_rhs1(*s.m));
-
-  // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
-  sc.execute<tasks::extrapolation::advance_q_rk2<D, 2>>(flecsi::exec::on,
-    *s.m,
-    s.ls.psi(*s.m),
-    s.extp.q_scalar_known(*s.m),
-    s.extp.q_scalar(*s.m), // q^n
-    s.extp.q_rhs1(*s.m), // rhs(q1)
-    s.extp.q_scalar1(*s.m), // q_stage
-    s.extp.q_scalar2(*s.m), // q_new
-    s.dt(s.gt)); // dtau in original work
-
-  // Swap
-  // sc.execute<hard::tasks::util::copy_scal_field<dm::quantities, D, double>>(
-  //   flecsi::exec::on, *s.m, s.expt.q_scalar2(*s.m), s.expt.q_scalar(*s.m));
-}
-
-} // namespace hard::extrapolation
 
 #endif
