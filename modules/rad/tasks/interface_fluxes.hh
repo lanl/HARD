@@ -9,7 +9,7 @@ namespace hard::tasks::rad {
 
 template<std::size_t Dim>
 void
-compute_interface_fluxes(flecsi::exec::cpu s,
+compute_interface_fluxes(flecsi::exec::accelerator s,
   std::size_t face_axis,
   typename mesh<Dim>::template accessor<ro> m,
   typename faces_vec<Dim>::template accessor<ro, ro> uFace_a,

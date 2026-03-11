@@ -79,25 +79,23 @@ store_current_state(flecsi::exec::accelerator s,
 template<std::size_t Dim>
 void
 update_u(flecsi::exec::accelerator s,
-  single<double>::accessor<ro> dt_a,
+  single<double>::accessor<ro> h_a,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<rw, na>>> v_a,
   std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
     typename field<vec<Dim>>::template accessor<rw, na>>> vec_v_a) noexcept {
 
-  auto h = *dt_a;
-
   // Scalar
   for(auto & [dt_a, a] : v_a) {
     s.executor().forall(i, flecsi::util::iota_view({}, a.span().size())) {
-      a(i) += h * dt_a(i);
+      a(i) += *h_a * dt_a(i);
     }; // forall
   }
 
   // Vec<D>
   for(auto & [vec_dt_a, vec_a] : vec_v_a) {
     s.executor().forall(i, flecsi::util::iota_view({}, vec_a.span().size())) {
-      vec_a(i) += h * vec_dt_a(i);
+      vec_a(i) += *h_a * vec_dt_a(i);
     }; // forall
   }
 }
@@ -105,16 +103,14 @@ update_u(flecsi::exec::accelerator s,
 template<std::size_t Dim>
 void
 update_u_scalar(flecsi::exec::accelerator s,
-  single<double>::accessor<ro> dt_a,
+  single<double>::accessor<ro> h_a,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<rw, na>>> v_a) noexcept {
-
-  auto h = *dt_a;
 
   // Scalar
   for(auto & [dt_a, a] : v_a) {
     s.executor().forall(i, flecsi::util::iota_view({}, a.span().size())) {
-      a(i) += h * dt_a(i);
+      a(i) += *h_a * dt_a(i);
     }; // forall
   }
 }
@@ -124,8 +120,8 @@ update_u_scalar(flecsi::exec::accelerator s,
 //
 template<std::size_t Dim>
 void
-update_u_stage(flecsi::exec::cpu s,
-  single<double>::accessor<ro> dt_a,
+update_u_stage(flecsi::exec::accelerator s,
+  single<double>::accessor<ro> h_a,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<ro, na>,
     field<double>::accessor<wo, na>>> v_a,
@@ -133,35 +129,33 @@ update_u_stage(flecsi::exec::cpu s,
     typename field<vec<Dim>>::template accessor<ro, na>,
     typename field<vec<Dim>>::template accessor<wo, na>>> vec_v_a) noexcept {
 
-  auto h = *dt_a;
   // Scalar
   for(auto & [n_a, dt_a, new_a] : v_a) {
     s.executor().forall(i, flecsi::util::iota_view({}, n_a.span().size())) {
-      new_a(i) = n_a(i) + h * dt_a(i);
+      new_a(i) = n_a(i) + *h_a * dt_a(i);
     }; // forall
   }
 
   // Vec<D>
   for(auto & [n_a, dt_a, new_a] : vec_v_a) {
     s.executor().forall(i, flecsi::util::iota_view({}, n_a.span().size())) {
-      new_a(i) = n_a(i) + h * dt_a(i);
+      new_a(i) = n_a(i) + *h_a * dt_a(i);
     }; // forall
   }
 }
 
 template<std::size_t Dim>
 void
-update_u_stage_scalar(flecsi::exec::cpu s,
-  single<double>::accessor<ro> dt_a,
+update_u_stage_scalar(flecsi::exec::accelerator s,
+  single<double>::accessor<ro> h_a,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<ro, na>,
     field<double>::accessor<wo, na>>> v_a) noexcept {
 
-  auto h = *dt_a;
   // Scalar
   for(auto & [n_a, dt_a, new_a] : v_a) {
     s.executor().forall(i, flecsi::util::iota_view({}, n_a.span().size())) {
-      new_a(i) = n_a(i) + h * dt_a(i);
+      new_a(i) = n_a(i) + *h_a * dt_a(i);
     }; // forall
   }
 }

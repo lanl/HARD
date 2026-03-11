@@ -56,7 +56,7 @@ acoustic_wave(flecsi::exec::cpu s,
       return (cos(k * x0) - cos(k * x1)) / (k * (x1 - x0));
     };
 
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    for(auto i : m.template cells<ax::x, dm::quantities>()) {
       const auto x0{m.template right<ax::x>(i)};
       const auto x1{m.template left<ax::x>(i)};
       const double ux{cs * uA * sine_quad(x0, x1)};
@@ -84,7 +84,7 @@ acoustic_wave(flecsi::exec::cpu s,
              (kx * ky * (x1 - x0) * (y1 - y0));
     };
 
-    s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
+    for(auto j : m.template cells<ax::y, dm::quantities>()) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x0{m.template right<ax::x>(i)};
         const auto x1{m.template left<ax::x>(i)};
@@ -131,7 +131,7 @@ acoustic_wave(flecsi::exec::cpu s,
                (kx * ky * kz * (x1 - x0) * (y1 - y0) * (z1 - z0));
       };
 
-    s.executor().forall(l, (m.template cells<ax::z, dm::quantities>())) {
+    for(auto l : m.template cells<ax::z, dm::quantities>()) {
       for(auto j : m.template cells<ax::y, dm::quantities>()) {
         for(auto i : m.template cells<ax::x, dm::quantities>()) {
           const auto x0{m.template right<ax::x>(i)};

@@ -61,25 +61,25 @@ private:
 
 } // namespace eos
 
-template<>
-struct flecsi::util::serial::traits<eos::eos_wrapper> {
-  using type = eos::eos_wrapper;
-  template<class P>
-  static void put(P & p, type const & cw) {
-    auto & w = const_cast<type &>(cw);
-    auto [n, b] = w.model_.Serialize();
-    serial::put(p, n);
-    mempcpy(p, b, n);
-    free(b);
-    serial::put(p, w.lambda_);
-  }
-  static type get(std::byte const *& p) {
-    const auto n = serial::get<std::size_t>(p);
-    typename eos::eos_wrapper::eos_t model;
-    model.DeSerialize(const_cast<char *>(reinterpret_cast<char const *>(p)));
-    p += n;
-    return {model, serial::get<std::vector<double>>(p)};
-  }
-};
+// template<>
+// struct flecsi::util::serial::traits<eos::eos_wrapper> {
+//   using type = eos::eos_wrapper;
+//   template<class P>
+//   static void put(P & p, type const & cw) {
+//     auto & w = const_cast<type &>(cw);
+//     auto [n, b] = w.model_.Serialize();
+//     serial::put(p, n);
+//     mempcpy(p, b, n);
+//     free(b);
+//     serial::put(p, w.lambda_);
+//   }
+//   static type get(std::byte const *& p) {
+//     const auto n = serial::get<std::size_t>(p);
+//     typename eos::eos_wrapper::eos_t model;
+//     model.DeSerialize(const_cast<char *>(reinterpret_cast<char const *>(p)));
+//     p += n;
+//     return {model, serial::get<std::vector<double>>(p)};
+//   }
+// };
 
 #endif // HYDRO_EOS_HH
