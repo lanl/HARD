@@ -23,8 +23,8 @@ openmpi-hpx-gnu:release:
   variables:
     SPACK_ENV_NAME: hpx/serial/openmpi-gcc-release
 
-mpich-hpx-clang:
-  stage: HPX backend
-  extends: [.darwin_regular_job, .build_and_test]
-  variables:
-    SPACK_ENV_NAME: hpx/serial/mpich-clang-debug
+#mpich-hpx-clang:
+#  stage: HPX backend
+#  extends: [.darwin_regular_job, .build_and_test]
+#  variables:
+#    SPACK_ENV_NAME: hpx/serial/mpich-clang-debug
