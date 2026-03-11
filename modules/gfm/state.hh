@@ -37,7 +37,7 @@ struct state {
 
     static inline const typename field<vec<D>>::template definition<mesh<D>,
       is::cells>
-      norm; // dp
+      normal; // dp
 
     static inline const field<double>::definition<mesh<D>, is::cells> q_scalar;
     static inline const field<double>::definition<mesh<D>, is::cells>

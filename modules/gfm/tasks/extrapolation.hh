@@ -126,18 +126,18 @@ void
 unit_normals(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro> dp_a,
-  typename field<double>::template accessor<rw> norm_a) noexcept {
+  typename field<double>::template accessor<rw> normal_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
   auto dp = m.template mdcolex<is::cells>(dp_a);
-  auto norm = m.template mdcolex<is::cells>(norm_a);
+  auto normal = m.template mdcolex<is::cells>(normal_a);
 
   constexpr double eps = 1e-12;
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      norm(i).x = dp(i).x / (dp(i).norm() + eps);
+      normal(i).x = dp(i).x / (dp(i).normal() + eps);
     };
   }
   else if constexpr(D == 2) {
@@ -148,10 +148,10 @@ unit_normals(flecsi::exec::accelerator s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
-      const double inv_mag = 1.0 / (dp(i, j).norm() + eps);
+      const double inv_mag = 1.0 / (dp(i, j).normal() + eps);
 
-      norm(i, j).x = dp(i, j).x * inv_mag;
-      norm(i, j).y = dp(i, j).y * inv_mag;
+      normal(i, j).x = dp(i, j).x * inv_mag;
+      normal(i, j).y = dp(i, j).y * inv_mag;
     };
   }
   else /* D == 3 */ {
@@ -163,11 +163,11 @@ unit_normals(flecsi::exec::accelerator s,
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
-      const double inv_mag = 1.0 / (dp(i, j, k).norm() + eps);
+      const double inv_mag = 1.0 / (dp(i, j, k).normal() + eps);
 
-      norm(i, j, k).x = dp(i, j, k).x * inv_mag;
-      norm(i, j, k).y = dp(i, j, k).y * inv_mag;
-      norm(i, j, k).z = dp(i, j, k).z * inv_mag;
+      normal(i, j, k).x = dp(i, j, k).x * inv_mag;
+      normal(i, j, k).y = dp(i, j, k).y * inv_mag;
+      normal(i, j, k).z = dp(i, j, k).z * inv_mag;
     };
   }
 }
@@ -180,7 +180,7 @@ void
 extend_constant_normal(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> psi_a,
-  typename field<double>::template accessor<ro, ro> norm_a,
+  typename field<double>::template accessor<ro, ro> normal_a,
   double dtau,
   typename field<double>::template accessor<ro> q_scalar_a,
   typename field<double>::template accessor<rw> q_new_scalar_a) noexcept {
@@ -188,7 +188,7 @@ extend_constant_normal(flecsi::exec::accelerator s,
   using common::tasks::utils::get_mdiota_policy;
 
   auto psi = m.template mdcolex<is::cells>(psi_a);
-  auto norm = m.template mdcolex<is::cells>(norm_a);
+  auto normal = m.template mdcolex<is::cells>(normal_a);
   auto q = m.template mdcolex<is::cells>(q_scalar_a);
   auto q_new = m.template mdcolex<is::cells>(q_new_scalar_a);
 
@@ -198,8 +198,8 @@ extend_constant_normal(flecsi::exec::accelerator s,
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
 
       // Upwind neighbor based on sign of nx
-      if(norm(i).x > 0.0) {
-        q_new(i) = q(i) - dtau * copysign(1.0, psi(i)) * norm(i).x *
+      if(normal(i).x > 0.0) {
+        q_new(i) = q(i) - dtau * copysign(1.0, psi(i)) * normal(i).x *
                             (q(i) - q(i - 1)) * inv_dx;
       }
       else {
@@ -218,12 +218,12 @@ extend_constant_normal(flecsi::exec::accelerator s,
       auto [j, i] = ji;
 
       // upwind neighbors (component-wise)
-      const double dqx = (norm(i, j).x > 0.0) ? (q(i, j) - q(i - 1, j)) : 0.0;
-      const double dqy = (norm(i, j).y > 0.0) ? (q(i, j) - q(i, j - 1)) : 0.0;
+      const double dqx = (normal(i, j).x > 0.0) ? (q(i, j) - q(i - 1, j)) : 0.0;
+      const double dqy = (normal(i, j).y > 0.0) ? (q(i, j) - q(i, j - 1)) : 0.0;
 
-      q_new(i, j) =
-        q(i, j) - dtau * copysign(1.0, psi(i, j)) *
-                    (norm(i, j).x * dqx * inv_dx + norm(i, j).y * dqy * inv_dy);
+      q_new(i, j) = q(i, j) - dtau * copysign(1.0, psi(i, j)) *
+                                (normal(i, j).x * dqx * inv_dx +
+                                  normal(i, j).y * dqy * inv_dy);
     };
   }
   else /* D == 3 */ {
@@ -239,16 +239,16 @@ extend_constant_normal(flecsi::exec::accelerator s,
       auto [k, j, i] = kji;
 
       const double dqx =
-        (norm(i, j, k).x > 0.0) ? (q(i, j, k) - q(i - 1, j, k)) : 0.0;
+        (normal(i, j, k).x > 0.0) ? (q(i, j, k) - q(i - 1, j, k)) : 0.0;
       const double dqy =
-        (norm(i, j, k).y > 0.0) ? (q(i, j, k) - q(i, j - 1, k)) : 0.0;
+        (normal(i, j, k).y > 0.0) ? (q(i, j, k) - q(i, j - 1, k)) : 0.0;
       const double dqz =
-        (norm(i, j, k).z > 0.0) ? (q(i, j, k) - q(i, j, k - 1)) : 0.0;
+        (normal(i, j, k).z > 0.0) ? (q(i, j, k) - q(i, j, k - 1)) : 0.0;
 
       q_new(i, j, k) = q(i, j, k) - dtau * copysign(1.0, psi(i, j, k)) *
-                                      (norm(i, j, k).x * dqx * inv_dx +
-                                        norm(i, j, k).y * dqy * inv_dy +
-                                        norm(i, j, k).z * dqz * inv_dz);
+                                      (normal(i, j, k).x * dqx * inv_dx +
+                                        normal(i, j, k).y * dqy * inv_dy +
+                                        normal(i, j, k).z * dqz * inv_dz);
       ;
     };
   }
@@ -265,14 +265,14 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro> q_scalar_a,
   typename field<double>::template accessor<ro> psi_a,
-  typename field<double>::template accessor<ro> norm_a,
+  typename field<double>::template accessor<ro> normal_a,
   typename field<double>::template accessor<rw> rhs_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
   auto q = m.template mdcolex<is::cells>(q_scalar_a);
   auto psi = m.template mdcolex<is::cells>(psi_a);
-  auto norm = m.template mdcolex<is::cells>(norm_a);
+  auto normal = m.template mdcolex<is::cells>(normal_a);
   auto rhs = m.template mdcolex<is::cells>(rhs_a);
 
   const double dx = m.template delta<ax::x>();
@@ -285,7 +285,7 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         return;
       }
 
-      const double ax = norm(i).x;
+      const double ax = normal(i).x;
 
       rhs(i) =
         -ax * gradu_1d({q(i - 2), q(i - 1), q(i), q(i + 1), q(i + 2)}, ax, dx);
@@ -306,8 +306,8 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         return;
       }
 
-      const double ax = norm(i, j).x;
-      const double ay = norm(i, j).y;
+      const double ax = normal(i, j).x;
+      const double ay = normal(i, j).y;
 
       // clang-format off
       rhs(i, j) =
@@ -337,9 +337,9 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         return;
       }
 
-      const double ax = norm(i, j, k).x;
-      const double ay = norm(i, j, k).y;
-      const double az = norm(i, j, k).z;
+      const double ax = normal(i, j, k).x;
+      const double ay = normal(i, j, k).y;
+      const double az = normal(i, k, k).z;
 
       // clang-format off
       rhs(i, j, k) =
@@ -473,45 +473,45 @@ rk2_constant_extrapolation_step(control_policy<hard::state, D> & cp) {
   sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
     flecsi::exec::on,
     *s.m,
-    s.expt.q_scalar(*s.m),
+    s.extp.q_scalar(*s.m),
     s.ls.psi(*s.m),
-    s.expt.norm(*s.m),
-    s.expt.q_rhs(*s.m));
+    s.extp.normal(*s.m),
+    s.extp.q_rhs(*s.m));
 
   // q1 = q^n + dt * rhs(q^n)
   sc.execute<tasks::extrapolation::advance_q_rk2<D, 1>>(flecsi::exec::on,
     *s.m,
     s.ls.psi(*s.m),
-    s.expt.q_scalar_known(*s.m),
-    s.expt.q_scalar(*s.m),
-    s.expt.q_rhs(*s.m),
-    s.expt.q_scalar2(*s.m), // dummy (unused in STEP=1)
-    s.expt.q_sclar1(*s.m), // output stage-1
+    s.extp.q_scalar_known(*s.m),
+    s.extp.q_scalar(*s.m),
+    s.extp.q_rhs(*s.m),
+    s.extp.q_scalar2(*s.m), // dummy (unused in STEP=1)
+    s.extp.q_sclar1(*s.m), // output stage-1
     s.dt(s.gt)); // dtau in the origianl work
 
   // Stage 2: rhs(q1) -> rhs1
   sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
     flecsi::exec::on,
     *s.m,
-    s.expt.q_scalar1(*s.m),
+    s.extp.q_scalar1(*s.m),
     s.ls.psi(*s.m),
-    s.expt.norm(*s.m),
-    s.expt.q_rhs1(*s.m));
+    s.extp.normal(*s.m),
+    s.extp.q_rhs1(*s.m));
 
   // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
   sc.execute<tasks::extrapolation::advance_q_rk2<D, 2>>(flecsi::exec::on,
     *s.m,
     s.ls.psi(*s.m),
-    s.expt.q_scalar_known(*s.m),
-    s.expt.q_scalar(*s.m), // q^n
-    s.expt.q_rhs1(*s.m), // rhs(q1)
-    s.expt.q_scalar1(*s.m), // q_stage
-    s.expt.q_scalar2(*s.m), // q_new
+    s.extp.q_scalar_known(*s.m),
+    s.extp.q_scalar(*s.m), // q^n
+    s.extp.q_rhs1(*s.m), // rhs(q1)
+    s.extp.q_scalar1(*s.m), // q_stage
+    s.extp.q_scalar2(*s.m), // q_new
     s.dt(s.gt)); // dtau in original work
 
   // Swap
- // sc.execute<hard::tasks::util::copy_scal_field<dm::quantities, D, double>>(
- //   flecsi::exec::on, *s.m, s.expt.q_scalar2(*s.m), s.expt.q_scalar(*s.m));
+  // sc.execute<hard::tasks::util::copy_scal_field<dm::quantities, D, double>>(
+  //   flecsi::exec::on, *s.m, s.expt.q_scalar2(*s.m), s.expt.q_scalar(*s.m));
 }
 
 } // namespace hard::extrapolation
