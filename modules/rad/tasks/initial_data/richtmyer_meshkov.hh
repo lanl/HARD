@@ -61,7 +61,7 @@ richtmyer_meshkov(flecsi::exec::cpu s,
   flog(info) << "radiation temperature is " << rad_temp << std::endl;
 
   if constexpr(D == 2) {
-    s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
+    for(auto j : m.template cells<ax::y, dm::quantities>()) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const double x = m.template center<ax::x>(i);
         const double y = m.template center<ax::y>(j);

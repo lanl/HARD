@@ -44,7 +44,7 @@ rt_instability(flecsi::exec::cpu s,
 
   // initialize variables to be used at location considered
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    for(auto i : m.template cells<ax::x, dm::quantities>()) {
 
       const auto x = m.template center<ax::x>(i);
       double r, u, v, p;
@@ -75,7 +75,7 @@ rt_instability(flecsi::exec::cpu s,
     }; // forall
   }
   else if constexpr(D == 2) {
-    s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
+    for(auto j : m.template cells<ax::y, dm::quantities>()) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);
@@ -113,7 +113,7 @@ rt_instability(flecsi::exec::cpu s,
     }; // forall
   }
   else /* D == 3 */ {
-    s.executor().forall(k, (m.template cells<ax::z, dm::quantities>())) {
+    for(auto k : m.template cells<ax::z, dm::quantities>()) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         for(auto j : m.template cells<ax::y, dm::quantities>()) {
           const auto x = m.template center<ax::x>(i);

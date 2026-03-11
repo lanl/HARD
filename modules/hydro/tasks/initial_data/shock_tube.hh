@@ -68,7 +68,7 @@ shock(flecsi::exec::cpu s,
     m.template mdcolex<is::cells>(total_energy_density_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    for(auto i : m.template cells<ax::x, dm::quantities>()) {
       const auto x = m.template right<ax::x>(i);
 
       if(x < T::x0) {
@@ -90,7 +90,7 @@ shock(flecsi::exec::cpu s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_yx) {
+    for(auto ji : mdpolicy_yx) {
       auto [j, i] = ji;
       const auto x = m.template right<ax::x>(i);
 
@@ -114,7 +114,7 @@ shock(flecsi::exec::cpu s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_zyx) {
+    for(auto kji : mdpolicy_zyx) {
       auto [k, j, i] = kji;
       const auto x = m.template right<ax::x>(i);
 

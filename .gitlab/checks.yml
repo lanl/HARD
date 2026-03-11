@@ -1,0 +1,2 @@
+format:
+  extends: [.darwin_regular_job, .check_format]

@@ -42,7 +42,8 @@ endif()
 
 find_package(FleCSI 2 REQUIRED)
 find_package(yaml-cpp REQUIRED)
-find_package(singularity-eos REQUIRED)
+find_package(singularity-eos REQUIRED COMPONENTS Interface)
+find_package(Eigen3 REQUIRED)
 find_package(flecsolve REQUIRED)
 
 

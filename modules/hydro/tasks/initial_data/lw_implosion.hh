@@ -32,7 +32,7 @@ lw_implosion(flecsi::exec::cpu s,
 
     const double mult = 1.0 / (gamma - 1.0);
 
-    s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
+    for(auto j : m.template cells<ax::y, dm::quantities>()) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);
