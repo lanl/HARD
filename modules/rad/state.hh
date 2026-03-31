@@ -33,7 +33,7 @@ struct state {
       Mesh fields.
       *--------------------------------------------------------------------------*/
 
-    struct conservatives {
+    struct conserved {
       static inline const field<double>::definition<mesh<D>, is::cells>
         radiation_energy_density;
     } cons;

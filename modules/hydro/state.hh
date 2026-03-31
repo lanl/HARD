@@ -42,7 +42,7 @@ struct state {
    *--------------------------------------------------------------------------*/
 
   // used in action, analyse, init
-  struct conservatives {
+  struct conserved {
 
     struct hydrodynamics {
       // Conserved quantities.

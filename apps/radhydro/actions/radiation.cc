@@ -104,7 +104,7 @@ radiation(control_policy<state, D> & cp) {
     s.rad.cons.radiation_energy_density(*s.m));
 
   // Perform primitive recovery, since energy densities have changed
-  sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
+  sc.execute<tasks::hydro::conserved_to_primitive<D>>(flecsi::exec::on,
     *s.m,
     s.cons.hydro.mass_density(*s.m),
     s.cons.hydro.momentum_density(*s.m),
