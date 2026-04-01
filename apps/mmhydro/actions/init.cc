@@ -2,6 +2,7 @@
 #include "state.hh"
 
 #include "common/utils.hh"
+#include "gfm/tasks/ls_core.hh"
 #include "hydro/tasks/cons2prim.hh"
 #include "hydro/tasks/init.hh"
 #include "hydro/tasks/initial_data/all_initial_data.hh"
@@ -73,6 +74,17 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
 
   actions::init_eos(s, config);
+
+  /*--------------------------------------------------------------------------*
+    Level set
+   *--------------------------------------------------------------------------*/
+
+  execute<hard::tasks::level_set::initialize_material_from_psi<D>>(
+    flecsi::exec::on,
+    *s.m,
+    s.ls.psi(*s.m),
+    s.ls.material(*s.m),
+    s.ls.frozen_material(*s.m));
 
   /*--------------------------------------------------------------------------*
     Initialize problem state.

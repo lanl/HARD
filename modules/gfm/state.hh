@@ -23,11 +23,6 @@ struct state {
     static inline const field<int>::definition<mesh<D>, is::cells> material;
     static inline const field<int>::definition<mesh<D>, is::cells>
       frozen_material;
-
-#if 0
-  static inline const field<int>::definition<mesh<D>, is::cells> label;
-  static inline const field<int>::definition<mesh<D>, is::cells> frozen_label;
-#endif
   } ls;
   struct extrapolation {
     // Gradient component and unit normal

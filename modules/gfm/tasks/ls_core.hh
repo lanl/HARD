@@ -12,7 +12,7 @@ using namespace hard::tasks::util;
 namespace hard::tasks::level_set {
 
 // Periodic wrapper
-int
+static int
 wrapi(int a, int n) {
   int r = a % n;
   return (r < 0) ? (r + n) : r;
@@ -423,6 +423,54 @@ determine_psi(flecsi::exec::accelerator s,
         psi(i, j, k) = fpsi(i, j, k);
         mat(i, j, k) = fmat(i, j, k);
       }
+    };
+  }
+}
+
+// Initialization Step
+// Determin material label via level set function
+// TODO : works for N mat?
+template<std::size_t D>
+void
+initialize_material_from_psi(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<double>::template accessor<ro, ro> psi_a,
+  typename field<int>::template accessor<wo, ro> material_a,
+  typename field<int>::template accessor<wo, ro> frozen_material_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto material = m.template mdcolex<is::cells>(material_a);
+  auto frozen_material = m.template mdcolex<is::cells>(frozen_material_a);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      material(i) = (psi(i) >= 0.0) ? 0 : 1;
+      frozen_material(i) = material(i);
+    };
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy = get_mdiota_policy(material,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, mdpolicy) {
+      auto [j, i] = ji;
+      material(i, j) = (psi(i, j) >= 0.0) ? 0 : 1;
+      frozen_material(i, j) = material(i, j);
+    };
+  }
+  else {
+    auto mdpolicy = get_mdiota_policy(material,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, mdpolicy) {
+      auto [k, j, i] = kji;
+      material(i, j, k) = (psi(i, j, k) >= 0.0) ? 0 : 1;
+      frozen_material(i, j, k) = material(i, j, k);
     };
   }
 }
