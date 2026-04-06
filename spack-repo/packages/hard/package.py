@@ -22,6 +22,7 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("flecsi@2.4: +flog")
     depends_on("flecsi +cuda", when="+cuda")
     depends_on("flecsolve")
+    depends_on("flecsolve+cuda", when="+cuda")
     depends_on("libcatalyst", when="+catalyst")
     #depends_on("paraview@5.12.1+libcatalyst+python", when="+catalyst")
     depends_on("yaml-cpp@0.8:")
@@ -49,6 +50,8 @@ class Hard(CMakePackage, CudaPackage):
         requires(f"+cuda cuda_arch={_flag}", when=f"^kokkos +cuda cuda_arch={_flag}")
         depends_on(f"kokkos cuda_arch={_flag}", when=f"+cuda cuda_arch={_flag}")
         depends_on(f"singularity-eos cuda_arch={_flag}", when=f"+cuda cuda_arch={_flag}")
+        depends_on(f"flecsolve cuda_arch={_flag}", when=f"+cuda cuda_arch={_flag}")
+        depends_on(f"flecsi cuda_arch={_flag}", when=f"+cuda cuda_arch={_flag}")
 
     def cmake_args(self):
         options = [
