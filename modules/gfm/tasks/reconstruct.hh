@@ -92,7 +92,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
   using spec::utils::sqr;
 
   auto ra = reconstruction_axis;
-  auto material = m.template mdcolex<is::cells>(materal_a);
+  auto material = m.template mdcolex<is::cells>(material_a);
 
   if constexpr(Dim == 1) {
 

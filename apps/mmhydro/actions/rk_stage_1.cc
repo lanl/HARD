@@ -1,11 +1,11 @@
 #include "state.hh"
 
 #include "gfm/tasks/extrapolation.hh"
+#include "gfm/tasks/reconstruct.hh"
 #include "gfm/tasks/utils.hh"
 #include "hydro/tasks/cons2prim.hh"
 #include "hydro/tasks/external_source.hh"
 #include "hydro/tasks/interface_fluxes.hh"
-#include "hydro/tasks/reconstruct.hh"
 #include "hydro/tasks/rhs.hh"
 #include "spec/limiter.hh"
 #include "spec/tasks/boundaries/boundary.hh"
@@ -123,6 +123,7 @@ advance_rk_stage_1(state<D> & s,
       flecsi::exec::on,
       axis,
       *s.m,
+      s.ls.material(*s.m),
       scalar_v,
       std::vector{
         std::make_tuple(
