@@ -45,6 +45,12 @@ struct state {
     // TODO : Maybe don't need this?
     static inline const field<double>::definition<mesh<D>, is::cells> q_rhs,
       q_rhs1;
+
+    // Normal faces for the surfaces
+    struct faces_rl {
+      faces_vec<D> normal_face;
+    } f;
+
   } extp;
 }; // struct state
 } // namespace hard::gfm

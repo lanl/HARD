@@ -16,6 +16,7 @@ set(modules_headers
   tasks/ls_core.hh
   tasks/extrapolation.hh
   tasks/reconstruct.hh
+  tasks/interface_fluxes_gfm.hh
 )
 
 target_sources(libgfm

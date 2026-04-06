@@ -1,10 +1,10 @@
 #include "state.hh"
 
 #include "gfm/tasks/extrapolation.hh"
+#include "gfm/tasks/interface_fluxes_gfm.hh"
 #include "gfm/tasks/reconstruct.hh"
 #include "hydro/tasks/cons2prim.hh"
 #include "hydro/tasks/external_source.hh"
-#include "hydro/tasks/interface_fluxes.hh"
 #include "hydro/tasks/rhs.hh"
 #include "spec/limiter.hh"
 #include "spec/tasks/boundaries/boundary.hh"
@@ -104,7 +104,7 @@ advance_rk_stage_2(state<D> & s,
       s.f.hydro.re_face(s.m));
 
     // Calculate K1 and save it to dt_U
-    sc.execute<tasks::hydro::compute_interface_fluxes<D>>(flecsi::exec::on,
+    sc.execute<tasks::gfm::compute_interface_fluxes_gfm<D>>(flecsi::exec::on,
       axis,
       *s.m,
       s.f.hydro.r_face(s.m),
@@ -113,12 +113,15 @@ advance_rk_stage_2(state<D> & s,
       s.f.hydro.c_face(s.m),
       s.f.hydro.ru_face(s.m),
       s.f.hydro.re_face(s.m),
+      s.ls.material(*s.m),
+      s.extp.f.normal_face(s.m),
       // Riemann Fluxes
       s.rf.hydro.r_f(*s.m),
       s.rf.hydro.ru_f(*s.m),
       s.rf.hydro.re_f(*s.m),
       s.rk_dt1(s.m),
-      s.icst.gravity_acc(*s.gt));
+      s.icst.gravity_acc(*s.gt),
+      s.eos);
 
     // Apply function if present
     if constexpr(!std::is_same_v<F, std::nullptr_t>)

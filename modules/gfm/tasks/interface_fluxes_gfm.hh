@@ -18,7 +18,8 @@ namespace hard::tasks::gfm {
 // for the ghost side to HLLC (sound speed, total E den, mom).
 template<std::size_t Dim>
 void
-compute_state_from_rho_u_p(const eos::eos_wrapper & eos int mat_id,
+compute_state_from_rho_u_p(const eos::eos_wrapper & eos,
+  int mat_id,
   double rho,
   const vec<Dim> & u,
   double p,
@@ -57,7 +58,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
   typename faces<Dim>::template accessor<ro, ro> re_face_a,
   // GFM related
   typename field<int>::accessor<ro, ro> material_a,
-  typename faces_vec<Dim>::template accessor<ro, ro> normal_a,
+  typename faces_vec<Dim>::template accessor<ro, ro> normal_f_a,
   // Riemann fluxes at cell interfaces
   field<double>::accessor<wo, ro> r_f_a,
   typename field<vec<Dim>>::template accessor<wo, ro> ru_f_a,
@@ -75,7 +76,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
   auto [c_right, c_left] = faces<Dim>::mdcolex(m, cFace_a);
   auto [ru_right, ru_left] = faces_vec<Dim>::mdcolex(m, ru_face_a);
   auto [re_right, re_left] = faces<Dim>::mdcolex(m, re_face_a);
-  auto [n_right, n_left] = faces_vec<Dim>::mdcolex(m, normal_a);
+  auto [n_right, n_left] = faces_vec<Dim>::mdcolex(m, normal_f_a);
 
   auto mat_id = m.template mdcolex<is::cells>(material_a);
 
@@ -329,9 +330,9 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         const double rhoLg_R = rhoR;
         const double pLg_R = pL;
         double eLg_R{};
-        double cLRg_R{};
-        vec<1> ruLRg_R{};
-        double reLRg_R{};
+        double cLg_R{};
+        vec<1> ruLg_R{};
+        double reLg_R{};
 
         compute_state_from_rho_u_p<1>(
           eos, mR, rhoLg_R, uLg_for_R, pLg_R, eLg_R, cLg_R, ruLg_R, reLg_R);
@@ -959,10 +960,6 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
 
           compute_state_from_rho_u_p<2>(
             eos, mR, rhoLg_R, uLg_for_R, pLg_R, eLg_R, cLg_R, ruLg_R, reLg_R);
-
-          const double cLg_R = sound_speed(gR, pLg_R, rhoLg_R);
-          const vec<2> ruLg_R{rhoLg_R * uLg_for_R.x(), rhoLg_R * uLg_for_R.y()};
-          const double reLg_R = rhoE(gR, rhoLg_R, uLg_for_R, pLg_R);
 
           const double f_r_T_R{ruLg_R.y()};
           const double f_r_H_R{ruR.y()};
