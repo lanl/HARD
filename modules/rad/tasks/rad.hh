@@ -568,7 +568,7 @@ explicit_source_update(flecsi::exec::accelerator s,
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
 
-      // Explicitly updating conservative variables with S_ex
+      // Explicitly updating conserved variables with S_ex
       // Adding the radiation force term to the momentum density
       dt_momentum_density(i) += fr(i);
 
@@ -595,7 +595,7 @@ explicit_source_update(flecsi::exec::accelerator s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
-      // Explicitly updating conservative variables with S_ex
+      // Explicitly updating conserved variables with S_ex
       // Adding the radiation force term to the momentum density
       dt_momentum_density(i, j) += fr(i, j);
 
@@ -622,7 +622,7 @@ explicit_source_update(flecsi::exec::accelerator s,
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
-      // Explicitly updating conservative variables with S_ex
+      // Explicitly updating conserved variables with S_ex
       // Adding the radiation force term to the momentum density
       dt_momentum_density(i, j, k) += fr(i, j, k);
 

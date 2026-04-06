@@ -14,7 +14,7 @@ template<std::size_t D>
 void
 rhs(state<D> & s,
   flecsi::scheduler & sc,
-  // conservative, dt1, dt2, n
+  // conserved, dt1, dt2, n
   std::vector<std::
       tuple<field_double<D>, field_double<D>, field_double<D>, field_double<D>>>
     v_f = {}) {

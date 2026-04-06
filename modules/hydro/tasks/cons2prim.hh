@@ -9,7 +9,7 @@ namespace hard::tasks::hydro {
 
 template<std::size_t Dim>
 void
-conservative_to_primitive(flecsi::exec::accelerator s,
+conserved_to_primitive(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<ro, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<ro, na> momentum_density_a,
