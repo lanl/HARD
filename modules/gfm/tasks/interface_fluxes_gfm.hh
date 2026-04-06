@@ -440,6 +440,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         const double pRight_wave =
           p_right(i, j) - 0.5 * r_right(i, j) * g.x() / one_over_dx_i[0];
 
+        // Same material face
         if(mL == mR) {
           const double f_r_T{ru_left(i - 1, j).x()};
           const double f_r_H{ru_right(i, j).x()};
@@ -516,12 +517,9 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           dt_momentum_density(i, j) += inv_dx * ru_f(i, j);
           dt_total_energy_density(i, j) += inv_dx * re_f(i, j);
         }
+        // Cut face: GMF
         else {
-          vec<2> n_if{};
-          n_if.x() = 0.5 * (n_left(i - 1, j).x() + n_right(i, j).x());
-          n_if.y() = 0.5 * (n_left(i - 1, j).y() + n_right(i, j).y());
-          n_if = normalize_face_normal(n_if);
-
+          // Real left/right state
           const double rhoL = std::max(r_left(i - 1, j), 1e-14);
           const vec<2> uL = u_left(i - 1, j);
           const double pL = std::max(pLeft_wave, 1e-14);
@@ -536,8 +534,30 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           const vec<2> ruR = ru_right(i, j);
           const double reR = std::max(re_right(i, j), 1e-14);
 
-          double unL = uL.x() * n_if.x() + uL.y() * n_if.y();
-          double unR = uR.x() * n_if.x() + uR.y() * n_if.y();
+          // Interface normal from level set face field (average left/right
+          // views)
+          vec<2> n_if{};
+          n_if.x() = 0.5 * (n_left(i - 1, j).x() + n_right(i, j).x());
+          n_if.y() = 0.5 * (n_left(i - 1, j).y() + n_right(i, j).y());
+
+          {
+            const double nn =
+              std::sqrt(n_if.x() * n_if.x() + n_if.y() * n_if.y());
+            if(nn > 1e-14) {
+              n_if.x() /= nn;
+              n_if.y() /= nn;
+            }
+            else {
+              n_if.x() = 1.0;
+              n_if.y() = 0.0;
+            }
+          }
+
+          // Left-owner ghost state
+          // keep left density and tangential velocity
+          // match right normal velocity and pressure
+          const double unL = uL.x() * n_if.x() + uL.y() * n_if.y();
+          const double unR = uR.x() * n_if.x() + uR.y() * n_if.y();
 
           vec<2> uRg_for_L{};
           uRg_for_L.x() = (uL.x() - unL * n_if.x()) + unR * n_if.x();
@@ -615,6 +635,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               f_rE_H_L,
               "E");
 
+          // Right owner ghost state
+          // applying same idea, reversed normal
           vec<2> n_rev{};
           n_rev.x() = -n_if.x();
           n_rev.y() = -n_if.y();
@@ -728,7 +750,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           p_left(i, j - 1) + 0.5 * r_left(i, j - 1) * g.y() / one_over_dx_i[1];
         const double pRight_wave =
           p_right(i, j) - 0.5 * r_right(i, j) * g.y() / one_over_dx_i[1];
-
+        // Same material face
         if(mL == mR) {
           const double f_r_T{ru_left(i, j - 1).y()};
           const double f_r_H{ru_right(i, j).y()};
@@ -803,12 +825,9 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           dt_momentum_density(i, j) += inv_dx * ru_f(i, j);
           dt_total_energy_density(i, j) += inv_dx * re_f(i, j);
         }
+        // Cut face: GFM
         else {
-          vec<2> n_if{};
-          n_if.x() = 0.5 * (n_left(i, j - 1).x() + n_right(i, j).x());
-          n_if.y() = 0.5 * (n_left(i, j - 1).y() + n_right(i, j).y());
-          n_if = normalize_face_normal(n_if);
-
+          // Real left/right states
           const double rhoL = std::max(r_left(i, j - 1), 1e-14);
           const vec<2> uL = u_left(i, j - 1);
           const double pL = std::max(pLeft_wave, 1e-14);
@@ -823,8 +842,26 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           const vec<2> ruR = ru_right(i, j);
           const double reR = std::max(re_right(i, j), 1e-14);
 
-          double unL = uL.x() * n_if.x() + uL.y() * n_if.y();
-          double unR = uR.x() * n_if.x() + uR.y() * n_if.y();
+          // Interface normal from level set face field (average left/right
+          // views)
+          vec<2> n_if{};
+          n_if.x() = 0.5 * (n_left(i, j - 1).x() + n_right(i, j).x());
+          n_if.y() = 0.5 * (n_left(i, j - 1).y() + n_right(i, j).y());
+          {
+            const double nn =
+              std::sqrt(n_if.x() * n_if.x() + n_if.y() * n_if.y());
+            if(nn > 1e-14) {
+              n_if.x() /= nn;
+              n_if.y() /= nn;
+            }
+            else {
+              n_if.x() = 0.0;
+              n_if.y() = 1.0;
+            }
+          }
+          // Left-owner ghost state
+          const double unL = uL.x() * n_if.x() + uL.y() * n_if.y();
+          const double unR = uR.x() * n_if.x() + uR.y() * n_if.y();
 
           vec<2> uRg_for_L{};
           uRg_for_L.x() = (uL.x() - unL * n_if.x()) + unR * n_if.x();
@@ -1107,12 +1144,6 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           dt_total_energy_density(i, j, k) += inv_dx * re_f(i, j, k);
         }
         else {
-          vec<3> n_if{};
-          n_if.x() = 0.5 * (n_left(i - 1, j, k).x() + n_right(i, j, k).x());
-          n_if.y() = 0.5 * (n_left(i - 1, j, k).y() + n_right(i, j, k).y());
-          n_if.z() = 0.5 * (n_left(i - 1, j, k).z() + n_right(i, j, k).z());
-          n_if = normalize_face_normal(n_if);
-
           const double rhoL = std::max(r_left(i - 1, j, k), 1e-14);
           const vec<3> uL = u_left(i - 1, j, k);
           const double pL = std::max(pLeft_wave, 1e-14);
@@ -1127,6 +1158,24 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           const vec<3> ruR = ru_right(i, j, k);
           const double reR = std::max(re_right(i, j, k), 1e-14);
 
+          vec<3> n_if{};
+          n_if.x() = 0.5 * (n_left(i - 1, j, k).x() + n_right(i, j, k).x());
+          n_if.y() = 0.5 * (n_left(i - 1, j, k).y() + n_right(i, j, k).y());
+          n_if.z() = 0.5 * (n_left(i - 1, j, k).z() + n_right(i, j, k).z());
+          {
+            const double nn = std::sqrt(
+              n_if.x() * n_if.x() + n_if.y() * n_if.y() + n_if.z() * n_if.z());
+            if(nn > 1e-14) {
+              n_if.x() /= nn;
+              n_if.y() /= nn;
+              n_if.z() /= nn;
+            }
+            else {
+              n_if.x() = 1.0;
+              n_if.y() = 0.0;
+              n_if.y() = 0.0;
+            }
+          }
           double unL =
             uL.x() * n_if.x() + uL.y() * n_if.y() + uL.z() * n_if.z();
           double unR =
@@ -1411,12 +1460,6 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           dt_total_energy_density(i, j, k) += inv_dx * re_f(i, j, k);
         }
         else {
-          vec<3> n_if{};
-          n_if.x() = 0.5 * (n_left(i, j - 1, k).x() + n_right(i, j, k).x());
-          n_if.y() = 0.5 * (n_left(i, j - 1, k).y() + n_right(i, j, k).y());
-          n_if.z() = 0.5 * (n_left(i, j - 1, k).z() + n_right(i, j, k).z());
-          n_if = normalize_face_normal(n_if);
-
           const double rhoL = std::max(r_left(i, j - 1, k), 1e-14);
           const vec<3> uL = u_left(i, j - 1, k);
           const double pL = std::max(pLeft_wave, 1e-14);
@@ -1431,6 +1474,24 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           const vec<3> ruR = ru_right(i, j, k);
           const double reR = std::max(re_right(i, j, k), 1e-14);
 
+          vec<3> n_if{};
+          n_if.x() = 0.5 * (n_left(i, j - 1, k).x() + n_right(i, j, k).x());
+          n_if.y() = 0.5 * (n_left(i, j - 1, k).y() + n_right(i, j, k).y());
+          n_if.z() = 0.5 * (n_left(i, j - 1, k).z() + n_right(i, j, k).z());
+          {
+            const double nn = std::sqrt(
+              n_if.x() * n_if.x() + n_if.y() * n_if.y() + n_if.z() * n_if.z());
+            if(nn > 1e-14) {
+              n_if.x() /= nn;
+              n_if.y() /= nn;
+              n_if.z() /= nn;
+            }
+            else {
+              n_if.x() = 0.0;
+              n_if.y() = 1.0;
+              n_if.y() = 0.0;
+            }
+          }
           double unL =
             uL.x() * n_if.x() + uL.y() * n_if.y() + uL.z() * n_if.z();
           double unR =
@@ -1715,11 +1776,6 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           dt_total_energy_density(i, j, k) += inv_dx * re_f(i, j, k);
         }
         else {
-          vec<3> n_if{};
-          n_if.x() = 0.5 * (n_left(i, j, k - 1).x() + n_right(i, j, k).x());
-          n_if.y() = 0.5 * (n_left(i, j, k - 1).y() + n_right(i, j, k).y());
-          n_if.z() = 0.5 * (n_left(i, j, k - 1).z() + n_right(i, j, k).z());
-          n_if = normalize_face_normal(n_if);
 
           const double rhoL = std::max(r_left(i, j, k - 1), 1e-14);
           const vec<3> uL = u_left(i, j, k - 1);
@@ -1735,6 +1791,24 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           const vec<3> ruR = ru_right(i, j, k);
           const double reR = std::max(re_right(i, j, k), 1e-14);
 
+          vec<3> n_if{};
+          n_if.x() = 0.5 * (n_left(i, j, k - 1).x() + n_right(i, j, k).x());
+          n_if.y() = 0.5 * (n_left(i, j, k - 1).y() + n_right(i, j, k).y());
+          n_if.z() = 0.5 * (n_left(i, j, k - 1).z() + n_right(i, j, k).z());
+          {
+            const double nn = std::sqrt(
+              n_if.x() * n_if.x() + n_if.y() * n_if.y() + n_if.z() * n_if.z());
+            if(nn > 1e-14) {
+              n_if.x() /= nn;
+              n_if.y() /= nn;
+              n_if.z() /= nn;
+            }
+            else {
+              n_if.x() = 0.0;
+              n_if.y() = 0.0;
+              n_if.y() = 1.0;
+            }
+          }
           double unL =
             uL.x() * n_if.x() + uL.y() * n_if.y() + uL.z() * n_if.z();
           double unR =
