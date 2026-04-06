@@ -4,7 +4,7 @@ gamma: 1.4
 kappa: 1.0
 mean_molecular_weight: 1.0
 problem_parameters:
-  scale: 1
+  scale: [1, 1, 1]
   amplitude: 1e-5
   r0: 1.0
   p0: 1.0
@@ -16,7 +16,7 @@ cfl: 0.5
 max_dt: 1.0
 log_frequency: 1
 output_frequency: 1
-levels: [12, 1, 1]
+levels: [12, 12, 12]
 lowest_level: 12
 coords:
   - [0.0, 0.0, 0.0]
@@ -24,10 +24,10 @@ coords:
 boundaries:
   xlow: periodic
   xhigh: periodic
-  ylow: flow
-  yhigh: flow
-  zlow: flow
-  zhigh: flow
+  ylow: periodic
+  yhigh: periodic
+  zlow: periodic
+  zhigh: periodic
 catalyst:
   script: /path
   implementation: paraview

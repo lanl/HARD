@@ -63,7 +63,7 @@ tie(const std::tuple<T, T> & tup, T & a, T & b) noexcept {
 
 //
 // Perform reconstruction of primitive variables on cell interfaces, calculate
-// corresponding conservative variables on faces, and store them into `*right`
+// corresponding conserved variables on faces, and store them into `*right`
 // and `*left` variables.
 //
 //
@@ -198,12 +198,12 @@ reconstruct_primitives_scalar(flecsi::exec::accelerator s,
 
 template<std::size_t Dim>
 void
-reconstruct_conservatives(flecsi::exec::accelerator s,
+get_conserved(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   typename faces<Dim>::template accessor<ro, na> rFace_a,
   typename faces_vec<Dim>::template accessor<ro, na> uFace_a,
   typename faces<Dim>::template accessor<ro, na> eFace_a,
-  // reconstructed conservatives on faces
+  // Conserved variables on faces
   typename faces_vec<Dim>::template accessor<wo, na> ruFace_a,
   typename faces<Dim>::template accessor<wo, na> rEFace_a) noexcept {
 
@@ -220,7 +220,7 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
 
     s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
 
-      // Compute conservative variables
+      // Compute conserved variables
       ru_right(i) = r_right(i) * u_right(i);
       ru_left(i) = r_left(i) * u_left(i);
       re_right(i) =
@@ -239,7 +239,7 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
     s.executor().forall(ji, mdpolicy_pp) {
       auto [j, i] = ji;
 
-      // Compute conservative variables
+      // Compute conserved variables
       ru_right(i, j) = r_right(i, j) * u_right(i, j);
       ru_left(i, j) = r_left(i, j) * u_left(i, j);
       re_right(i, j) = r_right(i, j) * e_right(i, j) +
@@ -258,7 +258,7 @@ reconstruct_conservatives(flecsi::exec::accelerator s,
     s.executor().forall(kji, mdpolicy_ppp) {
       auto [k, j, i] = kji;
 
-      // Compute conservative variables on faces
+      // Compute conserved variables on faces
       ru_right(i, j, k) = r_right(i, j, k) * u_right(i, j, k);
       ru_left(i, j, k) = r_left(i, j, k) * u_left(i, j, k);
       re_right(i, j, k) =

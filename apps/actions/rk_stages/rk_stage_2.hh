@@ -21,7 +21,7 @@ template<std::size_t D, class F = std::nullptr_t>
 void
 advance_rk_stage_2(state<D> & s,
   flecsi::scheduler & sc,
-  // conservative, dt2, face
+  // conserved, dt2, face
   std::vector<std::tuple<field_double<D>, field_double<D>, face_pair<D>>> v_t =
     {},
   F f = nullptr) {
@@ -56,7 +56,7 @@ advance_rk_stage_2(state<D> & s,
   }
 
   // Perform primitive recovery
-  sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
+  sc.execute<tasks::hydro::conserved_to_primitive<D>>(flecsi::exec::on,
     *s.m,
     s.cons.hydro.mass_density(*s.m),
     s.cons.hydro.momentum_density(*s.m),
@@ -95,7 +95,7 @@ advance_rk_stage_2(state<D> & s,
       // clang-format on
     }
 
-    sc.execute<tasks::hydro::reconstruct_conservatives<D>>(flecsi::exec::on,
+    sc.execute<tasks::hydro::get_conserved<D>>(flecsi::exec::on,
       *s.m,
       s.f.hydro.r_face(s.m),
       s.f.hydro.u_face(s.m),
@@ -131,7 +131,7 @@ template<std::size_t D>
 void
 update_rk_stage_2(state<D> & s,
   flecsi::scheduler & sc,
-  // conservative, dt1, dt2, n
+  // conserved, dt1, dt2, n
   std::vector<std::
       tuple<field_double<D>, field_double<D>, field_double<D>, field_double<D>>>
     v_t = {}) {
@@ -193,7 +193,7 @@ update_rk_stage_2(state<D> & s,
   }
 
   // Perform primitive recovery
-  sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
+  sc.execute<tasks::hydro::conserved_to_primitive<D>>(flecsi::exec::on,
     *s.m,
     s.cons.hydro.mass_density(*s.m),
     s.cons.hydro.momentum_density(*s.m),
