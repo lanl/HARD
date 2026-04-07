@@ -33,7 +33,7 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("singularity-eos~eospac+kokkos+kokkos-kernels+cuda", when="+cuda")
     depends_on("ports-of-call@2.0.1:")
     
-    depends_on("llvm@13.0.0", type="build", when="+format")
+    depends_on("llvm@20:20", type="build", when="+format")
     depends_on("python", when="+tests")
     depends_on("py-numpy", when="+tests")
     depends_on("py-yamlreader", when="+tests")
@@ -41,7 +41,6 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("py-scipy", when="+tests")
     depends_on("py-exactpack", when="+tests")
     depends_on("py-matplotlib", when="+tests")
-
 
     requires("%clang@17:", when="+cuda", msg="CUDA version only supports Clang compiler")
 
