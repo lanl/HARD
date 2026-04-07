@@ -60,9 +60,11 @@ endif()
 # Control-Model Output
 #------------------------------------------------------------------------------#
 
-option(HARD_WRITE_CONTROL_INFO
-  "Output the control model graph and actions at startup" OFF)
-mark_as_advanced(HARD_WRITE_CONTROL_INFO)
+if(FleCSI_ENABLE_GRAPHVIZ)
+  option(HARD_WRITE_CONTROL_INFO
+    "Output the control model graph and actions at startup" ON)
+  mark_as_advanced(HARD_WRITE_CONTROL_INFO)
+endif()
 
 #------------------------------------------------------------------------------#
 # Benchmark Mode
@@ -165,6 +167,8 @@ include(FleCSI/unit)
 
 if(ENABLE_UNIT_TESTS)
   flecsi_enable_testing()
+  option(ENABLE_VERIFICATION "Enable exactpack verification" OFF)
+  mark_as_advanced(ENABLE_FORMAT)
 endif()
 
 #------------------------------------------------------------------------------#
@@ -181,9 +185,6 @@ add_subdirectory(apps/radhydro)
 #------------------------------------------------------------------------------#
 # Optional verification
 #------------------------------------------------------------------------------#
-
-option(ENABLE_VERIFICATION "Enable exactpack verification" OFF)
-mark_as_advanced(ENABLE_FORMAT)
 
 if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
 
