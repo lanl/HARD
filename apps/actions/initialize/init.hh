@@ -67,6 +67,15 @@ init_eos(state<D> & s, spec::config_py & config) {
 
     );
   }
+  else if(config["eos"].as<std::string>() == "jwl") {
+    s.eos = singularity::JWL(config["JWL_A"].as<double>(),
+      config["JWL_B"].as<double>(),
+      config["JWL_R1"].as<double>(),
+      config["JWL_R2"].as<double>(),
+      config["JWL_w"].as<double>(),
+      config["JWL_rho0"].as<double>(),
+      config["JWL_Cv"].as<double>());
+  }
   else {
     flog_fatal("unsupported EOS");
   }

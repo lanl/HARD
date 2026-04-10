@@ -16,7 +16,8 @@ namespace eos {
 struct eos_wrapper {
   using eos_t = singularity::Variant<singularity::IdealGas,
     singularity::SpinerEOSDependsRhoSie,
-    singularity::Gruneisen>;
+    singularity::Gruneisen,
+    singularity::JWL>;
 
   eos_wrapper() {}
   template<typename M>
