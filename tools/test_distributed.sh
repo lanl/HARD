@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Path to the executable
 mpi_executable="$1"
@@ -32,14 +33,18 @@ done
 # Create a temporary version of r1.csv excluding the header lines
 sed '1d;/^$/d' r1.csv  | awk 'BEGIN {FS="\t"; OFS="\t"} {print $4, $5, $6, $7}' > r1_temp.csv
 
+set +e
 diff mp.csv r1_temp.csv > /dev/null
 exit_status=$?
+set -e
 
 if [ $exit_status -eq 0 ]; then
     echo "Files are the same."
 else
     echo "Files are different."
+    set +e
     diff mp.csv r1_temp.csv
+    set -e
 fi
 
 # Clean up temporary files
