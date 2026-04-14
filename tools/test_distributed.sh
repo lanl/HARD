@@ -8,7 +8,7 @@ config_file="$3"
 additional_args="$4"
 
 # HPX runs
-export HPX_COMMANDLINE_OPTIONS="--hpx:os-threads 1 --hpx:info"
+export HPX_COMMANDLINE_OPTIONS="--hpx:threads=2"
 
 # Run the executable twice
 rm -f *.csv
@@ -21,6 +21,7 @@ mv output-*-0-00002.csv r1.csv
 ls
 OMP_NUM_THREADS=1 "$mpi_executable" -np 16 "$hard_executable" "$config_file" $additional_args
 ls
+
 
 # Stitch together 16 csv outputs to 1 (mp.csv)
 > mp.csv
