@@ -103,11 +103,14 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 
-    # Distributed tests
-    add_test(NAME hard-distributed
-      COMMAND ${TEST_DISTRIBUTED_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-      ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.yaml -d1)
+    # Error with options for HPX for ranks > 1
+    if(NOT FleCSI_BACKEND STREQUAL "hpx")
+      # Distributed tests
+      add_test(NAME hard-distributed
+        COMMAND ${TEST_DISTRIBUTED_SCRIPT}
+        ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
+        ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.yaml -d1)
+    endif()
 
     # Convergence tests
     add_test(NAME convergence_testing
