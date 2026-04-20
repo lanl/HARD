@@ -32,7 +32,8 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("singularity-eos@1.11.0: +hdf5 +spiner build_extra=sesame")
     depends_on("singularity-eos~eospac+kokkos+kokkos-kernels+cuda", when="+cuda")
     depends_on("ports-of-call@2.0.1:")
-    
+
+    depends_on("cmake@3.27:")
     depends_on("llvm@20:20", type="build", when="+format")
     depends_on("python", when="+tests")
     depends_on("py-numpy", when="+tests")
