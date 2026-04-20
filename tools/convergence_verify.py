@@ -43,7 +43,7 @@ def main() -> None:
         assert last_output is not None
 
         out_tuple = np.loadtxt(last_output, comments=["time", "#"],
-                               delimiter=",", usecols=(0, 2, 3, 4, 9)).T
+                               delimiter=",", usecols=(0, 2, 3, 4, 8)).T
 
         # If the csv file was combined, erase it
         if combined:
