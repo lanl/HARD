@@ -52,75 +52,80 @@ if(ENABLE_UNIT_TESTS)
 
 endif()
 
-if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
+if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
 
-  if(ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
+  set(TEST_VERIFY_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_verify.sh")
+  set(TEST_DISTRIBUTED_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_distributed.sh")
+  set(TEST_CONVERGENCE_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_convergence.sh")
 
-    set(TEST_VERIFY_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_verify.sh")
-    set(TEST_DISTRIBUTED_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_distributed.sh")
-    set(TEST_CONVERGENCE_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_convergence.sh")
-    
-    file(MAKE_DIRECTORY
-      ${CMAKE_BINARY_DIR}/tests/rk_3d
-      ${CMAKE_BINARY_DIR}/tests/sod_3d
-    )
+  file(MAKE_DIRECTORY
+    ${CMAKE_BINARY_DIR}/tests/rk_3d
+    ${CMAKE_BINARY_DIR}/tests/sod_3d
+  )
 
-    # Accuracy tests
-    add_test(NAME accuracy_rk_1d
-      COMMAND ${TEST_VERIFY_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-      ${CMAKE_SOURCE_DIR}/configs/ci_configs/rk.yaml -d1
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    )
-    add_test(NAME accuracy_sod_1d
-      COMMAND ${TEST_VERIFY_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-      ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod.yaml -d1
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    )
-    add_test(NAME accuracy_leblanc_1d
-      COMMAND ${TEST_VERIFY_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-      ${CMAKE_SOURCE_DIR}/configs/ci_configs/leblanc.yaml -d1
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    )
-    # add_test(NAME accuracy_sedov_1d
-    #   COMMAND ${TEST_VERIFY_SCRIPT}
-    #   ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    #   ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.yaml -d1
-    #   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    # )
-    add_test(NAME accuracy_acoustic_1d
-      COMMAND ${TEST_VERIFY_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-      ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d1
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    )
-    add_test(NAME accuracy_acoustic_2d
-      COMMAND ${TEST_VERIFY_SCRIPT}
-      ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-      ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d2
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    )
+  # Accuracy tests
+  add_test(NAME accuracy_rk_1d
+    COMMAND ${TEST_VERIFY_SCRIPT}
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/rk.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+  add_test(NAME accuracy_sod_1d
+    COMMAND ${TEST_VERIFY_SCRIPT}
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+  add_test(NAME accuracy_leblanc_1d
+    COMMAND ${TEST_VERIFY_SCRIPT}
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/leblanc.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+  # add_test(NAME accuracy_sedov_1d
+  #   COMMAND ${TEST_VERIFY_SCRIPT}
+  #   ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
+  #   ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.yaml -d1
+  #   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  # )
+  add_test(NAME accuracy_acoustic_1d
+    COMMAND ${TEST_VERIFY_SCRIPT}
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+  add_test(NAME accuracy_acoustic_2d
+    COMMAND ${TEST_VERIFY_SCRIPT}
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d2
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
 
-    # Error with options for HPX for ranks > 1
-    if(NOT FleCSI_BACKEND STREQUAL "hpx")
-      # Distributed tests
-      add_test(NAME hard-distributed
-        COMMAND ${TEST_DISTRIBUTED_SCRIPT}
-        ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-        ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.yaml -d1)
-    endif()
-
-    # Convergence tests
-    add_test(NAME convergence_testing
-      COMMAND ${TEST_CONVERGENCE_SCRIPT}
+  # Error with options for HPX for ranks > 1
+  if(NOT FleCSI_BACKEND STREQUAL "hpx")
+    # Distributed tests
+    add_test(NAME hard-distributed
+      COMMAND ${TEST_DISTRIBUTED_SCRIPT}
       ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-      6 10
-      ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_convergence.yaml -d1
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-
+      ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.yaml -d1)
   endif()
+
+  # Convergence tests
+  add_test(NAME total_convergence_testing
+    COMMAND ${TEST_CONVERGENCE_SCRIPT}
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
+    6 10
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_total_convergence.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+  add_test(NAME spatial_convergence_testing
+    COMMAND ${TEST_CONVERGENCE_SCRIPT}
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
+    4 8
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_spatial_convergence.yaml -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+
 endif()
 
 install(TARGETS hydro)

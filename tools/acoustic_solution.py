@@ -19,7 +19,7 @@ class Acoustic(object):
 
         self.r0 = float(self.problem_dict["r0"])
         self.p0 = float(self.problem_dict["p0"])
-        self.cs = np.sqrt(gamma * self.p0 / self.r0)
+        self.cs = np.sqrt(self.gamma * self.p0 / self.r0)
 
         self.amplitude = float(self.problem_dict["amplitude"])
         self.scale = 2 * np.pi * \
