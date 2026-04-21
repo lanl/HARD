@@ -249,7 +249,7 @@ class Problem(object):
         plt.minorticks_on()
         ax.tick_params(which="both", right="True", top="True")
 
-        filename = f"{label.lower()}_comparison_{tag}.pdf"
+        filename = f"{self.name}_{label.lower()}_comparison_{tag}.pdf"
         plt.savefig(filename)
         plt.close()
 
