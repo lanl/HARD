@@ -99,7 +99,7 @@ def main() -> None:
         plt.tick_params(axis='y', which='minor', right=True)
 
         plt.legend()
-        plt.savefig(f"convergence-{dim}D.pdf")
+        plt.savefig(f"order_{ord}_convergence-{dim}D.pdf")
 
     # Find slope of logarithms for convergence test
     logE = np.log(l1err)
