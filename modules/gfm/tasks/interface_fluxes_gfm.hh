@@ -18,7 +18,7 @@ namespace hard::tasks::gfm {
 // for the ghost side to HLLC (sound speed, total E den, mom).
 template<std::size_t Dim>
 void
-compute_state_from_rho_u_p(const eos::eos_wrapper & eos,
+compute_state_from_rho_u_p(const std::vector<eos::eos_wrapper> & eos_mm,
   int mat_id,
   double rho,
   const vec<Dim> & u,
@@ -30,6 +30,9 @@ compute_state_from_rho_u_p(const eos::eos_wrapper & eos,
 
   const double rho_f = std::max(rho, 1e-14);
   const double p_f = std::max(p, 1e-14);
+
+  const auto mat = static_cast<std::size_t>(mat_id);
+  const auto & eos = eos_mm[mat];
 
   // Getting internal energy
   e = hard::tasks::util::find_sie(eos, rho_f, p_f);
@@ -66,7 +69,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
   // time derivative
   typename RK<Dim>::template accessor<rw, na> rk_dt_a,
   typename single<vec<Dim>>::template accessor<ro> g_acc,
-  const eos::eos_wrapper & eos) noexcept {
+  const std::vector<eos::eos_wrapper> & eos_mm) noexcept {
 
   auto g = g_acc.get();
 
@@ -254,7 +257,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         double reRg_L{};
 
         compute_state_from_rho_u_p<1>(
-          eos, mL, rhoRg_L, uRg_for_L, pRg_L, eRg_L, cRg_L, ruRg_L, reRg_L);
+          eos_mm, mL, rhoRg_L, uRg_for_L, pRg_L, eRg_L, cRg_L, ruRg_L, reRg_L);
 
         const double f_r_T_L{ruL.x()};
         const double f_r_H_L{ruRg_L.x()};
@@ -335,7 +338,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         double reLg_R{};
 
         compute_state_from_rho_u_p<1>(
-          eos, mR, rhoLg_R, uLg_for_R, pLg_R, eLg_R, cLg_R, ruLg_R, reLg_R);
+          eos_mm, mR, rhoLg_R, uLg_for_R, pLg_R, eLg_R, cLg_R, ruLg_R, reLg_R);
 
         const double f_r_T_R{ruLg_R.x()};
         const double f_r_H_R{ruR.x()};
@@ -571,8 +574,15 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           vec<2> ruRg_L{};
           double reRg_L{};
 
-          compute_state_from_rho_u_p<2>(
-            eos, mL, rhoRg_L, uRg_for_L, pRg_L, eRg_L, cRg_L, ruRg_L, reRg_L);
+          compute_state_from_rho_u_p<2>(eos_mm,
+            mL,
+            rhoRg_L,
+            uRg_for_L,
+            pRg_L,
+            eRg_L,
+            cRg_L,
+            ruRg_L,
+            reRg_L);
 
           const double f_r_T_L{ruL.x()};
           const double f_r_H_L{ruRg_L.x()};
@@ -656,8 +666,15 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           vec<2> ruLg_R{};
           double reLg_R{};
 
-          compute_state_from_rho_u_p<2>(
-            eos, mR, rhoLg_R, uLg_for_R, pLg_R, eLg_R, cLg_R, ruLg_R, reLg_R);
+          compute_state_from_rho_u_p<2>(eos_mm,
+            mR,
+            rhoLg_R,
+            uLg_for_R,
+            pLg_R,
+            eLg_R,
+            cLg_R,
+            ruLg_R,
+            reLg_R);
 
           const double f_r_T_R{ruLg_R.x()};
           const double f_r_H_R{ruR.x()};
@@ -875,8 +892,15 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           vec<2> ruRg_L{};
           double reRg_L{};
 
-          compute_state_from_rho_u_p<2>(
-            eos, mL, rhoRg_L, uRg_for_L, pRg_L, eRg_L, cRg_L, ruRg_L, reRg_L);
+          compute_state_from_rho_u_p<2>(eos_mm,
+            mL,
+            rhoRg_L,
+            uRg_for_L,
+            pRg_L,
+            eRg_L,
+            cRg_L,
+            ruRg_L,
+            reRg_L);
 
           const double f_r_T_L{ruL.y()};
           const double f_r_H_L{ruRg_L.y()};
@@ -958,8 +982,15 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           vec<2> ruLg_R{};
           double reLg_R{};
 
-          compute_state_from_rho_u_p<2>(
-            eos, mR, rhoLg_R, uLg_for_R, pLg_R, eLg_R, cLg_R, ruLg_R, reLg_R);
+          compute_state_from_rho_u_p<2>(eos_mm,
+            mR,
+            rhoLg_R,
+            uLg_for_R,
+            pLg_R,
+            eLg_R,
+            cLg_R,
+            ruLg_R,
+            reLg_R);
 
           const double f_r_T_R{ruLg_R.y()};
           const double f_r_H_R{ruR.y()};
@@ -1190,8 +1221,15 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           vec<3> ruRg_L{};
           double reRg_L{};
 
-          compute_state_from_rho_u_p<3>(
-            eos, mL, rhoRg_L, uRg_for_L, pRg_L, eRg_L, cRg_L, ruRg_L, reRg_L);
+          compute_state_from_rho_u_p<3>(eos_mm,
+            mL,
+            rhoRg_L,
+            uRg_for_L,
+            pRg_L,
+            eRg_L,
+            cRg_L,
+            ruRg_L,
+            reRg_L);
 
           const double f_r_T_L{ruL.x()};
           const double f_r_H_L{ruRg_L.x()};
@@ -1279,8 +1317,15 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           vec<3> ruLg_R{};
           double reLg_R{};
 
-          compute_state_from_rho_u_p<3>(
-            eos, mR, rhoLg_R, uLg_for_R, pLg_R, eLg_R, cLg_R, ruLg_R, reLg_R);
+          compute_state_from_rho_u_p<3>(eos_mm,
+            mR,
+            rhoLg_R,
+            uLg_for_R,
+            pLg_R,
+            eLg_R,
+            cLg_R,
+            ruLg_R,
+            reLg_R);
 
           const double f_r_T_R{ruLg_R.x()};
           const double f_r_H_R{ruR.x()};
@@ -1506,8 +1551,15 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           vec<3> ruRg_L{};
           double reRg_L{};
 
-          compute_state_from_rho_u_p<3>(
-            eos, mL, rhoRg_L, uRg_for_L, pRg_L, eRg_L, cRg_L, ruRg_L, reRg_L);
+          compute_state_from_rho_u_p<3>(eos_mm,
+            mL,
+            rhoRg_L,
+            uRg_for_L,
+            pRg_L,
+            eRg_L,
+            cRg_L,
+            ruRg_L,
+            reRg_L);
 
           const double f_r_T_L{ruL.y()};
           const double f_r_H_L{ruRg_L.y()};
@@ -1595,8 +1647,15 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           vec<3> ruLg_R{};
           double reLg_R{};
 
-          compute_state_from_rho_u_p<3>(
-            eos, mR, rhoLg_R, uLg_for_R, pLg_R, eLg_R, cLg_R, ruLg_R, reLg_R);
+          compute_state_from_rho_u_p<3>(eos_mm,
+            mR,
+            rhoLg_R,
+            uLg_for_R,
+            pLg_R,
+            eLg_R,
+            cLg_R,
+            ruLg_R,
+            reLg_R);
 
           const double f_r_T_R{ruLg_R.y()};
           const double f_r_H_R{ruR.y()};
@@ -1823,8 +1882,15 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           vec<3> ruRg_L{};
           double reRg_L{};
 
-          compute_state_from_rho_u_p<3>(
-            eos, mL, rhoRg_L, uRg_for_L, pRg_L, eRg_L, cRg_L, ruRg_L, reRg_L);
+          compute_state_from_rho_u_p<3>(eos_mm,
+            mL,
+            rhoRg_L,
+            uRg_for_L,
+            pRg_L,
+            eRg_L,
+            cRg_L,
+            ruRg_L,
+            reRg_L);
 
           const double f_r_T_L{ruL.z()};
           const double f_r_H_L{ruRg_L.z()};
@@ -1912,8 +1978,15 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           vec<3> ruLg_R{};
           double reLg_R{};
 
-          compute_state_from_rho_u_p<3>(
-            eos, mR, rhoLg_R, uLg_for_R, pLg_R, eLg_R, cLg_R, ruLg_R, reLg_R);
+          compute_state_from_rho_u_p<3>(eos_mm,
+            mR,
+            rhoLg_R,
+            uLg_for_R,
+            pLg_R,
+            eLg_R,
+            cLg_R,
+            ruLg_R,
+            reLg_R);
 
           const double f_r_T_R{ruLg_R.z()};
           const double f_r_H_R{ruR.z()};

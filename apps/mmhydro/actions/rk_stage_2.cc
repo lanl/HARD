@@ -122,7 +122,7 @@ advance_rk_stage_2(state<D> & s,
       s.rf.hydro.re_f(*s.m),
       s.rk_dt1(s.m),
       s.icst.gravity_acc(*s.gt),
-      s.eos);
+      s.eos_mm);
 
     // Apply function if present
     if constexpr(!std::is_same_v<F, std::nullptr_t>)
