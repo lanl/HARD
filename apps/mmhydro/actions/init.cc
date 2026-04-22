@@ -73,7 +73,7 @@ initialize(control_policy<state, D> & cp) {
     Equation of State
    *--------------------------------------------------------------------------*/
 
-  actions::init_eos(s, config);
+  actions::init_eos_mm(s, config);
 
   /*--------------------------------------------------------------------------*
     Level set

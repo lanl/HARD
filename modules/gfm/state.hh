@@ -1,11 +1,16 @@
 #ifndef HARD_MODULES_GFM_STATE_HH
 #define HARD_MODULES_GFM_STATE_HH
 
+#include "../modules/spec/eos.hh"
 #include "types.hh"
 
 namespace hard::gfm {
 template<std::size_t D>
 struct state {
+
+  // Multi-mat EOS
+  std::vector<eos::eos_wrapper> eos_mm;
+
   struct level_set {
     // Level set
     // Signed distance-like scalar and integer material label per cell

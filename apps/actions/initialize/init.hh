@@ -80,6 +80,63 @@ init_eos(state<D> & s, spec::config_py & config) {
     flog_fatal("unsupported EOS");
   }
 }
+// TODO: Merge this to make general one.
+template<std::size_t D>
+void
+init_eos_mm(hard::gfm::state<D> & s, YAML::Node & config) {
+  if(!config["eos_list"]) {
+    flog_fatal("missing 'eos_list' section for multi-material EOS");
+  }
+
+  auto mats = config["materials"];
+
+  if(!mats.IsSequence() || mats.size() == 0) {
+    flog_fatal("'eos_list' must be a non-empty sequence");
+  }
+
+  s.eos_mm.clear();
+  s.eos_mm.reserve(mats.size());
+
+  for(std::size_t m = 0; m < mats.size(); ++m) {
+    auto mat = mats[m];
+
+    if(mat["eos"].as<std::string>() == "ideal") {
+      s.eos_mm.emplace_back(
+        singularity::IdealGas(mat["gamma"].as<double>() - 1, 2.0 /* FIXME */));
+    }
+    else if(mat["eos"].as<std::string>() == "spiner") {
+      s.eos_mm.emplace_back(singularity::SpinerEOSDependsRhoSie(
+        mat["spiner_file"].as<std::string>(),
+        mat["spiner_matid"].as<std::string>()));
+    }
+    else if(mat["eos"].as<std::string>() == "gruneisen") {
+      s.eos_mm.emplace_back(
+        singularity::Gruneisen(mat["gruneisen_c0"].as<double>(),
+          mat["gruneisen_s1"].as<double>(),
+          0.,
+          0.,
+          mat["gruneisen_G0"].as<double>(),
+          0.,
+          0.,
+          mat["gruneisen_T0"].as<double>(),
+          0.,
+          mat["gruneisen_Cv"].as<double>(),
+          0.));
+    }
+    else if(mat["eos"].as<std::string>() == "jwl") {
+      s.eos_mm.emplace_back(singularity::JWL(mat["JWL_A"].as<double>(),
+        mat["JWL_B"].as<double>(),
+        mat["JWL_R1"].as<double>(),
+        mat["JWL_R2"].as<double>(),
+        mat["JWL_w"].as<double>(),
+        mat["JWL_rho0"].as<double>(),
+        mat["JWL_Cv"].as<double>()));
+    }
+    else {
+      flog_fatal("unsupported EOS in eos_list");
+    }
+  }
+}
 
 template<std::size_t D>
 void

@@ -1,10 +1,10 @@
 #include "state.hh"
 
+#include "gfm/tasks/cons2prim.hh"
 #include "gfm/tasks/extrapolation.hh"
 #include "gfm/tasks/interface_fluxes_gfm.hh"
 #include "gfm/tasks/reconstruct.hh"
 #include "gfm/tasks/utils.hh"
-#include "hydro/tasks/cons2prim.hh"
 #include "hydro/tasks/external_source.hh"
 #include "hydro/tasks/rhs.hh"
 #include "spec/limiter.hh"
@@ -61,7 +61,7 @@ advance_rk_stage_1(state<D> & s,
   }
 
   // Perform primitive recovery
-  sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
+  sc.execute<tasks::gfm::conservative_to_primitive_mm<D>>(flecsi::exec::on,
     *s.m,
     s.cons.hydro.mass_density(*s.m),
     s.cons.hydro.momentum_density(*s.m),
@@ -70,7 +70,8 @@ advance_rk_stage_1(state<D> & s,
     s.prim.pressure(*s.m),
     s.prim.specific_internal_energy(*s.m),
     s.prim.sound_speed(*s.m),
-    s.eos);
+    s.ls.material(*s.m),
+    s.eos_mm);
 
   using limiter = spec::limiters::weno5z;
 
@@ -225,7 +226,7 @@ update_rk_stage_1(state<D> & s,
     // clang-format on
   }
   // Perform primitive recovery
-  sc.execute<tasks::hydro::conservative_to_primitive<D>>(flecsi::exec::on,
+  sc.execute<tasks::gfm::conservative_to_primitive_mm<D>>(flecsi::exec::on,
     *s.m,
     s.cons.hydro.mass_density(*s.m),
     s.cons.hydro.momentum_density(*s.m),
@@ -234,7 +235,8 @@ update_rk_stage_1(state<D> & s,
     s.prim.pressure(*s.m),
     s.prim.specific_internal_energy(*s.m),
     s.prim.sound_speed(*s.m),
-    s.eos);
+    s.ls.material(*s.m),
+    s.eos_mm);
 
   {
     auto scalar_v = std::vector{s.cons.hydro.mass_density(*s.m),
