@@ -6,8 +6,8 @@ from collections.abc import Callable
 from typing import Any
 
 import numpy as np
-import yaml
 from numpy.typing import NDArray
+from importlib import util as imputil
 
 
 class wrapFunction(object):
@@ -51,9 +51,8 @@ def parse_cli(get_file: bool = True
         s += " [--plot]"
         sys.exit(s)
 
-    # Read in the yaml file
-    yaml_file = sys.argv[1]
-    problem, gamma, x0, x1, problem_dict = parse_config(yaml_file)
+    # Read the config file
+    config_file = sys.argv[1]
 
     # Get the number of dimensions
     dim = int(sys.argv[2])
@@ -82,7 +81,7 @@ def parse_cli(get_file: bool = True
 
             print(f"Auto-selected input file: {csv_file}")
 
-    return yaml_file, dim, out_dir, csv_file, combined, make_plot
+    return config_file, dim, out_dir, csv_file, combined, make_plot
 
 
 def simple_quad(f: Callable, x0: NDArray, x1: NDArray, deg: int = 10) -> float:
@@ -208,14 +207,22 @@ def find_last_output(pattern: str = "output-?D-?-*.csv",
         return new_file, True
 
 
-def parse_config(yaml_file: str
+def parse_config(file_path: str
                  ) -> tuple[str, float, NDArray, NDArray, dict[str, Any]]:
-    with open(yaml_file, 'r') as f:
-        config = yaml.safe_load(f)
-    gamma = float(config.get('gamma', 1.4))
-    x0 = np.array(config['coords'][0])
-    x1 = np.array(config['coords'][1])
-    problem = config['problem']
-    problem_dict = config.get("problem_parameters")
+
+    module_name = "custom_module"
+
+    spec = imputil.spec_from_file_location(module_name, file_path)
+    assert spec is not None
+    assert spec.loader is not None
+
+    module = imputil.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    gamma = float(module.config.get('gamma', 1.4))
+    x0 = np.array(module.config['coords'][0])
+    x1 = np.array(module.config['coords'][1])
+    problem = module.config['problem']
+    problem_dict = module.config.get('problem_parameters')
 
     return problem, gamma, x0, x1, problem_dict

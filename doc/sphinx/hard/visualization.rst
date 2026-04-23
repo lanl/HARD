@@ -19,9 +19,9 @@ FlAstro currently outputs raw text data files that can be read into gnuplot, for
 To build flastro with catalyst, set ``ENABLE_CATALYST=ON``.
 Run flastro as you would w/o creating visualzation output, for example:
 
-``mpirun -n 4 ./flastro -d 3 ../../configs/XYZ.yaml``
+``mpirun -n 4 ./flastro -d 3 ../../configs/XYZ.py``
 
-In the ``XYZ.yaml`` file you secify the physical dimension and resolution of the simulation box, the simulation time
+In the ``XYZ.py`` file you secify the physical dimension and resolution of the simulation box, the simulation time
 or maximum number of steps, etc. To create output for paraview, you need to provide the path for the catalyst implementation
 and specify a catalyst/paraview script, like ``gridwriter.py`` that is provided in the ``../../tools/`` directory along with
 other example scripts that directly render pngs for different observables. To add further observables/fields to the pipeline

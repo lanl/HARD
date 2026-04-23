@@ -18,8 +18,8 @@ def main() -> None:
     tol = 1e-1
 
     # Get all files
-    yaml_file, dim, out_dir, _, _, make_plot = parse_cli(get_file=False)
-    problem, gamma, x0, x1, problem_dict = parse_config(yaml_file)
+    config_file, dim, out_dir, _, _, make_plot = parse_cli(get_file=False)
+    problem, gamma, x0, x1, problem_dict = parse_config(config_file)
 
     ord = int(problem_dict["convergence_order"])
 

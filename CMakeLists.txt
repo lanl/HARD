@@ -215,7 +215,7 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   set(CONVERGENCE_SCRIPT ${CMAKE_SOURCE_DIR}/tools/convergence_verify.py)
 
   if(CONFIG STREQUAL "")
-    set(CONFIG sod.yaml)
+    set(CONFIG sod.py)
   endif()
 
   add_custom_target(verify
