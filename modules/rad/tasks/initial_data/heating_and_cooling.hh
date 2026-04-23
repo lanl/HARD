@@ -4,9 +4,7 @@
 #include "../../constants.hh"
 #include "options.hh"
 #include "types.hh"
-#include <cstddef>
 #include <spec/utils.hh>
-#include <yaml-cpp/yaml.h>
 
 namespace hard::tasks::initial_data {
 
@@ -40,14 +38,14 @@ heating_and_cooling(flecsi::exec::cpu s,
   auto const particle_mass = *particle_mass_a;
 
   // Parse input parameters
-  YAML::Node config = YAML::LoadFile(opt::config.value());
+  spec::config_py config(opt::config.value());
 
   const double mass_density_v =
-    config["problem_parameters"]["fluid_mass_density"].as<double>();
+    config["problem_parameters"]["fluid_mass_density"].cast<double>();
   const double fluid_temperature =
-    config["problem_parameters"]["fluid_temperature"].as<double>();
+    config["problem_parameters"]["fluid_temperature"].cast<double>();
   const double radiation_temperature =
-    config["problem_parameters"]["radiation_temperature"].as<double>();
+    config["problem_parameters"]["radiation_temperature"].cast<double>();
 
   // Note : assuming ideal gas EOS
   const double fluid_internal_energy_density =

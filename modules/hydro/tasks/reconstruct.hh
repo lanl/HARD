@@ -2,7 +2,6 @@
 #define HARD_MODULE_HYDRO_RECONSTRUCT_HH
 
 #include "../modules/common/tasks/utils.hh"
-#include <cstddef>
 
 namespace hard::tasks::hydro {
 

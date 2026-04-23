@@ -1,9 +1,6 @@
 #ifndef HARD_HYDRO_MODULES_KELVIN_HELM_HH
 #define HARD_HYDRO_MODULES_KELVIN_HELM_HH
 
-#include <cmath>
-#include <cstddef>
-
 namespace hard::tasks::initial_data {
 
 /*----------------------------------------------------------------------------*

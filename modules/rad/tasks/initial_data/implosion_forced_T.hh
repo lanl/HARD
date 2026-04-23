@@ -4,8 +4,6 @@
 #include "../../constants.hh"
 #include "types.hh"
 #include <../modules/spec/utils.hh>
-#include <cstddef>
-#include <yaml-cpp/yaml.h>
 
 namespace hard::tasks::initial_data {
 
@@ -42,16 +40,15 @@ implosion_forced_T(flecsi::exec::cpu s,
   auto const particle_mass = *particle_mass_a;
 
   // Parse input parameters
-  YAML::Node config = YAML::LoadFile(opt::config.value());
-
+  spec::config_py config(opt::config.value());
   const double mass_density_v =
-    config["problem_parameters"]["fluid_mass_density"].as<double>();
+    config["problem_parameters"]["fluid_mass_density"].cast<double>();
   const double fluid_temperature =
-    config["problem_parameters"]["fluid_temperature"].as<double>();
+    config["problem_parameters"]["fluid_temperature"].cast<double>();
 
   // Constant radiation temperature in the domain
   const double radiation_temperature =
-    config["problem_parameters"]["radiation_temperature"].as<double>();
+    config["problem_parameters"]["radiation_temperature"].cast<double>();
 
   // Radiation temperature in the boundary
   // TODO remove

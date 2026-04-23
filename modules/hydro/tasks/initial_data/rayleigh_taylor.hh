@@ -1,9 +1,6 @@
 #ifndef HARD_HYDRO_MODULES_RAYLEIGH_TAYLOR_HH
 #define HARD_HYDRO_MODULES_RAYLEIGH_TAYLOR_HH
 
-#include <cmath>
-#include <cstddef>
-
 namespace hard::tasks::initial_data {
 
 /*

@@ -48,9 +48,10 @@ target_link_libraries(libhydro
   INTERFACE
     libcommon::libcommon
     libspec::libspec
-    yaml-cpp::yaml-cpp
     singularity-eos::singularity-eos
     FleCSI::FleCSI
+    pybind11::headers
+    Python::Python
 )
 
 target_compile_definitions(libhydro

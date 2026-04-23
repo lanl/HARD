@@ -3,6 +3,8 @@
 
 #include "labels.hh"
 #include <flecsi/data.hh>
+#include <pybind11/embed.h>
+#include <pybind11/stl.h>
 
 namespace spec {
 inline constexpr flecsi::privilege na = flecsi::na, ro = flecsi::ro,
@@ -10,6 +12,7 @@ inline constexpr flecsi::privilege na = flecsi::na, ro = flecsi::ro,
 
 using flecsi::topo::global;
 using flecsi::topo::index;
+namespace py = pybind11;
 
 using flecsi::field;
 template<typename T>
@@ -435,6 +438,54 @@ struct stencil {
   }
 };
 
+struct __attribute__((visibility("default"))) config_py {
+  config_py(const config_py &) = delete;
+  config_py(config_py &&) = delete;
+  config_py & operator=(const config_py &) = delete;
+  config_py & operator=(config_py &&) = delete;
+
+  config_py(const std::string & path) {
+    py::gil_scoped_acquire _;
+    py::object scope = py::globals();
+    py::eval_file(path, scope);
+    config_ = std::make_unique<py::object>(scope["config"]);
+  }
+  config_py(const py::object & object) {
+    config_ = std::make_unique<py::object>(object);
+  }
+
+  bool contains(const std::string & key) const {
+    py::gil_scoped_acquire _;
+    return config_->contains(key);
+  }
+
+  // String key
+  config_py operator[](const std::string & key) const {
+    py::gil_scoped_acquire _;
+    return config_py((*config_)[key.c_str()]);
+  }
+
+  // Index or integer key
+  config_py operator[](const int & key) const {
+    py::gil_scoped_acquire _;
+    return config_py((*config_)[py::int_(key)]);
+  }
+
+  template<typename T>
+  T cast() const {
+    py::gil_scoped_acquire _;
+    return (*config_).cast<T>();
+  }
+
+  // Destroy the unique_ptr in case of race condition
+  ~config_py() {
+    py::gil_scoped_acquire _;
+    config_.reset();
+  }
+
+private:
+  std::unique_ptr<py::object> config_;
+}; // struct config_py
 } // namespace spec
 
 #endif // SPEC_TYPES_HH
