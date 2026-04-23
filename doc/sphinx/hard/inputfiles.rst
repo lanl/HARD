@@ -4,17 +4,17 @@
 
 .. _hard_input_files:
 
-HARD YAML Input Files
+HARD PYTHON Input Files
 ************************************
 
-HARD uses YAML files as input to describe the different problems and their configurations.
+HARD uses PYTHON files as input to describe the different problems and their configurations.
 These files can be found in the `configs` directory at the root.
 A subdirectory `ci_configs` is used to run the regression tests in the CI and should not be altered.
 
 Unless specified, the units are in CGS.
 
 
-Here are details on each parts of the yaml files:
+Here are details on each parts of the python files:
 
 `problem`
   This is the string that is picked up by the `init.hh` file to configure the problem. For now these options are available:

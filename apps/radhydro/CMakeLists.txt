@@ -49,6 +49,6 @@ install(TARGETS radhydro)
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/configs/
   DESTINATION share/HARD/radhydro/configs
-  FILES_MATCHING PATTERN "*.yaml"
+  FILES_MATCHING PATTERN "*.py"
   PATTERN "ci_configs" EXCLUDE
 )
