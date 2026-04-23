@@ -41,7 +41,8 @@ endif()
 #------------------------------------------------------------------------------#
 
 find_package(FleCSI 2 REQUIRED)
-find_package(yaml-cpp REQUIRED)
+find_package(Python COMPONENTS Interpreter Development REQUIRED)
+find_package(pybind11 REQUIRED)
 find_package(singularity-eos REQUIRED COMPONENTS Interface)
 find_package(Eigen3 REQUIRED)
 find_package(flecsolve REQUIRED)
@@ -208,16 +209,6 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   )
   if(NOT MATPLOTLIB_FOUND EQUAL 0)
     message(FATAL_ERROR "Matplotlib Python module not found. Please install it (e.g., with 'pip install matplotlib').")
-  endif()
-
-  execute_process(
-    COMMAND ${Python3_EXECUTABLE} -c "import yaml"
-    RESULT_VARIABLE PYYAML_FOUND
-    OUTPUT_QUIET
-    ERROR_QUIET
-  )
-  if(NOT PYYAML_FOUND EQUAL 0)
-    message(FATAL_ERROR "Yaml Python module not found. Please install it (e.g., with 'pip install pyyaml').")
   endif()
 
   set(CHECK_SCRIPT ${CMAKE_SOURCE_DIR}/tools/exactpack_verify.py)

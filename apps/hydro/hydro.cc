@@ -5,7 +5,6 @@
 #include <spec/runtime.hh>
 
 #include <flecsi/runtime.hh>
-#include <yaml-cpp/yaml.h>
 
 #include <flecsi/util/unit.hh>
 
@@ -21,6 +20,10 @@ main(int argc, char ** argv) {
   control<state, 1>::write_graph("HARD", "cm.dot");
   control<state, 1>::write_actions("HARD", "actions.dot");
 #endif
+
+  // Instantiate the python interpreter and release it
+  spec::py::scoped_interpreter guard{};
+  spec::py::gil_scoped_release release;
 
   const flecsi::getopt g;
   try {
@@ -48,8 +51,6 @@ main(int argc, char ** argv) {
   runtime run{cfg};
   flog::add_output_stream("clog", std::clog, true);
 
-  YAML::Node config = YAML::LoadFile(opt::config.value());
-
 #ifdef HARD_BENCHMARK_MODE
   // Write header if process 0 and header==1
   if(flecsi::process() == 0 && opt::header.value()) {
@@ -62,13 +63,15 @@ main(int argc, char ** argv) {
   }
 #endif
 
+  spec::config_py config(opt::config.value());
+
   return dispatch<control, state>(run,
     opt::dimension.value(),
-    config["t0"].as<double>(),
-    config["tf"].as<double>(),
-    config["max_steps"].as<std::size_t>(),
-    config["cfl"].as<double>(),
-    config["max_dt"].as<double>(),
-    config["log_frequency"].as<std::size_t>(),
-    config["output_frequency"].as<std::size_t>());
+    config["t0"].cast<double>(),
+    config["tf"].cast<double>(),
+    config["max_steps"].cast<std::size_t>(),
+    config["cfl"].cast<double>(),
+    config["max_dt"].cast<double>(),
+    config["log_frequency"].cast<std::size_t>(),
+    config["output_frequency"].cast<std::size_t>());
 } // main

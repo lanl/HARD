@@ -1,35 +1,37 @@
 #ifndef HARD_APPS_ACTIONS_INITIALIZE_MESH_HH
 #define HARD_APPS_ACTIONS_INITIALIZE_MESH_HH
 
+#include "spec/types.hh"
+
 namespace hard::actions {
 
 template<std::size_t D>
 void
-init_eos(state<D> & s, YAML::Node & config) {
+init_eos(state<D> & s, spec::config_py & config) {
   /*--------------------------------------------------------------------------*
      Equation of State
     *--------------------------------------------------------------------------*/
 
-  if(config["eos"].as<std::string>() == "ideal") {
-    s.eos =
-      singularity::IdealGas(config["gamma"].as<double>() - 1, 2.0 /* FIXME */);
+  if(config["eos"].cast<std::string>() == "ideal") {
+    s.eos = singularity::IdealGas(
+      config["gamma"].cast<double>() - 1, 2.0 /* FIXME */);
   }
-  else if(config["eos"].as<std::string>() == "spiner") {
+  else if(config["eos"].cast<std::string>() == "spiner") {
     s.eos = singularity::SpinerEOSDependsRhoSie(
-      config["spiner_file"].as<std::string>(),
-      config["spiner_matid"].as<std::string>());
+      config["spiner_file"].cast<std::string>(),
+      config["spiner_matid"].cast<std::string>());
   }
-  else if(config["eos"].as<std::string>() == "gruneisen") {
-    s.eos = singularity::Gruneisen(config["gruneisen_c0"].as<double>(),
-      config["gruneisen_s1"].as<double>(),
+  else if(config["eos"].cast<std::string>() == "gruneisen") {
+    s.eos = singularity::Gruneisen(config["gruneisen_c0"].cast<double>(),
+      config["gruneisen_s1"].cast<double>(),
       0., // s2
       0., // s3
-      config["gruneisen_G0"].as<double>(),
+      config["gruneisen_G0"].cast<double>(),
       0., // b
       0., // rho0
-      config["gruneisen_T0"].as<double>(),
+      config["gruneisen_T0"].cast<double>(),
       0., // P0
-      config["gruneisen_Cv"].as<double>(),
+      config["gruneisen_Cv"].cast<double>(),
       0. // rho_max
 
     );
@@ -43,7 +45,7 @@ template<std::size_t D>
 void
 init_timestep(state<D> & s,
   flecsi::scheduler & sc,
-  YAML::Node & config,
+  spec::config_py & config,
   std::vector<flecsi::field<double>::Reference<spec::mesh<D>, spec::is::cells>>
     fr = {}) {
 
@@ -87,7 +89,7 @@ init_timestep(state<D> & s,
     Initialize time to 0
    *--------------------------------------------------------------------------*/
   sc.execute<tasks::init::init_time>(
-    flecsi::exec::on, s.t(*s.gt), config["t0"].as<double>());
+    flecsi::exec::on, s.t(*s.gt), config["t0"].cast<double>());
 }
 
 template<std::size_t D>
@@ -96,24 +98,24 @@ init_boundaries(state<D> & s,
   flecsi::scheduler & sc,
   std::vector<double> & time,
   std::vector<double> & temperature,
-  YAML::Node & config) {
+  spec::config_py & config) {
 
   std::array<std::array<bd::boundary_type, 2>, D> bnds;
   bnds[ax::x][bd::low] =
-    utils::mesh_boundary<D>(config["boundaries"]["xlow"].as<std::string>());
+    utils::mesh_boundary<D>(config["boundaries"]["xlow"].cast<std::string>());
   bnds[ax::x][bd::high] =
-    utils::mesh_boundary<D>(config["boundaries"]["xhigh"].as<std::string>());
+    utils::mesh_boundary<D>(config["boundaries"]["xhigh"].cast<std::string>());
   if(D == 2 || D == 3) {
     bnds[ax::y][bd::low] =
-      utils::mesh_boundary<D>(config["boundaries"]["ylow"].as<std::string>());
-    bnds[ax::y][bd::high] =
-      utils::mesh_boundary<D>(config["boundaries"]["yhigh"].as<std::string>());
+      utils::mesh_boundary<D>(config["boundaries"]["ylow"].cast<std::string>());
+    bnds[ax::y][bd::high] = utils::mesh_boundary<D>(
+      config["boundaries"]["yhigh"].cast<std::string>());
   } // if
   if(D == 3) {
     bnds[ax::z][bd::low] =
-      utils::mesh_boundary<D>(config["boundaries"]["zlow"].as<std::string>());
-    bnds[ax::z][bd::high] =
-      utils::mesh_boundary<D>(config["boundaries"]["zhigh"].as<std::string>());
+      utils::mesh_boundary<D>(config["boundaries"]["zlow"].cast<std::string>());
+    bnds[ax::z][bd::high] = utils::mesh_boundary<D>(
+      config["boundaries"]["zhigh"].cast<std::string>());
   } // if
 
   auto bf = sc.execute<tasks::init_boundaries<D>>(
@@ -128,10 +130,10 @@ init_boundaries(state<D> & s,
   sc.execute<tasks::init::set_t_boundary>(flecsi::exec::on,
     s.icst.temperature_boundary(*s.dense_topology),
     temperature);
-  if(config["problem"].as<std::string>() == "implosion")
+  if(config["problem"].cast<std::string>() == "implosion")
     sc.execute<tasks::init::convert_temperature>(flecsi::exec::on,
       s.icst.temperature_boundary(*s.dense_topology),
-      config["temperature_units"].as<std::string>());
+      config["temperature_units"].cast<std::string>());
 
   return bf;
 }
@@ -185,7 +187,7 @@ void
 init_mesh(state<D> & s,
   flecsi::scheduler & sc,
   flecsi::future<typename mesh<D>::periodic_axes> & bf,
-  YAML::Node & config) {
+  spec::config_py & config) {
   using namespace common::utils;
 
   /*--------------------------------------------------------------------------*
@@ -195,13 +197,13 @@ init_mesh(state<D> & s,
   // Find out how many levels we can have.
   auto get_resolution = [&config](const int dim) {
     return opt::resolution.value() == 0
-             ? config["levels"][dim].as<std::size_t>()
+             ? config["levels"][dim].cast<std::size_t>()
              : opt::resolution.value();
   };
 
   // Record lowest level
   s.lowest_level = opt::resolution.value() == 0
-                     ? config["lowest_level"].as<std::size_t>()
+                     ? config["lowest_level"].cast<std::size_t>()
                      : opt::resolution.value();
 
   // Find highest level
@@ -220,9 +222,9 @@ init_mesh(state<D> & s,
                << '\n');
 
   std::optional<color_distribution> cd;
-  if(config["color_distribution"]) {
+  if(config.contains("color_distribution")) {
     cd = [&sc,
-           cdcfg = config["color_distribution"].as<color_distribution>()]() {
+           cdcfg = config["color_distribution"].cast<color_distribution>()]() {
       return (FLECSI_BACKEND == FLECSI_BACKEND_legion) ||
 
                  axes_colors<D>(cdcfg) == sc.runtime().processes()
@@ -233,15 +235,15 @@ init_mesh(state<D> & s,
 
   {
     typename mesh<D>::grect geom;
-    geom[0][0] = config["coords"][0][0].as<double>();
-    geom[0][1] = config["coords"][1][0].as<double>();
+    geom[0][0] = config["coords"][0][0].cast<double>();
+    geom[0][1] = config["coords"][1][0].cast<double>();
     if(D == 2 || D == 3) {
-      geom[1][0] = config["coords"][0][1].as<double>();
-      geom[1][1] = config["coords"][1][1].as<double>();
+      geom[1][0] = config["coords"][0][1].cast<double>();
+      geom[1][1] = config["coords"][1][1].cast<double>();
     } // if
     if(D == 3) {
-      geom[2][0] = config["coords"][0][2].as<double>();
-      geom[2][1] = config["coords"][1][2].as<double>();
+      geom[2][0] = config["coords"][0][2].cast<double>();
+      geom[2][1] = config["coords"][1][2].cast<double>();
     } // if
 
     /*-------------------------------------------------------------------------*

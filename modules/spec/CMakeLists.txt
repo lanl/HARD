@@ -42,9 +42,10 @@ target_include_directories(libspec
 # Spec headers may depend on these (keep only what headers actually use).
 target_link_libraries(libspec
   INTERFACE
-    yaml-cpp::yaml-cpp
     singularity-eos::singularity-eos
     FleCSI::FleCSI
+    pybind11::headers
+    Python::Python
 )
 
 target_compile_definitions(libspec

@@ -10,13 +10,13 @@
 #include "spec/eos.hh"
 #include "spec/tasks/boundaries/boundary.hh"
 #include "spec/tasks/io.hh"
+#include "spec/types.hh"
 
 #include "../../actions/initialize/init.hh"
 
 #include <spec/runtime.hh>
 
 #include <flecsi/flog.hh>
-#include <yaml-cpp/yaml.h>
 
 namespace hard {
 
@@ -28,7 +28,7 @@ struct initialize {
     auto & s = cp.state();
     flecsi::scheduler & sc = cp.scheduler();
 
-    YAML::Node config = YAML::LoadFile(opt::config.value());
+    spec::config_py config(opt::config.value());
 
     /*--------------------------------------------------------------------------*
       Global and color topology allocations.
@@ -49,12 +49,12 @@ struct initialize {
      *--------------------------------------------------------------------------*/
 
     vec<D> g(0.0);
-    if(config["gravity_acc"].IsDefined()) {
-      g[0] = config["gravity_acc"][0].as<double>();
+    if(config.contains("gravity_acc")) {
+      g[0] = config["gravity_acc"][0].cast<double>();
       if constexpr(D > 1)
-        g[1] = config["gravity_acc"][1].as<double>();
+        g[1] = config["gravity_acc"][1].cast<double>();
       if constexpr(D > 2)
-        g[2] = config["gravity_acc"][2].as<double>();
+        g[2] = config["gravity_acc"][2].cast<double>();
     }
     execute<tasks::init::initialize_gravity_acc<D>>(
       s.icst.gravity_acc(*s.gt), g);
@@ -63,7 +63,7 @@ struct initialize {
       Particle mass
      *--------------------------------------------------------------------------*/
     execute<tasks::init::particle_mass>(s.icst.particle_mass(*s.gt),
-      config["mean_molecular_weight"].as<double>());
+      config["mean_molecular_weight"].cast<double>());
 
     /*--------------------------------------------------------------------------*
       Mesh topology allocation
@@ -84,7 +84,7 @@ struct initialize {
     execute<tasks::init::initialize_gravity_force<D>>(
       flecsi::exec::on, s.src_t.hydro.gravity_force(*s.m));
 
-    if(config["problem"].as<std::string>() == "sod") {
+    if(config["problem"].cast<std::string>() == "sod") {
       execute<
         tasks::initial_data::shock<tasks::initial_data::shock_tubes::sod, D>>(
         flecsi::exec::on,
@@ -94,7 +94,7 @@ struct initialize {
         s.cons.hydro.total_energy_density(*s.m),
         s.eos);
     }
-    else if(config["problem"].as<std::string>() == "rankine-hugoniot") {
+    else if(config["problem"].cast<std::string>() == "rankine-hugoniot") {
       execute<tasks::initial_data::
           shock<tasks::initial_data::shock_tubes::rankine_hugoniot, D>>(
         flecsi::exec::on,
@@ -104,7 +104,7 @@ struct initialize {
         s.cons.hydro.total_energy_density(*s.m),
         s.eos);
     }
-    else if(config["problem"].as<std::string>() == "leblanc") {
+    else if(config["problem"].cast<std::string>() == "leblanc") {
       execute<tasks::initial_data::
           shock<tasks::initial_data::shock_tubes::leblanc, D>>(flecsi::exec::on,
         *s.m,
@@ -113,7 +113,7 @@ struct initialize {
         s.cons.hydro.total_energy_density(*s.m),
         s.eos);
     }
-    else if(config["problem"].as<std::string>() == "acoustic-wave") {
+    else if(config["problem"].cast<std::string>() == "acoustic-wave") {
       execute<tasks::initial_data::acoustic_wave<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
@@ -121,7 +121,7 @@ struct initialize {
         s.cons.hydro.total_energy_density(*s.m),
         s.eos);
     }
-    else if(config["problem"].as<std::string>() == "kh-test") {
+    else if(config["problem"].cast<std::string>() == "kh-test") {
       execute<tasks::initial_data::kh_instability<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
@@ -130,7 +130,7 @@ struct initialize {
         s.eos);
     }
     // Rayleigh-Taylor setup
-    else if(config["problem"].as<std::string>() == "rt-test") {
+    else if(config["problem"].cast<std::string>() == "rt-test") {
       execute<tasks::initial_data::rt_instability<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
@@ -140,24 +140,24 @@ struct initialize {
         s.cons.hydro.total_energy_density(*s.m),
         s.eos);
     }
-    else if(config["problem"].as<std::string>() == "sedov") {
+    else if(config["problem"].cast<std::string>() == "sedov") {
       execute<tasks::initial_data::sedov_blast<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
         s.cons.hydro.total_energy_density(*s.m));
     }
-    else if(config["problem"].as<std::string>() == "lw-implosion") {
+    else if(config["problem"].cast<std::string>() == "lw-implosion") {
       execute<tasks::initial_data::lw_implosion<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
         s.cons.hydro.total_energy_density(*s.m),
-        config["gamma"].as<double>());
+        config["gamma"].cast<double>());
     }
     else {
       flog_fatal(
-        "unsupported problem(" << config["problem"].as<std::string>() << ")");
+        "unsupported problem(" << config["problem"].cast<std::string>() << ")");
     } // if
 
     /*--------------------------------------------------------------------------*

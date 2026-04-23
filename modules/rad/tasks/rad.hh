@@ -4,8 +4,6 @@
 #include "../constants.hh"
 #include "utils.hh"
 #include <../modules/spec/utils.hh>
-#include <cmath>
-#include <cstddef>
 
 namespace hard::tasks::rad {
 

@@ -1,10 +1,7 @@
 #ifndef HARD_MODULES_HYDRO_ACOUSTIC_WAVE_HH
 #define HARD_MODULES_HYDRO_ACOUSTIC_WAVE_HH
 
-#include <cmath>
-#include <cstddef>
-#include <cstring>
-#include <yaml-cpp/yaml.h>
+#include "spec/types.hh"
 
 namespace hard::tasks::initial_data {
 
@@ -25,30 +22,30 @@ acoustic_wave(flecsi::exec::cpu s,
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
 
-  YAML::Node config = YAML::LoadFile(opt::config.value());
+  spec::config_py config(opt::config.value());
 
   // Problem parameters
   // Equilibrium values
   const double r0{
-    config["problem_parameters"]["r0"].as<double>()}; // Equilibrium density
+    config["problem_parameters"]["r0"].cast<double>()}; // Equilibrium density
   const double p0{
-    config["problem_parameters"]["p0"].as<double>()}; // Equilibrium pressure
+    config["problem_parameters"]["p0"].cast<double>()}; // Equilibrium pressure
 
   // Perturbation amplitudes
   const double rA{
-    config["problem_parameters"]["amplitude"].as<double>()}; // Density
+    config["problem_parameters"]["amplitude"].cast<double>()}; // Density
   const double uA{
-    config["problem_parameters"]["amplitude"].as<double>()}; // Velocity
+    config["problem_parameters"]["amplitude"].cast<double>()}; // Velocity
 
   // Sound speed
-  const double cs{sqrt(config["gamma"].as<double>() * p0 / r0)};
+  const double cs{sqrt(config["gamma"].cast<double>() * p0 / r0)};
 
   // Initial conditions for the acoustic wave (it is a standing wave)
   if constexpr(Dim == 1) {
 
     // Define the wave number
     const double k{
-      2 * M_PI * config["problem_parameters"]["scale"][0].as<double>()};
+      2 * M_PI * config["problem_parameters"]["scale"][0].cast<double>()};
 
     // sine_quad is the volume average of the sine per cell, for sine wave
     // fvm initialization
@@ -71,9 +68,9 @@ acoustic_wave(flecsi::exec::cpu s,
   else if constexpr(Dim == 2) {
     // Define the wave number
     const double kx{
-      2 * M_PI * config["problem_parameters"]["scale"][0].as<double>()};
+      2 * M_PI * config["problem_parameters"]["scale"][0].cast<double>()};
     const double ky{
-      2 * M_PI * config["problem_parameters"]["scale"][1].as<double>()};
+      2 * M_PI * config["problem_parameters"]["scale"][1].cast<double>()};
     const double k{std::sqrt(utils::sqr(kx) + utils::sqr(ky))};
 
     // sine_quad is the volume average of the sine per cell, for sine wave
@@ -108,11 +105,11 @@ acoustic_wave(flecsi::exec::cpu s,
 
     // Define the wave number
     const double kx{
-      2 * M_PI * config["problem_parameters"]["scale"][0].as<double>()};
+      2 * M_PI * config["problem_parameters"]["scale"][0].cast<double>()};
     const double ky{
-      2 * M_PI * config["problem_parameters"]["scale"][1].as<double>()};
+      2 * M_PI * config["problem_parameters"]["scale"][1].cast<double>()};
     const double kz{
-      2 * M_PI * config["problem_parameters"]["scale"][2].as<double>()};
+      2 * M_PI * config["problem_parameters"]["scale"][2].cast<double>()};
     const double k{std::sqrt(utils::sqr(kx) + utils::sqr(ky) + utils::sqr(kz))};
 
     // sine_quad is the volume average of the sine per cell, for sine wave
