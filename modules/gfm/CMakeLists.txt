@@ -18,6 +18,7 @@ set(modules_headers
   tasks/reconstruct.hh
   tasks/interface_fluxes_gfm.hh
   tasks/cons2prim.hh
+  tasks/initial_data/shock_tube_mm.hh
 )
 
 target_sources(libgfm

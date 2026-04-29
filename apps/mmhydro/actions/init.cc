@@ -2,6 +2,8 @@
 #include "state.hh"
 
 #include "common/utils.hh"
+#include "gfm/tasks/cons2prim.hh"
+#include "gfm/tasks/initial_data/all_initial_data.hh"
 #include "gfm/tasks/ls_core.hh"
 #include "hydro/tasks/cons2prim.hh"
 #include "hydro/tasks/init.hh"
@@ -102,6 +104,16 @@ initialize(control_policy<state, D> & cp) {
       s.cons.hydro.momentum_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m),
       s.eos);
+  }
+  else if(config["problem"].as<std::string>() == "sod_mm") {
+    execute<tasks::initial_data::
+        shock_mm<tasks::initial_data::shock_tubes::sod_mm, D>>(flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.ls.material(*s.m),
+      s.eos_mm);
   }
   else if(config["problem"].as<std::string>() == "rankine-hugoniot") {
     execute<tasks::initial_data::

@@ -88,7 +88,7 @@ init_eos_mm(hard::gfm::state<D> & s, YAML::Node & config) {
     flog_fatal("missing 'eos_list' section for multi-material EOS");
   }
 
-  auto mats = config["materials"];
+  auto mats = config["eos_list"];
 
   if(!mats.IsSequence() || mats.size() == 0) {
     flog_fatal("'eos_list' must be a non-empty sequence");
