@@ -37,7 +37,7 @@ shock_mm(flecsi::exec::cpu s,
   field<double>::accessor<rw, ro> mass_density_a,
   typename field<vec<D>>::template accessor<rw, ro> momentum_density_a,
   field<double>::accessor<rw, ro> total_energy_density_a,
-  typename field<int>::accessor<rw,ro> material_a,
+  typename field<int>::accessor<rw, ro> material_a,
   const std::vector<eos::eos_wrapper> & eos_mm) {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -53,17 +53,19 @@ shock_mm(flecsi::exec::cpu s,
       const auto x = m.template right<ax::x>(i);
 
       if(x < T::x0) {
-	material(i) = T::mL;
+        material(i) = T::mL;
         mass_density(i) = T::rL;
         momentum_density(i).x() = T::rL * T::uL;
-        const double e = util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
+        const double e =
+          util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
         total_energy_density(i) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
-	material(i) = T::mR;
+        material(i) = T::mR;
         mass_density(i) = T::rR;
         momentum_density(i).x() = T::rR * T::uR;
-        const double e = util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
+        const double e =
+          util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
     }; // forall
@@ -78,17 +80,19 @@ shock_mm(flecsi::exec::cpu s,
       const auto x = m.template right<ax::x>(i);
 
       if(x < T::x0) {
-	material(i,j) = T::mL;
+        material(i, j) = T::mL;
         mass_density(i, j) = T::rL;
         momentum_density(i, j) = vec<D>(T::rL * T::uL);
-        const double e = util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
+        const double e =
+          util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
         total_energy_density(i, j) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
-	material(i,j) = T::mR;
+        material(i, j) = T::mR;
         mass_density(i, j) = T::rR;
         momentum_density(i, j) = vec<D>(T::rR * T::uR);
-        const double e = util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
+        const double e =
+          util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
     }; // forall
@@ -104,18 +108,20 @@ shock_mm(flecsi::exec::cpu s,
       const auto x = m.template right<ax::x>(i);
 
       if(x < T::x0) {
-	material(i,j,k) = T::mL;
+        material(i, j, k) = T::mL;
         mass_density(i, j, k) = T::rL;
         momentum_density(i, j, k) = vec<D>(T::rL * T::uL);
-        const double e = util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
+        const double e =
+          util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
         total_energy_density(i, j, k) =
           T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
-	material(i,j,k) = T::mR;
+        material(i, j, k) = T::mR;
         mass_density(i, j, k) = T::rR;
         momentum_density(i, j, k) = vec<D>(T::rR * T::uR);
-        const double e = util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
+        const double e =
+          util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i, j, k) =
           T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if

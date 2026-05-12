@@ -8,7 +8,8 @@ namespace hard::tasks {
 using hard::tasks::util::bl;
 
 template<int D>
-struct flow {};
+struct flow {
+};
 
 template<>
 struct flow<1> {

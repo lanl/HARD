@@ -24,7 +24,8 @@ using flecsi::data::multi;
 // ----------------------------------------------------------------------------
 template<std::size_t D>
 // requires(D <= 3)
-struct vec {};
+struct vec {
+};
 
 template<>
 struct vec<1> {
@@ -432,7 +433,8 @@ enum tensor_rank {
 };
 
 template<std::size_t Dim, tensor_rank Rank>
-struct tensor {};
+struct tensor {
+};
 
 template<>
 struct tensor<1, tensor_rank::Two> {
