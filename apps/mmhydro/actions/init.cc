@@ -75,7 +75,7 @@ initialize(control_policy<state, D> & cp) {
     Equation of State
    *--------------------------------------------------------------------------*/
 
-  actions::init_eos_mm(s, config);
+  eos::init_eos_mm(s.eos_mm, config);
 
   /*--------------------------------------------------------------------------*
     Initialize problem state.

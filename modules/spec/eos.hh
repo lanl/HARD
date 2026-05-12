@@ -60,27 +60,65 @@ private:
   std::vector<double> lambda_;
 }; // struct eos_base
 
-} // namespace eos
+inline eos::eos_wrapper
+init_eos(spec::config_py & config) {
+  /*--------------------------------------------------------------------------*
+     Equation of State
+    *--------------------------------------------------------------------------*/
+  auto name = config["eos"].cast<std::string>();
+  if(name == "ideal")
+    return singularity::IdealGas(
+      config["gamma"].cast<double>() - 1, 2.0 /* FIXME */);
+  else if(name == "spiner")
+    return singularity::SpinerEOSDependsRhoSie(
+      config["spiner_file"].cast<std::string>(),
+      config["spiner_matid"].cast<std::string>());
+  else if(name == "gruneisen")
+    return singularity::Gruneisen(config["gruneisen_c0"].cast<double>(),
+      config["gruneisen_s1"].cast<double>(),
+      0., // s2
+      0., // s3
+      config["gruneisen_G0"].cast<double>(),
+      0., // b
+      0., // rho0
+      config["gruneisen_T0"].cast<double>(),
+      0., // P0
+      config["gruneisen_Cv"].cast<double>(),
+      0. // rho_max
+    );
+  else if(name == "jwl")
+    return singularity::JWL(config["JWL_A"].cast<double>(),
+      config["JWL_B"].cast<double>(),
+      config["JWL_R1"].cast<double>(),
+      config["JWL_R2"].cast<double>(),
+      config["JWL_w"].cast<double>(),
+      config["JWL_rho0"].cast<double>(),
+      config["JWL_Cv"].cast<double>());
 
-// template<>
-// struct flecsi::util::serial::traits<eos::eos_wrapper> {
-//   using type = eos::eos_wrapper;
-//   template<class P>
-//   static void put(P & p, type const & cw) {
-//     auto & w = const_cast<type &>(cw);
-//     auto [n, b] = w.model_.Serialize();
-//     serial::put(p, n);
-//     mempcpy(p, b, n);
-//     free(b);
-//     serial::put(p, w.lambda_);
-//   }
-//   static type get(std::byte const *& p) {
-//     const auto n = serial::get<std::size_t>(p);
-//     typename eos::eos_wrapper::eos_t model;
-//     model.DeSerialize(const_cast<char *>(reinterpret_cast<char const *>(p)));
-//     p += n;
-//     return {model, serial::get<std::vector<double>>(p)};
-//   }
-// };
+  flog_fatal("unsupported EOS" << name);
+  return eos::eos_wrapper{};
+}
+inline void
+init_eos_mm(std::vector<eos::eos_wrapper> eos_mm, spec::config_py & config) {
+  if(!config["eos_list"]) {
+    flog_fatal("missing 'eos_list' section for multi-material EOS");
+  }
+
+  auto mats = config["eos_list"];
+
+  if(!mats.IsSequence() || mats.size() == 0) {
+    flog_fatal("'eos_list' must be a non-empty sequence");
+  }
+
+  eos_mm.clear();
+  eos_mm.reserve(mats.size());
+
+  for(std::size_t m = 0; m < mats.size(); ++m) {
+    auto mat = mats[m];
+    eos_mm.emplace_back(init_eos(config));
+  }
+}
+
+} // namespace eos
 
 #endif // HYDRO_EOS_HH
