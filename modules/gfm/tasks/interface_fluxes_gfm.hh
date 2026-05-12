@@ -174,7 +174,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
             pRight_wave,
             c_right(i),
             f_r_H,
-            "rho");
+            numerical_algorithms::field_tag::rho);
 
         ru_f(i) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -192,7 +192,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
             pRight_wave,
             c_right(i),
             f_ru_H,
-            "rhou");
+            numerical_algorithms::field_tag::ru);
 
         re_f(i) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -210,7 +210,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
             pRight_wave,
             c_right(i),
             f_rE_H,
-            "E");
+            numerical_algorithms::field_tag::re);
 
         dt_mass_density(i - 1) -= inv_dx * r_f(i);
         dt_momentum_density(i - 1) -= inv_dx * ru_f(i);
@@ -282,7 +282,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
             pRg_L,
             cRg_L,
             f_r_H_L,
-            "rho");
+            numerical_algorithms::field_tag::rho);
 
         const vec<1> ru_f_L =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -300,7 +300,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
             pRg_L,
             cRg_L,
             f_ru_H_L,
-            "rhou");
+            numerical_algorithms::field_tag::ru);
 
         const double re_f_L =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -318,7 +318,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
             pRg_L,
             cRg_L,
             f_rE_H_L,
-            "E");
+            numerical_algorithms::field_tag::re);
 
         // Ghost for right owner
         vec<1> n_rev{};
@@ -363,7 +363,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
             pR,
             cR,
             f_r_H_R,
-            "rho");
+            numerical_algorithms::field_tag::rho);
 
         const vec<1> ru_f_R =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -381,7 +381,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
             pR,
             cR,
             f_ru_H_R,
-            "rhou");
+            numerical_algorithms::field_tag::ru);
 
         const double re_f_R =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -399,7 +399,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
             pR,
             cR,
             f_rE_H_R,
-            "E");
+            numerical_algorithms::field_tag::re);
 
         // store left-view flux
         r_f(i) = r_f_L;
@@ -475,7 +475,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j),
               f_r_H,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           ru_f(i, j) =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -493,7 +493,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j),
               f_ru_H,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           re_f(i, j) =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -511,7 +511,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j),
               f_rE_H,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           dt_mass_density(i - 1, j) -= inv_dx * r_f(i, j);
           dt_momentum_density(i - 1, j) -= inv_dx * ru_f(i, j);
@@ -608,7 +608,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_r_H_L,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           const vec<2> ru_f_L =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -626,7 +626,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_ru_H_L,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           const double re_f_L =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -644,7 +644,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_rE_H_L,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           // Right owner ghost state
           // applying same idea, reversed normal
@@ -700,7 +700,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_r_H_R,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           const vec<2> ru_f_R =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -718,7 +718,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_ru_H_R,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           const double re_f_R =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -736,7 +736,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_rE_H_R,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           r_f(i, j) = r_f_L;
           ru_f(i, j) = ru_f_L;
@@ -797,7 +797,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j),
               f_r_H,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           ru_f(i, j) =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -815,7 +815,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j),
               f_ru_H,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           re_f(i, j) =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -833,7 +833,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j),
               f_rE_H,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           dt_mass_density(i, j - 1) -= inv_dx * r_f(i, j);
           dt_momentum_density(i, j - 1) -= inv_dx * ru_f(i, j);
@@ -926,7 +926,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_r_H_L,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           const vec<2> ru_f_L =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -944,7 +944,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_ru_H_L,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           const double re_f_L =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -962,7 +962,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_rE_H_L,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           vec<2> n_rev{};
           n_rev.x() = -n_if.x();
@@ -1016,7 +1016,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_r_H_R,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           const vec<2> ru_f_R =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -1034,7 +1034,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_ru_H_R,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           const double re_f_R =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -1052,7 +1052,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_rE_H_R,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           r_f(i, j) = r_f_L;
           ru_f(i, j) = ru_f_L;
@@ -1125,7 +1125,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j, k),
               f_r_H,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           ru_f(i, j, k) =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -1143,7 +1143,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j, k),
               f_ru_H,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           re_f(i, j, k) =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -1161,7 +1161,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j, k),
               f_rE_H,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           dt_mass_density(i - 1, j, k) -= inv_dx * r_f(i, j, k);
           dt_momentum_density(i - 1, j, k) -= inv_dx * ru_f(i, j, k);
@@ -1257,7 +1257,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_r_H_L,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           const vec<3> ru_f_L =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -1275,7 +1275,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_ru_H_L,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           const double re_f_L =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -1293,7 +1293,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_rE_H_L,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           vec<3> n_rev{};
           n_rev.x() = -n_if.x();
@@ -1353,7 +1353,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_r_H_R,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           const vec<3> ru_f_R =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -1371,7 +1371,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_ru_H_R,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           const double re_f_R =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -1389,7 +1389,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_rE_H_R,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           r_f(i, j, k) = r_f_L;
           ru_f(i, j, k) = ru_f_L;
@@ -1455,7 +1455,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j, k),
               f_r_H,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           ru_f(i, j, k) =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -1473,7 +1473,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j, k),
               f_ru_H,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           re_f(i, j, k) =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -1491,7 +1491,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j, k),
               f_rE_H,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           dt_mass_density(i, j - 1, k) -= inv_dx * r_f(i, j, k);
           dt_momentum_density(i, j - 1, k) -= inv_dx * ru_f(i, j, k);
@@ -1587,7 +1587,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_r_H_L,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           const vec<3> ru_f_L =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -1605,7 +1605,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_ru_H_L,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           const double re_f_L =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -1623,7 +1623,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_rE_H_L,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           vec<3> n_rev{};
           n_rev.x() = -n_if.x();
@@ -1683,7 +1683,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_r_H_R,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           const vec<3> ru_f_R =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -1701,7 +1701,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_ru_H_R,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           const double re_f_R =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -1719,7 +1719,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_rE_H_R,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           r_f(i, j, k) = r_f_L;
           ru_f(i, j, k) = ru_f_L;
@@ -1785,7 +1785,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j, k),
               f_r_H,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           ru_f(i, j, k) =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -1803,7 +1803,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j, k),
               f_ru_H,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           re_f(i, j, k) =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -1821,7 +1821,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRight_wave,
               c_right(i, j, k),
               f_rE_H,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           dt_mass_density(i, j, k - 1) -= inv_dx * r_f(i, j, k);
           dt_momentum_density(i, j, k - 1) -= inv_dx * ru_f(i, j, k);
@@ -1918,7 +1918,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_r_H_L,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           const vec<3> ru_f_L =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -1936,7 +1936,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_ru_H_L,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           const double re_f_L =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -1954,7 +1954,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pRg_L,
               cRg_L,
               f_rE_H_L,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           vec<3> n_rev{};
           n_rev.x() = -n_if.x();
@@ -2014,7 +2014,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_r_H_R,
-              "rho");
+              numerical_algorithms::field_tag::rho);
 
           const vec<3> ru_f_R =
             numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
@@ -2032,7 +2032,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_ru_H_R,
-              "rhou");
+              numerical_algorithms::field_tag::ru);
 
           const double re_f_R =
             numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
@@ -2050,7 +2050,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
               pR,
               cR,
               f_rE_H_R,
-              "E");
+              numerical_algorithms::field_tag::re);
 
           r_f(i, j, k) = r_f_L;
           ru_f(i, j, k) = ru_f_L;
