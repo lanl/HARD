@@ -11,8 +11,7 @@ namespace hard::tasks {
 using hard::tasks::util::bl;
 
 template<size_t D>
-struct dirichlet {
-};
+struct dirichlet {};
 
 template<>
 struct dirichlet<1> {

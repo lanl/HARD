@@ -83,7 +83,7 @@ init_eos(state<D> & s, spec::config_py & config) {
 // TODO: Merge this to make general one.
 template<std::size_t D>
 void
-init_eos_mm(hard::gfm::state<D> & s, YAML::Node & config) {
+init_eos_mm(state<D> & s, YAML::Node & config) {
   if(!config["eos_list"]) {
     flog_fatal("missing 'eos_list' section for multi-material EOS");
   }

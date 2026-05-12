@@ -14,8 +14,7 @@ namespace spec {
 namespace detail {
 
 template<std::size_t D>
-struct help {
-};
+struct help {};
 
 template<>
 struct help<1> {

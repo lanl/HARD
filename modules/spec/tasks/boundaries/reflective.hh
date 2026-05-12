@@ -8,8 +8,7 @@ namespace hard::tasks {
 using hard::tasks::util::bl;
 
 template<size_t D>
-struct reflective {
-};
+struct reflective {};
 
 template<>
 struct reflective<1> {
