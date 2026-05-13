@@ -404,170 +404,48 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
 // RK2(Heun) advance for constant extrapolation
 // STEP=1: q_stage = q + dt * rhs
 // STEP=2: q_out   = 0.5*( q + q_stage + dt*rhs_stage )
-template<std::size_t D, std::size_t STEP>
+template<std::size_t D>
 void
 advance_q_rk2_s1(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, na> psi_a,
-  typename field<double>::template accessor<ro, na> q_scalar_known_a,
-  typename field<double>::template accessor<ro, na> q_scalar_a, // base q^n
+  typename field<double>::template accessor<ro, na> q_known_a,
+  typename field<double>::template accessor<ro, na> q_a, // base q^n
   typename field<double>::template accessor<ro, ro>
     rhs_a, // rhs at base or stage
   typename field<double>::template accessor<wo, na>
-    q_scalar_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
+    q_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
   typename single<double>::template accessor<ro> dt_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
-  static_assert(STEP == 1, "STEP is 1");
-
-  auto psi = m.template mdcolex<is::cells>(psi_a);
-  auto q_known = m.template mdcolex<is::cells>(q_scalar_known_a);
-  auto q = m.template mdcolex<is::cells>(q_scalar_a);
-  auto rhs = m.template mdcolex<is::cells>(rhs_a);
-  auto q_new = m.template mdcolex<is::cells>(q_scalar_new_a);
-
-  const double dt = *dt_a;
-
-  auto is_known = [](double ph) { return (ph <= 0.0); };
-
-  if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      if(is_known(psi(i))) {
-        q_new(i) = q_known(i);
-        return;
-      }
-
-      else if constexpr(STEP == 1) {
-        q_new(i) = q(i) + dt * rhs(i); // q^(1)
-      }
-    };
-  }
-  else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(q,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(ji, mdpolicy_qq) {
-      auto [j, i] = ji;
-      if(is_known(psi(i, j))) {
-        q_new(i, j) = q_known(i, j);
-        return;
-      }
-
-      else if constexpr(STEP == 1) {
-        q_new(i, j) = q(i, j) + dt * rhs(i, j);
-      }
-    };
-  }
-  else /* D == 3 */ {
-    auto mdpolicy_qqq = get_mdiota_policy(q,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_qqq) {
-      auto [k, j, i] = kji;
-      if(is_known(psi(i, j, k))) {
-        q_new(i, j, k) = q_known(i, j, k);
-        return;
-      }
-
-      else if constexpr(STEP == 1) {
-        q_new(i, j, k) = q(i, j, k) + dt * rhs(i, j, k);
-      }
-    };
-  }
+  s.executor().forall(i, flecsi::util::iota_view({}, q_new_a.span().size())) {
+    q_new_a(i) = psi_a(i) <= 0.0 ? q_known_a(i) : q_a(i) + *dt_a * rhs_a(i);
+  };
 }
 
-template<std::size_t D, std::size_t STEP>
+template<std::size_t D>
 void
 advance_q_rk2_s2(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, na> psi_a,
-  typename field<double>::template accessor<ro, na> q_scalar_known_a,
-  typename field<double>::template accessor<ro, na> q_scalar_a, // base q^n
+  typename field<double>::template accessor<ro, na> q_known_a,
+  typename field<double>::template accessor<ro, na> q_a, // base q^n
   typename field<double>::template accessor<ro, ro>
     rhs_a, // rhs at base or stage
   typename field<double>::template accessor<rw, ro>
-    q_scalar_stage_a, // q^(1) (only used in STEP=2)
+    q_stage_a, // q^(1) (only used in STEP=2)
   typename field<double>::template accessor<wo, na>
-    q_scalar_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
+    q_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
   typename single<double>::template accessor<ro> dt_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
-  static_assert(STEP == 1 || STEP == 2, "STEP is 1 or 2");
-
-  auto psi = m.template mdcolex<is::cells>(psi_a);
-  auto q_known = m.template mdcolex<is::cells>(q_scalar_known_a);
-  auto q = m.template mdcolex<is::cells>(q_scalar_a);
-  auto rhs = m.template mdcolex<is::cells>(rhs_a);
-  auto q_stage = m.template mdcolex<is::cells>(q_scalar_stage_a);
-  auto q_new = m.template mdcolex<is::cells>(q_scalar_new_a);
-
-  const double dt = *dt_a;
-
-  auto is_known = [](double ph) { return (ph <= 0.0); };
-
-  if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      if(is_known(psi(i))) {
-        q_new(i) = q_known(i);
-        return;
-      }
-
-      if constexpr(STEP == 1) {
-        q_new(i) = q(i) + dt * rhs(i); // q^(1)
-      }
-      else {
-        // rhs is rhs(q_stage) here
-        q_new(i) = 0.5 * (q(i) + q_stage(i) + dt * rhs(i));
-      }
-    };
-  }
-  else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(q,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(ji, mdpolicy_qq) {
-      auto [j, i] = ji;
-      if(is_known(psi(i, j))) {
-        q_new(i, j) = q_known(i, j);
-        return;
-      }
-
-      if constexpr(STEP == 1) {
-        q_new(i, j) = q(i, j) + dt * rhs(i, j);
-      }
-      else {
-        q_new(i, j) = 0.5 * (q(i, j) + q_stage(i, j) + dt * rhs(i, j));
-      }
-    };
-  }
-  else /* D == 3 */ {
-    auto mdpolicy_qqq = get_mdiota_policy(q,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_qqq) {
-      auto [k, j, i] = kji;
-      if(is_known(psi(i, j, k))) {
-        q_new(i, j, k) = q_known(i, j, k);
-        return;
-      }
-
-      if constexpr(STEP == 1) {
-        q_new(i, j, k) = q(i, j, k) + dt * rhs(i, j, k);
-      }
-      else {
-        q_new(i, j, k) =
-          0.5 * (q(i, j, k) + q_stage(i, j, k) + dt * rhs(i, j, k));
-      }
-    };
-  }
+  s.executor().forall(i, flecsi::util::iota_view({}, q_new_a.span().size())) {
+    q_new_a(i) = psi_a(i) <= 0.0
+                   ? q_known_a(i)
+                   : 0.5 * (q_a(i) + q_stage_a(i) + *dt_a * rhs_a(i));
+  };
 }
 } // namespace hard::tasks::extrapolation
 

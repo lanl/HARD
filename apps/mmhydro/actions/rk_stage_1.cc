@@ -112,7 +112,7 @@ advance_rk_stage_1(state<D> & s,
         s.extp.q_rhs(*s.m));
 
       // q1 = q^n + dt * rhs(q^n)
-      sc.execute<tasks::extrapolation::advance_q_rk2_s1<D, 1>>(flecsi::exec::on,
+      sc.execute<tasks::extrapolation::advance_q_rk2_s1<D>>(flecsi::exec::on,
         *s.m,
         s.ls.psi(*s.m),
         s.extp.q_scalar_known(*s.m),
@@ -145,7 +145,7 @@ advance_rk_stage_1(state<D> & s,
       s.extp.q_rhs1(*s.m));
 
     // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
-    sc.execute<tasks::extrapolation::advance_q_rk2_s2<D, 2>>(flecsi::exec::on,
+    sc.execute<tasks::extrapolation::advance_q_rk2_s2<D>>(flecsi::exec::on,
       *s.m,
       s.ls.psi(*s.m),
       s.extp.q_scalar_known(*s.m),
