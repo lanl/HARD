@@ -24,6 +24,21 @@ struct sod_mm {
   static constexpr int mR = 1;
 }; // struct sod_mm
 
+struct shyue_shock {
+  static constexpr double rL = 1.7;
+  static constexpr double uL = 0.0;
+  static constexpr double pL = 10.0;
+
+  static constexpr double rR = 1.0;
+  static constexpr double uR = 0.0;
+  static constexpr double pR = 0.5;
+
+  static constexpr double x0 = 0.5;
+
+  static constexpr int mL = 0;
+  static constexpr int mR = 1;
+}; // struct shyue_shock
+
 } // namespace shock_tubes
 
 /*----------------------------------------------------------------------------*
@@ -38,6 +53,8 @@ shock_mm(flecsi::exec::cpu s,
   typename field<vec<D>>::template accessor<rw, ro> momentum_density_a,
   field<double>::accessor<rw, ro> total_energy_density_a,
   typename field<int>::accessor<rw, ro> material_a,
+  typename field<int>::accessor<wo, ro> frozen_material_a,
+  field<double>::accessor<rw, ro> psi_a,
   const std::vector<eos::eos_wrapper> & eos_mm) {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -47,12 +64,25 @@ shock_mm(flecsi::exec::cpu s,
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto material = m.template mdcolex<is::cells>(material_a);
+  auto frozen_material = m.template mdcolex<is::cells>(frozen_material_a);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const auto x = m.template right<ax::x>(i);
 
-      if(x < T::x0) {
+      // Conventional signed level set for the shock-tube interface.
+      // phi < 0 : left material
+      // phi > 0 : right material
+      const double phi = x - T::x0;
+
+      if(phi < 0.0) {
+        material(i) = T::mL;
+        frozen_material(i) = T::mL;
+
+        // local material value, normally non-positive.
+        psi(i) = -std::abs(phi);
+
         material(i) = T::mL;
         mass_density(i) = T::rL;
         momentum_density(i).x() = T::rL * T::uL;
@@ -62,6 +92,9 @@ shock_mm(flecsi::exec::cpu s,
       }
       else {
         material(i) = T::mR;
+        frozen_material(i) = T::mR;
+
+        psi(i) = -std::abs(phi);
         mass_density(i) = T::rR;
         momentum_density(i).x() = T::rR * T::uR;
         const double e =
@@ -79,8 +112,12 @@ shock_mm(flecsi::exec::cpu s,
       auto [j, i] = ji;
       const auto x = m.template right<ax::x>(i);
 
+      const double phi = x - T::x0;
       if(x < T::x0) {
         material(i, j) = T::mL;
+        frozen_material(i, j) = T::mL;
+
+        psi(i, j) = -std::abs(phi);
         mass_density(i, j) = T::rL;
         momentum_density(i, j) = vec<D>(T::rL * T::uL);
         const double e =
@@ -89,6 +126,9 @@ shock_mm(flecsi::exec::cpu s,
       }
       else {
         material(i, j) = T::mR;
+        frozen_material(i, j) = T::mR;
+
+        psi(i, j) = -std::abs(phi);
         mass_density(i, j) = T::rR;
         momentum_density(i, j) = vec<D>(T::rR * T::uR);
         const double e =
@@ -107,8 +147,12 @@ shock_mm(flecsi::exec::cpu s,
       auto [k, j, i] = kji;
       const auto x = m.template right<ax::x>(i);
 
+      const double phi = x - T::x0;
       if(x < T::x0) {
         material(i, j, k) = T::mL;
+        frozen_material(i, j, k) = T::mL;
+
+        psi(i, j, k) = -std::abs(phi);
         mass_density(i, j, k) = T::rL;
         momentum_density(i, j, k) = vec<D>(T::rL * T::uL);
         const double e =
@@ -118,6 +162,9 @@ shock_mm(flecsi::exec::cpu s,
       }
       else {
         material(i, j, k) = T::mR;
+        frozen_material(i, j, k) = T::mR;
+
+        psi(i, j, k) = -std::abs(phi);
         mass_density(i, j, k) = T::rR;
         momentum_density(i, j, k) = vec<D>(T::rR * T::uR);
         const double e =

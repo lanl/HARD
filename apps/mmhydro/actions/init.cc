@@ -78,17 +78,6 @@ initialize(control_policy<state, D> & cp) {
   actions::init_eos_mm(s, config);
 
   /*--------------------------------------------------------------------------*
-    Level set
-   *--------------------------------------------------------------------------*/
-
-  execute<hard::tasks::level_set::initialize_material_from_psi<D>>(
-    flecsi::exec::on,
-    *s.m,
-    s.ls.psi(*s.m),
-    s.ls.material(*s.m),
-    s.ls.frozen_material(*s.m));
-
-  /*--------------------------------------------------------------------------*
     Initialize problem state.
    *--------------------------------------------------------------------------*/
 
@@ -113,6 +102,8 @@ initialize(control_policy<state, D> & cp) {
       s.cons.hydro.momentum_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m),
       s.ls.material(*s.m),
+      s.ls.frozen_material(*s.m),
+      s.ls.psi(*s.m),
       s.eos_mm);
   }
   else if(config["problem"].as<std::string>() == "rankine-hugoniot") {
