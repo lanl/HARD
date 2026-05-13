@@ -180,18 +180,50 @@ void
 unit_normals(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<vec<D>>::template accessor<ro, ro> dp_a,
-  typename field<vec<D>>::template accessor<wo, na> normal_a) noexcept {
+  typename field<vec<D>>::template accessor<wo, na> normal_a,
+  typename faces_vec<D>::template accessor<wo, na> normal_f_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
   auto dp = m.template mdcolex<is::cells>(dp_a);
   auto normal = m.template mdcolex<is::cells>(normal_a);
+  auto [n_right, n_left] = faces_vec<D>::mdcolex(m, normal_f_a);
 
   constexpr double eps = 1e-12;
+
+  auto normalize = [](const vec<D> & g) {
+    vec<D> n(0.0);
+
+    const double mag = g.norm();
+
+    if(mag > eps) {
+      const double inv_mag = 1.0 / mag;
+
+      n.x() = g.x() * inv_mag;
+
+      if constexpr(D >= 2)
+        n.y() = g.y() * inv_mag;
+
+      if constexpr(D >= 3)
+        n.z() = g.z() * inv_mag;
+    }
+
+    return n;
+  };
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       normal(i).x() = dp(i).x() / (dp(i).norm() + eps);
+
+      vec<D> g_right(0.0);
+      vec<D> g_left(0.0);
+
+      // Right face of cell i: x_{i+1/2}
+      g_right.x() = 0.5 * (dp(i).x() + dp(i + 1).x());
+      n_right(i) = normalize(g_right);
+      // Left face of cell i: x_{i-1/2}
+      g_left.x() = 0.5 * (dp(i - 1).x() + dp(i).x());
+      n_left(i) = normalize(g_left);
     };
   }
   else if constexpr(D == 2) {
@@ -206,6 +238,17 @@ unit_normals(flecsi::exec::accelerator s,
 
       normal(i, j).x() = dp(i, j).x() * inv_mag;
       normal(i, j).y() = dp(i, j).y() * inv_mag;
+
+      vec<D> g_right(0.0);
+      vec<D> g_left(0.0);
+
+      g_right.x() = 0.5 * (dp(i, j).x() + dp(i + 1, j).x());
+      g_right.y() = 0.5 * (dp(i, j).y() + dp(i, j + 1).y());
+      n_right(i, j) = normalize(g_right);
+
+      g_left.x() = 0.5 * (dp(i - 1, j).x() + dp(i, j).x());
+      g_left.y() = 0.5 * (dp(i, j - 1).y() + dp(i, j).y());
+      n_left(i, j) = normalize(g_left);
     };
   }
   else /* D == 3 */ {
@@ -222,6 +265,19 @@ unit_normals(flecsi::exec::accelerator s,
       normal(i, j, k).x() = dp(i, j, k).x() * inv_mag;
       normal(i, j, k).y() = dp(i, j, k).y() * inv_mag;
       normal(i, j, k).z() = dp(i, j, k).z() * inv_mag;
+
+      vec<D> g_right(0.0);
+      vec<D> g_left(0.0);
+
+      g_right.x() = 0.5 * (dp(i, j, k).x() + dp(i + 1, j, k).x());
+      g_right.y() = 0.5 * (dp(i, j, k).y() + dp(i, j + 1, k).y());
+      g_right.z() = 0.5 * (dp(i, j, k).z() + dp(i, j, k + 1).z());
+      n_right(i, j, k) = normalize(g_left);
+
+      g_left.x() = 0.5 * (dp(i - 1, j, k).x() + dp(i, j, k).x());
+      g_left.y() = 0.5 * (dp(i, j - 1, k).y() + dp(i, j, k).y());
+      g_left.z() = 0.5 * (dp(i, j, k - 1).z() + dp(i, j, k).z());
+      n_left(i, j, k) = normalize(g_left);
     };
   }
 }
@@ -346,7 +402,83 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
 // STEP=2: q_out   = 0.5*( q + q_stage + dt*rhs_stage )
 template<std::size_t D, std::size_t STEP>
 void
-advance_q_rk2(flecsi::exec::accelerator s,
+advance_q_rk2_s1(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<double>::template accessor<ro, na> psi_a,
+  typename field<double>::template accessor<ro, na> q_scalar_known_a,
+  typename field<double>::template accessor<ro, na> q_scalar_a, // base q^n
+  typename field<double>::template accessor<ro, ro>
+    rhs_a, // rhs at base or stage
+  typename field<double>::template accessor<wo, na>
+    q_scalar_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
+  typename single<double>::template accessor<ro> dt_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  static_assert(STEP == 1, "STEP is 1");
+
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto q_known = m.template mdcolex<is::cells>(q_scalar_known_a);
+  auto q = m.template mdcolex<is::cells>(q_scalar_a);
+  auto rhs = m.template mdcolex<is::cells>(rhs_a);
+  auto q_new = m.template mdcolex<is::cells>(q_scalar_new_a);
+
+  const double dt = *dt_a;
+
+  auto is_known = [](double ph) { return (ph <= 0.0); };
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      if(is_known(psi(i))) {
+        q_new(i) = q_known(i);
+        return;
+      }
+
+      else if constexpr(STEP == 1) {
+        q_new(i) = q(i) + dt * rhs(i); // q^(1)
+      }
+    };
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(q,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      if(is_known(psi(i, j))) {
+        q_new(i, j) = q_known(i, j);
+        return;
+      }
+
+      else if constexpr(STEP == 1) {
+        q_new(i, j) = q(i, j) + dt * rhs(i, j);
+      }
+    };
+  }
+  else /* D == 3 */ {
+    auto mdpolicy_qqq = get_mdiota_policy(q,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      if(is_known(psi(i, j, k))) {
+        q_new(i, j, k) = q_known(i, j, k);
+        return;
+      }
+
+      else if constexpr(STEP == 1) {
+        q_new(i, j, k) = q(i, j, k) + dt * rhs(i, j, k);
+      }
+    };
+  }
+}
+
+template<std::size_t D, std::size_t STEP>
+void
+advance_q_rk2_s2(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, na> psi_a,
   typename field<double>::template accessor<ro, na> q_scalar_known_a,
@@ -382,7 +514,7 @@ advance_q_rk2(flecsi::exec::accelerator s,
       }
 
       if constexpr(STEP == 1) {
-        q_stage(i) = q(i) + dt * rhs(i); // q^(1)
+        q_new(i) = q(i) + dt * rhs(i); // q^(1)
       }
       else {
         // rhs is rhs(q_stage) here
@@ -403,7 +535,7 @@ advance_q_rk2(flecsi::exec::accelerator s,
       }
 
       if constexpr(STEP == 1) {
-        q_stage(i, j) = q(i, j) + dt * rhs(i, j);
+        q_new(i, j) = q(i, j) + dt * rhs(i, j);
       }
       else {
         q_new(i, j) = 0.5 * (q(i, j) + q_stage(i, j) + dt * rhs(i, j));
@@ -424,7 +556,7 @@ advance_q_rk2(flecsi::exec::accelerator s,
       }
 
       if constexpr(STEP == 1) {
-        q_stage(i, j, k) = q(i, j, k) + dt * rhs(i, j, k);
+        q_new(i, j, k) = q(i, j, k) + dt * rhs(i, j, k);
       }
       else {
         q_new(i, j, k) =
@@ -433,7 +565,6 @@ advance_q_rk2(flecsi::exec::accelerator s,
     };
   }
 }
-
 } // namespace hard::tasks::extrapolation
 
 #endif

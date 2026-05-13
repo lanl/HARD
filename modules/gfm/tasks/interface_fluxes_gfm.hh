@@ -130,11 +130,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
   // 1D
   // ---------------------------------------------------------------------------
   if constexpr(Dim == 1) {
-#ifdef DEBUG
-    if(face_axis != 0) {
-      flog_fatal("1D executable can only compute fluxes along X axis");
-    }
-#endif
+    flog_assert(
+      face_axis == 0, "1D executable can only compute fluxes along X axis");
 
     s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
       const auto dx = m.template delta<ax::x>();

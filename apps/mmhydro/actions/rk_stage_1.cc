@@ -95,9 +95,12 @@ advance_rk_stage_1(state<D> & s,
       sc.execute<tasks::extrapolation::gradient_centered<D>>(
         flecsi::exec::on, *s.m, s.ls.psi(*s.m), s.extp.dp(*s.m));
 
-      // normal = dp/|dp|
-      sc.execute<tasks::extrapolation::unit_normals<D>>(
-        flecsi::exec::on, *s.m, s.extp.dp(*s.m), s.extp.normal(*s.m));
+      // normal = dp/|dp| and normal faces
+      sc.execute<tasks::extrapolation::unit_normals<D>>(flecsi::exec::on,
+        *s.m,
+        s.extp.dp(*s.m),
+        s.extp.normal(*s.m),
+        s.extp.f.normal_face(s.m));
 
       // Stage 1: rhs(q^n) -> rhs
       sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
@@ -109,13 +112,12 @@ advance_rk_stage_1(state<D> & s,
         s.extp.q_rhs(*s.m));
 
       // q1 = q^n + dt * rhs(q^n)
-      sc.execute<tasks::extrapolation::advance_q_rk2<D, 1>>(flecsi::exec::on,
+      sc.execute<tasks::extrapolation::advance_q_rk2_s1<D, 1>>(flecsi::exec::on,
         *s.m,
         s.ls.psi(*s.m),
         s.extp.q_scalar_known(*s.m),
         s.extp.q_scalar(*s.m),
         s.extp.q_rhs(*s.m),
-        s.extp.q_scalar2(*s.m), // dummy (unused in STEP=1)
         s.extp.q_scalar1(*s.m), // output stage-1
         s.dt(*s.gt)); // dtau in the origianl work
 
@@ -143,7 +145,7 @@ advance_rk_stage_1(state<D> & s,
       s.extp.q_rhs1(*s.m));
 
     // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
-    sc.execute<tasks::extrapolation::advance_q_rk2<D, 2>>(flecsi::exec::on,
+    sc.execute<tasks::extrapolation::advance_q_rk2_s2<D, 2>>(flecsi::exec::on,
       *s.m,
       s.ls.psi(*s.m),
       s.extp.q_scalar_known(*s.m),

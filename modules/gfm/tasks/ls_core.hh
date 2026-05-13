@@ -195,6 +195,50 @@ rhs_upwind(flecsi::exec::accelerator s,
 // SSPRK3 stage update
 template<std::size_t D, std::size_t STEP>
 void
+advance_psi_s1(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<double>::template accessor<ro, ro> psi_n0_a, // psi^n
+  typename field<double>::template accessor<ro, ro> rhs_a, // k(psi_stage)
+  typename field<double>::template accessor<wo, ro>
+    psi_out_a, // stage output (psi1/psi2/psi3)
+  typename single<double>::template accessor<ro> dt_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  auto psi_n0 = m.template mdcolex<is::cells>(psi_n0_a);
+  auto rhs = m.template mdcolex<is::cells>(rhs_a);
+  auto psi_out = m.template mdcolex<is::cells>(psi_out_a);
+
+  const double dt = *dt_a;
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      psi_out(i) = psi_n0(i) + dt * rhs(i);
+    };
+  }
+  else if constexpr(D == 2) {
+    auto pol = get_mdiota_policy(psi_out,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+    s.executor().forall(ji, pol) {
+      auto [j, i] = ji;
+      psi_out(i, j) = psi_n0(i, j) + dt * rhs(i, j);
+    };
+  }
+  else { // D == 3
+    auto pol = get_mdiota_policy(psi_out,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+    s.executor().forall(kji, pol) {
+      auto [k, j, i] = kji;
+      psi_out(i, j, k) = psi_n0(i, j, k) + dt * rhs(i, j, k);
+    };
+  }
+}
+
+template<std::size_t D, std::size_t STEP>
+void
 advance_psi(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> psi_n0_a, // psi^n

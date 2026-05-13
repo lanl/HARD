@@ -41,11 +41,10 @@ ssprk3_step(
     s.ls.frozen_material(*s.m),
     s.ls.rhs(*s.m));
 
-  sc.execute<advance_psi<D, 1>>(flecsi::exec::on,
+  sc.execute<advance_psi_s1<D, 1>>(flecsi::exec::on,
     *s.m,
     s.ls.psi(*s.m), // psi^n
     s.ls.rhs(*s.m), // k(psi^n)
-    s.ls.psi2(*s.m), // unused for step1 (kept for signature consistency)
     s.ls.psi1(*s.m), // psi1
     s.dt(*s.gt));
 
