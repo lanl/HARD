@@ -91,8 +91,7 @@ shock_mm(flecsi::exec::cpu s,
         material(i) = T::mL;
         mass_density(i) = T::rL;
         momentum_density(i).x() = T::rL * T::uL;
-        const double e =
-          util::find_sie(eos_mm[T::mL], T::rL, T::pL);
+        const double e = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
         total_energy_density(i) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
 
         // Extrapolation scratch scalar
@@ -106,8 +105,7 @@ shock_mm(flecsi::exec::cpu s,
         psi(i) = -std::abs(phi);
         mass_density(i) = T::rR;
         momentum_density(i).x() = T::rR * T::uR;
-        const double e =
-          util::find_sie(eos_mm[T::mR], T::rR, T::pR);
+        const double e = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
         total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
 
         // Extrapolation scratch scalar
