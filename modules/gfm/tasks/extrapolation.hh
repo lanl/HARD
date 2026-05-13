@@ -112,7 +112,7 @@ gradu_1d(const std::array<double, sten_size> & u, double a, double dx) {
       // Therefore compare the next upwind slope to the current upwind slope.
       const double du_curr = u[3] - u[2]; // u_{i+1} - u_i
       const double du_next = u[4] - u[3]; // u_{i+2} - u_{i+1}
-      const double r = du_next / (du_next + ((du_next >= 0.0) ? eps : -eps));
+      const double r = du_next / (du_curr + ((du_curr >= 0.0) ? eps : -eps));
 
       const double psi = psi_mm(r);
       return d1 + psi * (d2 - d1);
@@ -243,11 +243,11 @@ unit_normals(flecsi::exec::accelerator s,
       vec<D> g_left(0.0);
 
       g_right.x() = 0.5 * (dp(i, j).x() + dp(i + 1, j).x());
-      g_right.y() = 0.5 * (dp(i, j).y() + dp(i, j + 1).y());
+      g_right.y() = 0.5 * (dp(i, j).y() + dp(i + 1, j).y());
       n_right(i, j) = normalize(g_right);
 
       g_left.x() = 0.5 * (dp(i - 1, j).x() + dp(i, j).x());
-      g_left.y() = 0.5 * (dp(i, j - 1).y() + dp(i, j).y());
+      g_left.y() = 0.5 * (dp(i - 1, j).y() + dp(i, j).y());
       n_left(i, j) = normalize(g_left);
     };
   }
@@ -270,13 +270,13 @@ unit_normals(flecsi::exec::accelerator s,
       vec<D> g_left(0.0);
 
       g_right.x() = 0.5 * (dp(i, j, k).x() + dp(i + 1, j, k).x());
-      g_right.y() = 0.5 * (dp(i, j, k).y() + dp(i, j + 1, k).y());
-      g_right.z() = 0.5 * (dp(i, j, k).z() + dp(i, j, k + 1).z());
-      n_right(i, j, k) = normalize(g_left);
+      g_right.y() = 0.5 * (dp(i, j, k).y() + dp(i + 1, j, k).y());
+      g_right.z() = 0.5 * (dp(i, j, k).z() + dp(i + 1, j, k).z());
+      n_right(i, j, k) = normalize(g_right);
 
       g_left.x() = 0.5 * (dp(i - 1, j, k).x() + dp(i, j, k).x());
-      g_left.y() = 0.5 * (dp(i, j - 1, k).y() + dp(i, j, k).y());
-      g_left.z() = 0.5 * (dp(i, j, k - 1).z() + dp(i, j, k).z());
+      g_left.y() = 0.5 * (dp(i - 1, j, k).y() + dp(i, j, k).y());
+      g_left.z() = 0.5 * (dp(i - 1, j, k).z() + dp(i, j, k).z());
       n_left(i, j, k) = normalize(g_left);
     };
   }
@@ -310,13 +310,15 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
 
       if(psi(i) <= 0.0) {
         rhs(i) = 0.0;
-        return;
       }
+      else {
 
-      const double ax = normal(i).x();
+        const double ax = normal(i).x();
 
-      rhs(i) = -ax * gradu_1d<5>(
-                       {q(i - 2), q(i - 1), q(i), q(i + 1), q(i + 2)}, ax, dx);
+        rhs(i) =
+          -ax *
+          gradu_1d<5>({q(i - 2), q(i - 1), q(i), q(i + 1), q(i + 2)}, ax, dx);
+      }
     };
   }
   else if constexpr(D == 2) {
@@ -331,13 +333,13 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
 
       if(psi(i, j) <= 0.0) {
         rhs(i, j) = 0.0;
-        return;
       }
+      else {
 
-      const double ax = normal(i, j).x();
-      const double ay = normal(i, j).y();
+        const double ax = normal(i, j).x();
+        const double ay = normal(i, j).y();
 
-      // clang-format off
+        // clang-format off
       rhs(i, j) =
         -(ax * gradu_1d<5>(
           {q(i - 2, j), q(i - 1, j), q(i, j), q(i + 1, j), q(i + 2, j)},
@@ -345,7 +347,8 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         ay * gradu_1d<5>(
           {q(i, j - 2), q(i, j - 1), q(i, j), q(i, j + 1), q(i, j + 2)},
           ay, dy));
-      // clang-format on
+        // clang-format on
+      }
     };
   }
   else /* D == 3 */ {
@@ -362,14 +365,14 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
 
       if(psi(i, j, k) <= 0.0) {
         rhs(i, j, k) = 0.0;
-        return;
       }
+      else {
 
-      const double ax = normal(i, j, k).x();
-      const double ay = normal(i, j, k).y();
-      const double az = normal(i, j, k).z();
+        const double ax = normal(i, j, k).x();
+        const double ay = normal(i, j, k).y();
+        const double az = normal(i, j, k).z();
 
-      // clang-format off
+        // clang-format off
       rhs(i, j, k) =
         -(ax * gradu_1d<5>(
           {q(i - 2, j, k),
@@ -392,7 +395,8 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
             q(i, j, k + 1),
             q(i, j, k + 2)},
           az, dz));
-      // clang-format on
+        // clang-format on
+      }
     };
   }
 }
