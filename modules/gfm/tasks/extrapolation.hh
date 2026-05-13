@@ -353,7 +353,7 @@ advance_q_rk2(flecsi::exec::accelerator s,
   typename field<double>::template accessor<ro, na> q_scalar_a, // base q^n
   typename field<double>::template accessor<ro, ro>
     rhs_a, // rhs at base or stage
-  typename field<double>::template accessor<ro, ro>
+  typename field<double>::template accessor<rw, ro>
     q_scalar_stage_a, // q^(1) (only used in STEP=2)
   typename field<double>::template accessor<wo, na>
     q_scalar_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
@@ -382,7 +382,7 @@ advance_q_rk2(flecsi::exec::accelerator s,
       }
 
       if constexpr(STEP == 1) {
-        q_new(i) = q(i) + dt * rhs(i); // q^(1)
+        q_stage(i) = q(i) + dt * rhs(i); // q^(1)
       }
       else {
         // rhs is rhs(q_stage) here
@@ -403,7 +403,7 @@ advance_q_rk2(flecsi::exec::accelerator s,
       }
 
       if constexpr(STEP == 1) {
-        q_new(i, j) = q(i, j) + dt * rhs(i, j);
+        q_stage(i, j) = q(i, j) + dt * rhs(i, j);
       }
       else {
         q_new(i, j) = 0.5 * (q(i, j) + q_stage(i, j) + dt * rhs(i, j));
@@ -424,7 +424,7 @@ advance_q_rk2(flecsi::exec::accelerator s,
       }
 
       if constexpr(STEP == 1) {
-        q_new(i, j, k) = q(i, j, k) + dt * rhs(i, j, k);
+        q_stage(i, j, k) = q(i, j, k) + dt * rhs(i, j, k);
       }
       else {
         q_new(i, j, k) =
