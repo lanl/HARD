@@ -55,6 +55,8 @@ shock_mm(flecsi::exec::cpu s,
   typename field<int>::accessor<rw, ro> material_a,
   typename field<int>::accessor<wo, ro> frozen_material_a,
   field<double>::accessor<rw, ro> psi_a,
+  typename field<double>::template accessor<rw, na> q_scalar_a,
+  typename field<double>::template accessor<rw, na> q_scalar_known_a,
   const std::vector<eos::eos_wrapper> & eos_mm) {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -66,6 +68,9 @@ shock_mm(flecsi::exec::cpu s,
   auto material = m.template mdcolex<is::cells>(material_a);
   auto frozen_material = m.template mdcolex<is::cells>(frozen_material_a);
   auto psi = m.template mdcolex<is::cells>(psi_a);
+
+  auto q_scalar = m.template mdcolex<is::cells>(q_scalar_a);
+  auto q_scalar_known = m.template mdcolex<is::cells>(q_scalar_known_a);
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
@@ -89,6 +94,10 @@ shock_mm(flecsi::exec::cpu s,
         const double e =
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
         total_energy_density(i) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
+
+        // Extrapolation scratch scalar
+        q_scalar(i) = T::rL;
+        q_scalar_known(i) = T::rL;
       }
       else {
         material(i) = T::mR;
@@ -100,6 +109,10 @@ shock_mm(flecsi::exec::cpu s,
         const double e =
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
+
+        // Extrapolation scratch scalar
+        q_scalar(i) = T::rR;
+        q_scalar_known(i) = T::rR;
       } // if
     }; // forall
   }
@@ -123,6 +136,10 @@ shock_mm(flecsi::exec::cpu s,
         const double e =
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
         total_energy_density(i, j) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
+
+        // Extrapolation scratch scalar
+        q_scalar(i, j) = T::rL;
+        q_scalar_known(i, j) = T::rL;
       }
       else {
         material(i, j) = T::mR;
@@ -134,6 +151,9 @@ shock_mm(flecsi::exec::cpu s,
         const double e =
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
+        // Extrapolation scratch scalar
+        q_scalar(i, j) = T::rR;
+        q_scalar_known(i, j) = T::rR;
       } // if
     }; // forall
   }
@@ -159,6 +179,9 @@ shock_mm(flecsi::exec::cpu s,
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
         total_energy_density(i, j, k) =
           T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
+        // Extrapolation scratch scalar
+        q_scalar(i, j, k) = T::rL;
+        q_scalar_known(i, j, k) = T::rL;
       }
       else {
         material(i, j, k) = T::mR;
@@ -171,6 +194,9 @@ shock_mm(flecsi::exec::cpu s,
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i, j, k) =
           T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
+        // Extrapolation scratch scalar
+        q_scalar(i, j, k) = T::rR;
+        q_scalar_known(i, j, k) = T::rR;
       } // if
     }; // forall
   } // if

@@ -58,6 +58,7 @@ gradu_1d(const std::array<double, sten_size> & u, double a, double dx) {
   else {
     // 5-point version: u = {u_{i-2}, u_{i-1}, u_i, u_{i+1}, u_{i+2}}
     constexpr double eps = 1e-14;
+
     if(a >= 0.0) {
       // 1st order upwind derivative at i
       const double d1 = (u[2] - u[1]) / dx;
@@ -65,10 +66,26 @@ gradu_1d(const std::array<double, sten_size> & u, double a, double dx) {
       // 2nd order upwind (biased left) derivative at i
       const double d2 = (3.0 * u[2] - 4.0 * u[1] + u[0]) / (2.0 * dx);
 
-      // Ratio of consecutive gradients (upwind-side / downwind-side)
-      const double du_up = (u[2] - u[1]);
-      const double du_down = (u[3] - u[2]);
-      const double r = du_down / (du_up + ((du_up >= 0.0) ? eps : -eps));
+      // TODO : delete below once confirmed. Old way to get gradient
+      //        that might have indexing issue
+      //  Ratio of consecutive gradients (upwind-side / downwind-side)
+      // const double du_up = (u[2] - u[1]);
+      // const double du_down = (u[3] - u[2]);
+      // const double r = du_down / (du_up + ((du_up >= 0.0) ? eps : -eps));
+
+      // Slopes used by the left-biased stencil:
+      //
+      //   u[i-2] ---- u[i-1] ---- u[i]
+      //     u[0]        u[1]      u[2]
+      //
+      // The second-order correction is proportional to
+      //   (u[i] - u[i-1]) - (u[i-1] - u[i-2]).
+      //
+      // Therefore the limiter ratio should compare the previous upwind
+      // slope to the current upwind slope.
+      const double du_curr = u[2] - u[1]; // u_i     - u_{i-1}
+      const double du_prev = u[1] - u[0]; // u_{i-1} - u_{i-2}
+      const double r = du_prev / (du_curr + ((du_curr >= 0.0) ? eps : -eps));
 
       const double psi = psi_mm(r);
       return d1 + psi * (d2 - d1);
@@ -76,11 +93,26 @@ gradu_1d(const std::array<double, sten_size> & u, double a, double dx) {
     else {
       // a < 0 : upwind is to the right
       const double d1 = (u[3] - u[2]) / dx;
+
+      // 2nd order upwind (biased right) derivative at i
       const double d2 = (-3.0 * u[2] + 4.0 * u[3] - u[4]) / (2.0 * dx);
 
-      const double du_up = (u[3] - u[2]);
-      const double du_down = (u[2] - u[1]);
-      const double r = du_down / (du_up + ((du_up >= 0.0) ? eps : -eps));
+      // const double du_up = (u[3] - u[2]);
+      // const double du_down = (u[2] - u[1]);
+      // const double r = du_down / (du_up + ((du_up >= 0.0) ? eps : -eps));
+
+      // Slopes used by the right-biased stencil:
+      //
+      //   u[i] ---- u[i+1] ---- u[i+2]
+      //   u[2]       u[3]        u[4]
+      //
+      // The second-order correction is proportional to
+      //   (u[i+1] - u[i]) - (u[i+2] - u[i+1]).
+      //
+      // Therefore compare the next upwind slope to the current upwind slope.
+      const double du_curr = u[3] - u[2]; // u_{i+1} - u_i
+      const double du_next = u[4] - u[3]; // u_{i+2} - u_{i+1}
+      const double r = du_next / (du_next + ((du_next >= 0.0) ? eps : -eps));
 
       const double psi = psi_mm(r);
       return d1 + psi * (d2 - d1);
@@ -148,7 +180,7 @@ void
 unit_normals(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<vec<D>>::template accessor<ro, ro> dp_a,
-  typename field<vec<D>>::template accessor<rw, ro> normal_a) noexcept {
+  typename field<vec<D>>::template accessor<wo, na> normal_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
@@ -194,90 +226,6 @@ unit_normals(flecsi::exec::accelerator s,
   }
 }
 
-// TODO :Remove?
-#if 0
-// constant-normal extrapolation utility
-// Extends scalar q off the interface (one forward Euler step of
-// \partial tau q  + sign(\psi) n·\nabla q = 0 ).
-template<std::size_t D>
-void
-extend_constant_normal(flecsi::exec::accelerator s,
-  typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, ro> psi_a,
-  typename field<vec<D>>::template accessor<ro, ro> normal_a,
-  double dtau,
-  typename field<double>::template accessor<ro> q_scalar_a,
-  typename field<double>::template accessor<rw> q_new_scalar_a) noexcept {
-
-  using common::tasks::utils::get_mdiota_policy;
-
-  auto psi = m.template mdcolex<is::cells>(psi_a);
-  auto normal = m.template mdcolex<is::cells>(normal_a);
-  auto q = m.template mdcolex<is::cells>(q_scalar_a);
-  auto q_new = m.template mdcolex<is::cells>(q_new_scalar_a);
-
-  const double inv_dx = 1 / m.template delta<ax::x>();
-
-  if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-
-      // Upwind neighbor based on sign of nx
-      if(normal(i).x > 0.0) {
-        q_new(i) = q(i) - dtau * copysign(1.0, psi(i)) * normal(i).x *
-                            (q(i) - q(i - 1)) * inv_dx;
-      }
-      else {
-        q_new(i) = q(i);
-      }
-    };
-  }
-  else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(q,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    const double inv_dy = 1 / m.template delta<ax::y>();
-
-    s.executor().forall(ji, mdpolicy_qq) {
-      auto [j, i] = ji;
-
-      // upwind neighbors (component-wise)
-      const double dqx = (normal(i, j).x > 0.0) ? (q(i, j) - q(i - 1, j)) : 0.0;
-      const double dqy = (normal(i, j).y > 0.0) ? (q(i, j) - q(i, j - 1)) : 0.0;
-
-      q_new(i, j) = q(i, j) - dtau * copysign(1.0, psi(i, j)) *
-                                (normal(i, j).x * dqx * inv_dx +
-                                  normal(i, j).y * dqy * inv_dy);
-    };
-  }
-  else /* D == 3 */ {
-    auto mdpolicy_qqq = get_mdiota_policy(q,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    const double inv_dy = m.template delta<ax::y>();
-    const double inv_dz = m.template delta<ax::z>();
-
-    s.executor().forall(kji, mdpolicy_qqq) {
-      auto [k, j, i] = kji;
-
-      const double dqx =
-        (normal(i, j, k).x > 0.0) ? (q(i, j, k) - q(i - 1, j, k)) : 0.0;
-      const double dqy =
-        (normal(i, j, k).y > 0.0) ? (q(i, j, k) - q(i, j - 1, k)) : 0.0;
-      const double dqz =
-        (normal(i, j, k).z > 0.0) ? (q(i, j, k) - q(i, j, k - 1)) : 0.0;
-
-      q_new(i, j, k) = q(i, j, k) - dtau * copysign(1.0, psi(i, j, k)) *
-                                      (normal(i, j, k).x * dqx * inv_dx +
-                                        normal(i, j, k).y * dqy * inv_dy +
-                                        normal(i, j, k).z * dqz * inv_dz);
-    };
-  }
-}
-#endif
-
 // ----------------------------
 // RHS: R(u) = - H(psi) * (n · grad(u))  in psi>0, else 0.
 // grad(u) computed with 2nd-order upwind + MinMod for each component.
@@ -288,9 +236,9 @@ void
 rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> q_scalar_a,
-  typename field<double>::template accessor<wo, ro> psi_a,
-  typename field<vec<D>>::template accessor<wo, ro> normal_a,
-  typename field<double>::template accessor<wo, ro> rhs_a) noexcept {
+  typename field<double>::template accessor<ro, ro> psi_a,
+  typename field<vec<D>>::template accessor<ro, ro> normal_a,
+  typename field<double>::template accessor<wo, na> rhs_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
@@ -400,14 +348,14 @@ template<std::size_t D, std::size_t STEP>
 void
 advance_q_rk2(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, ro> psi_a,
-  typename field<double>::template accessor<ro, ro> q_scalar_known_a,
-  typename field<double>::template accessor<ro, ro> q_scalar_a, // base q^n
+  typename field<double>::template accessor<ro, na> psi_a,
+  typename field<double>::template accessor<ro, na> q_scalar_known_a,
+  typename field<double>::template accessor<ro, na> q_scalar_a, // base q^n
   typename field<double>::template accessor<ro, ro>
     rhs_a, // rhs at base or stage
   typename field<double>::template accessor<ro, ro>
     q_scalar_stage_a, // q^(1) (only used in STEP=2)
-  typename field<double>::template accessor<wo, ro>
+  typename field<double>::template accessor<wo, na>
     q_scalar_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
   typename single<double>::template accessor<ro> dt_a) noexcept {
 

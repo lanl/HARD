@@ -104,6 +104,8 @@ initialize(control_policy<state, D> & cp) {
       s.ls.material(*s.m),
       s.ls.frozen_material(*s.m),
       s.ls.psi(*s.m),
+      s.extp.q_scalar(*s.m),
+      s.extp.q_scalar_known(*s.m),
       s.eos_mm);
   }
   else if(config["problem"].as<std::string>() == "rankine-hugoniot") {
