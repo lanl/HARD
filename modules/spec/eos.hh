@@ -65,7 +65,8 @@ init_eos(spec::config_py & config) {
   /*--------------------------------------------------------------------------*
      Equation of State
     *--------------------------------------------------------------------------*/
-  auto name = config["eos"].cast<std::string>();
+  const std::string name(config["eos"].cast<std::string>());
+
   if(name == "ideal")
     return singularity::IdealGas(
       config["gamma"].cast<double>() - 1, 2.0 /* FIXME */);
@@ -115,7 +116,7 @@ init_eos_mm(std::vector<eos::eos_wrapper> eos_mm, spec::config_py & config) {
 
   for(std::size_t m = 0; m < mats.size(); ++m) {
     auto mat = mats[m];
-    eos_mm.emplace_back(init_eos(config));
+    eos_mm.emplace_back(init_eos(mat));
   }
 }
 
