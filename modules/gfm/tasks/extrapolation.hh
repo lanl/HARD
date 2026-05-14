@@ -134,11 +134,18 @@ gradient_centered(flecsi::exec::accelerator s,
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto dp = m.template mdcolex<is::cells>(dp_a);
 
-  const double div_dx = 1 / (2.0 * m.template delta<ax::x>());
+  // Compute deltas for each dimension
+  std::array<double, D> div_d;
+  if constexpr(D >= 1)
+    div_d[0] = 1.0 / (2.0 * m.template delta<ax::x>());
+  if constexpr(D >= 2)
+    div_d[1] = 1.0 / (2.0 * m.template delta<ax::y>());
+  if constexpr(D >= 3)
+    div_d[2] = 1.0 / (2.0 * m.template delta<ax::z>());
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      dp(i).x() = (psi(i + 1) - psi(i - 1)) * div_dx;
+      dp(i).x() = (psi(i + 1) - psi(i - 1)) * div_d.x();
     };
   }
   else if constexpr(D == 2) {
@@ -146,13 +153,10 @@ gradient_centered(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    const double div_dy = 1 / (2.0 * m.template delta<ax::y>());
-
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
-
-      dp(i, j).x() = (psi(i + 1, j) - psi(i - 1, j)) * div_dx;
-      dp(i, j).y() = (psi(i, j + 1) - psi(i, j - 1)) * div_dy;
+      dp(i, j).x() = (psi(i + 1, j) - psi(i - 1, j)) * div_d.x();
+      dp(i, j).y() = (psi(i, j + 1) - psi(i, j - 1)) * div_d.y();
     };
   }
   else /* D == 3 */ {
@@ -161,15 +165,11 @@ gradient_centered(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    const double div_dy = 1 / (2.0 * m.template delta<ax::y>());
-    const double div_dz = 1 / (2.0 * m.template delta<ax::z>());
-
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
-
-      dp(i, j, k).x() = (psi(i + 1, j, k) - psi(i - 1, j, k)) * div_dx;
-      dp(i, j, k).y() = (psi(i, j + 1, k) - psi(i, j - 1, k)) * div_dy;
-      dp(i, j, k).z() = (psi(i, j, k + 1) - psi(i, j, k - 1)) * div_dz;
+      dp(i, j, k).x() = (psi(i + 1, j, k) - psi(i - 1, j, k)) * div_d.x();
+      dp(i, j, k).y() = (psi(i, j + 1, k) - psi(i, j - 1, k)) * div_d.y();
+      dp(i, j, k).z() = (psi(i, j, k + 1) - psi(i, j, k - 1)) * div_d.z();
     };
   }
 }
@@ -193,37 +193,21 @@ unit_normals(flecsi::exec::accelerator s,
 
   auto normalize = [](const vec<D> & g) {
     vec<D> n(0.0);
-
     const double mag = g.norm();
-
     if(mag > eps) {
-      const double inv_mag = 1.0 / mag;
-
-      n.x() = g.x() * inv_mag;
-
-      if constexpr(D >= 2)
-        n.y() = g.y() * inv_mag;
-
-      if constexpr(D >= 3)
-        n.z() = g.z() * inv_mag;
+      n = g / mag;
     }
-
     return n;
   };
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      normal(i).x() = dp(i).x() / (dp(i).norm() + eps);
-
-      vec<D> g_right(0.0);
-      vec<D> g_left(0.0);
+      normal(i) = dp(i) / (dp(i).norm() + eps);
 
       // Right face of cell i: x_{i+1/2}
-      g_right.x() = 0.5 * (dp(i).x() + dp(i + 1).x());
-      n_right(i) = normalize(g_right);
+      n_right(i) = normalize(0.5 * (dp(i) + dp(i + 1)););
       // Left face of cell i: x_{i-1/2}
-      g_left.x() = 0.5 * (dp(i - 1).x() + dp(i).x());
-      n_left(i) = normalize(g_left);
+      n_left(i) = normalize(0.5 * (dp(i - 1) + dp(i)););
     };
   }
   else if constexpr(D == 2) {
@@ -233,22 +217,10 @@ unit_normals(flecsi::exec::accelerator s,
 
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
+      normal(i, j) = dp(i, j) / (dp(i, j).norm() + eps);
 
-      const double inv_mag = 1.0 / (dp(i, j).norm() + eps);
-
-      normal(i, j).x() = dp(i, j).x() * inv_mag;
-      normal(i, j).y() = dp(i, j).y() * inv_mag;
-
-      vec<D> g_right(0.0);
-      vec<D> g_left(0.0);
-
-      g_right.x() = 0.5 * (dp(i, j).x() + dp(i + 1, j).x());
-      g_right.y() = 0.5 * (dp(i, j).y() + dp(i + 1, j).y());
-      n_right(i, j) = normalize(g_right);
-
-      g_left.x() = 0.5 * (dp(i - 1, j).x() + dp(i, j).x());
-      g_left.y() = 0.5 * (dp(i - 1, j).y() + dp(i, j).y());
-      n_left(i, j) = normalize(g_left);
+      n_right(i, j) = normalize(0.5 * (dp(i, j) + dp(i + 1, j)));
+      n_left(i, j) = normalize(0.5 * (dp(i - 1, j) + dp(i, j)));
     };
   }
   else /* D == 3 */ {
@@ -259,25 +231,10 @@ unit_normals(flecsi::exec::accelerator s,
 
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
+      normal(i, j, k) = dp(i, j, k) / (dp(i, j, k).norm() + eps);
 
-      const double inv_mag = 1.0 / (dp(i, j, k).norm() + eps);
-
-      normal(i, j, k).x() = dp(i, j, k).x() * inv_mag;
-      normal(i, j, k).y() = dp(i, j, k).y() * inv_mag;
-      normal(i, j, k).z() = dp(i, j, k).z() * inv_mag;
-
-      vec<D> g_right(0.0);
-      vec<D> g_left(0.0);
-
-      g_right.x() = 0.5 * (dp(i, j, k).x() + dp(i + 1, j, k).x());
-      g_right.y() = 0.5 * (dp(i, j, k).y() + dp(i + 1, j, k).y());
-      g_right.z() = 0.5 * (dp(i, j, k).z() + dp(i + 1, j, k).z());
-      n_right(i, j, k) = normalize(g_right);
-
-      g_left.x() = 0.5 * (dp(i - 1, j, k).x() + dp(i, j, k).x());
-      g_left.y() = 0.5 * (dp(i - 1, j, k).y() + dp(i, j, k).y());
-      g_left.z() = 0.5 * (dp(i - 1, j, k).z() + dp(i, j, k).z());
-      n_left(i, j, k) = normalize(g_left);
+      n_right(i, j, k) = normalize(0.5 * (dp(i, j, k) + dp(i + 1, j, k)));
+      n_left(i, j, k) = normalize(0.5 * (dp(i - 1, j, k) + dp(i, j, k)));
     };
   }
 }
