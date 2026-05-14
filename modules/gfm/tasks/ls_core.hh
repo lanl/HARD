@@ -11,13 +11,6 @@ using namespace hard::tasks::util;
 
 namespace hard::tasks::level_set {
 
-// Periodic wrapper
-static int
-wrapi(int a, int n) {
-  int r = a % n;
-  return (r < 0) ? (r + n) : r;
-}
-
 // Freeze material labels at the start of each step
 template<std::size_t D>
 void
@@ -52,14 +45,11 @@ rhs_upwind(flecsi::exec::accelerator s,
   auto rhs = m.template mdcolex<is::cells>(rhs_a);
 
   if constexpr(D == 1) {
-    const int nx = m.template size<ax::x, dm::quantities>();
-
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      const int ip1 = wrapi(i + 1, nx);
-      const int im1 = wrapi(i - 1, nx);
+      const int ip1 = i + 1;
+      const int im1 = i - 1;
 
-      const double up = std::max(0.0, vel(i).x());
-      const double um = std::min(0.0, vel(i).x());
+      auto [um, up] = minmax(0.0, vel(i));
 
       // material-signed neighbor values relative to center frozen material
       const double pm_ip1 = (fmat(ip1) == fmat(i)) ? psi(ip1) : -psi(ip1);
@@ -67,16 +57,14 @@ rhs_upwind(flecsi::exec::accelerator s,
       const double pm_i = psi(i);
 
       // adv_x in flux-form upwind; rhs = -adv to match working HJ_upwind_L_2D
-      const double adv_x = (pm_i * (up - um) + pm_ip1 * um - pm_im1 * up) /
-                           m.template delta<ax::x>();
+      const double adv_x =
+        (pm_i * (up.x() - um.x()) + pm_ip1 * um.x() - pm_im1 * up.x()) /
+        m.template delta<ax::x>();
 
       rhs(i) = -adv_x;
     };
   }
   else if constexpr(D == 2) {
-    const int nx = m.template size<ax::x, dm::quantities>();
-    const int ny = m.template size<ax::y, dm::quantities>();
-
     auto pol = get_mdiota_policy(vel,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
@@ -84,40 +72,40 @@ rhs_upwind(flecsi::exec::accelerator s,
     s.executor().forall(ji, pol) {
       auto [j, i] = ji;
 
-      const int ip1 = wrapi(i + 1, nx);
-      const int im1 = wrapi(i - 1, nx);
-      const int jp1 = wrapi(j + 1, ny);
-      const int jm1 = wrapi(j - 1, ny);
+      const int ip1 = i + 1;
+      const int im1 = i - 1;
+      const int jp1 = j + 1;
+      const int jm1 = j - 1;
 
-      const double upx = std::max(0.0, vel(i, j).x());
-      const double umx = std::min(0.0, vel(i, j).x());
-      const double upy = std::max(0.0, vel(i, j).y());
-      const double umy = std::min(0.0, vel(i, j).y());
+      auto [um, up] = minmax(0.0, vel(i, j));
 
-      const double pm_ip1 =
-        (fmat(ip1, j) == fmat(i, j)) ? psi(ip1, j) : -psi(ip1, j);
-      const double pm_im1 =
-        (fmat(im1, j) == fmat(i, j)) ? psi(im1, j) : -psi(im1, j);
-      const double pm_jp1 =
-        (fmat(i, jp1) == fmat(i, j)) ? psi(i, jp1) : -psi(i, jp1);
-      const double pm_jm1 =
-        (fmat(i, jm1) == fmat(i, j)) ? psi(i, jm1) : -psi(i, jm1);
+      // Compute material-signed neighbors
+      std::array<std::pair<int, int>, 2 * D> neighbor_coords = {
+        std::pair{im1, j},
+        std::pair{ip1, j},
+        std::pair{i, jm1},
+        std::pair{i, jp1}};
+
+      std::array<double, 2 * D> pm;
+      for(int n = 0; n < 2 * D; ++n) {
+        auto [ni, nj] = neighbor_coords[n];
+        pm[n] = (fmat(ni, nj) == fmat(i, j)) ? psi(ni, nj) : -psi(ni, nj);
+      }
       const double pm_ij = psi(i, j);
 
-      const double adv_x = (pm_ij * (upx - umx) + pm_ip1 * umx - pm_im1 * upx) /
-                           m.template delta<ax::x>();
+      // pm[0]=im1, pm[1]=ip1, pm[2]=jm1, pm[3]=jp1
+      const double adv_x =
+        (pm_ij * (up.x() - um.x()) + pm[1] * um.x() - pm[0] * up.x()) /
+        m.template delta<ax::x>();
 
-      const double adv_y = (pm_ij * (upy - umy) + pm_jp1 * umy - pm_jm1 * upy) /
-                           m.template delta<ax::y>();
+      const double adv_y =
+        (pm_ij * (up.y() - um.y()) + pm[3] * um.y() - pm[2] * up.y()) /
+        m.template delta<ax::y>();
 
       rhs(i, j) = -(adv_x + adv_y);
     };
   }
   else { // D == 3
-    const int nx = m.template size<ax::x, dm::quantities>();
-    const int ny = m.template size<ax::y, dm::quantities>();
-    const int nz = m.template size<ax::z, dm::quantities>();
-
     auto pol = get_mdiota_policy(vel,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
@@ -126,42 +114,41 @@ rhs_upwind(flecsi::exec::accelerator s,
     s.executor().forall(kji, pol) {
       auto [k, j, i] = kji;
 
-      const int ip1 = wrapi(i + 1, nx);
-      const int im1 = wrapi(i - 1, nx);
-      const int jp1 = wrapi(j + 1, ny);
-      const int jm1 = wrapi(j - 1, ny);
-      const int kp1 = wrapi(k + 1, nz);
-      const int km1 = wrapi(k - 1, nz);
+      const int ip1 = i + 1;
+      const int im1 = i - 1;
+      const int jp1 = j + 1;
+      const int jm1 = j - 1;
+      const int kp1 = k + 1;
+      const int km1 = k - 1;
 
-      const double upx = std::max(0.0, vel(i, j, k).x());
-      const double umx = std::min(0.0, vel(i, j, k).x());
-      const double upy = std::max(0.0, vel(i, j, k).y());
-      const double umy = std::min(0.0, vel(i, j, k).y());
-      const double upz = std::max(0.0, vel(i, j, k).z());
-      const double umz = std::min(0.0, vel(i, j, k).z());
+      auto [um, up] = minmax(0.0, vel(i, j, k));
 
-      const double pm_ip1 =
-        (fmat(ip1, j, k) == fmat(i, j, k)) ? psi(ip1, j, k) : -psi(ip1, j, k);
-      const double pm_im1 =
-        (fmat(im1, j, k) == fmat(i, j, k)) ? psi(im1, j, k) : -psi(im1, j, k);
-      const double pm_jp1 =
-        (fmat(i, jp1, k) == fmat(i, j, k)) ? psi(i, jp1, k) : -psi(i, jp1, k);
-      const double pm_jm1 =
-        (fmat(i, jm1, k) == fmat(i, j, k)) ? psi(i, jm1, k) : -psi(i, jm1, k);
-      const double pm_kp1 =
-        (fmat(i, j, kp1) == fmat(i, j, k)) ? psi(i, j, kp1) : -psi(i, j, kp1);
-      const double pm_km1 =
-        (fmat(i, j, km1) == fmat(i, j, k)) ? psi(i, j, km1) : -psi(i, j, km1);
+      // Compute material-signed neighbors
+      std::array<std::tuple<int, int, int>, 2 * D> neighbor_coords = {
+        std::tuple{im1, j, k},
+        std::tuple{ip1, j, k},
+        std::tuple{i, jm1, k},
+        std::tuple{i, jp1, k},
+        std::tuple{i, j, km1},
+        std::tuple{i, j, kp1}};
+
+      std::array<double, 2 * D> pm;
+      for(int n = 0; n < 2 * D; ++n) {
+        auto [ni, nj, nk] = neighbor_coords[n];
+        pm[n] = (fmat(ni, nj, nk) == fmat(i, j, k)) ? psi(ni, nj, nk)
+                                                    : -psi(ni, nj, nk);
+      }
       const double pm_ijk = psi(i, j, k);
 
+      // pm[0]=im1, pm[1]=ip1, pm[2]=jm1, pm[3]=jp1, pm[4]=km1, pm[5]=kp1
       const double adv_x =
-        (pm_ijk * (upx - umx) + pm_ip1 * umx - pm_im1 * upx) /
+        (pm_ijk * (up.x() - um.x()) + pm[1] * um.x() - pm[0] * up.x()) /
         m.template delta<ax::x>();
       const double adv_y =
-        (pm_ijk * (upy - umy) + pm_jp1 * umy - pm_jm1 * upy) /
+        (pm_ijk * (up.y() - um.y()) + pm[3] * um.y() - pm[2] * up.y()) /
         m.template delta<ax::y>();
       const double adv_z =
-        (pm_ijk * (upz - umz) + pm_kp1 * umz - pm_km1 * upz) /
+        (pm_ijk * (up.z() - um.z()) + pm[5] * um.z() - pm[4] * up.z()) /
         m.template delta<ax::z>();
 
       rhs(i, j, k) = -(adv_x + adv_y + adv_z);
@@ -237,23 +224,19 @@ determine_psi(flecsi::exec::accelerator s,
   auto mat = m.template mdcolex<is::cells>(material_a);
 
   if constexpr(D == 1) {
-    const int nx = m.template size<ax::x, dm::quantities>();
-
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       if(fpsi(i) > 0.0) {
         double psimin = fpsi(i);
         int lmin = fmat(i);
 
-        const int im1 = wrapi(i - 1, nx);
-        const int ip1 = wrapi(i + 1, nx);
+        // Array of neighbor indices
+        std::array<int, 2 * D> neighbors = {i - 1, i + 1};
 
-        if(fmat(im1) != fmat(i) && fpsi(im1) < psimin) {
-          psimin = fpsi(im1);
-          lmin = fmat(im1);
-        }
-        if(fmat(ip1) != fmat(i) && fpsi(ip1) < psimin) {
-          psimin = fpsi(ip1);
-          lmin = fmat(ip1);
+        for(auto ni : neighbors) {
+          if(fmat(ni) != fmat(i) && fpsi(ni) < psimin) {
+            psimin = fpsi(ni);
+            lmin = fmat(ni);
+          }
         }
 
         psi(i) = (psimin >= 0.0 ? 1.0 : -1.0) * fpsi(i);
@@ -266,9 +249,6 @@ determine_psi(flecsi::exec::accelerator s,
     };
   }
   else if constexpr(D == 2) {
-    const int nx = m.template size<ax::x, dm::quantities>();
-    const int ny = m.template size<ax::y, dm::quantities>();
-
     auto pol = get_mdiota_policy(psi,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
@@ -280,27 +260,17 @@ determine_psi(flecsi::exec::accelerator s,
         double psimin = fpsi(i, j);
         int lmin = fmat(i, j);
 
-        const int ip1 = wrapi(i + 1, nx);
-        const int im1 = wrapi(i - 1, nx);
-        const int jp1 = wrapi(j + 1, ny);
-        const int jm1 = wrapi(j - 1, ny);
+        // Array of neighbor coordinate pairs
+        std::array<std::pair<int, int>, 2 * D> neighbors = {std::pair{i - 1, j},
+          std::pair{i + 1, j},
+          std::pair{i, j - 1},
+          std::pair{i, j + 1}};
 
-        // 4-neighbor scan like working version
-        if(fmat(im1, j) != fmat(i, j) && fpsi(im1, j) < psimin) {
-          psimin = fpsi(im1, j);
-          lmin = fmat(im1, j);
-        }
-        if(fmat(ip1, j) != fmat(i, j) && fpsi(ip1, j) < psimin) {
-          psimin = fpsi(ip1, j);
-          lmin = fmat(ip1, j);
-        }
-        if(fmat(i, jm1) != fmat(i, j) && fpsi(i, jm1) < psimin) {
-          psimin = fpsi(i, jm1);
-          lmin = fmat(i, jm1);
-        }
-        if(fmat(i, jp1) != fmat(i, j) && fpsi(i, jp1) < psimin) {
-          psimin = fpsi(i, jp1);
-          lmin = fmat(i, jp1);
+        for(auto [ni, nj] : neighbors) {
+          if(fmat(ni, nj) != fmat(i, j) && fpsi(ni, nj) < psimin) {
+            psimin = fpsi(ni, nj);
+            lmin = fmat(ni, nj);
+          }
         }
 
         psi(i, j) = (psimin >= 0.0 ? 1.0 : -1.0) * fpsi(i, j);
@@ -313,10 +283,6 @@ determine_psi(flecsi::exec::accelerator s,
     };
   }
   else { // D == 3
-    const int nx = m.template size<ax::x, dm::quantities>();
-    const int ny = m.template size<ax::y, dm::quantities>();
-    const int nz = m.template size<ax::z, dm::quantities>();
-
     auto pol = get_mdiota_policy(psi,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
@@ -329,37 +295,20 @@ determine_psi(flecsi::exec::accelerator s,
         double psimin = fpsi(i, j, k);
         int lmin = fmat(i, j, k);
 
-        const int ip1 = wrapi(i + 1, nx);
-        const int im1 = wrapi(i - 1, nx);
-        const int jp1 = wrapi(j + 1, ny);
-        const int jm1 = wrapi(j - 1, ny);
-        const int kp1 = wrapi(k + 1, nz);
-        const int km1 = wrapi(k - 1, nz);
+        // Array of neighbor coordinate triples
+        std::array<std::tuple<int, int, int>, 2 * D> neighbors = {
+          std::tuple{i - 1, j, k},
+          std::tuple{i + 1, j, k},
+          std::tuple{i, j - 1, k},
+          std::tuple{i, j + 1, k},
+          std::tuple{i, j, k - 1},
+          std::tuple{i, j, k + 1}};
 
-        // 6-neighbor scan
-        if(fmat(im1, j, k) != fmat(i, j, k) && fpsi(im1, j, k) < psimin) {
-          psimin = fpsi(im1, j, k);
-          lmin = fmat(im1, j, k);
-        }
-        if(fmat(ip1, j, k) != fmat(i, j, k) && fpsi(ip1, j, k) < psimin) {
-          psimin = fpsi(ip1, j, k);
-          lmin = fmat(ip1, j, k);
-        }
-        if(fmat(i, jm1, k) != fmat(i, j, k) && fpsi(i, jm1, k) < psimin) {
-          psimin = fpsi(i, jm1, k);
-          lmin = fmat(i, jm1, k);
-        }
-        if(fmat(i, jp1, k) != fmat(i, j, k) && fpsi(i, jp1, k) < psimin) {
-          psimin = fpsi(i, jp1, k);
-          lmin = fmat(i, jp1, k);
-        }
-        if(fmat(i, j, km1) != fmat(i, j, k) && fpsi(i, j, km1) < psimin) {
-          psimin = fpsi(i, j, km1);
-          lmin = fmat(i, j, km1);
-        }
-        if(fmat(i, j, kp1) != fmat(i, j, k) && fpsi(i, j, kp1) < psimin) {
-          psimin = fpsi(i, j, kp1);
-          lmin = fmat(i, j, kp1);
+        for(auto [ni, nj, nk] : neighbors) {
+          if(fmat(ni, nj, nk) != fmat(i, j, k) && fpsi(ni, nj, nk) < psimin) {
+            psimin = fpsi(ni, nj, nk);
+            lmin = fmat(ni, nj, nk);
+          }
         }
 
         psi(i, j, k) = (psimin >= 0.0 ? 1.0 : -1.0) * fpsi(i, j, k);
