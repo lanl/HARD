@@ -145,7 +145,7 @@ gradient_centered(flecsi::exec::accelerator s,
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      dp(i).x() = (psi(i + 1) - psi(i - 1)) * div_d.x();
+      dp(i).x() = (psi(i + 1) - psi(i - 1)) * div_d[0];
     };
   }
   else if constexpr(D == 2) {
@@ -155,8 +155,8 @@ gradient_centered(flecsi::exec::accelerator s,
 
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
-      dp(i, j).x() = (psi(i + 1, j) - psi(i - 1, j)) * div_d.x();
-      dp(i, j).y() = (psi(i, j + 1) - psi(i, j - 1)) * div_d.y();
+      dp(i, j).x() = (psi(i + 1, j) - psi(i - 1, j)) * div_d[0];
+      dp(i, j).y() = (psi(i, j + 1) - psi(i, j - 1)) * div_d[1];
     };
   }
   else /* D == 3 */ {
@@ -167,9 +167,9 @@ gradient_centered(flecsi::exec::accelerator s,
 
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
-      dp(i, j, k).x() = (psi(i + 1, j, k) - psi(i - 1, j, k)) * div_d.x();
-      dp(i, j, k).y() = (psi(i, j + 1, k) - psi(i, j - 1, k)) * div_d.y();
-      dp(i, j, k).z() = (psi(i, j, k + 1) - psi(i, j, k - 1)) * div_d.z();
+      dp(i, j, k).x() = (psi(i + 1, j, k) - psi(i - 1, j, k)) * div_d[0];
+      dp(i, j, k).y() = (psi(i, j + 1, k) - psi(i, j - 1, k)) * div_d[1];
+      dp(i, j, k).z() = (psi(i, j, k + 1) - psi(i, j, k - 1)) * div_d[2];
     };
   }
 }
@@ -205,9 +205,9 @@ unit_normals(flecsi::exec::accelerator s,
       normal(i) = dp(i) / (dp(i).norm() + eps);
 
       // Right face of cell i: x_{i+1/2}
-      n_right(i) = normalize(0.5 * (dp(i) + dp(i + 1)););
+      n_right(i) = normalize(0.5 * (dp(i) + dp(i + 1)));
       // Left face of cell i: x_{i-1/2}
-      n_left(i) = normalize(0.5 * (dp(i - 1) + dp(i)););
+      n_left(i) = normalize(0.5 * (dp(i - 1) + dp(i)));
     };
   }
   else if constexpr(D == 2) {

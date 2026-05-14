@@ -182,7 +182,7 @@ advance_psi_s1(flecsi::exec::accelerator s,
 
   using common::tasks::utils::get_mdiota_policy;
 
-  s.executor().forall(i, flecsi::util::iota_view({}, psi_out.span().size())) {
+  s.executor().forall(i, flecsi::util::iota_view({}, psi_out_a.span().size())) {
     psi_out_a(i) = psi_n0_a(i) + *dt_a * rhs_a(i);
   };
 }
@@ -203,23 +203,17 @@ advance_psi(flecsi::exec::accelerator s,
 
   static_assert(STEP >= 1 && STEP <= 3, "STEP is 1, 2 or 3");
 
-  auto psi_n0 = m.template mdcolex<is::cells>(psi_n0_a);
-  auto rhs = m.template mdcolex<is::cells>(rhs_a);
-  auto psi_prev = m.template mdcolex<is::cells>(psi_prev_a);
-  auto psi_out = m.template mdcolex<is::cells>(psi_out_a);
-
-  const double dt = *dt_a;
-
-  s.executor().forall(i, flecsi::util::iota_view({}, psi_out.span().size())) {
+  s.executor().forall(i, flecsi::util::iota_view({}, psi_out_a.span().size())) {
     if constexpr(STEP == 1) {
-      psi_out(i) = psi_n0(i) + dt * rhs(i);
+      psi_out_a(i) = psi_n0_a(i) + *dt_a * rhs_a(i);
     }
     else if constexpr(STEP == 2) {
-      psi_out(i) = 0.75 * psi_n0(i) + 0.25 * (psi_prev(i) + dt * rhs(i));
+      psi_out_a(i) =
+        0.75 * psi_n0_a(i) + 0.25 * (psi_prev_a(i) + *dt_a * rhs_a(i));
     }
     else { // STEP == 3
-      psi_out(i) =
-        (1.0 / 3.0) * psi_n0(i) + (2.0 / 3.0) * (psi_prev(i) + dt * rhs(i));
+      psi_out_a(i) = (1.0 / 3.0) * psi_n0_a(i) +
+                     (2.0 / 3.0) * (psi_prev_a(i) + *dt_a * rhs_a(i));
     }
   };
 }
