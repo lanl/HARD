@@ -28,33 +28,10 @@ freeze_material(flecsi::exec::accelerator s,
 
   using common::tasks::utils::get_mdiota_policy;
 
-  auto mat = m.template mdcolex<is::cells>(material_a);
-  auto fmat = m.template mdcolex<is::cells>(frozen_material_a);
-
-  if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      fmat(i) = mat(i);
-    };
-  }
-  else if constexpr(D == 2) {
-    auto pol = get_mdiota_policy(mat,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-    s.executor().forall(ji, pol) {
-      auto [j, i] = ji;
-      fmat(i, j) = mat(i, j);
-    };
-  }
-  else { // D == 3
-    auto pol = get_mdiota_policy(mat,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-    s.executor().forall(kji, pol) {
-      auto [k, j, i] = kji;
-      fmat(i, j, k) = mat(i, j, k);
-    };
-  }
+  s.executor().forall(
+    i, flecsi::util::iota_view({}, frozen_material_a.span().size())) {
+    frozen_material_a(i) = material_a(i);
+  };
 }
 
 // upwind HJ RHS (acts on material-signed psi_m)
@@ -205,36 +182,9 @@ advance_psi_s1(flecsi::exec::accelerator s,
 
   using common::tasks::utils::get_mdiota_policy;
 
-  auto psi_n0 = m.template mdcolex<is::cells>(psi_n0_a);
-  auto rhs = m.template mdcolex<is::cells>(rhs_a);
-  auto psi_out = m.template mdcolex<is::cells>(psi_out_a);
-
-  const double dt = *dt_a;
-
-  if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      psi_out(i) = psi_n0(i) + dt * rhs(i);
-    };
-  }
-  else if constexpr(D == 2) {
-    auto pol = get_mdiota_policy(psi_out,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-    s.executor().forall(ji, pol) {
-      auto [j, i] = ji;
-      psi_out(i, j) = psi_n0(i, j) + dt * rhs(i, j);
-    };
-  }
-  else { // D == 3
-    auto pol = get_mdiota_policy(psi_out,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-    s.executor().forall(kji, pol) {
-      auto [k, j, i] = kji;
-      psi_out(i, j, k) = psi_n0(i, j, k) + dt * rhs(i, j, k);
-    };
-  }
+  s.executor().forall(i, flecsi::util::iota_view({}, psi_out.span().size())) {
+    psi_out_a(i) = psi_n0_a(i) + *dt_a * rhs_a(i);
+  };
 }
 
 template<std::size_t D, std::size_t STEP>
@@ -260,60 +210,18 @@ advance_psi(flecsi::exec::accelerator s,
 
   const double dt = *dt_a;
 
-  if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      if constexpr(STEP == 1) {
-        psi_out(i) = psi_n0(i) + dt * rhs(i);
-      }
-      else if constexpr(STEP == 2) {
-        psi_out(i) = 0.75 * psi_n0(i) + 0.25 * (psi_prev(i) + dt * rhs(i));
-      }
-      else { // STEP == 3
-        psi_out(i) =
-          (1.0 / 3.0) * psi_n0(i) + (2.0 / 3.0) * (psi_prev(i) + dt * rhs(i));
-      }
-    };
-  }
-  else if constexpr(D == 2) {
-    auto pol = get_mdiota_policy(psi_out,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-    s.executor().forall(ji, pol) {
-      auto [j, i] = ji;
-      if constexpr(STEP == 1) {
-        psi_out(i, j) = psi_n0(i, j) + dt * rhs(i, j);
-      }
-      else if constexpr(STEP == 2) {
-        psi_out(i, j) =
-          0.75 * psi_n0(i, j) + 0.25 * (psi_prev(i, j) + dt * rhs(i, j));
-      }
-      else { // STEP == 3
-        psi_out(i, j) = (1.0 / 3.0) * psi_n0(i, j) +
-                        (2.0 / 3.0) * (psi_prev(i, j) + dt * rhs(i, j));
-      }
-    };
-  }
-  else { // D == 3
-    auto pol = get_mdiota_policy(psi_out,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-    s.executor().forall(kji, pol) {
-      auto [k, j, i] = kji;
-      if constexpr(STEP == 1) {
-        psi_out(i, j, k) = psi_n0(i, j, k) + dt * rhs(i, j, k);
-      }
-      else if constexpr(STEP == 2) {
-        psi_out(i, j, k) = 0.75 * psi_n0(i, j, k) +
-                           0.25 * (psi_prev(i, j, k) + dt * rhs(i, j, k));
-      }
-      else { // STEP == 3
-        psi_out(i, j, k) =
-          (1.0 / 3.0) * psi_n0(i, j, k) +
-          (2.0 / 3.0) * (psi_prev(i, j, k) + dt * rhs(i, j, k));
-      }
-    };
-  }
+  s.executor().forall(i, flecsi::util::iota_view({}, psi_out.span().size())) {
+    if constexpr(STEP == 1) {
+      psi_out(i) = psi_n0(i) + dt * rhs(i);
+    }
+    else if constexpr(STEP == 2) {
+      psi_out(i) = 0.75 * psi_n0(i) + 0.25 * (psi_prev(i) + dt * rhs(i));
+    }
+    else { // STEP == 3
+      psi_out(i) =
+        (1.0 / 3.0) * psi_n0(i) + (2.0 / 3.0) * (psi_prev(i) + dt * rhs(i));
+    }
+  };
 }
 
 // Determine state at time level n+1 (2-neigh 1D, 4-neigh 2D, 6-neigh 3D)
