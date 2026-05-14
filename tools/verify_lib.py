@@ -3,15 +3,14 @@ import os
 import subprocess
 import sys
 from collections.abc import Callable
+from importlib import util as imputil
 from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from importlib import util as imputil
 
 
 class wrapFunction(object):
-
     # Declaring the attributes to provide mypy with enough information
     density: Callable
     pressure: Callable
@@ -39,8 +38,9 @@ class wrapFunction(object):
         self.__dict__[name] = wrap
 
 
-def parse_cli(get_file: bool = True
-              ) -> tuple[str, int, str | None, str | None, bool, bool]:
+def parse_cli(
+    get_file: bool = True,
+) -> tuple[str, int, str | None, str | None, bool, bool]:
     """
     Parse command line input
     """
@@ -72,7 +72,6 @@ def parse_cli(get_file: bool = True
             out_dir = arg
 
     if get_file:
-
         # If no file is passed, select the latest available output
         if csv_file is None:
             pattern = f"output-{dim}D-?-*.csv"
@@ -90,7 +89,9 @@ def simple_quad(f: Callable, x0: NDArray, x1: NDArray, deg: int = 10) -> float:
     """
 
     points, weights = np.polynomial.legendre.leggauss(deg)
-    def transform(x): return ((x1 - x0) * x + x1 + x0) * 0.5
+
+    def transform(x):
+        return ((x1 - x0) * x + x1 + x0) * 0.5
 
     return np.sum(f(transform(points)) * weights) * 0.5 * (x1 - x0)
 
@@ -110,8 +111,9 @@ def get_dx(array: NDArray) -> float | None:
     return None
 
 
-def compute_l1_error_fvm(x_num: NDArray, numerical: NDArray,
-                         analytical: Callable, dim: int) -> float:
+def compute_l1_error_fvm(
+    x_num: NDArray, numerical: NDArray, analytical: Callable, dim: int
+) -> float:
 
     assert dim in [1, 2, 3]
 
@@ -139,11 +141,16 @@ def compute_l1_error_fvm(x_num: NDArray, numerical: NDArray,
             x0 = x - dx * 0.5
             y0 = y - dy * 0.5
 
-            error += abs(dx * dy * numerical[i] - simple_quad(
-                lambda y: simple_quad(
-                    lambda x: analytical([x, y]),
-                    x0, x1),
-                y0, y1))
+            error += abs(
+                dx * dy * numerical[i]
+                - simple_quad(
+                    lambda y: simple_quad(
+                        lambda x: analytical([x, y]), x0, x1
+                    ),
+                    y0,
+                    y1,
+                )
+            )
     else:
         dx = get_dx(x_num[0])
         dy = get_dx(x_num[1])
@@ -161,22 +168,31 @@ def compute_l1_error_fvm(x_num: NDArray, numerical: NDArray,
             y0 = y - dy * 0.5
             z0 = z - dz * 0.5
 
-            error += abs(dx * dy * dz * numerical[i] - simple_quad(
-                lambda z: simple_quad(
-                    lambda y: simple_quad(
-                        lambda x: analytical([x, y, z]), x0, x1),
-                    y0, y1),
-                z0, z1))
+            error += abs(
+                dx * dy * dz * numerical[i]
+                - simple_quad(
+                    lambda z: simple_quad(
+                        lambda y: simple_quad(
+                            lambda x: analytical([x, y, z]), x0, x1
+                        ),
+                        y0,
+                        y1,
+                    ),
+                    z0,
+                    z1,
+                )
+            )
 
     return error
 
 
-def find_last_output(pattern: str = "output-?D-?-*.csv",
-                     dir: str | None = None) -> tuple[str | None, bool]:
-    '''
+def find_last_output(
+    pattern: str = "output-?D-?-*.csv", dir: str | None = None
+) -> tuple[str | None, bool]:
+    """
     Return the last csv file and a boolean that indicates where the
     files were combined or not.
-    '''
+    """
 
     if dir is not None:
         pattern = os.path.join(dir, pattern)
@@ -198,7 +214,7 @@ def find_last_output(pattern: str = "output-?D-?-*.csv",
         return files[-1], False
     else:
         nn = int(len(files) / (mm + 1))
-        combine = files[nn - 1::nn]
+        combine = files[nn - 1 :: nn]
 
         # Combine the files
         new_file = combine[-1].replace(f"D-{mm}-", f"D-{mm + 1}-")
@@ -207,8 +223,9 @@ def find_last_output(pattern: str = "output-?D-?-*.csv",
         return new_file, True
 
 
-def parse_config(file_path: str
-                 ) -> tuple[str, float, NDArray, NDArray, dict[str, Any]]:
+def parse_config(
+    file_path: str,
+) -> tuple[str, float, NDArray, NDArray, dict[str, Any]]:
 
     module_name = "custom_module"
 
@@ -219,10 +236,10 @@ def parse_config(file_path: str
     module = imputil.module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    gamma = float(module.config.get('gamma', 1.4))
-    x0 = np.array(module.config['coords'][0])
-    x1 = np.array(module.config['coords'][1])
-    problem = module.config['problem']
-    problem_dict = module.config.get('problem_parameters')
+    gamma = float(module.config.get("gamma", 1.4))
+    x0 = np.array(module.config["coords"][0])
+    x1 = np.array(module.config["coords"][1])
+    problem = module.config["problem"]
+    problem_dict = module.config.get("problem_parameters")
 
     return problem, gamma, x0, x1, problem_dict

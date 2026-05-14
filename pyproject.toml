@@ -1,0 +1,13 @@
+[tool.isort]
+line_length = 79
+
+[tool.flake8]
+max-line-length = 79
+extend-ignore = "F401,E226,W503,W504"
+
+[tool.autopep8]
+max_line_length = 79
+ignore = "E226,W503,W504"
+
+[tool.ruff]
+line-length = 79
