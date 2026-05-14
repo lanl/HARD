@@ -1,7 +1,7 @@
+import argparse
 import glob
 import os
 import subprocess
-import sys
 from collections.abc import Callable
 from importlib import util as imputil
 from typing import Any
@@ -45,42 +45,40 @@ def parse_cli(
     Parse command line input
     """
 
-    if len(sys.argv) < 2:
-        s = f"Usage: python {sys.argv[0]} <config_file> <dim>"
-        s += " [output_dir | output.csv]"
-        s += " [--plot]"
-        sys.exit(s)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config_file", help="The config file")
+    parser.add_argument("dim", type=int, help="Dimension of the problem")
+    parser.add_argument(
+        "-o", "--output", help="Optional output file or directory"
+    )
+    parser.add_argument(
+        "--plot", action="store_true", help="If set, produces a plot"
+    )
+    args = parser.parse_args()
 
-    # Read the config file
-    config_file = sys.argv[1]
-
-    # Get the number of dimensions
-    dim = int(sys.argv[2])
-    assert dim in [1, 2, 3]
+    # Assert the number of dimensions
+    assert args.dim in [1, 2, 3]
 
     csv_file = None
     combined = False
     out_dir = None
-    make_plot = False
 
-    for arg in sys.argv[3:]:
-        if arg.endswith(".csv"):
-            csv_file = arg
-        elif arg == "--plot":
-            make_plot = True
+    if args.output is not None:
+        if args.output.endswith(".csv"):
+            csv_file = args.output
         else:
-            out_dir = arg
+            out_dir = args.output
 
     if get_file:
         # If no file is passed, select the latest available output
         if csv_file is None:
-            pattern = f"output-{dim}D-?-*.csv"
+            pattern = f"output-{args.dim}D-?-*.csv"
             csv_file, combined = find_last_output(pattern=pattern, dir=out_dir)
             assert csv_file is not None
 
             print(f"Auto-selected input file: {csv_file}")
 
-    return config_file, dim, out_dir, csv_file, combined, make_plot
+    return args.config_file, args.dim, out_dir, csv_file, combined, args.plot
 
 
 def simple_quad(f: Callable, x0: NDArray, x1: NDArray, deg: int = 10) -> float:
