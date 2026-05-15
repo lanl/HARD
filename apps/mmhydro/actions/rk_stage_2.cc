@@ -138,8 +138,10 @@ advance_rk_stage_2(state<D> & s,
         s.dt(*s.gt)); // dtau in original work
 
       // Swap
-      sc.execute<hard::tasks::util::copy_scal_field<dm::quantities, D, double>>(
-        flecsi::exec::on, *s.m, s.extp.q_scalar2(*s.m), s.extp.q_scalar(*s.m));
+      // sc.execute<hard::tasks::util::copy_scal_field<dm::quantities, D,
+      // double>>(
+      //  flecsi::exec::on, *s.m, s.extp.q_scalar2(*s.m),
+      //  s.extp.q_scalar(*s.m));
 
       /* End of extrapolation*/
 

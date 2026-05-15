@@ -3,10 +3,21 @@
 
 #include "../state.hh"
 
+#include <array>
 #include <sstream>
 
 namespace hard::tasks::util {
 
+// Define alias extrapolated state. We follow our primitive convention
+// q[0] = rho
+// q[1...D] = velocity
+// q[D+1] = pressure
+// q[D+2] = specific internal energy
+// TODO : do we need more field?
+template<std::size_t D>
+using extp_q = std::array<double, D + 3>;
+
+#if 0
 template<dm::domain DM, std::size_t D, typename T>
 void
 copy_scal_field(flecsi::exec::accelerator s,
@@ -39,6 +50,7 @@ copy_scal_field(flecsi::exec::accelerator s,
     } // for
   } // if
 } // copy_scal_field
+#endif
 
 } // namespace hard::tasks::util
 

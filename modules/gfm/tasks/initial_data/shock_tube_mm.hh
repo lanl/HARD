@@ -2,6 +2,7 @@
 #define HARD_GFM_MODULES_SHOCK_TUBE_MM_HH
 
 #include "../modules/common/tasks/utils.hh"
+#include "../utils.hh"
 #include <cmath>
 #include <cstddef>
 
@@ -55,8 +56,10 @@ shock_mm(flecsi::exec::cpu s,
   typename field<int>::accessor<rw, ro> material_a,
   typename field<int>::accessor<wo, ro> frozen_material_a,
   field<double>::accessor<rw, ro> psi_a,
-  typename field<double>::template accessor<rw, na> q_scalar_a,
-  typename field<double>::template accessor<rw, na> q_scalar_known_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+    q_scalar_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+    q_scalar_known_a,
   const std::vector<eos::eos_wrapper> & eos_mm) {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -71,6 +74,31 @@ shock_mm(flecsi::exec::cpu s,
 
   auto q_scalar = m.template mdcolex<is::cells>(q_scalar_a);
   auto q_scalar_known = m.template mdcolex<is::cells>(q_scalar_known_a);
+
+  // Fill extrapolation value
+  constexpr std::size_t rho_id = 0;
+  constexpr std::size_t vel_id = 1;
+  constexpr std::size_t p_id = 1 + D;
+  constexpr std::size_t e_id = 2 + D;
+
+  auto set_q = [](auto & qcell,
+                 double rho,
+                 const vec<D> & velocity,
+                 double pressure,
+                 double sie) {
+    qcell[rho_id] = rho;
+
+    qcell[vel_id + 0] = velocity.x();
+
+    if constexpr(D >= 2)
+      qcell[vel_id + 1] = velocity.y();
+
+    if constexpr(D >= 3)
+      qcell[vel_id + 2] = velocity.z();
+
+    qcell[p_id] = pressure;
+    qcell[e_id] = sie;
+  };
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
@@ -94,9 +122,12 @@ shock_mm(flecsi::exec::cpu s,
         const double e = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
         total_energy_density(i) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
 
-        // Extrapolation scratch scalar
-        q_scalar(i) = T::rL;
-        q_scalar_known(i) = T::rL;
+        // Extrapolation scratch value
+        vec<D> velocity(0.0);
+        velocity.x() = T::uL;
+
+        set_q(q_scalar(i), T::rL, velocity, T::pL, e);
+        q_scalar_known(i) = q_scalar(i);
       }
       else {
         material(i) = T::mR;
@@ -108,9 +139,12 @@ shock_mm(flecsi::exec::cpu s,
         const double e = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
         total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
 
-        // Extrapolation scratch scalar
-        q_scalar(i) = T::rR;
-        q_scalar_known(i) = T::rR;
+        // Extrapolation scratch value
+        vec<D> velocity(0.0);
+        velocity.x() = T::uR;
+
+        set_q(q_scalar(i), T::rR, velocity, T::pR, e);
+        q_scalar_known(i) = q_scalar(i);
       } // if
     }; // forall
   }
@@ -136,8 +170,11 @@ shock_mm(flecsi::exec::cpu s,
         total_energy_density(i, j) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
 
         // Extrapolation scratch scalar
-        q_scalar(i, j) = T::rL;
-        q_scalar_known(i, j) = T::rL;
+        vec<D> velocity(0.0);
+        velocity.x() = T::uL;
+
+        set_q(q_scalar(i, j), T::rL, velocity, T::pL, e);
+        q_scalar_known(i, j) = q_scalar(i, j);
       }
       else {
         material(i, j) = T::mR;
@@ -150,8 +187,11 @@ shock_mm(flecsi::exec::cpu s,
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
         // Extrapolation scratch scalar
-        q_scalar(i, j) = T::rR;
-        q_scalar_known(i, j) = T::rR;
+        vec<D> velocity(0.0);
+        velocity.x() = T::uR;
+
+        set_q(q_scalar(i, j), T::rR, velocity, T::pR, e);
+        q_scalar_known(i, j) = q_scalar(i, j);
       } // if
     }; // forall
   }
@@ -178,8 +218,11 @@ shock_mm(flecsi::exec::cpu s,
         total_energy_density(i, j, k) =
           T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
         // Extrapolation scratch scalar
-        q_scalar(i, j, k) = T::rL;
-        q_scalar_known(i, j, k) = T::rL;
+        vec<D> velocity(0.0);
+        velocity.x() = T::uL;
+
+        set_q(q_scalar(i, j, k), T::rL, velocity, T::pL, e);
+        q_scalar_known(i, j, k) = q_scalar(i, j, k);
       }
       else {
         material(i, j, k) = T::mR;
@@ -192,9 +235,14 @@ shock_mm(flecsi::exec::cpu s,
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i, j, k) =
           T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
+
         // Extrapolation scratch scalar
-        q_scalar(i, j, k) = T::rR;
-        q_scalar_known(i, j, k) = T::rR;
+        vec<D> velocity(0.0);
+        velocity.x() = T::uR;
+
+        set_q(q_scalar(i, j, k), T::rR, velocity, T::pR, e);
+        q_scalar_known(i, j, k) = q_scalar(i, j, k);
+
       } // if
     }; // forall
   } // if

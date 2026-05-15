@@ -2,9 +2,11 @@
 #define HARD_MODULES_GFM_STATE_HH
 
 #include "../modules/spec/eos.hh"
+#include "tasks/utils.hh"
 #include "types.hh"
 
 namespace hard::gfm {
+
 template<std::size_t D>
 struct state {
 
@@ -39,17 +41,26 @@ struct state {
       is::cells>
       normal; // dp
 
-    static inline const field<double>::definition<mesh<D>, is::cells> q_scalar;
-    static inline const field<double>::definition<mesh<D>, is::cells>
+    static inline const field<
+      hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+      q_scalar;
+    static inline const field<
+      hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
       q_scalar_known;
-    static inline const field<double>::definition<mesh<D>, is::cells> q_scalar1;
-    static inline const field<double>::definition<mesh<D>, is::cells> q_scalar2;
-    static inline const field<double>::definition<mesh<D>, is::cells>
+    static inline const field<
+      hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+      q_scalar1;
+    static inline const field<
+      hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+      q_scalar2;
+    static inline const field<
+      hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
       q_new_scalar;
     // RHS for extrapolation
     // TODO : Maybe don't need this?
-    static inline const field<double>::definition<mesh<D>, is::cells> q_rhs,
-      q_rhs1;
+    static inline const field<
+      hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+      q_rhs, q_rhs1;
 
     // Normal faces for the surfaces
     struct faces_rl {

@@ -7,6 +7,7 @@
 #include "../../spec/limiter.hh"
 #include "../../spec/mesh.hh"
 #include "../state.hh"
+#include "utils.hh"
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -248,10 +249,12 @@ template<std::size_t D>
 void
 rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, ro> q_scalar_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+    q_scalar_a,
   typename field<double>::template accessor<ro, ro> psi_a,
   typename field<vec<D>>::template accessor<ro, ro> normal_a,
-  typename field<double>::template accessor<wo, na> rhs_a) noexcept {
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    rhs_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
@@ -262,19 +265,29 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
 
   const double dx = m.template delta<ax::x>();
 
+  constexpr std::size_t N_q = D + 3;
+
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
 
       if(psi(i) <= 0.0) {
-        rhs(i) = 0.0;
+        for(std::size_t qid = 0; qid < N_q; ++qid) {
+          rhs(i)[qid] = 0.0;
+        };
       }
       else {
 
         const double ax = normal(i).x();
 
-        rhs(i) =
-          -ax *
-          gradu_1d<5>({q(i - 2), q(i - 1), q(i), q(i + 1), q(i + 2)}, ax, dx);
+        for(std::size_t qid = 0; qid < N_q; ++qid) {
+          rhs(i)[qid] = -ax * gradu_1d<5>({q(i - 2)[qid],
+                                            q(i - 1)[qid],
+                                            q(i)[qid],
+                                            q(i + 1)[qid],
+                                            q(i + 2)[qid]},
+                                ax,
+                                dx);
+        }
       }
     };
   }
@@ -289,7 +302,10 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
       auto [j, i] = ji;
 
       if(psi(i, j) <= 0.0) {
-        rhs(i, j) = 0.0;
+
+        for(std::size_t qid = 0; qid < N_q; ++qid) {
+          rhs(i, j)[qid] = 0.0;
+        }
       }
       else {
 
@@ -297,13 +313,16 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         const double ay = normal(i, j).y();
 
         // clang-format off
-      rhs(i, j) =
+	
+	for(std::size_t qid = 0; qid < N_q; ++qid){
+      rhs(i, j)[qid] =
         -(ax * gradu_1d<5>(
-          {q(i - 2, j), q(i - 1, j), q(i, j), q(i + 1, j), q(i + 2, j)},
+          {q(i - 2, j)[qid], q(i - 1, j)[qid], q(i, j)[qid], q(i + 1, j)[qid], q(i + 2, j)[qid]},
           ax, dx) +
         ay * gradu_1d<5>(
-          {q(i, j - 2), q(i, j - 1), q(i, j), q(i, j + 1), q(i, j + 2)},
+          {q(i, j - 2)[qid], q(i, j - 1)[qid], q(i, j)[qid], q(i, j + 1)[qid], q(i, j + 2)[qid]},
           ay, dy));
+	}
         // clang-format on
       }
     };
@@ -321,7 +340,9 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
       auto [k, j, i] = kji;
 
       if(psi(i, j, k) <= 0.0) {
-        rhs(i, j, k) = 0.0;
+        for(std::size_t qid = 0; qid < N_q; ++qid) {
+          rhs(i, j, k)[qid] = 0.0;
+        }
       }
       else {
 
@@ -330,28 +351,31 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         const double az = normal(i, j, k).z();
 
         // clang-format off
-      rhs(i, j, k) =
+      
+	for(std::size_t qid = 0; qid < N_q; ++qid){
+      rhs(i, j, k)[qid] =
         -(ax * gradu_1d<5>(
-          {q(i - 2, j, k),
-            q(i - 1, j, k),
-            q(i, j, k),
-            q(i + 1, j, k),
-            q(i + 2, j, k)},
+          {q(i - 2, j, k)[qid],
+            q(i - 1, j, k)[qid],
+            q(i, j, k)[qid],
+            q(i + 1, j, k)[qid],
+            q(i + 2, j, k)[qid]},
           ax, dx) +
         ay * gradu_1d<5>(
-          {q(i, j - 2, k),
-            q(i, j - 1, k),
-            q(i, j, k),
-            q(i, j + 1, k),
-            q(i, j + 2, k)},
+          {q(i, j - 2, k)[qid],
+            q(i, j - 1, k)[qid],
+            q(i, j, k)[qid],
+            q(i, j + 1, k)[qid],
+            q(i, j + 2, k)[qid]},
           ay, dy) +
         az * gradu_1d<5>(
-          {q(i, j, k - 2),
-            q(i, j, k - 1),
-            q(i, j, k),
-            q(i, j, k + 1),
-            q(i, j, k + 2)},
+          {q(i, j, k - 2)[qid],
+            q(i, j, k - 1)[qid],
+            q(i, j, k)[qid],
+            q(i, j, k + 1)[qid],
+            q(i, j, k + 2)[qid]},
           az, dz));
+	}
         // clang-format on
       }
     };
@@ -366,18 +390,30 @@ void
 advance_q_rk2_s1(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, na> psi_a,
-  typename field<double>::template accessor<ro, na> q_known_a,
-  typename field<double>::template accessor<ro, na> q_a, // base q^n
-  typename field<double>::template accessor<ro, ro>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
+    q_known_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
+    q_a, // base q^n
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
     rhs_a, // rhs at base or stage
-  typename field<double>::template accessor<wo, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
   typename single<double>::template accessor<ro> dt_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
+  constexpr std::size_t N_q = D + 3;
+  const double dt = *dt_a;
+
   s.executor().forall(i, flecsi::util::iota_view({}, q_new_a.span().size())) {
-    q_new_a(i) = psi_a(i) <= 0.0 ? q_known_a(i) : q_a(i) + *dt_a * rhs_a(i);
+    if(psi_a(i) <= 0.0) {
+      q_new_a(i) = q_known_a(i);
+    }
+    else {
+      for(std::size_t qid = 0; qid < N_q; ++qid) {
+        q_new_a(i)[qid] = q_a(i)[qid] + dt * rhs_a(i)[qid];
+      }
+    }
   };
 }
 
@@ -386,22 +422,33 @@ void
 advance_q_rk2_s2(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, na> psi_a,
-  typename field<double>::template accessor<ro, na> q_known_a,
-  typename field<double>::template accessor<ro, na> q_a, // base q^n
-  typename field<double>::template accessor<ro, ro>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
+    q_known_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
+    q_a, // base q^n
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
     rhs_a, // rhs at base or stage
-  typename field<double>::template accessor<rw, ro>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, ro>
     q_stage_a, // q^(1) (only used in STEP=2)
-  typename field<double>::template accessor<wo, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
   typename single<double>::template accessor<ro> dt_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
+  constexpr std::size_t N_q = D + 3;
+  const double dt = *dt_a;
+
   s.executor().forall(i, flecsi::util::iota_view({}, q_new_a.span().size())) {
-    q_new_a(i) = psi_a(i) <= 0.0
-                   ? q_known_a(i)
-                   : 0.5 * (q_a(i) + q_stage_a(i) + *dt_a * rhs_a(i));
+    if(psi_a(i) <= 0.0) {
+      q_new_a(i) = q_known_a(i);
+    }
+    else {
+      for(std::size_t qid = 0; qid < N_q; ++qid) {
+        q_new_a(i)[qid] =
+          0.5 * (q_a(i)[qid] + q_stage_a(i)[qid] + dt * rhs_a(i)[qid]);
+      }
+    }
   };
 }
 } // namespace hard::tasks::extrapolation
