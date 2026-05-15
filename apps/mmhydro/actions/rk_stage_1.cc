@@ -88,7 +88,8 @@ advance_rk_stage_1(state<D> & s,
         scalar_v.push_back(std::make_tuple(std::get<0>(v), std::get<2>(v)));
       }
 
-      // TODO : this is the where extrapolation should go to feel ghost
+      /* Start extrapolation routine to fill ghost stage
+       * This is based on Aslam JCP 2003, constant extrapolation */
 
       // Compute unit normal of level set gradient
       // dp = grad(psi)
@@ -121,6 +122,32 @@ advance_rk_stage_1(state<D> & s,
         s.extp.q_scalar1(*s.m), // output stage-1
         s.dt(*s.gt)); // dtau in the origianl work
 
+      // Stage 2: rhs(q1) -> rhs1
+      sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.extp.q_scalar1(*s.m),
+        s.ls.psi(*s.m),
+        s.extp.normal(*s.m),
+        s.extp.q_rhs1(*s.m));
+
+      // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
+      sc.execute<tasks::extrapolation::advance_q_rk2_s2<D>>(flecsi::exec::on,
+        *s.m,
+        s.ls.psi(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_scalar(*s.m), // q^n
+        s.extp.q_rhs1(*s.m), // rhs(q1)
+        s.extp.q_scalar1(*s.m), // q_stage
+        s.extp.q_scalar2(*s.m), // q_new
+        s.dt(*s.gt)); // dtau in original work
+
+      // Swap
+      sc.execute<hard::tasks::util::copy_scal_field<dm::quantities, D, double>>(
+        flecsi::exec::on, *s.m, s.extp.q_scalar2(*s.m), s.extp.q_scalar(*s.m));
+
+      /* End of extrapolation*/
+
       // clang-format off
     sc.execute<tasks::hydro::reconstruct_primitives<D, limiter>>(
       flecsi::exec::on,
@@ -134,30 +161,6 @@ advance_rk_stage_1(state<D> & s,
           s.f.hydro.u_face(s.m))});
       // clang-format on
     }
-
-    // Stage 2: rhs(q1) -> rhs1
-    sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
-      flecsi::exec::on,
-      *s.m,
-      s.extp.q_scalar1(*s.m),
-      s.ls.psi(*s.m),
-      s.extp.normal(*s.m),
-      s.extp.q_rhs1(*s.m));
-
-    // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
-    sc.execute<tasks::extrapolation::advance_q_rk2_s2<D>>(flecsi::exec::on,
-      *s.m,
-      s.ls.psi(*s.m),
-      s.extp.q_scalar_known(*s.m),
-      s.extp.q_scalar(*s.m), // q^n
-      s.extp.q_rhs1(*s.m), // rhs(q1)
-      s.extp.q_scalar1(*s.m), // q_stage
-      s.extp.q_scalar2(*s.m), // q_new
-      s.dt(*s.gt)); // dtau in original work
-
-    // Swap
-    sc.execute<hard::tasks::util::copy_scal_field<dm::quantities, D, double>>(
-      flecsi::exec::on, *s.m, s.extp.q_scalar2(*s.m), s.extp.q_scalar(*s.m));
 
     sc.execute<tasks::hydro::reconstruct_conservatives<D>>(flecsi::exec::on,
       *s.m,

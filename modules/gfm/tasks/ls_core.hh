@@ -230,7 +230,8 @@ determine_psi(flecsi::exec::accelerator s,
         int lmin = fmat(i);
 
         // Array of neighbor indices
-        std::array<int, 2 * D> neighbors = {i - 1, i + 1};
+        const int ii = static_cast<int>(i);
+        std::array<int, 2 * D> neighbors = {ii - 1, ii + 1};
 
         for(auto ni : neighbors) {
           if(fmat(ni) != fmat(i) && fpsi(ni) < psimin) {
@@ -261,10 +262,13 @@ determine_psi(flecsi::exec::accelerator s,
         int lmin = fmat(i, j);
 
         // Array of neighbor coordinate pairs
-        std::array<std::pair<int, int>, 2 * D> neighbors = {std::pair{i - 1, j},
-          std::pair{i + 1, j},
-          std::pair{i, j - 1},
-          std::pair{i, j + 1}};
+        const int ii = static_cast<int>(i);
+        const int jj = static_cast<int>(j);
+        std::array<std::pair<int, int>, 2 * D> neighbors = {
+          std::pair{ii - 1, jj},
+          std::pair{ii + 1, jj},
+          std::pair{ii, jj - 1},
+          std::pair{ii, jj + 1}};
 
         for(auto [ni, nj] : neighbors) {
           if(fmat(ni, nj) != fmat(i, j) && fpsi(ni, nj) < psimin) {
@@ -296,13 +300,16 @@ determine_psi(flecsi::exec::accelerator s,
         int lmin = fmat(i, j, k);
 
         // Array of neighbor coordinate triples
+        const int ii = static_cast<int>(i);
+        const int jj = static_cast<int>(j);
+        const int kk = static_cast<int>(k);
         std::array<std::tuple<int, int, int>, 2 * D> neighbors = {
-          std::tuple{i - 1, j, k},
-          std::tuple{i + 1, j, k},
-          std::tuple{i, j - 1, k},
-          std::tuple{i, j + 1, k},
-          std::tuple{i, j, k - 1},
-          std::tuple{i, j, k + 1}};
+          std::tuple{ii - 1, jj, kk},
+          std::tuple{ii + 1, jj, kk},
+          std::tuple{ii, jj - 1, kk},
+          std::tuple{ii, jj + 1, kk},
+          std::tuple{ii, jj, kk - 1},
+          std::tuple{ii, jj, kk + 1}};
 
         for(auto [ni, nj, nk] : neighbors) {
           if(fmat(ni, nj, nk) != fmat(i, j, k) && fpsi(ni, nj, nk) < psimin) {
