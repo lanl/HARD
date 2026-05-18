@@ -3,7 +3,6 @@
 
 #include "../modules/common/tasks/utils.hh"
 #include "../numerical_algorithms/riemann_solvers.hh"
-#include <cstddef>
 
 namespace hard::tasks::hydro {
 

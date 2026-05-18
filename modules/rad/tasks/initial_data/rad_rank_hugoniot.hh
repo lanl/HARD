@@ -3,8 +3,6 @@
 
 #include "../../constants.hh"
 #include "types.hh"
-#include <cmath>
-#include <cstddef>
 
 namespace hard::tasks::initial_data {
 

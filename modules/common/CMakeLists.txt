@@ -28,9 +28,10 @@ target_include_directories(libcommon
 # Keep these only if common headers use them in inline code.
 target_link_libraries(libcommon
   INTERFACE
-    yaml-cpp::yaml-cpp
     singularity-eos::singularity-eos
     FleCSI::FleCSI
+    pybind11::headers
+    Python::Python
 )
 
 target_compile_definitions(libcommon

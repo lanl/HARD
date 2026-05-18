@@ -1,8 +1,6 @@
 #ifndef HARD_COMMON_TASKS_BOUNDARIES_HH
 #define HARD_COMMON_TASKS_BOUNDARIES_HH
 
-#include <cstddef>
-
 #include "../modules/common/tasks/utils.hh"
 
 #include "dirichlet.hh"

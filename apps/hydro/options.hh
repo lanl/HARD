@@ -5,11 +5,11 @@
 
 namespace hard::opt {
 
-inline flecsi::program_option<std::string> config("yaml file",
-  "The yaml config file.",
+inline flecsi::program_option<std::string> config("python file",
+  "The python config file.",
   1,
   [](std::string const & v, std::stringstream & ss) {
-    return v.find(".yaml") != std::string::npos
+    return v.find(".py") != std::string::npos
              ? true
              : (ss << "file(" << v << ") has invalid suffix") && false;
   });

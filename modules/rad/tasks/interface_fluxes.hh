@@ -3,7 +3,6 @@
 
 #include "../modules/hydro/numerical_algorithms/riemann_solvers.hh"
 #include "types.hh"
-#include <cstddef>
 
 namespace hard::tasks::rad {
 

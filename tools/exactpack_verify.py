@@ -138,14 +138,14 @@ class Problem(object):
     Class to hold each type of problem parameters
     """
 
-    def __init__(self, yaml_file: str, dim: int) -> None:
+    def __init__(self, config_file: str, dim: int) -> None:
         """
-        yaml_file - the yaml_file with the problem configuration
+        config_file - the python file with the problem configuration
         """
 
         assert dim in [1, 2, 3]
 
-        name, gamma, x0, x1, problem_dict = parse_config(yaml_file)
+        name, gamma, x0, x1, problem_dict = parse_config(config_file)
 
         self.name = name
         self.gamma = gamma
@@ -327,11 +327,11 @@ class Problem(object):
 def main() -> None:
 
     # Get the values
-    yaml_file, dim, _, csv_file, combined, make_plot = parse_cli()
+    config_file, dim, _, csv_file, combined, make_plot = parse_cli()
     assert csv_file is not None
 
     # Instantiate problem object
-    problem = Problem(yaml_file, dim)
+    problem = Problem(config_file, dim)
 
     # Load csv file
     problem.load_csv_file(csv_file)
