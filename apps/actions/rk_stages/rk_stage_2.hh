@@ -186,7 +186,8 @@ update_rk_stage_2(state<D> & s,
     }
 
     // Finish by updating the values stored in U_n to U
-    sc.execute<tasks::hydro::store_current_state<D>>(flecsi::exec::on,
+    sc.execute<common::tasks::utils::copy_scalar_v_vector<D, vec<D>>>(
+      flecsi::exec::on,
       scalar_v,
       std::vector{std::make_tuple(s.rk_n.momentum_energy_density()(*s.m),
         s.cons.hydro.momentum_density(*s.m))});

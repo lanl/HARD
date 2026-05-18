@@ -68,6 +68,42 @@ get_mdiota_policy(const M & m, const IT & it1, const IT & it2, const IT & it3) {
     m, sub_range{b1, e1}, sub_range{b2, e2}, sub_range{b3, e3});
 } // get_mdiota_policy
 
+// Copy a field to another one
+// The tuple contains the <from, to> fields
+template<std::size_t Dim>
+void
+copy_scalar(flecsi::exec::accelerator s,
+  field<double>::accessor<ro, na> from_a,
+  field<double>::accessor<wo, na> to_a) noexcept {
+
+  s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
+    to_a(i) = from_a(i);
+  };
+}
+
+// Copy a field to another one
+// The tuple contains the <from, to> fields
+template<std::size_t Dim, class V>
+void
+copy_scalar_v_vector(flecsi::exec::accelerator s,
+  std::vector<std::tuple<field<double>::accessor<ro, na>,
+    field<double>::accessor<wo, na>>> v_a,
+  std::vector<std::tuple<typename field<V>::template accessor<ro, na>,
+    typename field<V>::template accessor<wo, na>>> vec_v_a) noexcept {
+
+  for(auto & [from_a, to_a] : v_a) {
+    s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
+      to_a(i) = from_a(i);
+    }; // forall
+  }
+
+  for(auto & [from_a, to_a] : vec_v_a) {
+    s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
+      to_a(i) = from_a(i);
+    }; // forall
+  }
+}
+
 } // namespace common::tasks::utils
 
 #endif // HARD_MODULES_COMMON_TASKS_UTILS_HH
