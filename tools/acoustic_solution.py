@@ -6,9 +6,14 @@ from numpy.typing import NDArray
 
 
 class Acoustic(object):
-
-    def __init__(self, gamma: float, x0: NDArray, x1: NDArray,
-                 problem_dict: dict[str, Any], dim: int) -> None:
+    def __init__(
+        self,
+        gamma: float,
+        x0: NDArray,
+        x1: NDArray,
+        problem_dict: dict[str, Any],
+        dim: int,
+    ) -> None:
 
         self.gamma = gamma
         self.x0 = x0[:dim]
@@ -22,8 +27,9 @@ class Acoustic(object):
         self.cs = np.sqrt(self.gamma * self.p0 / self.r0)
 
         self.amplitude = float(self.problem_dict["amplitude"])
-        self.scale = 2 * np.pi * \
-            np.array(self.problem_dict["scale"])[:dim] / self.span
+        self.scale = (
+            2 * np.pi * np.array(self.problem_dict["scale"])[:dim] / self.span
+        )
 
         # Scale norm
         self.scale_norm = np.sqrt(self.scale.dot(self.scale))
@@ -46,14 +52,16 @@ class Acoustic(object):
         if self.dim == 1:
             return lambda coords: np.sin(self.scale * coords) * self.amplitude
         else:
-            return lambda coords: np.sin(np.sum(self.scale * coords,
-                                                axis=0)) * self.amplitude
+            return lambda coords: (
+                np.sin(np.sum(self.scale * coords, axis=0)) * self.amplitude
+            )
 
-    def __call__(self, coordinates: list[NDArray] | list[float], t: float
-                 ) -> dict[str, NDArray]:
-        '''
+    def __call__(
+        self, coordinates: list[NDArray] | list[float], t: float
+    ) -> dict[str, NDArray]:
+        """
         Evaluate the perturbation shape
-        '''
+        """
 
         # Take the initial solution and transport it by cs * t, assuming
         # periodic boundary conditions
@@ -63,28 +71,30 @@ class Acoustic(object):
         pressure = self.p0
 
         # Positive movement
-        shifted_coords = (coordinates - t * self.cs * self.directions -
-                          self.x0) % self.span + self.x0
+        shifted_coords = (
+            coordinates - t * self.cs * self.directions - self.x0
+        ) % self.span + self.x0
 
         density += perturbation(shifted_coords) * 0.5
-        pressure += perturbation(shifted_coords) * 0.5 * self.cs ** 2
+        pressure += perturbation(shifted_coords) * 0.5 * self.cs**2
         velocity = perturbation(shifted_coords) * 0.5 * self.cs
 
         # Entropic mode (static density)
         density += perturbation(coordinates)
 
         # Negative movement
-        shifted_coords = (coordinates + t * self.cs * self.directions -
-                          self.x0) % self.span + self.x0
+        shifted_coords = (
+            coordinates + t * self.cs * self.directions - self.x0
+        ) % self.span + self.x0
 
         density -= perturbation(shifted_coords) * 0.5
-        pressure -= perturbation(shifted_coords) * 0.5 * self.cs ** 2
+        pressure -= perturbation(shifted_coords) * 0.5 * self.cs**2
         velocity += perturbation(shifted_coords) * 0.5 * self.cs
 
         solution = {
             "density": density,
             "pressure": pressure,
-            "velocity": velocity
+            "velocity": velocity,
         }
 
         if self.dim > 1:

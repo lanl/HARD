@@ -6,8 +6,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from acoustic_solution import Acoustic
 from numpy.typing import NDArray
-from verify_lib import (compute_l1_error_fvm, parse_cli, parse_config,
-                        wrapFunction)
+from verify_lib import (
+    compute_l1_error_fvm,
+    parse_cli,
+    parse_config,
+    wrapFunction,
+)
 
 
 class ProblemData(object):
@@ -44,10 +48,20 @@ class ProblemData(object):
             self.tolerances = [1e-2, 1e-2, 5e-1, 5e-1]
         else:
             self.usecols = [0, 4, 5, 6, 7, 8, 13, 14, 15]
-            self.extract = ["density", "pressure",
-                            "velocity_x", "velocity_y", "velocity_z"]
-            self.labels = ["Density", "Pressure",
-                           "Velocity x", "Velocity y", "Velocity z"]
+            self.extract = [
+                "density",
+                "pressure",
+                "velocity_x",
+                "velocity_y",
+                "velocity_z",
+            ]
+            self.labels = [
+                "Density",
+                "Pressure",
+                "Velocity x",
+                "Velocity y",
+                "Velocity z",
+            ]
             self.tolerances = [1e-2, 1e-2, 5e-1, 5e-1, 5e-1]
 
         # Define specifics per problem and analytical solutions
@@ -80,28 +94,45 @@ class ProblemData(object):
                 self.left_state = (1.0, 0.0, 1.0)
                 self.right_state = (0.25, 0.0, 0.1795)
 
-    def __acoustic_analytic_solution(self, gamma: float, t: float, x0: NDArray,
-                                     x1: NDArray, problem_dict: dict[str, str]
-                                     ) -> tuple[Callable, ...]:
+    def __acoustic_analytic_solution(
+        self,
+        gamma: float,
+        t: float,
+        x0: NDArray,
+        x1: NDArray,
+        problem_dict: dict[str, str],
+    ) -> tuple[Callable, ...]:
         """
         Return the acoustic analytical solution
         """
 
         result = wrapFunction(
             Acoustic(gamma, x0, x1, problem_dict, dim=self.dim),
-            t, self.extract)
+            t,
+            self.extract,
+        )
 
         if self.dim == 1:
             return result.density, result.pressure, result.velocity
         elif self.dim == 2:
-            return (result.density, result.pressure, result.velocity_x,
-                    result.velocity_y)
+            return (
+                result.density,
+                result.pressure,
+                result.velocity_x,
+                result.velocity_y,
+            )
         else:
-            return (result.density, result.pressure, result.velocity_x,
-                    result.velocity_y, result.velocity_z)
+            return (
+                result.density,
+                result.pressure,
+                result.velocity_x,
+                result.velocity_y,
+                result.velocity_z,
+            )
 
-    def __sedov_analytic_solution(self, x: NDArray, t: float, gamma: float
-                                  ) -> tuple[Callable, ...]:
+    def __sedov_analytic_solution(
+        self, x: NDArray, t: float, gamma: float
+    ) -> tuple[Callable, ...]:
 
         from exactpack.solvers.sedov import Sedov
 
@@ -110,10 +141,14 @@ class ProblemData(object):
 
         return result.density, result.pressure, result.velocity
 
-    def __riemann_analytic_solution(self, x: NDArray, t: float, gamma: float,
-                                    left_state: tuple[float, float, float],
-                                    right_state: tuple[float, float, float]
-                                    ) -> tuple[Callable, ...]:
+    def __riemann_analytic_solution(
+        self,
+        x: NDArray,
+        t: float,
+        gamma: float,
+        left_state: tuple[float, float, float],
+        right_state: tuple[float, float, float],
+    ) -> tuple[Callable, ...]:
 
         try:
             from exactpack.solvers.riemann.ep_riemann import IGEOS_Solver
@@ -124,9 +159,18 @@ class ProblemData(object):
         rho_r, u_r, p_r = right_state
 
         solver = IGEOS_Solver(
-            rl=rho_l, ul=u_l, pl=p_l, gl=gamma,
-            rr=rho_r, ur=u_r, pr=p_r, gr=gamma,
-            xmin=min(x), xd0=0.5 * (min(x) + max(x)), xmax=max(x), t=t
+            rl=rho_l,
+            ul=u_l,
+            pl=p_l,
+            gl=gamma,
+            rr=rho_r,
+            ur=u_r,
+            pr=p_r,
+            gr=gamma,
+            xmin=min(x),
+            xd0=0.5 * (min(x) + max(x)),
+            xmax=max(x),
+            t=t,
         )
 
         sol = wrapFunction(solver, t, self.extract)
@@ -171,8 +215,12 @@ class Problem(object):
         Load the last csv file
         """
         self.csv_file = csv_file
-        csv_out = np.loadtxt(csv_file, comments=["time", "#"],
-                             delimiter=",", usecols=self.data.usecols).T
+        csv_out = np.loadtxt(
+            csv_file,
+            comments=["time", "#"],
+            delimiter=",",
+            usecols=self.data.usecols,
+        ).T
 
         # Extract time and x_arr
         t_index = self.data.usecols.index(0)
@@ -190,20 +238,27 @@ class Problem(object):
         if self.dim == 1:
             self.x_arr = csv_out[x_index]
         elif self.dim == 2:
-            self.x_arr = csv_out[x_index:y_index + 1]
+            self.x_arr = csv_out[x_index : y_index + 1]
         else:
-            self.x_arr = csv_out[x_index:z_index + 1]
+            self.x_arr = csv_out[x_index : z_index + 1]
 
         # Extract the other quantities
         if self.dim == 1:
-            self.numerical = [x for i, x in enumerate(
-                csv_out) if i not in [t_index, x_index]]
+            self.numerical = [
+                x for i, x in enumerate(csv_out) if i not in [t_index, x_index]
+            ]
         elif self.dim == 2:
-            self.numerical = [x for i, x in enumerate(
-                csv_out) if i not in [t_index, x_index, y_index]]
+            self.numerical = [
+                x
+                for i, x in enumerate(csv_out)
+                if i not in [t_index, x_index, y_index]
+            ]
         else:
-            self.numerical = [x for i, x in enumerate(
-                csv_out) if i not in [t_index, x_index, y_index, z_index]]
+            self.numerical = [
+                x
+                for i, x in enumerate(csv_out)
+                if i not in [t_index, x_index, y_index, z_index]
+            ]
 
     def get_exact_solutions(self) -> None:
         """
@@ -215,13 +270,23 @@ class Problem(object):
 
         # Create input interator
         if self.name in self.data.riemann_problems:
-            input = [self.x_arr, self.time, self.gamma,
-                     self.data.left_state, self.data.right_state]
+            input = [
+                self.x_arr,
+                self.time,
+                self.gamma,
+                self.data.left_state,
+                self.data.right_state,
+            ]
         elif self.name == "sedov":
             input = [self.x_arr, self.time, self.gamma]
         elif self.name == "acoustic-wave":
-            input = [self.gamma, self.time,
-                     self.x0, self.x1, self.problem_dict]
+            input = [
+                self.gamma,
+                self.time,
+                self.x0,
+                self.x1,
+                self.problem_dict,
+            ]
         elif self.name == "su-olson":
             input = [self.x_arr, self.time, self.data.extract]
 
@@ -229,8 +294,9 @@ class Problem(object):
         self.analytical = self.data.function(*input)
         self.references = [f(self.x_arr) for f in self.analytical]
 
-    def __plot_comparison(self, num_vals: NDArray, exact_vals: NDArray,
-                          label: str, tag: str) -> None:
+    def __plot_comparison(
+        self, num_vals: NDArray, exact_vals: NDArray, label: str, tag: str
+    ) -> None:
         """
         Plot the numerical output and the reference
         """
@@ -261,11 +327,15 @@ class Problem(object):
         """
 
         # Return the references
-        tag = os.path.splitext(os.path.basename(self.csv_file))[0].replace(
-            "output-", "").replace(".csv", "")
+        tag = (
+            os.path.splitext(os.path.basename(self.csv_file))[0]
+            .replace("output-", "")
+            .replace(".csv", "")
+        )
 
-        for lab, num, ref in zip(self.data.labels, self.numerical,
-                                 self.references):
+        for lab, num, ref in zip(
+            self.data.labels, self.numerical, self.references
+        ):
             self.__plot_comparison(num, ref, lab, tag)
 
     def sedov_cutoff(self, cutoff: float = 0.2) -> None:
@@ -283,8 +353,10 @@ class Problem(object):
         Compute all the errors
         """
 
-        self.errors = [compute_l1_error_fvm(self.x_arr, num, exact, self.dim)
-                       for num, exact in zip(self.numerical, self.analytical)]
+        self.errors = [
+            compute_l1_error_fvm(self.x_arr, num, exact, self.dim)
+            for num, exact in zip(self.numerical, self.analytical)
+        ]
 
     def __color_text(self, text: str, status: str) -> str:
         if status == "PASS":
@@ -301,8 +373,9 @@ class Problem(object):
 
         tols = self.data.tolerances
         if type(tols) is list:
-            failed = [False if x < y else True for x,
-                      y in zip(self.errors, tols)]
+            failed = [
+                False if x < y else True for x, y in zip(self.errors, tols)
+            ]
         elif type(tols) is float:
             failed = [False if x < tols else True for x in self.errors]
         statuses = ["FAIL" if x else "PASS" for x in failed]
