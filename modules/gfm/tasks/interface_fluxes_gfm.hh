@@ -195,6 +195,47 @@ compute_ghost_state(const std::vector<eos::eos_wrapper> & eos_mm,
   return ghost;
 }
 
+// Helper function: build a complete EOS-consistent ghost state from
+// an extrapolated packed primitive state.
+template<std::size_t Dim>
+GhostState<Dim>
+compute_ghost_state_from_extp_q(const std::vector<eos::eos_wrapper> & eos_mm,
+  int mat_id,
+  const hard::tasks::util::extp_q<Dim> & q) noexcept {
+
+  using ids = hard::tasks::util::extp_q_ids<Dim>;
+
+  GhostState<Dim> ghost;
+
+  ghost.rho = std::max(q[ids::rho], 1e-14);
+
+  ghost.u = vec<Dim>(0.0);
+  ghost.u.x() = q[ids::vel + 0];
+
+  if constexpr(Dim >= 2) {
+    ghost.u.y() = q[ids::vel + 1];
+  }
+
+  if constexpr(Dim >= 3) {
+    ghost.u.z() = q[ids::vel + 2];
+  }
+
+  ghost.p = std::max(q[ids::pressure], 1e-14);
+
+  // Recompute EOS-consistent state.
+  compute_state_from_rho_u_p<Dim>(eos_mm,
+    mat_id,
+    ghost.rho,
+    ghost.u,
+    ghost.p,
+    ghost.e,
+    ghost.c,
+    ghost.ru,
+    ghost.re);
+
+  return ghost;
+}
+
 // Helper function: process a single face (same material or GFM cut face)
 template<std::size_t Dim>
 void
@@ -215,6 +256,8 @@ process_single_face(std::size_t face_axis,
   double reR,
   const vec<Dim> & n_left,
   const vec<Dim> & n_right,
+  const hard::tasks::util::extp_q<Dim> & qGhostR_L,
+  const hard::tasks::util::extp_q<Dim> & qGhostL_R,
   const std::vector<eos::eos_wrapper> & eos_mm,
   double & r_flux_out,
   vec<Dim> & ru_flux_out,
@@ -241,12 +284,15 @@ process_single_face(std::size_t face_axis,
     const vec<Dim> n_if =
       normalize_interface_normal(n_left, n_right, face_axis);
 
-    // Compute ghost states
-    auto ghostR_L =
-      compute_ghost_state<Dim>(eos_mm, mL, n_if, rhoL, uL, uR, pR);
-    const vec<Dim> n_rev = -1.0 * n_if;
-    auto ghostL_R =
-      compute_ghost_state<Dim>(eos_mm, mR, n_rev, rhoR, uR, uL, pL);
+    // Ghost state for the left owner problem:
+    // left real state against left-material state extrapolated into the right
+    // side.
+    auto ghostR_L = compute_ghost_state_from_extp_q<Dim>(eos_mm, mL, qGhostR_L);
+
+    // Ghost state for the right owner problem:
+    // right-material state extrapolated into the left side against right real
+    // state.
+    auto ghostL_R = compute_ghost_state_from_extp_q<Dim>(eos_mm, mR, qGhostL_R);
 
     // Left-owner flux
     // clang-format off
@@ -284,6 +330,10 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
   // GFM related
   typename field<int>::accessor<ro, ro> material_a,
   typename faces_vec<Dim>::template accessor<ro, ro> normal_f_a,
+  typename field<hard::tasks::util::extp_q<Dim>>::template accessor<ro, ro>
+    q_ext_plus_a,
+  typename field<hard::tasks::util::extp_q<Dim>>::template accessor<ro, ro>
+    q_ext_minus_a,
   // Riemann fluxes at cell interfaces
   field<double>::accessor<wo, ro> r_f_a,
   typename field<vec<Dim>>::template accessor<wo, ro> ru_f_a,
@@ -304,6 +354,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
   auto [n_right, n_left] = faces_vec<Dim>::mdcolex(m, normal_f_a);
 
   auto mat_id = m.template mdcolex<is::cells>(material_a);
+  auto q_ext_plus = m.template mdcolex<is::cells>(q_ext_plus_a);
+  auto q_ext_minus = m.template mdcolex<is::cells>(q_ext_minus_a);
 
   auto r_f = m.template mdcolex<is::cells>(r_f_a);
   auto ru_f = m.template mdcolex<is::cells>(ru_f_a);
@@ -362,6 +414,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       process_single_face<Dim>(face_axis,
         mL, mR, rhoL, u_left(i - 1), pL, cL, ru_left(i - 1), reL, rhoR,
         u_right(i), pR, cR, ru_right(i), reR, n_left(i - 1), n_right(i),
+	q_ext_plus(i), q_ext_minus(i-1),
         eos_mm, r_f(i), ru_f(i), re_f(i), fluxes_L, fluxes_R, is_cut);
       // clang-format on
 
@@ -428,7 +481,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         process_single_face<Dim>(face_axis,
           mL, mR, rhoL, u_left(i - 1, j), pL, cL, ru_left(i - 1, j),
           reL, rhoR, u_right(i, j), pR, cR, ru_right(i, j), reR,
-          n_left(i - 1, j), n_right(i, j), eos_mm, r_f(i, j),
+          n_left(i - 1, j), n_right(i, j),  
+	  q_ext_plus(i,j), q_ext_minus(i-1,j),eos_mm, r_f(i, j),
           ru_f(i, j), re_f(i, j), fluxes_L, fluxes_R, is_cut);
         // clang-format on
 
@@ -484,7 +538,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         process_single_face<Dim>(face_axis,
           mL, mR, rhoL, u_left(i, j - 1), pL, cL, ru_left(i, j - 1),
           reL, rhoR, u_right(i, j), pR, cR, ru_right(i, j), reR,
-          n_left(i, j - 1), n_right(i, j), eos_mm, r_f(i, j),
+          n_left(i, j - 1), n_right(i, j),
+	  q_ext_plus(i,j), q_ext_minus(i,j-1),eos_mm, r_f(i, j),
           ru_f(i, j), re_f(i, j), fluxes_L, fluxes_R, is_cut);
         // clang-format on
 
@@ -548,7 +603,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         process_single_face<Dim>(face_axis,
           mL, mR, rhoL, u_left(i - 1, j, k), pL, cL, ru_left(i - 1, j, k),
           reL, rhoR, u_right(i, j, k), pR, cR, ru_right(i, j, k), reR,
-          n_left(i - 1, j, k), n_right(i, j, k), eos_mm, r_f(i, j, k),
+          n_left(i - 1, j, k), n_right(i, j, k), 
+	  q_ext_plus(i,j,k), q_ext_minus(i-1,j,k),eos_mm, r_f(i, j, k),
           ru_f(i, j, k), re_f(i, j, k), fluxes_L, fluxes_R, is_cut);
         // clang-format on
 
@@ -606,7 +662,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         process_single_face<Dim>(face_axis,
           mL, mR, rhoL, u_left(i, j - 1, k), pL, cL, ru_left(i, j - 1, k),
           reL, rhoR, u_right(i, j, k), pR, cR, ru_right(i, j, k), reR,
-          n_left(i, j - 1, k), n_right(i, j, k), eos_mm, r_f(i, j, k),
+          n_left(i, j - 1, k), n_right(i, j, k), 
+	  q_ext_plus(i,j,k), q_ext_minus(i,j-1,k),eos_mm, r_f(i, j, k),
           ru_f(i, j, k), re_f(i, j, k), fluxes_L, fluxes_R, is_cut);
         // clang-format on
 
@@ -664,7 +721,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         process_single_face<Dim>(face_axis,
           mL, mR, rhoL, u_left(i, j, k - 1), pL, cL, ru_left(i, j, k - 1),
           reL, rhoR, u_right(i, j, k), pR, cR, ru_right(i, j, k), reR,
-          n_left(i, j, k - 1), n_right(i, j, k), eos_mm, r_f(i, j, k),
+          n_left(i, j, k - 1), n_right(i, j, k), 
+	  q_ext_plus(i,j,k), q_ext_minus(i,j,k-1),eos_mm, r_f(i, j, k),
           ru_f(i, j, k), re_f(i, j, k), fluxes_L, fluxes_R, is_cut);
         // clang-format on
 

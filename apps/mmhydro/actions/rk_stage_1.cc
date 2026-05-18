@@ -91,6 +91,85 @@ advance_rk_stage_1(state<D> & s,
       /* Start extrapolation routine to fill ghost stage
        * This is based on Aslam JCP 2003, constant extrapolation */
 
+      // Extrapolation for ghost fill: plus direction
+
+      sc.execute<tasks::extrapolation::prepare_extp_plus<D>>(flecsi::exec::on,
+        *s.m,
+        s.ls.psi(*s.m),
+        s.ls.material(*s.m),
+        s.cons.hydro.mass_density(*s.m),
+        s.prim.velocity(*s.m),
+        s.prim.pressure(*s.m),
+        s.prim.specific_internal_energy(*s.m),
+        s.extp.extp_psi(*s.m),
+        s.extp.q_scalar(*s.m),
+        s.extp.q_scalar_known(*s.m));
+
+      // Compute unit normal of level set gradient
+      // dp = grad(psi)
+      sc.execute<tasks::extrapolation::gradient_centered<D>>(
+        flecsi::exec::on, *s.m, s.extp.extp_psi(*s.m), s.extp.dp(*s.m));
+
+      // normal = dp/|dp| and normal faces
+      sc.execute<tasks::extrapolation::unit_normals<D>>(flecsi::exec::on,
+        *s.m,
+        s.extp.dp(*s.m),
+        s.extp.normal(*s.m),
+        s.extp.f.normal_face(s.m));
+
+      // Stage 1: rhs(q^n) -> rhs
+      sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.extp.q_scalar(*s.m),
+        s.extp.extp_psi(*s.m),
+        s.extp.normal(*s.m),
+        s.extp.q_rhs(*s.m));
+
+      // q1 = q^n + dt * rhs(q^n)
+      sc.execute<tasks::extrapolation::advance_q_rk2_s1<D>>(flecsi::exec::on,
+        *s.m,
+        s.extp.extp_psi(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_scalar(*s.m),
+        s.extp.q_rhs(*s.m),
+        s.extp.q_scalar1(*s.m), // output stage-1
+        s.dt(*s.gt)); // dtau in the origianl work
+
+      // Stage 2: rhs(q1) -> rhs1
+      sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.extp.q_scalar1(*s.m),
+        s.extp.extp_psi(*s.m),
+        s.extp.normal(*s.m),
+        s.extp.q_rhs1(*s.m));
+
+      // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
+      sc.execute<tasks::extrapolation::advance_q_rk2_s2<D>>(flecsi::exec::on,
+        *s.m,
+        s.extp.extp_psi(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_scalar(*s.m), // q^n
+        s.extp.q_rhs1(*s.m), // rhs(q1)
+        s.extp.q_scalar1(*s.m), // q_stage
+        s.extp.q_ext_plus(*s.m), // q_new
+        s.dt(*s.gt)); // dtau in original work
+
+      // Extrapolation for ghost fill: minus direction
+
+      sc.execute<tasks::extrapolation::prepare_extp_minus<D>>(flecsi::exec::on,
+        *s.m,
+        s.extp.extp_psi(*s.m),
+        s.ls.material(*s.m),
+        s.cons.hydro.mass_density(*s.m),
+        s.prim.velocity(*s.m),
+        s.prim.pressure(*s.m),
+        s.prim.specific_internal_energy(*s.m),
+        s.extp.extp_psi(*s.m),
+        s.extp.q_scalar(*s.m),
+        s.extp.q_scalar_known(*s.m));
+
       // Compute unit normal of level set gradient
       // dp = grad(psi)
       sc.execute<tasks::extrapolation::gradient_centered<D>>(
@@ -108,14 +187,14 @@ advance_rk_stage_1(state<D> & s,
         flecsi::exec::on,
         *s.m,
         s.extp.q_scalar(*s.m),
-        s.ls.psi(*s.m),
+        s.extp.extp_psi(*s.m),
         s.extp.normal(*s.m),
         s.extp.q_rhs(*s.m));
 
       // q1 = q^n + dt * rhs(q^n)
       sc.execute<tasks::extrapolation::advance_q_rk2_s1<D>>(flecsi::exec::on,
         *s.m,
-        s.ls.psi(*s.m),
+        s.extp.extp_psi(*s.m),
         s.extp.q_scalar_known(*s.m),
         s.extp.q_scalar(*s.m),
         s.extp.q_rhs(*s.m),
@@ -127,26 +206,20 @@ advance_rk_stage_1(state<D> & s,
         flecsi::exec::on,
         *s.m,
         s.extp.q_scalar1(*s.m),
-        s.ls.psi(*s.m),
+        s.extp.extp_psi(*s.m),
         s.extp.normal(*s.m),
         s.extp.q_rhs1(*s.m));
 
       // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
       sc.execute<tasks::extrapolation::advance_q_rk2_s2<D>>(flecsi::exec::on,
         *s.m,
-        s.ls.psi(*s.m),
+        s.extp.extp_psi(*s.m),
         s.extp.q_scalar_known(*s.m),
         s.extp.q_scalar(*s.m), // q^n
         s.extp.q_rhs1(*s.m), // rhs(q1)
         s.extp.q_scalar1(*s.m), // q_stage
-        s.extp.q_scalar2(*s.m), // q_new
+        s.extp.q_ext_minus(*s.m), // q_new
         s.dt(*s.gt)); // dtau in original work
-
-      // Swap
-      // sc.execute<hard::tasks::util::copy_scal_field<dm::quantities, D,
-      // double>>(
-      //  flecsi::exec::on, *s.m, s.extp.q_scalar2(*s.m),
-      //  s.extp.q_scalar(*s.m));
 
       /* End of extrapolation*/
 
@@ -185,6 +258,8 @@ advance_rk_stage_1(state<D> & s,
       // GFM
       s.ls.material(*s.m),
       s.extp.f.normal_face(s.m),
+      s.extp.q_ext_plus(*s.m),
+      s.extp.q_ext_minus(*s.m),
       // Riemann Fluxes
       s.rf.hydro.r_f(*s.m),
       s.rf.hydro.ru_f(*s.m),

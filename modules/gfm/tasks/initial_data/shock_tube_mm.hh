@@ -55,11 +55,6 @@ shock_mm(flecsi::exec::cpu s,
   field<double>::accessor<rw, ro> total_energy_density_a,
   typename field<int>::accessor<rw, ro> material_a,
   typename field<int>::accessor<wo, ro> frozen_material_a,
-  field<double>::accessor<rw, ro> psi_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
-    q_scalar_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
-    q_scalar_known_a,
   const std::vector<eos::eos_wrapper> & eos_mm) {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -70,35 +65,6 @@ shock_mm(flecsi::exec::cpu s,
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto material = m.template mdcolex<is::cells>(material_a);
   auto frozen_material = m.template mdcolex<is::cells>(frozen_material_a);
-  auto psi = m.template mdcolex<is::cells>(psi_a);
-
-  auto q_scalar = m.template mdcolex<is::cells>(q_scalar_a);
-  auto q_scalar_known = m.template mdcolex<is::cells>(q_scalar_known_a);
-
-  // Fill extrapolation value
-  constexpr std::size_t rho_id = 0;
-  constexpr std::size_t vel_id = 1;
-  constexpr std::size_t p_id = 1 + D;
-  constexpr std::size_t e_id = 2 + D;
-
-  auto set_q = [](auto & qcell,
-                 double rho,
-                 const vec<D> & velocity,
-                 double pressure,
-                 double sie) {
-    qcell[rho_id] = rho;
-
-    qcell[vel_id + 0] = velocity.x();
-
-    if constexpr(D >= 2)
-      qcell[vel_id + 1] = velocity.y();
-
-    if constexpr(D >= 3)
-      qcell[vel_id + 2] = velocity.z();
-
-    qcell[p_id] = pressure;
-    qcell[e_id] = sie;
-  };
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
@@ -113,38 +79,19 @@ shock_mm(flecsi::exec::cpu s,
         material(i) = T::mL;
         frozen_material(i) = T::mL;
 
-        // local material value, normally non-positive.
-        psi(i) = -std::abs(phi);
-
-        material(i) = T::mL;
         mass_density(i) = T::rL;
         momentum_density(i).x() = T::rL * T::uL;
         const double e = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
         total_energy_density(i) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
-
-        // Extrapolation scratch value
-        vec<D> velocity(0.0);
-        velocity.x() = T::uL;
-
-        set_q(q_scalar(i), T::rL, velocity, T::pL, e);
-        q_scalar_known(i) = q_scalar(i);
       }
       else {
         material(i) = T::mR;
         frozen_material(i) = T::mR;
 
-        psi(i) = -std::abs(phi);
         mass_density(i) = T::rR;
         momentum_density(i).x() = T::rR * T::uR;
         const double e = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
         total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
-
-        // Extrapolation scratch value
-        vec<D> velocity(0.0);
-        velocity.x() = T::uR;
-
-        set_q(q_scalar(i), T::rR, velocity, T::pR, e);
-        q_scalar_known(i) = q_scalar(i);
       } // if
     }; // forall
   }
@@ -162,36 +109,21 @@ shock_mm(flecsi::exec::cpu s,
         material(i, j) = T::mL;
         frozen_material(i, j) = T::mL;
 
-        psi(i, j) = -std::abs(phi);
         mass_density(i, j) = T::rL;
         momentum_density(i, j) = vec<D>(T::rL * T::uL);
         const double e =
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
         total_energy_density(i, j) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
-
-        // Extrapolation scratch scalar
-        vec<D> velocity(0.0);
-        velocity.x() = T::uL;
-
-        set_q(q_scalar(i, j), T::rL, velocity, T::pL, e);
-        q_scalar_known(i, j) = q_scalar(i, j);
       }
       else {
         material(i, j) = T::mR;
         frozen_material(i, j) = T::mR;
 
-        psi(i, j) = -std::abs(phi);
         mass_density(i, j) = T::rR;
         momentum_density(i, j) = vec<D>(T::rR * T::uR);
         const double e =
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
-        // Extrapolation scratch scalar
-        vec<D> velocity(0.0);
-        velocity.x() = T::uR;
-
-        set_q(q_scalar(i, j), T::rR, velocity, T::pR, e);
-        q_scalar_known(i, j) = q_scalar(i, j);
       } // if
     }; // forall
   }
@@ -210,39 +142,23 @@ shock_mm(flecsi::exec::cpu s,
         material(i, j, k) = T::mL;
         frozen_material(i, j, k) = T::mL;
 
-        psi(i, j, k) = -std::abs(phi);
         mass_density(i, j, k) = T::rL;
         momentum_density(i, j, k) = vec<D>(T::rL * T::uL);
         const double e =
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
         total_energy_density(i, j, k) =
           T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
-        // Extrapolation scratch scalar
-        vec<D> velocity(0.0);
-        velocity.x() = T::uL;
-
-        set_q(q_scalar(i, j, k), T::rL, velocity, T::pL, e);
-        q_scalar_known(i, j, k) = q_scalar(i, j, k);
       }
       else {
         material(i, j, k) = T::mR;
         frozen_material(i, j, k) = T::mR;
 
-        psi(i, j, k) = -std::abs(phi);
         mass_density(i, j, k) = T::rR;
         momentum_density(i, j, k) = vec<D>(T::rR * T::uR);
         const double e =
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i, j, k) =
           T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
-
-        // Extrapolation scratch scalar
-        vec<D> velocity(0.0);
-        velocity.x() = T::uR;
-
-        set_q(q_scalar(i, j, k), T::rR, velocity, T::pR, e);
-        q_scalar_known(i, j, k) = q_scalar(i, j, k);
-
       } // if
     }; // forall
   } // if

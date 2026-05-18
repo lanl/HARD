@@ -41,21 +41,25 @@ struct state {
       is::cells>
       normal; // dp
 
+    // Dynamics psi during extrapolation steps
+    static inline const field<double>::definition<mesh<D>, is::cells> extp_psi;
+
     static inline const field<
       hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
-      q_scalar;
+      q_scalar; // scratch state being advanced by extrapolation PDE
     static inline const field<
       hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
-      q_scalar_known;
+      q_scalar_known; // fixed known-side values used to preserve psi<=0 region
     static inline const field<
       hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
-      q_scalar1;
+      q_scalar1; // RK stage-1 scratch
     static inline const field<
       hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
-      q_scalar2;
+      q_ext_plus; // RK final extrapolated state used by GFM on plus/right state
     static inline const field<
       hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
-      q_new_scalar;
+      q_ext_minus; // RK final extrapolated state used by GMF on minus/left
+                   // state
     // RHS for extrapolation
     // TODO : Maybe don't need this?
     static inline const field<

@@ -451,6 +451,185 @@ advance_q_rk2_s2(flecsi::exec::accelerator s,
     }
   };
 }
+// Prepare one material's state for constant extrapolation.
+//
+// source_material:
+//   material ID whose primitive state is treated as the known region.
+//
+// extp_psi:
+//   signed extrapolation level set:
+//     extp_psi <= 0 in source_material
+//     extp_psi >  0 outside source_material
+//
+// q_scalar/q_scalar_known:
+//   packed current primitive state. q_scalar is the extrapolation work field;
+//   q_scalar_known is used by RK to keep the known region fixed.
+template<std::size_t D>
+void
+prepare_extp_for_material(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<double>::template accessor<ro, ro> ls_psi_a,
+  typename field<int>::template accessor<ro, ro> material_a,
+  typename field<double>::template accessor<ro, ro> mass_density_a,
+  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
+  typename field<double>::template accessor<ro, ro> pressure_a,
+  typename field<double>::template accessor<ro, ro> sie_a,
+  typename field<double>::template accessor<wo, na> extp_psi_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    q_scalar_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    q_scalar_known_a,
+  int source_material) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+  using q_ids = hard::tasks::util::extp_q_ids<D>;
+
+  auto ls_psi = m.template mdcolex<is::cells>(ls_psi_a);
+  auto material = m.template mdcolex<is::cells>(material_a);
+
+  auto rho = m.template mdcolex<is::cells>(mass_density_a);
+  auto velocity = m.template mdcolex<is::cells>(velocity_a);
+  auto pressure = m.template mdcolex<is::cells>(pressure_a);
+  auto sie = m.template mdcolex<is::cells>(sie_a);
+
+  auto extp_psi = m.template mdcolex<is::cells>(extp_psi_a);
+  auto q_scalar = m.template mdcolex<is::cells>(q_scalar_a);
+  auto q_known = m.template mdcolex<is::cells>(q_scalar_known_a);
+
+  auto pack_q =
+    [](auto & qcell, double r, const vec<D> & u, double p, double e) {
+      qcell[q_ids::rho] = r;
+      qcell[q_ids::vel + 0] = u.x();
+
+      if constexpr(D >= 2) {
+        qcell[q_ids::vel + 1] = u.y();
+      }
+
+      if constexpr(D >= 3) {
+        qcell[q_ids::vel + 2] = u.z();
+      }
+
+      qcell[q_ids::pressure] = p;
+      qcell[q_ids::sie] = e;
+    };
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      extp_psi(i) = (material(i) == source_material) ? ls_psi(i) : -ls_psi(i);
+
+      pack_q(q_scalar(i), rho(i), velocity(i), pressure(i), sie(i));
+      q_known(i) = q_scalar(i);
+    };
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_yx = get_mdiota_policy(rho,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, mdpolicy_yx) {
+      auto [j, i] = ji;
+
+      extp_psi(i, j) =
+        (material(i, j) == source_material) ? ls_psi(i, j) : -ls_psi(i, j);
+
+      pack_q(
+        q_scalar(i, j), rho(i, j), velocity(i, j), pressure(i, j), sie(i, j));
+
+      q_known(i, j) = q_scalar(i, j);
+    };
+  }
+  else { // D == 3
+    auto mdpolicy_zyx = get_mdiota_policy(rho,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, mdpolicy_zyx) {
+      auto [k, j, i] = kji;
+
+      extp_psi(i, j, k) = (material(i, j, k) == source_material)
+                            ? ls_psi(i, j, k)
+                            : -ls_psi(i, j, k);
+
+      pack_q(q_scalar(i, j, k),
+        rho(i, j, k),
+        velocity(i, j, k),
+        pressure(i, j, k),
+        sie(i, j, k));
+
+      q_known(i, j, k) = q_scalar(i, j, k);
+    };
+  }
+}
+
+template<std::size_t D>
+void
+prepare_extp_plus(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<double>::template accessor<ro, ro> ls_psi_a,
+  typename field<int>::template accessor<ro, ro> material_a,
+  typename field<double>::template accessor<ro, ro> mass_density_a,
+  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
+  typename field<double>::template accessor<ro, ro> pressure_a,
+  typename field<double>::template accessor<ro, ro> sie_a,
+  typename field<double>::template accessor<wo, na> extp_psi_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    q_scalar_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    q_scalar_known_a) noexcept {
+
+  // TEMPORARY two-material convention.
+  // Change this if your left/minus material ID is not 0.
+  constexpr int source_material = 0;
+
+  prepare_extp_for_material<D>(s,
+    m,
+    ls_psi_a,
+    material_a,
+    mass_density_a,
+    velocity_a,
+    pressure_a,
+    sie_a,
+    extp_psi_a,
+    q_scalar_a,
+    q_scalar_known_a,
+    source_material);
+}
+
+template<std::size_t D>
+void
+prepare_extp_minus(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<double>::template accessor<ro, ro> ls_psi_a,
+  typename field<int>::template accessor<ro, ro> material_a,
+  typename field<double>::template accessor<ro, ro> mass_density_a,
+  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
+  typename field<double>::template accessor<ro, ro> pressure_a,
+  typename field<double>::template accessor<ro, ro> sie_a,
+  typename field<double>::template accessor<wo, na> extp_psi_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    q_scalar_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    q_scalar_known_a) noexcept {
+
+  // TEMPORARY two-material convention.
+  // Change this if your right/plus material ID is not 1.
+  constexpr int source_material = 1;
+
+  prepare_extp_for_material<D>(s,
+    m,
+    ls_psi_a,
+    material_a,
+    mass_density_a,
+    velocity_a,
+    pressure_a,
+    sie_a,
+    extp_psi_a,
+    q_scalar_a,
+    q_scalar_known_a,
+    source_material);
+}
+
 } // namespace hard::tasks::extrapolation
 
 #endif

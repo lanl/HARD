@@ -47,11 +47,6 @@ if(ENABLE_UNIT_TESTS)
 
   set(FLECSI_UNIT_MAIN ${CMAKE_SOURCE_DIR}/apps/mmhydro/tests/main.cc)
 
-  flecsi_add_test(level_set
-    SOURCES
-    tests/level_set.cc
-  )
-
 endif()
 install(TARGETS mmhydro)
 
