@@ -3,6 +3,8 @@
 
 #include "../../actions/update_dt/update_dt.hh"
 
+#include <spec/runtime.hh>
+
 namespace hard {
 
 // -----------------------------------------------------------------------------
@@ -10,20 +12,20 @@ namespace hard {
 //  time step.
 // -----------------------------------------------------------------------------
 template<std::size_t D>
-void
-update_dt(control_policy<state, D> & cp) {
-  auto & s = cp.state();
-  flecsi::scheduler & sc = cp.scheduler();
+struct update_dt {
+  static void action(control_policy<state, D> & cp) {
+    auto & s = cp.state();
+    flecsi::scheduler & sc = cp.scheduler();
 
-  actions::update_dt(s, sc);
+    actions::update_dt(s, sc);
 
 #ifdef HARD_ENABLE_LEGION_TRACING
-  cp.guard.reset();
+    cp.guard.reset();
 #endif
-} // update_time_step_size
+  }
+};
 
-inline control<state, 1>::action<update_dt<1>, cp::update_dt> udt_1d;
-inline control<state, 2>::action<update_dt<2>, cp::update_dt> udt_2d;
-inline control<state, 3>::action<update_dt<3>, cp::update_dt> udt_3d;
+static const auto update_dt_action =
+  spec::register_action<control, state, update_dt, cp::update_dt>();
 
 } // namespace hard
