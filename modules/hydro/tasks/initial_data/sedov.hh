@@ -2,10 +2,8 @@
 #define HARD_HYDRO_MODULES_SEDOV_HH
 
 #include "../../constants.hh"
+#include "spec/types.hh"
 #include "spec/utils.hh"
-#include <cmath>
-#include <cstddef>
-#include <yaml-cpp/yaml.h>
 
 namespace hard::tasks::initial_data {
 
@@ -28,17 +26,17 @@ sedov_blast(flecsi::exec::cpu s,
     m.template mdcolex<is::cells>(total_energy_density_a);
 
   // Parse input parameters
-  YAML::Node config = YAML::LoadFile(opt::config.value());
+  spec::config_py config(opt::config.value());
 
   const double x0 =
-    config["problem_parameters"]["hotspot_position"][0][0].as<double>();
+    config["problem_parameters"]["hotspot_position"][0][0].cast<double>();
   const double y0 =
-    config["problem_parameters"]["hotspot_position"][0][1].as<double>();
+    config["problem_parameters"]["hotspot_position"][0][1].cast<double>();
   const double z0 =
-    config["problem_parameters"]["hotspot_position"][0][2].as<double>();
+    config["problem_parameters"]["hotspot_position"][0][2].cast<double>();
   const double radius =
-    config["problem_parameters"]["hotspot_radius"].as<double>();
-  const double E_0 = config["problem_parameters"]["E_0"].as<double>();
+    config["problem_parameters"]["hotspot_radius"].cast<double>();
+  const double E_0 = config["problem_parameters"]["E_0"].cast<double>();
 
   // some problem parameters: for now hardwired
   const double density = 1.0;

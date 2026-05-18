@@ -24,9 +24,10 @@ target_link_libraries(hydro
     libcommon::libcommon
     libhydro::libhydro
     libspec::libspec
-    yaml-cpp::yaml-cpp
     singularity-eos::singularity-eos
     FleCSI::FleCSI
+    pybind11::pybind11
+    Python::Python
 )
 
 target_compile_definitions(hydro
@@ -67,37 +68,37 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
   add_test(NAME accuracy_rk_1d
     COMMAND ${TEST_VERIFY_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/rk.yaml -d1
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/rk.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   add_test(NAME accuracy_sod_1d
     COMMAND ${TEST_VERIFY_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod.yaml -d1
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   add_test(NAME accuracy_leblanc_1d
     COMMAND ${TEST_VERIFY_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/leblanc.yaml -d1
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/leblanc.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   # add_test(NAME accuracy_sedov_1d
   #   COMMAND ${TEST_VERIFY_SCRIPT}
   #   ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-  #   ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.yaml -d1
+  #   ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.py -d1
   #   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   # )
   add_test(NAME accuracy_acoustic_1d
     COMMAND ${TEST_VERIFY_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d1
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   add_test(NAME accuracy_acoustic_2d
     COMMAND ${TEST_VERIFY_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.yaml -d2
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.py -d2
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
 
@@ -107,7 +108,7 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
     add_test(NAME hard-distributed
       COMMAND ${TEST_DISTRIBUTED_SCRIPT}
       ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-      ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.yaml -d1)
+      ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.py -d1)
   endif()
 
   # Convergence tests
@@ -115,14 +116,14 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
     COMMAND ${TEST_CONVERGENCE_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
     6 10
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_total_convergence.yaml -d1
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_total_convergence.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   add_test(NAME spatial_convergence_testing
     COMMAND ${TEST_CONVERGENCE_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
     4 8
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_spatial_convergence.yaml -d1
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_spatial_convergence.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
 
@@ -132,6 +133,6 @@ install(TARGETS hydro)
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/configs/
   DESTINATION share/HARD/hydro/configs
-  FILES_MATCHING PATTERN "*.yaml"
+  FILES_MATCHING PATTERN "*.py"
   PATTERN "ci_configs" EXCLUDE
 )

@@ -4,7 +4,6 @@
 #include "../modules/hydro/numerical_algorithms/time_stepper.hh"
 #include "types.hh"
 #include "utils.hh"
-#include <cstddef>
 #include <flecsi/utilities.hh>
 
 namespace hard::tasks::rad {} // namespace hard::tasks::rad

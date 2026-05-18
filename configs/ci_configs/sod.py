@@ -1,0 +1,33 @@
+config = {
+    "problem": "sod",
+    "gamma": 1.4,
+    "eos": "ideal",
+    "kappa": 1.0e-100,
+    "mean_molecular_weight": 1.0,
+    "t0": 0.0,
+    "tf": 0.07,
+    "max_steps": 500,
+    "cfl": 0.3,
+    "max_dt": 1.0,
+    "log_frequency": 500,
+    "output_frequency": 500,
+    "levels": [10, 3, 3],
+    "lowest_level": 10,
+    "coords": [
+        [0.0, 0.0, 0.0],
+        [1.0, 1.0, 1.0],
+    ],
+    "boundaries": {
+        "xlow": "flow",
+        "xhigh": "flow",
+        "ylow": "flow",
+        "yhigh": "flow",
+        "zlow": "flow",
+        "zhigh": "flow",
+    },
+    "catalyst": {
+        "script": "/path",
+        "implementation": "paraview",
+        "implementation_directory": "/path",
+    },
+}

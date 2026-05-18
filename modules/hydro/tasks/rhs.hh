@@ -2,7 +2,6 @@
 #define HARD_MODULE_HYDRO_RHS_HH
 
 #include "../modules/hydro/numerical_algorithms/time_stepper.hh"
-#include <cstddef>
 #include <flecsi/utilities.hh>
 
 namespace hard::tasks::hydro {

@@ -25,7 +25,7 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("flecsolve+cuda", when="+cuda")
     depends_on("libcatalyst", when="+catalyst")
     #depends_on("paraview@5.12.1+libcatalyst+python", when="+catalyst")
-    depends_on("yaml-cpp@0.8:")
+    depends_on("py-pybind11")
     depends_on("c", type="build")
     depends_on("cxx", type="build")
 
@@ -37,8 +37,6 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("llvm@20:20", type="build", when="+format")
     depends_on("python", when="+tests")
     depends_on("py-numpy", when="+tests")
-    depends_on("py-yamlreader", when="+tests")
-    depends_on("py-pyyaml", when="+tests")
     depends_on("py-scipy", when="+tests")
     depends_on("py-exactpack", when="+tests")
     depends_on("py-matplotlib", when="+tests")

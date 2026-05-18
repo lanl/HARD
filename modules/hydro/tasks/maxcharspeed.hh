@@ -2,7 +2,6 @@
 #define HARD_MODULE_HYDRO_MAXCHARSPEED_HH
 
 #include "../modules/common/tasks/utils.hh"
-#include <cstddef>
 
 namespace hard::tasks::hydro {
 template<std::size_t D>

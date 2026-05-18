@@ -3,7 +3,6 @@
 
 #include "../modules/common/tasks/utils.hh"
 #include "../modules/spec/eos.hh"
-#include <cstddef>
 
 namespace hard::tasks::hydro {
 

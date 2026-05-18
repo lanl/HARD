@@ -27,9 +27,10 @@ target_link_libraries(radhydro
     libhydro::libhydro
     librad::librad
     libspec::libspec
-    yaml-cpp::yaml-cpp
     singularity-eos::singularity-eos
     FleCSI::FleCSI
+    pybind11::pybind11
+    Python::Python
 )
 
 target_compile_definitions(radhydro
@@ -48,6 +49,6 @@ install(TARGETS radhydro)
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/configs/
   DESTINATION share/HARD/radhydro/configs
-  FILES_MATCHING PATTERN "*.yaml"
+  FILES_MATCHING PATTERN "*.py"
   PATTERN "ci_configs" EXCLUDE
 )

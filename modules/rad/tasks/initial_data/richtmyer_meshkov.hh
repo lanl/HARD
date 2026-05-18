@@ -5,9 +5,6 @@
 #include "../utils.hh"
 #include "options.hh"
 #include "types.hh"
-#include <cmath>
-#include <cstddef>
-#include <yaml-cpp/yaml.h>
 
 namespace hard::tasks::initial_data {
 
@@ -31,22 +28,23 @@ richtmyer_meshkov(flecsi::exec::cpu s,
   auto radiation_energy_density =
     m.template mdcolex<is::cells>(radiation_energy_density_a);
 
-  YAML::Node config = YAML::LoadFile(opt::config.value());
+  spec::config_py config(opt::config.value());
 
   const double rAs =
-    config["problem_parameters"]["density_above_shock"].as<double>();
+    config["problem_parameters"]["density_above_shock"].cast<double>();
   const double pAs =
-    config["problem_parameters"]["pressure_above_shock"].as<double>();
+    config["problem_parameters"]["pressure_above_shock"].cast<double>();
   const double vAs =
-    config["problem_parameters"]["velocity_above_shock"].as<double>();
-  const double rL = config["problem_parameters"]["density_low"].as<double>();
-  const double rH = config["problem_parameters"]["density_high"].as<double>();
-  const double p0 = config["problem_parameters"]["pressure"].as<double>();
-  const double amp = config["problem_parameters"]["perturbation"].as<double>();
+    config["problem_parameters"]["velocity_above_shock"].cast<double>();
+  const double rL = config["problem_parameters"]["density_low"].cast<double>();
+  const double rH = config["problem_parameters"]["density_high"].cast<double>();
+  const double p0 = config["problem_parameters"]["pressure"].cast<double>();
+  const double amp =
+    config["problem_parameters"]["perturbation"].cast<double>();
   const double interface =
-    config["problem_parameters"]["interface"].as<double>();
+    config["problem_parameters"]["interface"].cast<double>();
   // for single mode perturbation, wavelength = domain width.
-  const double wavelength = config["coords"][1][0].as<double>();
+  const double wavelength = config["coords"][1][0].cast<double>();
   const double wavenumber = 2.0 * M_PI;
 
   // for defining shock
@@ -57,7 +55,7 @@ richtmyer_meshkov(flecsi::exec::cpu s,
 
   // temperature for radiation
   const double rad_temp =
-    config["radiation_parameters"]["rad_temp"].as<double>();
+    config["radiation_parameters"]["rad_temp"].cast<double>();
   flog(info) << "radiation temperature is " << rad_temp << std::endl;
 
   if constexpr(D == 2) {

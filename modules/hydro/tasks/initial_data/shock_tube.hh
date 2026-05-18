@@ -2,8 +2,6 @@
 #define HARD_HYDRO_MODULES_SHOCK_TUBE_HH
 
 #include "../modules/common/tasks/utils.hh"
-#include <cmath>
-#include <cstddef>
 
 namespace hard::tasks::initial_data {
 
