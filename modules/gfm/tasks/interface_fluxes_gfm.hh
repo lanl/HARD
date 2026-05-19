@@ -268,7 +268,7 @@ process_single_face(std::size_t face_axis,
 
   is_cut_face = (mL != mR);
 
-  if(mL == mR) {
+  if(!is_cut_face) {
     // Same material face
     auto terms =
       compute_flux_terms<Dim>(face_axis, ruL, uL, pL, reL, ruR, uR, pR, reR);
@@ -388,16 +388,17 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     flog_assert(
       face_axis == 0, "1D executable can only compute fluxes along X axis");
 
-    for(auto i : m.template cells<ax::x, dm::corrector>()) {
-      const auto dx = m.template delta<ax::x>();
-      const auto inv_dx = one_over_dx_i[0];
+    const auto inv_dx = one_over_dx_i[0];
+    const auto dx = 1.0 / inv_dx;
+    const double g_comp = g[face_axis];
 
+    for(auto i : m.template cells<ax::x, dm::corrector>()) {
       const int mL = mat_id(i - 1);
       const int mR = mat_id(i);
 
       const double pLeft_wave =
-        p_left(i - 1) + 0.5 * r_left(i - 1) * g.x() * dx;
-      const double pRight_wave = p_right(i) - 0.5 * r_right(i) * g.x() * dx;
+        p_left(i - 1) + 0.5 * r_left(i - 1) * g_comp * dx;
+      const double pRight_wave = p_right(i) - 0.5 * r_right(i) * g_comp * dx;
 
       const double rhoL = std::max(r_left(i - 1), 1e-14);
       const double rhoR = std::max(r_right(i), 1e-14);
@@ -446,118 +447,74 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     flog_assert(
       face_axis <= 1, "2D executable cannot compute fluxes along Z axis");
 
-    if(face_axis == 0) {
-      auto mdpolicy_qc = get_mdiota_policy(r_f,
-        m.template cells<ax::y, dm::quantities>(),
-        m.template cells<ax::x, dm::corrector>());
+    // Index offsets for left cell: [face_axis][dimension]
+    const std::array<std::array<int, 2>, 2> left_offset = {{
+      {-1, 0},  // face_axis == 0: i-1, j
+      {0, -1}   // face_axis == 1: i, j-1
+    }};
 
-      for(auto ji : mdpolicy_qc) {
-        auto [j, i] = ji;
-        const auto inv_dx = one_over_dx_i[0];
+    const auto & offset = left_offset[face_axis];
+    const auto inv_dx = one_over_dx_i[face_axis];
+    const double g_comp = g[face_axis];
 
-        const int mL = mat_id(i - 1, j);
-        const int mR = mat_id(i, j);
+    auto mdpolicy = (face_axis == 0)
+      ? get_mdiota_policy(r_f,
+          m.template cells<ax::y, dm::quantities>(),
+          m.template cells<ax::x, dm::corrector>())
+      : get_mdiota_policy(r_f,
+          m.template cells<ax::y, dm::corrector>(),
+          m.template cells<ax::x, dm::quantities>());
 
-        const double pLeft_wave =
-          p_left(i - 1, j) + 0.5 * r_left(i - 1, j) * g.x() / one_over_dx_i[0];
-        const double pRight_wave =
-          p_right(i, j) - 0.5 * r_right(i, j) * g.x() / one_over_dx_i[0];
+    for(auto ji : mdpolicy) {
+      auto [j, i] = ji;
+      const int iL = i + offset[0];
+      const int jL = j + offset[1];
 
-        const double rhoL = std::max(r_left(i - 1, j), 1e-14);
-        const double rhoR = std::max(r_right(i, j), 1e-14);
-        const double pL = std::max(pLeft_wave, 1e-14);
-        const double pR = std::max(pRight_wave, 1e-14);
-        const double cL = std::max(c_left(i - 1, j), 1e-14);
-        const double cR = std::max(c_right(i, j), 1e-14);
-        const double reL = std::max(re_left(i - 1, j), 1e-14);
-        const double reR = std::max(re_right(i, j), 1e-14);
+      const int mL = mat_id(iL, jL);
+      const int mR = mat_id(i, j);
 
-        FluxResult<Dim> fluxes_L, fluxes_R;
-        bool is_cut;
-        // clang-format off
-        process_single_face<Dim>(face_axis,
-          mL, mR, rhoL, u_left(i - 1, j), pL, cL, ru_left(i - 1, j),
-          reL, rhoR, u_right(i, j), pR, cR, ru_right(i, j), reR,
-          n_left(i - 1, j), n_right(i, j),  
-	  q_ext_plus(i,j), q_ext_minus(i-1,j),eos_mm, r_f(i, j),
-          ru_f(i, j), re_f(i, j), fluxes_L, fluxes_R, is_cut);
-        // clang-format on
+      const double pLeft_wave =
+        p_left(iL, jL) + 0.5 * r_left(iL, jL) * g_comp / inv_dx;
+      const double pRight_wave =
+        p_right(i, j) - 0.5 * r_right(i, j) * g_comp / inv_dx;
 
-        if(!is_cut) {
-          dt_mass_density(i - 1, j) -= inv_dx * r_f(i, j);
-          dt_momentum_density(i - 1, j) -= inv_dx * ru_f(i, j);
-          dt_total_energy_density(i - 1, j) -= inv_dx * re_f(i, j);
+      const double rhoL = std::max(r_left(iL, jL), 1e-14);
+      const double rhoR = std::max(r_right(i, j), 1e-14);
+      const double pL = std::max(pLeft_wave, 1e-14);
+      const double pR = std::max(pRight_wave, 1e-14);
+      const double cL = std::max(c_left(iL, jL), 1e-14);
+      const double cR = std::max(c_right(i, j), 1e-14);
+      const double reL = std::max(re_left(iL, jL), 1e-14);
+      const double reR = std::max(re_right(i, j), 1e-14);
 
-          dt_mass_density(i, j) += inv_dx * r_f(i, j);
-          dt_momentum_density(i, j) += inv_dx * ru_f(i, j);
-          dt_total_energy_density(i, j) += inv_dx * re_f(i, j);
-        }
-        else {
-          dt_mass_density(i - 1, j) -= inv_dx * fluxes_L.r_flux;
-          dt_momentum_density(i - 1, j) -= inv_dx * fluxes_L.ru_flux;
-          dt_total_energy_density(i - 1, j) -= inv_dx * fluxes_L.re_flux;
+      FluxResult<Dim> fluxes_L, fluxes_R;
+      bool is_cut;
+      // clang-format off
+      process_single_face<Dim>(face_axis,
+        mL, mR, rhoL, u_left(iL, jL), pL, cL, ru_left(iL, jL),
+        reL, rhoR, u_right(i, j), pR, cR, ru_right(i, j), reR,
+        n_left(iL, jL), n_right(i, j),
+        q_ext_plus(i,j), q_ext_minus(iL,jL), eos_mm, r_f(i, j),
+        ru_f(i, j), re_f(i, j), fluxes_L, fluxes_R, is_cut);
+      // clang-format on
 
-          dt_mass_density(i, j) += inv_dx * fluxes_R.r_flux;
-          dt_momentum_density(i, j) += inv_dx * fluxes_R.ru_flux;
-          dt_total_energy_density(i, j) += inv_dx * fluxes_R.re_flux;
-        }
+      if(!is_cut) {
+        dt_mass_density(iL, jL) -= inv_dx * r_f(i, j);
+        dt_momentum_density(iL, jL) -= inv_dx * ru_f(i, j);
+        dt_total_energy_density(iL, jL) -= inv_dx * re_f(i, j);
+
+        dt_mass_density(i, j) += inv_dx * r_f(i, j);
+        dt_momentum_density(i, j) += inv_dx * ru_f(i, j);
+        dt_total_energy_density(i, j) += inv_dx * re_f(i, j);
       }
-    }
-    else if(face_axis == 1) {
-      auto mdpolicy_cq = get_mdiota_policy(r_f,
-        m.template cells<ax::y, dm::corrector>(),
-        m.template cells<ax::x, dm::quantities>());
+      else {
+        dt_mass_density(iL, jL) -= inv_dx * fluxes_L.r_flux;
+        dt_momentum_density(iL, jL) -= inv_dx * fluxes_L.ru_flux;
+        dt_total_energy_density(iL, jL) -= inv_dx * fluxes_L.re_flux;
 
-      for(auto ji : mdpolicy_cq) {
-        auto [j, i] = ji;
-        const auto inv_dx = one_over_dx_i[1];
-
-        const int mL = mat_id(i, j - 1);
-        const int mR = mat_id(i, j);
-
-        const double pLeft_wave =
-          p_left(i, j - 1) + 0.5 * r_left(i, j - 1) * g.y() / one_over_dx_i[1];
-        const double pRight_wave =
-          p_right(i, j) - 0.5 * r_right(i, j) * g.y() / one_over_dx_i[1];
-
-        const double rhoL = std::max(r_left(i, j - 1), 1e-14);
-        const double rhoR = std::max(r_right(i, j), 1e-14);
-        const double pL = std::max(pLeft_wave, 1e-14);
-        const double pR = std::max(pRight_wave, 1e-14);
-        const double cL = std::max(c_left(i, j - 1), 1e-14);
-        const double cR = std::max(c_right(i, j), 1e-14);
-        const double reL = std::max(re_left(i, j - 1), 1e-14);
-        const double reR = std::max(re_right(i, j), 1e-14);
-
-        FluxResult<Dim> fluxes_L, fluxes_R;
-        bool is_cut;
-        // clang-format off
-        process_single_face<Dim>(face_axis,
-          mL, mR, rhoL, u_left(i, j - 1), pL, cL, ru_left(i, j - 1),
-          reL, rhoR, u_right(i, j), pR, cR, ru_right(i, j), reR,
-          n_left(i, j - 1), n_right(i, j),
-	  q_ext_plus(i,j), q_ext_minus(i,j-1),eos_mm, r_f(i, j),
-          ru_f(i, j), re_f(i, j), fluxes_L, fluxes_R, is_cut);
-        // clang-format on
-
-        if(!is_cut) {
-          dt_mass_density(i, j - 1) -= inv_dx * r_f(i, j);
-          dt_momentum_density(i, j - 1) -= inv_dx * ru_f(i, j);
-          dt_total_energy_density(i, j - 1) -= inv_dx * re_f(i, j);
-
-          dt_mass_density(i, j) += inv_dx * r_f(i, j);
-          dt_momentum_density(i, j) += inv_dx * ru_f(i, j);
-          dt_total_energy_density(i, j) += inv_dx * re_f(i, j);
-        }
-        else {
-          dt_mass_density(i, j - 1) -= inv_dx * fluxes_L.r_flux;
-          dt_momentum_density(i, j - 1) -= inv_dx * fluxes_L.ru_flux;
-          dt_total_energy_density(i, j - 1) -= inv_dx * fluxes_L.re_flux;
-
-          dt_mass_density(i, j) += inv_dx * fluxes_R.r_flux;
-          dt_momentum_density(i, j) += inv_dx * fluxes_R.ru_flux;
-          dt_total_energy_density(i, j) += inv_dx * fluxes_R.re_flux;
-        }
+        dt_mass_density(i, j) += inv_dx * fluxes_R.r_flux;
+        dt_momentum_density(i, j) += inv_dx * fluxes_R.ru_flux;
+        dt_total_energy_density(i, j) += inv_dx * fluxes_R.re_flux;
       }
     }
   }
@@ -566,181 +523,83 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
   // 3D
   // ---------------------------------------------------------------------------
   else {
-    if(face_axis == 0) {
-      const auto mdpolicy_qqc = get_mdiota_policy(r_f,
-        m.template cells<ax::z, dm::quantities>(),
-        m.template cells<ax::y, dm::quantities>(),
-        m.template cells<ax::x, dm::corrector>());
+    // Index offsets for left cell: [face_axis][dimension]
+    const std::array<std::array<int, 3>, 3> left_offset = {{
+      {-1, 0, 0},  // face_axis == 0: i-1, j, k
+      {0, -1, 0},  // face_axis == 1: i, j-1, k
+      {0, 0, -1}   // face_axis == 2: i, j, k-1
+    }};
 
-      for(auto kji : mdpolicy_qqc) {
-        auto [k, j, i] = kji;
-        const auto inv_dx = one_over_dx_i[0];
+    const auto & offset = left_offset[face_axis];
+    const auto inv_dx = one_over_dx_i[face_axis];
+    const double g_comp = g[face_axis];
 
-        const int mL = mat_id(i - 1, j, k);
-        const int mR = mat_id(i, j, k);
+    auto mdpolicy = (face_axis == 0)
+      ? get_mdiota_policy(r_f,
+          m.template cells<ax::z, dm::quantities>(),
+          m.template cells<ax::y, dm::quantities>(),
+          m.template cells<ax::x, dm::corrector>())
+      : (face_axis == 1)
+        ? get_mdiota_policy(r_f,
+            m.template cells<ax::z, dm::quantities>(),
+            m.template cells<ax::y, dm::corrector>(),
+            m.template cells<ax::x, dm::quantities>())
+        : get_mdiota_policy(r_f,
+            m.template cells<ax::z, dm::corrector>(),
+            m.template cells<ax::y, dm::quantities>(),
+            m.template cells<ax::x, dm::quantities>());
 
-        const double pLeft_wave =
-          p_left(i - 1, j, k) +
-          0.5 * r_left(i - 1, j, k) * g.x() / one_over_dx_i[0];
-        const double pRight_wave =
-          p_right(i, j, k) - 0.5 * r_right(i, j, k) * g.x() / one_over_dx_i[0];
+    for(auto kji : mdpolicy) {
+      auto [k, j, i] = kji;
+      const int iL = i + offset[0];
+      const int jL = j + offset[1];
+      const int kL = k + offset[2];
 
-        const double rhoL = std::max(r_left(i - 1, j, k), 1e-14);
-        const double rhoR = std::max(r_right(i, j, k), 1e-14);
-        const double pL = std::max(pLeft_wave, 1e-14);
-        const double pR = std::max(pRight_wave, 1e-14);
-        const double cL = std::max(c_left(i - 1, j, k), 1e-14);
-        const double cR = std::max(c_right(i, j, k), 1e-14);
-        const double reL = std::max(re_left(i - 1, j, k), 1e-14);
-        const double reR = std::max(re_right(i, j, k), 1e-14);
+      const int mL = mat_id(iL, jL, kL);
+      const int mR = mat_id(i, j, k);
 
-        FluxResult<Dim> fluxes_L, fluxes_R;
-        bool is_cut;
-        // clang-format off
-        process_single_face<Dim>(face_axis,
-          mL, mR, rhoL, u_left(i - 1, j, k), pL, cL, ru_left(i - 1, j, k),
-          reL, rhoR, u_right(i, j, k), pR, cR, ru_right(i, j, k), reR,
-          n_left(i - 1, j, k), n_right(i, j, k), 
-	  q_ext_plus(i,j,k), q_ext_minus(i-1,j,k),eos_mm, r_f(i, j, k),
-          ru_f(i, j, k), re_f(i, j, k), fluxes_L, fluxes_R, is_cut);
-        // clang-format on
+      const double pLeft_wave =
+        p_left(iL, jL, kL) + 0.5 * r_left(iL, jL, kL) * g_comp / inv_dx;
+      const double pRight_wave =
+        p_right(i, j, k) - 0.5 * r_right(i, j, k) * g_comp / inv_dx;
 
-        if(!is_cut) {
-          dt_mass_density(i - 1, j, k) -= inv_dx * r_f(i, j, k);
-          dt_momentum_density(i - 1, j, k) -= inv_dx * ru_f(i, j, k);
-          dt_total_energy_density(i - 1, j, k) -= inv_dx * re_f(i, j, k);
+      const double rhoL = std::max(r_left(iL, jL, kL), 1e-14);
+      const double rhoR = std::max(r_right(i, j, k), 1e-14);
+      const double pL = std::max(pLeft_wave, 1e-14);
+      const double pR = std::max(pRight_wave, 1e-14);
+      const double cL = std::max(c_left(iL, jL, kL), 1e-14);
+      const double cR = std::max(c_right(i, j, k), 1e-14);
+      const double reL = std::max(re_left(iL, jL, kL), 1e-14);
+      const double reR = std::max(re_right(i, j, k), 1e-14);
 
-          dt_mass_density(i, j, k) += inv_dx * r_f(i, j, k);
-          dt_momentum_density(i, j, k) += inv_dx * ru_f(i, j, k);
-          dt_total_energy_density(i, j, k) += inv_dx * re_f(i, j, k);
-        }
-        else {
-          dt_mass_density(i - 1, j, k) -= inv_dx * fluxes_L.r_flux;
-          dt_momentum_density(i - 1, j, k) -= inv_dx * fluxes_L.ru_flux;
-          dt_total_energy_density(i - 1, j, k) -= inv_dx * fluxes_L.re_flux;
+      FluxResult<Dim> fluxes_L, fluxes_R;
+      bool is_cut;
+      // clang-format off
+      process_single_face<Dim>(face_axis,
+        mL, mR, rhoL, u_left(iL, jL, kL), pL, cL, ru_left(iL, jL, kL),
+        reL, rhoR, u_right(i, j, k), pR, cR, ru_right(i, j, k), reR,
+        n_left(iL, jL, kL), n_right(i, j, k),
+        q_ext_plus(i,j,k), q_ext_minus(iL,jL,kL), eos_mm, r_f(i, j, k),
+        ru_f(i, j, k), re_f(i, j, k), fluxes_L, fluxes_R, is_cut);
+      // clang-format on
 
-          dt_mass_density(i, j, k) += inv_dx * fluxes_R.r_flux;
-          dt_momentum_density(i, j, k) += inv_dx * fluxes_R.ru_flux;
-          dt_total_energy_density(i, j, k) += inv_dx * fluxes_R.re_flux;
-        }
+      if(!is_cut) {
+        dt_mass_density(iL, jL, kL) -= inv_dx * r_f(i, j, k);
+        dt_momentum_density(iL, jL, kL) -= inv_dx * ru_f(i, j, k);
+        dt_total_energy_density(iL, jL, kL) -= inv_dx * re_f(i, j, k);
+
+        dt_mass_density(i, j, k) += inv_dx * r_f(i, j, k);
+        dt_momentum_density(i, j, k) += inv_dx * ru_f(i, j, k);
+        dt_total_energy_density(i, j, k) += inv_dx * re_f(i, j, k);
       }
-    }
-    else if(face_axis == 1) {
-      const auto mdpolicy_qcq = get_mdiota_policy(r_f,
-        m.template cells<ax::z, dm::quantities>(),
-        m.template cells<ax::y, dm::corrector>(),
-        m.template cells<ax::x, dm::quantities>());
+      else {
+        dt_mass_density(iL, jL, kL) -= inv_dx * fluxes_L.r_flux;
+        dt_momentum_density(iL, jL, kL) -= inv_dx * fluxes_L.ru_flux;
+        dt_total_energy_density(iL, jL, kL) -= inv_dx * fluxes_L.re_flux;
 
-      for(auto kji : mdpolicy_qcq) {
-        auto [k, j, i] = kji;
-        const auto inv_dx = one_over_dx_i[1];
-
-        const int mL = mat_id(i, j - 1, k);
-        const int mR = mat_id(i, j, k);
-
-        const double pLeft_wave =
-          p_left(i, j - 1, k) +
-          0.5 * r_left(i, j - 1, k) * g.y() / one_over_dx_i[1];
-        const double pRight_wave =
-          p_right(i, j, k) - 0.5 * r_right(i, j, k) * g.y() / one_over_dx_i[1];
-
-        const double rhoL = std::max(r_left(i, j - 1, k), 1e-14);
-        const double rhoR = std::max(r_right(i, j, k), 1e-14);
-        const double pL = std::max(pLeft_wave, 1e-14);
-        const double pR = std::max(pRight_wave, 1e-14);
-        const double cL = std::max(c_left(i, j - 1, k), 1e-14);
-        const double cR = std::max(c_right(i, j, k), 1e-14);
-        const double reL = std::max(re_left(i, j - 1, k), 1e-14);
-        const double reR = std::max(re_right(i, j, k), 1e-14);
-
-        FluxResult<Dim> fluxes_L, fluxes_R;
-        bool is_cut;
-        // clang-format off
-        process_single_face<Dim>(face_axis,
-          mL, mR, rhoL, u_left(i, j - 1, k), pL, cL, ru_left(i, j - 1, k),
-          reL, rhoR, u_right(i, j, k), pR, cR, ru_right(i, j, k), reR,
-          n_left(i, j - 1, k), n_right(i, j, k), 
-	  q_ext_plus(i,j,k), q_ext_minus(i,j-1,k),eos_mm, r_f(i, j, k),
-          ru_f(i, j, k), re_f(i, j, k), fluxes_L, fluxes_R, is_cut);
-        // clang-format on
-
-        if(!is_cut) {
-          dt_mass_density(i, j - 1, k) -= inv_dx * r_f(i, j, k);
-          dt_momentum_density(i, j - 1, k) -= inv_dx * ru_f(i, j, k);
-          dt_total_energy_density(i, j - 1, k) -= inv_dx * re_f(i, j, k);
-
-          dt_mass_density(i, j, k) += inv_dx * r_f(i, j, k);
-          dt_momentum_density(i, j, k) += inv_dx * ru_f(i, j, k);
-          dt_total_energy_density(i, j, k) += inv_dx * re_f(i, j, k);
-        }
-        else {
-          dt_mass_density(i, j - 1, k) -= inv_dx * fluxes_L.r_flux;
-          dt_momentum_density(i, j - 1, k) -= inv_dx * fluxes_L.ru_flux;
-          dt_total_energy_density(i, j - 1, k) -= inv_dx * fluxes_L.re_flux;
-
-          dt_mass_density(i, j, k) += inv_dx * fluxes_R.r_flux;
-          dt_momentum_density(i, j, k) += inv_dx * fluxes_R.ru_flux;
-          dt_total_energy_density(i, j, k) += inv_dx * fluxes_R.re_flux;
-        }
-      }
-    }
-    else {
-      const auto mdpolicy_cqq = get_mdiota_policy(r_f,
-        m.template cells<ax::z, dm::corrector>(),
-        m.template cells<ax::y, dm::quantities>(),
-        m.template cells<ax::x, dm::quantities>());
-
-      for(auto kji : mdpolicy_cqq) {
-        auto [k, j, i] = kji;
-        const auto inv_dx = one_over_dx_i[2];
-
-        const int mL = mat_id(i, j, k - 1);
-        const int mR = mat_id(i, j, k);
-
-        const double pLeft_wave =
-          p_left(i, j, k - 1) +
-          0.5 * r_left(i, j, k - 1) * g.z() / one_over_dx_i[2];
-        const double pRight_wave =
-          p_right(i, j, k) - 0.5 * r_right(i, j, k) * g.z() / one_over_dx_i[2];
-
-        const double rhoL = std::max(r_left(i, j, k - 1), 1e-14);
-        const double rhoR = std::max(r_right(i, j, k), 1e-14);
-        const double pL = std::max(pLeft_wave, 1e-14);
-        const double pR = std::max(pRight_wave, 1e-14);
-        const double cL = std::max(c_left(i, j, k - 1), 1e-14);
-        const double cR = std::max(c_right(i, j, k), 1e-14);
-        const double reL = std::max(re_left(i, j, k - 1), 1e-14);
-        const double reR = std::max(re_right(i, j, k), 1e-14);
-
-        FluxResult<Dim> fluxes_L, fluxes_R;
-        bool is_cut;
-        // clang-format off
-        process_single_face<Dim>(face_axis,
-          mL, mR, rhoL, u_left(i, j, k - 1), pL, cL, ru_left(i, j, k - 1),
-          reL, rhoR, u_right(i, j, k), pR, cR, ru_right(i, j, k), reR,
-          n_left(i, j, k - 1), n_right(i, j, k), 
-	  q_ext_plus(i,j,k), q_ext_minus(i,j,k-1),eos_mm, r_f(i, j, k),
-          ru_f(i, j, k), re_f(i, j, k), fluxes_L, fluxes_R, is_cut);
-        // clang-format on
-
-        if(!is_cut) {
-          dt_mass_density(i, j, k - 1) -= inv_dx * r_f(i, j, k);
-          dt_momentum_density(i, j, k - 1) -= inv_dx * ru_f(i, j, k);
-          dt_total_energy_density(i, j, k - 1) -= inv_dx * re_f(i, j, k);
-
-          dt_mass_density(i, j, k) += inv_dx * r_f(i, j, k);
-          dt_momentum_density(i, j, k) += inv_dx * ru_f(i, j, k);
-          dt_total_energy_density(i, j, k) += inv_dx * re_f(i, j, k);
-        }
-        else {
-          dt_mass_density(i, j, k - 1) -= inv_dx * fluxes_L.r_flux;
-          dt_momentum_density(i, j, k - 1) -= inv_dx * fluxes_L.ru_flux;
-          dt_total_energy_density(i, j, k - 1) -= inv_dx * fluxes_L.re_flux;
-
-          dt_mass_density(i, j, k) += inv_dx * fluxes_R.r_flux;
-          dt_momentum_density(i, j, k) += inv_dx * fluxes_R.ru_flux;
-          dt_total_energy_density(i, j, k) += inv_dx * fluxes_R.re_flux;
-        }
+        dt_mass_density(i, j, k) += inv_dx * fluxes_R.r_flux;
+        dt_momentum_density(i, j, k) += inv_dx * fluxes_R.ru_flux;
+        dt_total_energy_density(i, j, k) += inv_dx * fluxes_R.re_flux;
       }
     }
   }
