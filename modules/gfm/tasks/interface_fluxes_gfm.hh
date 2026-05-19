@@ -13,37 +13,6 @@
 
 namespace hard::tasks::gfm {
 
-// Create artificial state for GFM cut-face.
-// We need to provide complete and EOS-consistent state
-// for the ghost side to HLLC (sound speed, total E den, mom).
-template<std::size_t Dim>
-void
-compute_state_from_rho_u_p(const std::vector<eos::eos_wrapper> & eos_mm,
-  int mat_id,
-  double rho,
-  const vec<Dim> & u,
-  double p,
-  double & e,
-  double & c,
-  vec<Dim> & ru,
-  double & rE) noexcept {
-
-  const double rho_f = std::max(rho, 1e-14);
-  const double p_f = std::max(p, 1e-14);
-
-  const auto mat = static_cast<std::size_t>(mat_id);
-  const auto & eos = eos_mm[mat];
-
-  // Getting internal energy
-  e = hard::tasks::util::find_sie(eos, rho_f, p_f);
-  // Compute sound speed
-  c = eos.cRhoSie(rho_f, e);
-
-  ru = rho_f * u;
-  // Compute total energy density
-  rE = rho_f * e + 0.5 * rho_f * u.norm_squared();
-}
-
 // Helper structures for flux computation
 template<std::size_t Dim>
 struct FluxResult {
@@ -62,6 +31,31 @@ struct GhostState {
   vec<Dim> ru;
   double re;
 };
+
+// Create artificial state for GFM cut-face.
+// We need to provide complete and EOS-consistent state
+// for the ghost side to HLLC (sound speed, total E den, mom).
+template<std::size_t Dim>
+void
+compute_state_from_rho_u_p(const std::vector<eos::eos_wrapper> & eos_mm,
+  int mat_id,
+  GhostState<Dim> & ghost) noexcept {
+
+  const double rho_f = std::max(ghost.rho, 1e-14);
+  const double p_f = std::max(ghost.p, 1e-14);
+
+  const auto mat = static_cast<std::size_t>(mat_id);
+  const auto & eos = eos_mm[mat];
+
+  // Getting internal energy
+  ghost.e = hard::tasks::util::find_sie(eos, rho_f, p_f);
+  // Compute sound speed
+  ghost.c = eos.cRhoSie(rho_f, ghost.e);
+
+  ghost.ru = rho_f * ghost.u;
+  // Compute total energy density
+  ghost.re = rho_f * ghost.e + 0.5 * rho_f * ghost.u.norm_squared();
+}
 
 // Helper function: compute all three HLLC fluxes at once
 template<std::size_t Dim>
@@ -162,11 +156,7 @@ compute_ghost_state(const std::vector<eos::eos_wrapper> & eos_mm,
   ghost.p = p_neighbor;
   ghost.u = u_ghost;
 
-  // clang-format off
-  compute_state_from_rho_u_p<Dim>(eos_mm,
-    mat_id, ghost.rho, ghost.u, ghost.p, ghost.e, ghost.c, ghost.ru,
-    ghost.re);
-  // clang-format on
+  compute_state_from_rho_u_p<Dim>(eos_mm, mat_id, ghost);
 
   return ghost;
 }
@@ -199,15 +189,7 @@ compute_ghost_state_from_extp_q(const std::vector<eos::eos_wrapper> & eos_mm,
   ghost.p = std::max(q[ids::pressure], 1e-14);
 
   // Recompute EOS-consistent state.
-  compute_state_from_rho_u_p<Dim>(eos_mm,
-    mat_id,
-    ghost.rho,
-    ghost.u,
-    ghost.p,
-    ghost.e,
-    ghost.c,
-    ghost.ru,
-    ghost.re);
+  compute_state_from_rho_u_p<Dim>(eos_mm, mat_id, ghost);
 
   return ghost;
 }
