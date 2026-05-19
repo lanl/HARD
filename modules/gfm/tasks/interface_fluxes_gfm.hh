@@ -15,14 +15,14 @@ namespace hard::tasks::gfm {
 
 // Helper structures for flux computation
 template<std::size_t Dim>
-struct FluxResult {
+struct flux_result {
   double r_flux;
   vec<Dim> ru_flux;
   double re_flux;
 };
 
 template<std::size_t Dim>
-struct GhostState {
+struct ghost_state {
   double rho;
   vec<Dim> u;
   double p;
@@ -39,7 +39,7 @@ template<std::size_t Dim>
 void
 compute_state_from_rho_u_p(const std::vector<eos::eos_wrapper> & eos_mm,
   int mat_id,
-  GhostState<Dim> & ghost) noexcept {
+  ghost_state<Dim> & ghost) noexcept {
 
   const double rho_f = std::max(ghost.rho, 1e-14);
   const double p_f = std::max(ghost.p, 1e-14);
@@ -59,7 +59,7 @@ compute_state_from_rho_u_p(const std::vector<eos::eos_wrapper> & eos_mm,
 
 // Helper function: compute all three HLLC fluxes at once
 template<std::size_t Dim>
-FluxResult<Dim>
+flux_result<Dim>
 compute_all_HLLC_fluxes(std::size_t face_axis,
   double rhoL,
   const vec<Dim> & uL,
@@ -73,7 +73,7 @@ compute_all_HLLC_fluxes(std::size_t face_axis,
   double cR,
   const vec<Dim> & ruR,
   double reR) noexcept {
-  FluxResult<Dim> result;
+  flux_result<Dim> result;
 
   // Compute flux terms
   const double f_r_T = ruL[face_axis];
@@ -133,7 +133,7 @@ normalize_interface_normal(const vec<Dim> & n_left,
 
 // Helper function: compute ghost state for GFM cut face
 template<std::size_t Dim>
-GhostState<Dim>
+ghost_state<Dim>
 compute_ghost_state(const std::vector<eos::eos_wrapper> & eos_mm,
   int mat_id,
   const vec<Dim> & n_if,
@@ -151,7 +151,7 @@ compute_ghost_state(const std::vector<eos::eos_wrapper> & eos_mm,
 
   const vec<Dim> u_ghost = u_owner - un_owner * n_if + un_neighbor * n_if;
 
-  GhostState<Dim> ghost;
+  ghost_state<Dim> ghost;
   ghost.rho = rho_owner;
   ghost.p = p_neighbor;
   ghost.u = u_ghost;
@@ -164,14 +164,14 @@ compute_ghost_state(const std::vector<eos::eos_wrapper> & eos_mm,
 // Helper function: build a complete EOS-consistent ghost state from
 // an extrapolated packed primitive state.
 template<std::size_t Dim>
-GhostState<Dim>
+ghost_state<Dim>
 compute_ghost_state_from_extp_q(const std::vector<eos::eos_wrapper> & eos_mm,
   int mat_id,
   const hard::tasks::util::extp_q<Dim> & q) noexcept {
 
   using ids = hard::tasks::util::extp_q_ids<Dim>;
 
-  GhostState<Dim> ghost;
+  ghost_state<Dim> ghost;
 
   ghost.rho = std::max(q[ids::rho], 1e-14);
 
@@ -220,8 +220,8 @@ process_single_face(std::size_t face_axis,
   double & r_flux_out,
   vec<Dim> & ru_flux_out,
   double & re_flux_out,
-  FluxResult<Dim> & fluxes_L_out,
-  FluxResult<Dim> & fluxes_R_out,
+  flux_result<Dim> & fluxes_L_out,
+  flux_result<Dim> & fluxes_R_out,
   bool & is_cut_face) noexcept {
 
   is_cut_face = (mL != mR);
@@ -361,7 +361,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const double reL = std::max(re_left(i - 1), 1e-14);
       const double reR = std::max(re_right(i), 1e-14);
 
-      FluxResult<Dim> fluxes_L, fluxes_R;
+      flux_result<Dim> fluxes_L, fluxes_R;
       bool is_cut;
       // clang-format off
       process_single_face<Dim>(face_axis,
@@ -439,7 +439,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const double reL = std::max(re_left(iL, jL), 1e-14);
       const double reR = std::max(re_right(i, j), 1e-14);
 
-      FluxResult<Dim> fluxes_L, fluxes_R;
+      flux_result<Dim> fluxes_L, fluxes_R;
       bool is_cut;
       // clang-format off
       process_single_face<Dim>(face_axis,
@@ -524,7 +524,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const double reL = std::max(re_left(iL, jL, kL), 1e-14);
       const double reR = std::max(re_right(i, j, k), 1e-14);
 
-      FluxResult<Dim> fluxes_L, fluxes_R;
+      flux_result<Dim> fluxes_L, fluxes_R;
       bool is_cut;
       // clang-format off
       process_single_face<Dim>(face_axis,
