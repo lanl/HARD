@@ -80,11 +80,8 @@ rhs_upwind(flecsi::exec::accelerator s,
       auto [um, up] = minmax(0.0, vel(i, j));
 
       // Compute material-signed neighbors
-      std::array<std::pair<int, int>, 2 * D> neighbor_coords = {
-        std::pair{im1, j},
-        std::pair{ip1, j},
-        std::pair{i, jm1},
-        std::pair{i, jp1}};
+      std::array<std::tuple<int, int>, 2 * D> neighbor_coords = {
+        {{im1, j}, {ip1, j}, {i, jm1}, {i, jp1}}};
 
       std::array<double, 2 * D> pm;
       for(int n = 0; n < 2 * D; ++n) {
@@ -125,12 +122,12 @@ rhs_upwind(flecsi::exec::accelerator s,
 
       // Compute material-signed neighbors
       std::array<std::tuple<int, int, int>, 2 * D> neighbor_coords = {
-        std::tuple{im1, j, k},
-        std::tuple{ip1, j, k},
-        std::tuple{i, jm1, k},
-        std::tuple{i, jp1, k},
-        std::tuple{i, j, km1},
-        std::tuple{i, j, kp1}};
+        {{im1, j, k},
+          {ip1, j, k},
+          {i, jm1, k},
+          {i, jp1, k},
+          {i, j, km1},
+          {i, j, kp1}}};
 
       std::array<double, 2 * D> pm;
       for(int n = 0; n < 2 * D; ++n) {
@@ -264,11 +261,8 @@ determine_psi(flecsi::exec::accelerator s,
         // Array of neighbor coordinate pairs
         const int ii = static_cast<int>(i);
         const int jj = static_cast<int>(j);
-        std::array<std::pair<int, int>, 2 * D> neighbors = {
-          std::pair{ii - 1, jj},
-          std::pair{ii + 1, jj},
-          std::pair{ii, jj - 1},
-          std::pair{ii, jj + 1}};
+        std::array<std::tuple<int, int>, 2 * D> neighbors = {
+          {{ii - 1, jj}, {ii + 1, jj}, {ii, jj - 1}, {ii, jj + 1}}};
 
         for(auto [ni, nj] : neighbors) {
           if(fmat(ni, nj) != fmat(i, j) && fpsi(ni, nj) < psimin) {
@@ -304,12 +298,12 @@ determine_psi(flecsi::exec::accelerator s,
         const int jj = static_cast<int>(j);
         const int kk = static_cast<int>(k);
         std::array<std::tuple<int, int, int>, 2 * D> neighbors = {
-          std::tuple{ii - 1, jj, kk},
-          std::tuple{ii + 1, jj, kk},
-          std::tuple{ii, jj - 1, kk},
-          std::tuple{ii, jj + 1, kk},
-          std::tuple{ii, jj, kk - 1},
-          std::tuple{ii, jj, kk + 1}};
+          {{ii - 1, jj, kk},
+            {ii + 1, jj, kk},
+            {ii, jj - 1, kk},
+            {ii, jj + 1, kk},
+            {ii, jj, kk - 1},
+            {ii, jj, kk + 1}}};
 
         for(auto [ni, nj, nk] : neighbors) {
           if(fmat(ni, nj, nk) != fmat(i, j, k) && fpsi(ni, nj, nk) < psimin) {

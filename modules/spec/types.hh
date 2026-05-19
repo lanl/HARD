@@ -414,7 +414,7 @@ copysign(double mag, const vec<D> & sgn) {
 // Component-wise minmax with scalar
 // Returns pair of (min, max) for each component between scalar and vector
 template<std::size_t D>
-FLECSI_INLINE_TARGET std::pair<vec<D>, vec<D>>
+FLECSI_INLINE_TARGET std::tuple<vec<D>, vec<D>>
 minmax(double scalar, const vec<D> & v) {
   vec<D> vmin, vmax;
   vmin[0] = std::min(scalar, v[0]);
@@ -427,7 +427,7 @@ minmax(double scalar, const vec<D> & v) {
     vmin[2] = std::min(scalar, v[2]);
     vmax[2] = std::max(scalar, v[2]);
   }
-  return std::pair{vmin, vmax};
+  return {vmin, vmax};
 }
 
 // ----------------------------------------------------------------------------

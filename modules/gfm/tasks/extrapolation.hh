@@ -32,7 +32,7 @@ namespace hard::tasks::extrapolation {
 //           u[0]      u[1]      u[2]
 //
 
-inline double
+FLECSI_INLINE_TARGET double
 psi_mm(double r) {
   // Original minmod in Aslam's paper limiter in ratio form: max(0, min(1, r))
   if(r <= 0.0)
@@ -41,7 +41,7 @@ psi_mm(double r) {
 }
 
 template<std::size_t sten_size = 5>
-double
+FLECSI_INLINE_TARGET double
 gradu_1d(const std::array<double, sten_size> & u, double a, double dx) {
   static_assert(
     sten_size == 3 || sten_size == 5, "Stencil size must be 3 or 5");
