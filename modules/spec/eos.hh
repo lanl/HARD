@@ -101,13 +101,13 @@ init_eos(spec::config_py & config) {
 }
 inline void
 init_eos_mm(std::vector<eos::eos_wrapper> & eos_mm, spec::config_py & config) {
-  if(!config["eos_list"]) {
+  if(!config.contains("eos_list")) {
     flog_fatal("missing 'eos_list' section for multi-material EOS");
   }
 
   auto mats = config["eos_list"];
 
-  if(!mats.IsSequence() || mats.size() == 0) {
+  if(!mats.is_sequence() || mats.empty()) {
     flog_fatal("'eos_list' must be a non-empty sequence");
   }
 

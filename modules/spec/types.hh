@@ -538,6 +538,20 @@ struct __attribute__((visibility("default"))) config_py {
     return config_py((*config_)[py::int_(key)]);
   }
 
+  bool is_sequence() const {
+    py::gil_scoped_acquire _;
+    return py::isinstance<py::sequence>(*config_);
+  }
+
+  std::size_t size() const {
+    py::gil_scoped_acquire _;
+    return py::len(*config_);
+  }
+
+  bool empty() const {
+    return size() == 0;
+  }
+
   template<typename T>
   T cast() const {
     py::gil_scoped_acquire _;

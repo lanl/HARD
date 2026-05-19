@@ -26,7 +26,7 @@ target_link_libraries(mmhydro
     libhydro::libhydro
     libgfm::libgfm
     libspec::libspec
-    yaml-cpp::yaml-cpp
+    pybind11::pybind11
     singularity-eos::singularity-eos
     FleCSI::FleCSI
 )
@@ -52,6 +52,6 @@ install(TARGETS mmhydro)
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/configs/
   DESTINATION share/HARD/mmhydro/configs
-  FILES_MATCHING PATTERN "*.yaml"
+  FILES_MATCHING PATTERN "*.py"
   PATTERN "ci_configs" EXCLUDE
 )
