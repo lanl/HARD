@@ -69,7 +69,7 @@ shock_mm(flecsi::exec::cpu s,
   auto psi = m.template mdcolex<is::cells>(psi_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    for(auto i : m.template cells<ax::x, dm::quantities>()) {
       const auto x = m.template right<ax::x>(i);
 
       // Conventional signed level set for the shock-tube interface.
@@ -97,14 +97,14 @@ shock_mm(flecsi::exec::cpu s,
         const double e = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
         total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
-    }; // forall
+    } // for
   }
   else if constexpr(D == 2) {
     auto mdpolicy_yx = get_mdiota_policy(mass_density,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_yx) {
+    for(auto ji : mdpolicy_yx) {
       auto [j, i] = ji;
       const auto x = m.template right<ax::x>(i);
 
@@ -131,7 +131,7 @@ shock_mm(flecsi::exec::cpu s,
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
-    }; // forall
+    } // for
   }
   else /* D == 3 */ {
     auto mdpolicy_zyx = get_mdiota_policy(mass_density,
@@ -139,7 +139,7 @@ shock_mm(flecsi::exec::cpu s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_zyx) {
+    for(auto kji : mdpolicy_zyx) {
       auto [k, j, i] = kji;
       const auto x = m.template right<ax::x>(i);
 
@@ -168,7 +168,7 @@ shock_mm(flecsi::exec::cpu s,
         total_energy_density(i, j, k) =
           T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
-    }; // forall
+    } // for
   } // if
 } // shock
 

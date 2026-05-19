@@ -343,7 +343,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
   typename single<vec<Dim>>::template accessor<ro> g_acc,
   const std::vector<eos::eos_wrapper> & eos_mm) noexcept {
 
-  auto g = g_acc.get();
+  auto g = *g_acc;
 
   auto [r_right, r_left] = faces<Dim>::mdcolex(m, r_face_a);
   auto [u_right, u_left] = faces_vec<Dim>::mdcolex(m, uFace_a);
@@ -388,7 +388,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     flog_assert(
       face_axis == 0, "1D executable can only compute fluxes along X axis");
 
-    s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
+    for(auto i : m.template cells<ax::x, dm::corrector>()) {
       const auto dx = m.template delta<ax::x>();
       const auto inv_dx = one_over_dx_i[0];
 
@@ -436,25 +436,22 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         dt_momentum_density(i) += inv_dx * fluxes_R.ru_flux;
         dt_total_energy_density(i) += inv_dx * fluxes_R.re_flux;
       }
-    };
+    }
   }
 
   // ---------------------------------------------------------------------------
   // 2D
   // ---------------------------------------------------------------------------
   else if constexpr(Dim == 2) {
-#ifdef DEBUG
-    if(face_axis > 1) {
-      flog_fatal("2D executable cannot compute fluxes along Z axis");
-    }
-#endif
+    flog_assert(
+      face_axis <= 1, "2D executable cannot compute fluxes along Z axis");
 
     if(face_axis == 0) {
       auto mdpolicy_qc = get_mdiota_policy(r_f,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::corrector>());
 
-      s.executor().forall(ji, mdpolicy_qc) {
+      for(auto ji : mdpolicy_qc) {
         auto [j, i] = ji;
         const auto inv_dx = one_over_dx_i[0];
 
@@ -504,14 +501,14 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           dt_momentum_density(i, j) += inv_dx * fluxes_R.ru_flux;
           dt_total_energy_density(i, j) += inv_dx * fluxes_R.re_flux;
         }
-      };
+      }
     }
     else if(face_axis == 1) {
       auto mdpolicy_cq = get_mdiota_policy(r_f,
         m.template cells<ax::y, dm::corrector>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(ji, mdpolicy_cq) {
+      for(auto ji : mdpolicy_cq) {
         auto [j, i] = ji;
         const auto inv_dx = one_over_dx_i[1];
 
@@ -561,7 +558,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           dt_momentum_density(i, j) += inv_dx * fluxes_R.ru_flux;
           dt_total_energy_density(i, j) += inv_dx * fluxes_R.re_flux;
         }
-      };
+      }
     }
   }
 
@@ -575,7 +572,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::corrector>());
 
-      s.executor().forall(kji, mdpolicy_qqc) {
+      for(auto kji : mdpolicy_qqc) {
         auto [k, j, i] = kji;
         const auto inv_dx = one_over_dx_i[0];
 
@@ -626,7 +623,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           dt_momentum_density(i, j, k) += inv_dx * fluxes_R.ru_flux;
           dt_total_energy_density(i, j, k) += inv_dx * fluxes_R.re_flux;
         }
-      };
+      }
     }
     else if(face_axis == 1) {
       const auto mdpolicy_qcq = get_mdiota_policy(r_f,
@@ -634,7 +631,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         m.template cells<ax::y, dm::corrector>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_qcq) {
+      for(auto kji : mdpolicy_qcq) {
         auto [k, j, i] = kji;
         const auto inv_dx = one_over_dx_i[1];
 
@@ -685,7 +682,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           dt_momentum_density(i, j, k) += inv_dx * fluxes_R.ru_flux;
           dt_total_energy_density(i, j, k) += inv_dx * fluxes_R.re_flux;
         }
-      };
+      }
     }
     else {
       const auto mdpolicy_cqq = get_mdiota_policy(r_f,
@@ -693,7 +690,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_cqq) {
+      for(auto kji : mdpolicy_cqq) {
         auto [k, j, i] = kji;
         const auto inv_dx = one_over_dx_i[2];
 
@@ -744,7 +741,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           dt_momentum_density(i, j, k) += inv_dx * fluxes_R.ru_flux;
           dt_total_energy_density(i, j, k) += inv_dx * fluxes_R.re_flux;
         }
-      };
+      }
     }
   }
 }
