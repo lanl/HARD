@@ -63,41 +63,6 @@ struct GhostState {
   double re;
 };
 
-template<std::size_t Dim>
-struct FluxTerms {
-  double f_r_T, f_r_H;
-  vec<Dim> f_ru_T, f_ru_H;
-  double f_rE_T, f_rE_H;
-};
-
-// Helper function: compute flux terms for HLLC solver
-template<std::size_t Dim>
-FluxTerms<Dim>
-compute_flux_terms(std::size_t face_axis,
-  const vec<Dim> & ruL,
-  const vec<Dim> & uL,
-  double pL,
-  double reL,
-  const vec<Dim> & ruR,
-  const vec<Dim> & uR,
-  double pR,
-  double reR) noexcept {
-  FluxTerms<Dim> terms;
-
-  terms.f_r_T = ruL[face_axis];
-  terms.f_r_H = ruR[face_axis];
-
-  terms.f_ru_T = ruL[face_axis] * uL;
-  terms.f_ru_H = ruR[face_axis] * uR;
-  terms.f_ru_T[face_axis] += pL;
-  terms.f_ru_H[face_axis] += pR;
-
-  terms.f_rE_T = (reL + pL) * uL[face_axis];
-  terms.f_rE_H = (reR + pR) * uR[face_axis];
-
-  return terms;
-}
-
 // Helper function: compute all three HLLC fluxes at once
 template<std::size_t Dim>
 FluxResult<Dim>
@@ -113,29 +78,40 @@ compute_all_HLLC_fluxes(std::size_t face_axis,
   double pR,
   double cR,
   const vec<Dim> & ruR,
-  double reR,
-  const FluxTerms<Dim> & terms) noexcept {
+  double reR) noexcept {
   FluxResult<Dim> result;
+
+  // Compute flux terms
+  const double f_r_T = ruL[face_axis];
+  const double f_r_H = ruR[face_axis];
+
+  vec<Dim> f_ru_T = ruL[face_axis] * uL;
+  vec<Dim> f_ru_H = ruR[face_axis] * uR;
+  f_ru_T[face_axis] += pL;
+  f_ru_H[face_axis] += pR;
+
+  const double f_rE_T = (reL + pL) * uL[face_axis];
+  const double f_rE_H = (reR + pR) * uR[face_axis];
 
   // clang-format off
   result.r_flux =
     numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
-      rhoL, rhoL, uL, reL, pL, cL, terms.f_r_T, rhoR, rhoR, uR, reR,
-      pR, cR, terms.f_r_H, numerical_algorithms::field_tag::rho);
+      rhoL, rhoL, uL, reL, pL, cL, f_r_T, rhoR, rhoR, uR, reR,
+      pR, cR, f_r_H, numerical_algorithms::field_tag::rho);
   // clang-format on
 
   // clang-format off
   result.ru_flux =
     numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
-      ruL, rhoL, uL, reL, pL, cL, terms.f_ru_T, ruR, rhoR, uR, reR, pR,
-      cR, terms.f_ru_H, numerical_algorithms::field_tag::ru);
+      ruL, rhoL, uL, reL, pL, cL, f_ru_T, ruR, rhoR, uR, reR, pR,
+      cR, f_ru_H, numerical_algorithms::field_tag::ru);
   // clang-format on
 
   // clang-format off
   result.re_flux =
     numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
-      reL, rhoL, uL, reL, pL, cL, terms.f_rE_T, reR, rhoR, uR, reR,
-      pR, cR, terms.f_rE_H, numerical_algorithms::field_tag::re);
+      reL, rhoL, uL, reL, pL, cL, f_rE_T, reR, rhoR, uR, reR,
+      pR, cR, f_rE_H, numerical_algorithms::field_tag::re);
   // clang-format on
 
   return result;
@@ -270,10 +246,8 @@ process_single_face(std::size_t face_axis,
 
   if(!is_cut_face) {
     // Same material face
-    auto terms =
-      compute_flux_terms<Dim>(face_axis, ruL, uL, pL, reL, ruR, uR, pR, reR);
     auto fluxes = compute_all_HLLC_fluxes<Dim>(
-      face_axis, rhoL, uL, pL, cL, ruL, reL, rhoR, uR, pR, cR, ruR, reR, terms);
+      face_axis, rhoL, uL, pL, cL, ruL, reL, rhoR, uR, pR, cR, ruR, reR);
 
     r_flux_out = fluxes.r_flux;
     ru_flux_out = fluxes.ru_flux;
@@ -296,17 +270,13 @@ process_single_face(std::size_t face_axis,
 
     // Left-owner flux
     // clang-format off
-    auto terms_L = compute_flux_terms<Dim>(face_axis,
-      ruL, uL, pL, reL, ghostR_L.ru, ghostR_L.u, ghostR_L.p, ghostR_L.re);
     fluxes_L_out = compute_all_HLLC_fluxes<Dim>(face_axis,
       rhoL, uL, pL, cL, ruL, reL, ghostR_L.rho, ghostR_L.u, ghostR_L.p,
-      ghostR_L.c, ghostR_L.ru, ghostR_L.re, terms_L);
+      ghostR_L.c, ghostR_L.ru, ghostR_L.re);
     // Right-owner flux
-    auto terms_R = compute_flux_terms<Dim>(face_axis,
-      ghostL_R.ru, ghostL_R.u, ghostL_R.p, ghostL_R.re, ruR, uR, pR, reR);
     fluxes_R_out = compute_all_HLLC_fluxes<Dim>(face_axis,
       ghostL_R.rho, ghostL_R.u, ghostL_R.p, ghostL_R.c, ghostL_R.ru,
-      ghostL_R.re, rhoR, uR, pR, cR, ruR, reR, terms_R);
+      ghostL_R.re, rhoR, uR, pR, cR, ruR, reR);
     // clang-format on
 
     // Store left-view flux
