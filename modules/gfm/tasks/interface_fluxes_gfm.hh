@@ -340,7 +340,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     flog_assert(
       face_axis == 0, "1D executable can only compute fluxes along X axis");
 
-    const auto inv_dx = one_over_dx_i[0];
+    const auto inv_dx = one_over_dx_i[face_axis];
     const auto dx = 1.0 / inv_dx;
     const double g_comp = g[face_axis];
 
@@ -352,14 +352,23 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         p_left(i - 1) + 0.5 * r_left(i - 1) * g_comp * dx;
       const double pRight_wave = p_right(i) - 0.5 * r_right(i) * g_comp * dx;
 
-      const double rhoL = std::max(r_left(i - 1), 1e-14);
-      const double rhoR = std::max(r_right(i), 1e-14);
-      const double pL = std::max(pLeft_wave, 1e-14);
-      const double pR = std::max(pRight_wave, 1e-14);
-      const double cL = std::max(c_left(i - 1), 1e-14);
-      const double cR = std::max(c_right(i), 1e-14);
-      const double reL = std::max(re_left(i - 1), 1e-14);
-      const double reR = std::max(re_right(i), 1e-14);
+      const double rhoL = r_left(i - 1);
+      const double rhoR = r_right(i);
+      const double pL = pLeft_wave;
+      const double pR = pRight_wave;
+      const double cL = c_left(i - 1);
+      const double cR = c_right(i);
+      const double reL = re_left(i - 1);
+      const double reR = re_right(i);
+
+      flog_assert(rhoL >= 0, "rhoL(" << i << ") < 0");
+      flog_assert(rhoR >= 0, "rhoR(" << i << ") < 0");
+      flog_assert(pL >= 0, "pL(" << i << ") < 0");
+      flog_assert(pR >= 0, "pR(" << i << ") < 0");
+      flog_assert(cL >= 0, "cL(" << i << ") < 0");
+      flog_assert(cR >= 0, "cR(" << i << ") < 0");
+      flog_assert(reL >= 0, "reL(" << i << ") < 0");
+      flog_assert(reR >= 0, "reR(" << i << ") < 0");
 
       flux_result<Dim> fluxes_L, fluxes_R;
       bool is_cut;
@@ -430,14 +439,23 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const double pRight_wave =
         p_right(i, j) - 0.5 * r_right(i, j) * g_comp / inv_dx;
 
-      const double rhoL = std::max(r_left(iL, jL), 1e-14);
-      const double rhoR = std::max(r_right(i, j), 1e-14);
-      const double pL = std::max(pLeft_wave, 1e-14);
-      const double pR = std::max(pRight_wave, 1e-14);
-      const double cL = std::max(c_left(iL, jL), 1e-14);
-      const double cR = std::max(c_right(i, j), 1e-14);
-      const double reL = std::max(re_left(iL, jL), 1e-14);
-      const double reR = std::max(re_right(i, j), 1e-14);
+      const double rhoL = r_left(iL, jL);
+      const double rhoR = r_right(i, j);
+      const double pL = pLeft_wave;
+      const double pR = pRight_wave;
+      const double cL = c_left(iL, jL);
+      const double cR = c_right(i, j);
+      const double reL = re_left(iL, jL);
+      const double reR = re_right(i, j);
+
+      flog_assert(rhoL >= 0, "rhoL(" << i << ", " << j << ") < 0");
+      flog_assert(rhoR >= 0, "rhoR(" << i << ", " << j << ") < 0");
+      flog_assert(pL >= 0, "pL(" << i << ", " << j << ") < 0");
+      flog_assert(pR >= 0, "pR(" << i << ", " << j << ") < 0");
+      flog_assert(cL >= 0, "cL(" << i << ", " << j << ") < 0");
+      flog_assert(cR >= 0, "cR(" << i << ", " << j << ") < 0");
+      flog_assert(reL >= 0, "reL(" << i << ", " << j << ") < 0");
+      flog_assert(reR >= 0, "reR(" << i << ", " << j << ") < 0");
 
       flux_result<Dim> fluxes_L, fluxes_R;
       bool is_cut;
@@ -514,14 +532,23 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const double pRight_wave =
         p_right(i, j, k) - 0.5 * r_right(i, j, k) * g_comp / inv_dx;
 
-      const double rhoL = std::max(r_left(iL, jL, kL), 1e-14);
-      const double rhoR = std::max(r_right(i, j, k), 1e-14);
-      const double pL = std::max(pLeft_wave, 1e-14);
-      const double pR = std::max(pRight_wave, 1e-14);
-      const double cL = std::max(c_left(iL, jL, kL), 1e-14);
-      const double cR = std::max(c_right(i, j, k), 1e-14);
-      const double reL = std::max(re_left(iL, jL, kL), 1e-14);
-      const double reR = std::max(re_right(i, j, k), 1e-14);
+      const double rhoL = r_left(iL, jL, kL);
+      const double rhoR = r_right(i, j, k);
+      const double pL = pLeft_wave;
+      const double pR = pRight_wave;
+      const double cL = c_left(iL, jL, kL);
+      const double cR = c_right(i, j, k);
+      const double reL = re_left(iL, jL, kL);
+      const double reR = re_right(i, j, k);
+
+      flog_assert(rhoL >= 0, "rhoL(" << i << ", " << j << ", " << k << ") < 0");
+      flog_assert(rhoR >= 0, "rhoR(" << i << ", " << j << ", " << k << ") < 0");
+      flog_assert(pL >= 0, "pL(" << i << ", " << j << ", " << k << ") < 0");
+      flog_assert(pR >= 0, "pR(" << i << ", " << j << ", " << k << ") < 0");
+      flog_assert(cL >= 0, "cL(" << i << ", " << j << ", " << k << ") < 0");
+      flog_assert(cR >= 0, "cR(" << i << ", " << j << ", " << k << ") < 0");
+      flog_assert(reL >= 0, "reL(" << i << ", " << j << ", " << k << ") < 0");
+      flog_assert(reR >= 0, "reR(" << i << ", " << j << ", " << k << ") < 0");
 
       flux_result<Dim> fluxes_L, fluxes_R;
       bool is_cut;
