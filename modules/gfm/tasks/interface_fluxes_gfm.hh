@@ -401,8 +401,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
 
     // Index offsets for left cell: [face_axis][dimension]
     const std::array<std::array<int, 2>, 2> left_offset = {{
-      {-1, 0},  // face_axis == 0: i-1, j
-      {0, -1}   // face_axis == 1: i, j-1
+      {-1, 0}, // face_axis == 0: i-1, j
+      {0, -1} // face_axis == 1: i, j-1
     }};
 
     const auto & offset = left_offset[face_axis];
@@ -410,12 +410,12 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     const double g_comp = g[face_axis];
 
     auto mdpolicy = (face_axis == 0)
-      ? get_mdiota_policy(r_f,
-          m.template cells<ax::y, dm::quantities>(),
-          m.template cells<ax::x, dm::corrector>())
-      : get_mdiota_policy(r_f,
-          m.template cells<ax::y, dm::corrector>(),
-          m.template cells<ax::x, dm::quantities>());
+                      ? get_mdiota_policy(r_f,
+                          m.template cells<ax::y, dm::quantities>(),
+                          m.template cells<ax::x, dm::corrector>())
+                      : get_mdiota_policy(r_f,
+                          m.template cells<ax::y, dm::corrector>(),
+                          m.template cells<ax::x, dm::quantities>());
 
     for(auto ji : mdpolicy) {
       auto [j, i] = ji;
@@ -477,29 +477,28 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
   else {
     // Index offsets for left cell: [face_axis][dimension]
     const std::array<std::array<int, 3>, 3> left_offset = {{
-      {-1, 0, 0},  // face_axis == 0: i-1, j, k
-      {0, -1, 0},  // face_axis == 1: i, j-1, k
-      {0, 0, -1}   // face_axis == 2: i, j, k-1
+      {-1, 0, 0}, // face_axis == 0: i-1, j, k
+      {0, -1, 0}, // face_axis == 1: i, j-1, k
+      {0, 0, -1} // face_axis == 2: i, j, k-1
     }};
 
     const auto & offset = left_offset[face_axis];
     const auto inv_dx = one_over_dx_i[face_axis];
     const double g_comp = g[face_axis];
 
-    auto mdpolicy = (face_axis == 0)
-      ? get_mdiota_policy(r_f,
-          m.template cells<ax::z, dm::quantities>(),
-          m.template cells<ax::y, dm::quantities>(),
-          m.template cells<ax::x, dm::corrector>())
-      : (face_axis == 1)
-        ? get_mdiota_policy(r_f,
-            m.template cells<ax::z, dm::quantities>(),
-            m.template cells<ax::y, dm::corrector>(),
-            m.template cells<ax::x, dm::quantities>())
-        : get_mdiota_policy(r_f,
-            m.template cells<ax::z, dm::corrector>(),
-            m.template cells<ax::y, dm::quantities>(),
-            m.template cells<ax::x, dm::quantities>());
+    auto mdpolicy =
+      (face_axis == 0)   ? get_mdiota_policy(r_f,
+                           m.template cells<ax::z, dm::quantities>(),
+                           m.template cells<ax::y, dm::quantities>(),
+                           m.template cells<ax::x, dm::corrector>())
+      : (face_axis == 1) ? get_mdiota_policy(r_f,
+                             m.template cells<ax::z, dm::quantities>(),
+                             m.template cells<ax::y, dm::corrector>(),
+                             m.template cells<ax::x, dm::quantities>())
+                         : get_mdiota_policy(r_f,
+                             m.template cells<ax::z, dm::corrector>(),
+                             m.template cells<ax::y, dm::quantities>(),
+                             m.template cells<ax::x, dm::quantities>());
 
     for(auto kji : mdpolicy) {
       auto [k, j, i] = kji;
