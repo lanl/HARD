@@ -237,7 +237,7 @@ advance_rk_stage_1(state<D> & s,
       // clang-format on
     }
 
-    sc.execute<tasks::hydro::reconstruct_conservatives<D>>(flecsi::exec::on,
+    sc.execute<tasks::hydro::reconstruct_conserved<D>>(flecsi::exec::on,
       *s.m,
       s.f.hydro.r_face(s.m),
       s.f.hydro.u_face(s.m),

@@ -340,7 +340,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     flog_assert(
       face_axis == 0, "1D executable can only compute fluxes along X axis");
 
-    const auto inv_dx = one_over_dx_i[face_axis];
+    const auto inv_dx = one_over_dx_i[0];
     const auto dx = 1.0 / inv_dx;
     const double g_comp = g[0];
 

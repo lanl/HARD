@@ -329,7 +329,7 @@ reconstruct_primitives_scalar(flecsi::exec::accelerator s,
 
 template<std::size_t Dim>
 void
-reconstruct_conservatives(flecsi::exec::accelerator s,
+reconstruct_conserved(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   typename faces<Dim>::template accessor<ro, na> rFace_a,
   typename faces_vec<Dim>::template accessor<ro, na> uFace_a,
