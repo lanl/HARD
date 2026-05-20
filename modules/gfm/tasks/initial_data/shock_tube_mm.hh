@@ -50,12 +50,12 @@ template<typename T, std::size_t D>
 auto
 shock_mm(flecsi::exec::cpu s,
   typename mesh<D>::template accessor<ro> m,
-  field<double>::accessor<rw, ro> mass_density_a,
-  typename field<vec<D>>::template accessor<rw, ro> momentum_density_a,
-  field<double>::accessor<rw, ro> total_energy_density_a,
-  typename field<int>::accessor<rw, ro> material_a,
-  typename field<int>::accessor<wo, ro> frozen_material_a,
-  field<double>::accessor<rw, ro> psi_a,
+  field<double>::accessor<wo, na> mass_density_a,
+  typename field<vec<D>>::template accessor<wo, na> momentum_density_a,
+  field<double>::accessor<wo, na> total_energy_density_a,
+  typename field<int>::accessor<wo, na> material_a,
+  typename field<int>::accessor<wo, na> frozen_material_a,
+  field<double>::accessor<wo, na> psi_a,
   const std::vector<eos::eos_wrapper> & eos_mm) {
 
   using common::tasks::utils::get_mdiota_policy;

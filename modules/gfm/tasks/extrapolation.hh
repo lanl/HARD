@@ -127,8 +127,8 @@ template<std::size_t D>
 void
 gradient_centered(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, ro> psi_a,
-  typename field<vec<D>>::template accessor<rw, ro> dp_a) noexcept {
+  typename field<double>::template accessor<ro, na> psi_a,
+  typename field<vec<D>>::template accessor<wo, na> dp_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
