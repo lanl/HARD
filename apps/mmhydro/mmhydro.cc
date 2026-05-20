@@ -21,6 +21,10 @@ main(int argc, char ** argv) {
   control<state, 1>::write_actions("HARD", "actions.dot");
 #endif
 
+  // Instantiate the python interpreter and release it
+  spec::py::scoped_interpreter guard{};
+  spec::py::gil_scoped_release release;
+
   const flecsi::getopt g;
   try {
     g(argc, argv);

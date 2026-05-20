@@ -71,17 +71,11 @@ rhs_upwind(flecsi::exec::accelerator s,
 
     s.executor().forall(ji, pol) {
       auto [j, i] = ji;
-
-      const int ip1 = i + 1;
-      const int im1 = i - 1;
-      const int jp1 = j + 1;
-      const int jm1 = j - 1;
-
       auto [um, up] = minmax(0.0, vel(i, j));
 
       // Compute material-signed neighbors
       std::array<std::tuple<int, int>, 2 * D> neighbor_coords = {
-        {{im1, j}, {ip1, j}, {i, jm1}, {i, jp1}}};
+        {{i - 1, j}, {i + 1, j}, {i, j - 1}, {i, j + 1}}};
 
       std::array<double, 2 * D> pm;
       for(int n = 0; n < 2 * D; ++n) {
@@ -110,24 +104,16 @@ rhs_upwind(flecsi::exec::accelerator s,
 
     s.executor().forall(kji, pol) {
       auto [k, j, i] = kji;
-
-      const int ip1 = i + 1;
-      const int im1 = i - 1;
-      const int jp1 = j + 1;
-      const int jm1 = j - 1;
-      const int kp1 = k + 1;
-      const int km1 = k - 1;
-
       auto [um, up] = minmax(0.0, vel(i, j, k));
 
       // Compute material-signed neighbors
       std::array<std::tuple<int, int, int>, 2 * D> neighbor_coords = {
-        {{im1, j, k},
-          {ip1, j, k},
-          {i, jm1, k},
-          {i, jp1, k},
-          {i, j, km1},
-          {i, j, kp1}}};
+        {{i - 1, j, k},
+          {i + 1, j, k},
+          {i, j - 1, k},
+          {i, j + 1, k},
+          {i, j, k - 1},
+          {i, j, k + 1}}};
 
       std::array<double, 2 * D> pm;
       for(int n = 0; n < 2 * D; ++n) {
@@ -227,8 +213,7 @@ determine_psi(flecsi::exec::accelerator s,
         int lmin = fmat(i);
 
         // Array of neighbor indices
-        const int ii = static_cast<int>(i);
-        std::array<int, 2 * D> neighbors = {ii - 1, ii + 1};
+        std::array<unsigned int, 2 * D> neighbors = {i - 1, i + 1};
 
         for(auto ni : neighbors) {
           if(fmat(ni) != fmat(i) && fpsi(ni) < psimin) {
@@ -259,10 +244,8 @@ determine_psi(flecsi::exec::accelerator s,
         int lmin = fmat(i, j);
 
         // Array of neighbor coordinate pairs
-        const int ii = static_cast<int>(i);
-        const int jj = static_cast<int>(j);
-        std::array<std::tuple<int, int>, 2 * D> neighbors = {
-          {{ii - 1, jj}, {ii + 1, jj}, {ii, jj - 1}, {ii, jj + 1}}};
+        std::array<std::tuple<unsigned int, unsigned int>, 2 * D> neighbors = {
+          {{i - 1, j}, {i + 1, j}, {i, j - 1}, {i, j + 1}}};
 
         for(auto [ni, nj] : neighbors) {
           if(fmat(ni, nj) != fmat(i, j) && fpsi(ni, nj) < psimin) {
@@ -294,16 +277,13 @@ determine_psi(flecsi::exec::accelerator s,
         int lmin = fmat(i, j, k);
 
         // Array of neighbor coordinate triples
-        const int ii = static_cast<int>(i);
-        const int jj = static_cast<int>(j);
-        const int kk = static_cast<int>(k);
-        std::array<std::tuple<int, int, int>, 2 * D> neighbors = {
-          {{ii - 1, jj, kk},
-            {ii + 1, jj, kk},
-            {ii, jj - 1, kk},
-            {ii, jj + 1, kk},
-            {ii, jj, kk - 1},
-            {ii, jj, kk + 1}}};
+        std::array<std::tuple<unsigned int, unsigned int, unsigned int>, 2 * D>
+          neighbors = {{{i - 1, j, k},
+            {i + 1, j, k},
+            {i, j - 1, k},
+            {i, j + 1, k},
+            {i, j, k - 1},
+            {i, j, k + 1}}};
 
         for(auto [ni, nj, nk] : neighbors) {
           if(fmat(ni, nj, nk) != fmat(i, j, k) && fpsi(ni, nj, nk) < psimin) {

@@ -24,11 +24,12 @@ target_link_libraries(mmhydro
   PRIVATE
     libcommon::libcommon
     libhydro::libhydro
-    libgfm::libgfm
     libspec::libspec
-    pybind11::pybind11
     singularity-eos::singularity-eos
     FleCSI::FleCSI
+    pybind11::pybind11
+    Python::Python
+    libgfm::libgfm
 )
 
 target_compile_definitions(mmhydro
@@ -48,6 +49,23 @@ if(ENABLE_UNIT_TESTS)
   set(FLECSI_UNIT_MAIN ${CMAKE_SOURCE_DIR}/apps/mmhydro/tests/main.cc)
 
 endif()
+
+if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
+
+  set(TEST_VERIFY_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_verify.sh")
+  set(TEST_DISTRIBUTED_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_distributed.sh")
+  set(TEST_CONVERGENCE_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_convergence.sh")
+
+  # Accuracy tests
+  add_test(NAME mmhydro_accuracy_sod_1d
+    COMMAND ${TEST_VERIFY_SCRIPT}
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/mmhydro/mmhydro
+    ${CMAKE_SOURCE_DIR}/configs/sod_mm.py -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+
+endif()
+
 install(TARGETS mmhydro)
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/configs/

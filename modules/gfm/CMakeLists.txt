@@ -37,9 +37,10 @@ target_link_libraries(libgfm
   INTERFACE
     libcommon::libcommon
     libspec::libspec
-    pybind11::headers
     singularity-eos::singularity-eos
     FleCSI::FleCSI
+    pybind11::headers
+    Python::Python
 )
 
 target_compile_definitions(libgfm
