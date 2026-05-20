@@ -342,7 +342,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
 
     const auto inv_dx = one_over_dx_i[face_axis];
     const auto dx = 1.0 / inv_dx;
-    const double g_comp = g[face_axis];
+    const double g_comp = g[0];
 
     for(auto i : m.template cells<ax::x, dm::corrector>()) {
       const int mL = mat_id(i - 1);
@@ -373,11 +373,11 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       flux_result<Dim> fluxes_L, fluxes_R;
       bool is_cut;
       // clang-format off
-      process_single_face<Dim>(face_axis,
+      process_single_face<Dim>(0,
         mL, mR, rhoL, u_left(i - 1), pL, cL, ru_left(i - 1), reL, rhoR,
         u_right(i), pR, cR, ru_right(i), reR, n_left(i - 1), n_right(i),
-	q_ext_plus(i), q_ext_minus(i-1),
-        eos_mm, r_f(i), ru_f(i), re_f(i), fluxes_L, fluxes_R, is_cut);
+        q_ext_plus(i), q_ext_minus(i-1), eos_mm, r_f(i), ru_f(i),
+        re_f(i), fluxes_L, fluxes_R, is_cut);
       // clang-format on
 
       if(!is_cut) {
