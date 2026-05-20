@@ -55,6 +55,7 @@ shock_mm(flecsi::exec::cpu s,
   field<double>::accessor<rw, ro> total_energy_density_a,
   typename field<int>::accessor<rw, ro> material_a,
   typename field<int>::accessor<wo, ro> frozen_material_a,
+  field<double>::accessor<rw, ro> psi_a,
   const std::vector<eos::eos_wrapper> & eos_mm) {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -65,6 +66,7 @@ shock_mm(flecsi::exec::cpu s,
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto material = m.template mdcolex<is::cells>(material_a);
   auto frozen_material = m.template mdcolex<is::cells>(frozen_material_a);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
@@ -78,6 +80,7 @@ shock_mm(flecsi::exec::cpu s,
       if(phi < 0.0) {
         material(i) = T::mL;
         frozen_material(i) = T::mL;
+        psi(i) = -std::abs(phi);
 
         mass_density(i) = T::rL;
         momentum_density(i).x() = T::rL * T::uL;
@@ -87,6 +90,7 @@ shock_mm(flecsi::exec::cpu s,
       else {
         material(i) = T::mR;
         frozen_material(i) = T::mR;
+        psi(i) = -std::abs(phi);
 
         mass_density(i) = T::rR;
         momentum_density(i).x() = T::rR * T::uR;
@@ -108,6 +112,7 @@ shock_mm(flecsi::exec::cpu s,
       if(x < T::x0) {
         material(i, j) = T::mL;
         frozen_material(i, j) = T::mL;
+        psi(i, j) = -std::abs(phi);
 
         mass_density(i, j) = T::rL;
         momentum_density(i, j) = vec<D>(T::rL * T::uL);
@@ -118,6 +123,7 @@ shock_mm(flecsi::exec::cpu s,
       else {
         material(i, j) = T::mR;
         frozen_material(i, j) = T::mR;
+        psi(i, j) = -std::abs(phi);
 
         mass_density(i, j) = T::rR;
         momentum_density(i, j) = vec<D>(T::rR * T::uR);
@@ -141,6 +147,7 @@ shock_mm(flecsi::exec::cpu s,
       if(x < T::x0) {
         material(i, j, k) = T::mL;
         frozen_material(i, j, k) = T::mL;
+        psi(i, j, k) = -std::abs(phi);
 
         mass_density(i, j, k) = T::rL;
         momentum_density(i, j, k) = vec<D>(T::rL * T::uL);
@@ -152,6 +159,7 @@ shock_mm(flecsi::exec::cpu s,
       else {
         material(i, j, k) = T::mR;
         frozen_material(i, j, k) = T::mR;
+        psi(i, j, k) = -std::abs(phi);
 
         mass_density(i, j, k) = T::rR;
         momentum_density(i, j, k) = vec<D>(T::rR * T::uR);

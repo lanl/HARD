@@ -104,6 +104,7 @@ initialize(control_policy<state, D> & cp) {
       s.cons.hydro.total_energy_density(*s.m),
       s.ls.material(*s.m),
       s.ls.frozen_material(*s.m),
+      s.ls.psi(*s.m),
       s.eos_mm);
   }
   else if(problem == "rankine-hugoniot") {
