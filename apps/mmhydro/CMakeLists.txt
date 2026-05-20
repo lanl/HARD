@@ -58,8 +58,7 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
 
   # Accuracy tests
   add_test(NAME mmhydro_accuracy_sod_1d
-    COMMAND ${TEST_VERIFY_SCRIPT}
-    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/mmhydro/mmhydro
+    COMMAND ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/mmhydro/mmhydro
     ${CMAKE_SOURCE_DIR}/configs/sod_mm.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
