@@ -56,6 +56,14 @@ shock_mm(flecsi::exec::cpu s,
   typename field<int>::accessor<wo, na> material_a,
   typename field<int>::accessor<wo, na> frozen_material_a,
   field<double>::accessor<wo, na> psi_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+    q_scalar_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+    q_scalar_known_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+    q_ext_plus_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+    q_ext_minus_a,
   const std::vector<eos::eos_wrapper> & eos_mm) {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -67,6 +75,30 @@ shock_mm(flecsi::exec::cpu s,
   auto material = m.template mdcolex<is::cells>(material_a);
   auto frozen_material = m.template mdcolex<is::cells>(frozen_material_a);
   auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto q_scalar = m.template mdcolex<is::cells>(q_scalar_a);
+  auto q_scalar_known = m.template mdcolex<is::cells>(q_scalar_known_a);
+  auto q_ext_plus = m.template mdcolex<is::cells>(q_ext_plus_a);
+  auto q_ext_minus = m.template mdcolex<is::cells>(q_ext_minus_a);
+
+  using q_ids = hard::tasks::util::extp_q_ids<D>;
+
+  auto pack_q = [](auto & qcell,
+                  double rho,
+                  const vec<D> & velocity,
+                  double pressure,
+                  double sie) {
+    qcell[q_ids::rho] = rho;
+    qcell[q_ids::vel + 0] = velocity.x();
+
+    if constexpr(D >= 2)
+      qcell[q_ids::vel + 1] = velocity.y();
+
+    if constexpr(D >= 3)
+      qcell[q_ids::vel + 2] = velocity.z();
+
+    qcell[q_ids::pressure] = pressure;
+    qcell[q_ids::sie] = sie;
+  };
 
   if constexpr(D == 1) {
     for(auto i : m.template cells<ax::x, dm::quantities>()) {
@@ -77,6 +109,15 @@ shock_mm(flecsi::exec::cpu s,
       // phi > 0 : right material
       const double phi = x - T::x0;
 
+      const double eL = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
+      const double eR = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
+
+      vec<D> uL(0.0);
+      uL.x() = T::uL;
+
+      vec<D> uR(0.0);
+      uR.x() = T::uR;
+
       if(phi < 0.0) {
         material(i) = T::mL;
         frozen_material(i) = T::mL;
@@ -86,6 +127,9 @@ shock_mm(flecsi::exec::cpu s,
         momentum_density(i).x() = T::rL * T::uL;
         const double e = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
         total_energy_density(i) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
+
+        pack_q(q_scalar(i), T::rL, uL, T::pL, eL);
+        q_scalar_known(i) = q_scalar(i);
       }
       else {
         material(i) = T::mR;
@@ -96,7 +140,19 @@ shock_mm(flecsi::exec::cpu s,
         momentum_density(i).x() = T::rR * T::uR;
         const double e = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
         total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
+
+        pack_q(q_scalar(i), T::rR, uR, T::pR, eR);
+        q_scalar_known(i) = q_scalar(i);
+
       } // if
+
+      // Initial exact constant extrapolation fields.
+      // plus: left/minus material extended into plus/right side.
+      pack_q(q_ext_plus(i), T::rL, uL, T::pL, eL);
+
+      // minus: right/plus material extended into minus/left side.
+      pack_q(q_ext_minus(i), T::rR, uR, T::pR, eR);
+
     } // for
   }
   else if constexpr(D == 2) {
@@ -109,6 +165,17 @@ shock_mm(flecsi::exec::cpu s,
       const auto x = m.template right<ax::x>(i);
 
       const double phi = x - T::x0;
+      const double eL = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
+      const double eR = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
+
+      vec<D> uL(0.0);
+      uL.x() = T::uL;
+      uL.y() = T::uL;
+
+      vec<D> uR(0.0);
+      uR.x() = T::uR;
+      uR.y() = T::uR;
+
       if(x < T::x0) {
         material(i, j) = T::mL;
         frozen_material(i, j) = T::mL;
@@ -119,6 +186,9 @@ shock_mm(flecsi::exec::cpu s,
         const double e =
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
         total_energy_density(i, j) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
+
+        pack_q(q_scalar(i, j), T::rL, uL, T::pL, eL);
+        q_scalar_known(i, j) = q_scalar(i, j);
       }
       else {
         material(i, j) = T::mR;
@@ -130,7 +200,17 @@ shock_mm(flecsi::exec::cpu s,
         const double e =
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
+
+        pack_q(q_scalar(i, j), T::rR, uR, T::pR, eR);
+        q_scalar_known(i, j) = q_scalar(i, j);
       } // if
+
+      // Initial exact constant extrapolation fields.
+      // plus: left/minus material extended into plus/right side.
+      pack_q(q_ext_plus(i, j), T::rL, uL, T::pL, eL);
+
+      // minus: right/plus material extended into minus/left side.
+      pack_q(q_ext_minus(i, j), T::rR, uR, T::pR, eR);
     } // for
   }
   else /* D == 3 */ {
@@ -144,6 +224,19 @@ shock_mm(flecsi::exec::cpu s,
       const auto x = m.template right<ax::x>(i);
 
       const double phi = x - T::x0;
+      const double eL = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
+      const double eR = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
+
+      vec<D> uL(0.0);
+      uL.x() = T::uL;
+      uL.y() = T::uL;
+      uL.z() = T::uL;
+
+      vec<D> uR(0.0);
+      uR.x() = T::uR;
+      uR.y() = T::uR;
+      uR.z() = T::uR;
+
       if(x < T::x0) {
         material(i, j, k) = T::mL;
         frozen_material(i, j, k) = T::mL;
@@ -155,6 +248,8 @@ shock_mm(flecsi::exec::cpu s,
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
         total_energy_density(i, j, k) =
           T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
+        pack_q(q_scalar(i, j, k), T::rL, uL, T::pL, eL);
+        q_scalar_known(i, j, k) = q_scalar(i, j, k);
       }
       else {
         material(i, j, k) = T::mR;
@@ -167,7 +262,16 @@ shock_mm(flecsi::exec::cpu s,
           util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
         total_energy_density(i, j, k) =
           T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
+        pack_q(q_scalar(i, j, k), T::rR, uR, T::pR, eR);
+        q_scalar_known(i, j, k) = q_scalar(i, j, k);
       } // if
+
+      // Initial exact constant extrapolation fields.
+      // plus: left/minus material extended into plus/right side.
+      pack_q(q_ext_plus(i, j, k), T::rL, uL, T::pL, eL);
+
+      // minus: right/plus material extended into minus/left side.
+      pack_q(q_ext_minus(i, j, k), T::rR, uR, T::pR, eR);
     } // for
   } // if
 } // shock
