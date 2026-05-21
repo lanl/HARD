@@ -127,7 +127,7 @@ template<std::size_t D>
 void
 gradient_centered(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, na> psi_a,
+  typename field<double>::template accessor<ro, ro> psi_a,
   typename field<vec<D>>::template accessor<wo, na> dp_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -265,26 +265,18 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
 
   const double dx = m.template delta<ax::x>();
 
-  constexpr std::size_t N_q = D + 3;
-
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-
       if(psi(i) <= 0.0) {
         rhs(i) = 0.0;
       }
       else {
-
         const double ax = normal(i).x();
-
         for(std::size_t qid = 0; qid < q(i).size(); ++qid) {
-          rhs(i)[qid] = -ax * gradu_1d<5>({q(i - 2)[qid],
-                                            q(i - 1)[qid],
-                                            q(i)[qid],
-                                            q(i + 1)[qid],
-                                            q(i + 2)[qid]},
-                                ax,
-                                dx);
+          // clang-format off
+          rhs(i)[qid] = -ax * gradu_1d<5>({q(i - 2)[qid], q(i - 1)[qid],
+              q(i)[qid], q(i + 1)[qid], q(i + 2)[qid]}, ax, dx);
+          // clang-format on
         }
       }
     };
@@ -298,27 +290,22 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
 
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
-
       if(psi(i, j) <= 0.0) {
         rhs(i, j) = 0.0;
       }
       else {
-
         const double ax = normal(i, j).x();
         const double ay = normal(i, j).y();
 
-        // clang-format off
-        for(std::size_t qid = 0; qid < q(i, j).size(); ++qid){
-          rhs(i, j)[qid] = -(ax * gradu_1d<5>(
-          {q(i - 2, j)[qid], q(i - 1, j)[qid], q(i, j)[qid],
-           q(i + 1, j)[qid], q(i + 2, j)[qid]},
-          ax, dx) +
-        ay * gradu_1d<5>(
-          {q(i, j - 2)[qid], q(i, j - 1)[qid], q(i, j)[qid],
-           q(i, j + 1)[qid], q(i, j + 2)[qid]},
-          ay, dy));
+        for(std::size_t qid = 0; qid < q(i, j).size(); ++qid) {
+          // clang-format off
+          rhs(i, j)[qid] = -(
+            ax * gradu_1d<5>({q(i - 2, j)[qid], q(i - 1, j)[qid], q(i, j)[qid],
+                               q(i + 1, j)[qid], q(i + 2, j)[qid]}, ax, dx) +
+            ay * gradu_1d<5>({q(i, j - 2)[qid], q(i, j - 1)[qid], q(i, j)[qid],
+                               q(i, j + 1)[qid], q(i, j + 2)[qid]}, ay, dy));
+          // clang-format on
         }
-        // clang-format on
       }
     };
   }
@@ -333,32 +320,28 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
 
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
-
       if(psi(i, j, k) <= 0.0) {
         rhs(i, j, k) = 0.0;
       }
       else {
-
         const double ax = normal(i, j, k).x();
         const double ay = normal(i, j, k).y();
         const double az = normal(i, j, k).z();
 
-        // clang-format off
-        for(std::size_t qid = 0; qid < q(i, j, k).size(); ++qid){
-          rhs(i, j, k)[qid] = -(ax * gradu_1d<5>(
-          {q(i - 2, j, k)[qid], q(i - 1, j, k)[qid], q(i, j, k)[qid],
-            q(i + 1, j, k)[qid], q(i + 2, j, k)[qid]},
-          ax, dx) +
-            ay * gradu_1d<5>(
-          {q(i, j - 2, k)[qid], q(i, j - 1, k)[qid], q(i, j, k)[qid],
-            q(i, j + 1, k)[qid], q(i, j + 2, k)[qid]},
-          ay, dy) +
-            az * gradu_1d<5>(
-          {q(i, j, k - 2)[qid], q(i, j, k - 1)[qid], q(i, j, k)[qid],
-            q(i, j, k + 1)[qid], q(i, j, k + 2)[qid]},
-          az, dz));
+        for(std::size_t qid = 0; qid < q(i, j, k).size(); ++qid) {
+          // clang-format off
+          rhs(i, j, k)[qid] = -(
+            ax * gradu_1d<5>({q(i - 2, j, k)[qid], q(i - 1, j, k)[qid],
+                               q(i, j, k)[qid], q(i + 1, j, k)[qid],
+                               q(i + 2, j, k)[qid]}, ax, dx) +
+            ay * gradu_1d<5>({q(i, j - 2, k)[qid], q(i, j - 1, k)[qid],
+                               q(i, j, k)[qid], q(i, j + 1, k)[qid],
+                               q(i, j + 2, k)[qid]}, ay, dy) +
+            az * gradu_1d<5>({q(i, j, k - 2)[qid], q(i, j, k - 1)[qid],
+                               q(i, j, k)[qid], q(i, j, k + 1)[qid],
+                               q(i, j, k + 2)[qid]}, az, dz));
+          // clang-format on
         }
-        // clang-format on
       }
     };
   }
@@ -376,7 +359,7 @@ advance_q_rk2_s1(flecsi::exec::accelerator s,
     q_known_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     q_a, // base q^n
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     rhs_a, // rhs at base or stage
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
@@ -384,7 +367,6 @@ advance_q_rk2_s1(flecsi::exec::accelerator s,
 
   using common::tasks::utils::get_mdiota_policy;
 
-  constexpr std::size_t N_q = D + 3;
   const double dt = *dt_a;
 
   s.executor().forall(i, flecsi::util::iota_view({}, q_new_a.span().size())) {
@@ -392,7 +374,7 @@ advance_q_rk2_s1(flecsi::exec::accelerator s,
       q_new_a(i) = q_known_a(i);
     }
     else {
-      for(std::size_t qid = 0; qid < N_q; ++qid) {
+      for(std::size_t qid = 0; qid < q_a(i).size(); ++qid) {
         q_new_a(i)[qid] = q_a(i)[qid] + dt * rhs_a(i)[qid];
       }
     }
@@ -408,9 +390,9 @@ advance_q_rk2_s2(flecsi::exec::accelerator s,
     q_known_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     q_a, // base q^n
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     rhs_a, // rhs at base or stage
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, ro>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
     q_stage_a, // q^(1) (only used in STEP=2)
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
@@ -418,7 +400,6 @@ advance_q_rk2_s2(flecsi::exec::accelerator s,
 
   using common::tasks::utils::get_mdiota_policy;
 
-  constexpr std::size_t N_q = D + 3;
   const double dt = *dt_a;
 
   s.executor().forall(i, flecsi::util::iota_view({}, q_new_a.span().size())) {
@@ -426,7 +407,7 @@ advance_q_rk2_s2(flecsi::exec::accelerator s,
       q_new_a(i) = q_known_a(i);
     }
     else {
-      for(std::size_t qid = 0; qid < N_q; ++qid) {
+      for(std::size_t qid = 0; qid < q_a(i).size(); ++qid) {
         q_new_a(i)[qid] =
           0.5 * (q_a(i)[qid] + q_stage_a(i)[qid] + dt * rhs_a(i)[qid]);
       }
@@ -450,32 +431,17 @@ template<std::size_t D>
 void
 prepare_extp_for_material(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, ro> ls_psi_a,
-  typename field<int>::template accessor<ro, ro> material_a,
-  typename field<double>::template accessor<ro, ro> mass_density_a,
-  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
-  typename field<double>::template accessor<ro, ro> pressure_a,
-  typename field<double>::template accessor<ro, ro> sie_a,
+  typename field<double>::template accessor<ro, na> ls_psi_a,
+  typename field<int>::template accessor<ro, na> material_a,
+  typename field<double>::template accessor<ro, na> mass_density_a,
+  typename field<vec<D>>::template accessor<ro, na> velocity_a,
+  typename field<double>::template accessor<ro, na> pressure_a,
+  typename field<double>::template accessor<ro, na> sie_a,
   typename field<double>::template accessor<wo, na> extp_psi_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na> q_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
-    q_scalar_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
-    q_scalar_known_a,
+    q_known_a,
   int source_material) noexcept {
-
-  using common::tasks::utils::get_mdiota_policy;
-
-  auto ls_psi = m.template mdcolex<is::cells>(ls_psi_a);
-  auto material = m.template mdcolex<is::cells>(material_a);
-
-  auto rho = m.template mdcolex<is::cells>(mass_density_a);
-  auto velocity = m.template mdcolex<is::cells>(velocity_a);
-  auto pressure = m.template mdcolex<is::cells>(pressure_a);
-  auto sie = m.template mdcolex<is::cells>(sie_a);
-
-  auto extp_psi = m.template mdcolex<is::cells>(extp_psi_a);
-  auto q_scalar = m.template mdcolex<is::cells>(q_scalar_a);
-  auto q_known = m.template mdcolex<is::cells>(q_scalar_known_a);
 
   auto pack_q =
     [](auto & qcell, double r, const vec<D> & u, double p, double e) {
@@ -485,121 +451,14 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
       qcell.e() = e;
     };
 
-  if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      extp_psi(i) = (material(i) == source_material) ? ls_psi(i) : -ls_psi(i);
+  s.executor().forall(
+    i, flecsi::util::iota_view({}, extp_psi_a.span().size())) {
+    extp_psi_a(i) =
+      (material_a(i) == source_material) ? ls_psi_a(i) : -ls_psi_a(i);
 
-      pack_q(q_scalar(i), rho(i), velocity(i), pressure(i), sie(i));
-      q_known(i) = q_scalar(i);
-    };
-  }
-  else if constexpr(D == 2) {
-    auto mdpolicy_yx = get_mdiota_policy(rho,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(ji, mdpolicy_yx) {
-      auto [j, i] = ji;
-
-      extp_psi(i, j) =
-        (material(i, j) == source_material) ? ls_psi(i, j) : -ls_psi(i, j);
-
-      pack_q(
-        q_scalar(i, j), rho(i, j), velocity(i, j), pressure(i, j), sie(i, j));
-
-      q_known(i, j) = q_scalar(i, j);
-    };
-  }
-  else { // D == 3
-    auto mdpolicy_zyx = get_mdiota_policy(rho,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_zyx) {
-      auto [k, j, i] = kji;
-
-      extp_psi(i, j, k) = (material(i, j, k) == source_material)
-                            ? ls_psi(i, j, k)
-                            : -ls_psi(i, j, k);
-
-      pack_q(q_scalar(i, j, k),
-        rho(i, j, k),
-        velocity(i, j, k),
-        pressure(i, j, k),
-        sie(i, j, k));
-
-      q_known(i, j, k) = q_scalar(i, j, k);
-    };
-  }
-}
-
-template<std::size_t D>
-void
-prepare_extp_plus(flecsi::exec::accelerator s,
-  typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, ro> ls_psi_a,
-  typename field<int>::template accessor<ro, ro> material_a,
-  typename field<double>::template accessor<ro, ro> mass_density_a,
-  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
-  typename field<double>::template accessor<ro, ro> pressure_a,
-  typename field<double>::template accessor<ro, ro> sie_a,
-  typename field<double>::template accessor<wo, na> extp_psi_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
-    q_scalar_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
-    q_scalar_known_a) noexcept {
-
-  // TEMPORARY two-material convention.
-  // Change this if your left/minus material ID is not 0.
-  constexpr int source_material = 0;
-
-  prepare_extp_for_material<D>(s,
-    m,
-    ls_psi_a,
-    material_a,
-    mass_density_a,
-    velocity_a,
-    pressure_a,
-    sie_a,
-    extp_psi_a,
-    q_scalar_a,
-    q_scalar_known_a,
-    source_material);
-}
-
-template<std::size_t D>
-void
-prepare_extp_minus(flecsi::exec::accelerator s,
-  typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, ro> ls_psi_a,
-  typename field<int>::template accessor<ro, ro> material_a,
-  typename field<double>::template accessor<ro, ro> mass_density_a,
-  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
-  typename field<double>::template accessor<ro, ro> pressure_a,
-  typename field<double>::template accessor<ro, ro> sie_a,
-  typename field<double>::template accessor<wo, na> extp_psi_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
-    q_scalar_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
-    q_scalar_known_a) noexcept {
-
-  // TEMPORARY two-material convention.
-  // Change this if your right/plus material ID is not 1.
-  constexpr int source_material = 1;
-
-  prepare_extp_for_material<D>(s,
-    m,
-    ls_psi_a,
-    material_a,
-    mass_density_a,
-    velocity_a,
-    pressure_a,
-    sie_a,
-    extp_psi_a,
-    q_scalar_a,
-    q_scalar_known_a,
-    source_material);
+    pack_q(q_a(i), mass_density_a(i), velocity_a(i), pressure_a(i), sie_a(i));
+    q_known_a(i) = q_a(i);
+  };
 }
 
 } // namespace hard::tasks::extrapolation

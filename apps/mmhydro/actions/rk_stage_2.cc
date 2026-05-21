@@ -88,7 +88,8 @@ advance_rk_stage_2(state<D> & s,
 
       // Extrapolation for ghost fill: plus direction
 
-      sc.execute<tasks::extrapolation::prepare_extp_plus<D>>(flecsi::exec::on,
+      sc.execute<tasks::extrapolation::prepare_extp_for_material<D>>(
+        flecsi::exec::on,
         *s.m,
         s.ls.psi(*s.m),
         s.ls.material(*s.m),
@@ -98,7 +99,8 @@ advance_rk_stage_2(state<D> & s,
         s.prim.specific_internal_energy(*s.m),
         s.extp.extp_psi(*s.m),
         s.extp.q_scalar(*s.m),
-        s.extp.q_scalar_known(*s.m));
+        s.extp.q_scalar_known(*s.m),
+        0);
 
       // Compute unit normal of level set gradient
       // dp = grad(psi)
@@ -153,7 +155,8 @@ advance_rk_stage_2(state<D> & s,
 
       // Extrapolation for ghost fill: minus direction
 
-      sc.execute<tasks::extrapolation::prepare_extp_minus<D>>(flecsi::exec::on,
+      sc.execute<tasks::extrapolation::prepare_extp_for_material<D>>(
+        flecsi::exec::on,
         *s.m,
         s.ls.psi(*s.m),
         s.ls.material(*s.m),
@@ -163,7 +166,8 @@ advance_rk_stage_2(state<D> & s,
         s.prim.specific_internal_energy(*s.m),
         s.extp.extp_psi(*s.m),
         s.extp.q_scalar(*s.m),
-        s.extp.q_scalar_known(*s.m));
+        s.extp.q_scalar_known(*s.m),
+        1);
 
       // Compute unit normal of level set gradient
       // dp = grad(psi)
