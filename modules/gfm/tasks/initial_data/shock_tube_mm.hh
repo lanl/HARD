@@ -80,25 +80,21 @@ shock_mm(flecsi::exec::cpu s,
   auto q_ext_plus = m.template mdcolex<is::cells>(q_ext_plus_a);
   auto q_ext_minus = m.template mdcolex<is::cells>(q_ext_minus_a);
 
-  using q_ids = hard::tasks::util::extp_q_ids<D>;
-
   auto pack_q = [](auto & qcell,
                   double rho,
                   const vec<D> & velocity,
                   double pressure,
                   double sie) {
-    qcell[q_ids::rho] = rho;
-    qcell[q_ids::vel + 0] = velocity.x();
-
-    if constexpr(D >= 2)
-      qcell[q_ids::vel + 1] = velocity.y();
-
-    if constexpr(D >= 3)
-      qcell[q_ids::vel + 2] = velocity.z();
-
-    qcell[q_ids::pressure] = pressure;
-    qcell[q_ids::sie] = sie;
+    qcell.rho() = rho;
+    qcell.u() = velocity;
+    qcell.p() = pressure;
+    qcell.e() = sie;
+    qcell.n_comps() = 0;
   };
+
+  vec<D> uL(T::uL), uR(T::uR);
+  const double eL = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
+  const double eR = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
 
   if constexpr(D == 1) {
     for(auto i : m.template cells<ax::x, dm::quantities>()) {
@@ -108,15 +104,6 @@ shock_mm(flecsi::exec::cpu s,
       // phi < 0 : left material
       // phi > 0 : right material
       const double phi = x - T::x0;
-
-      const double eL = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
-      const double eR = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
-
-      vec<D> uL(0.0);
-      uL.x() = T::uL;
-
-      vec<D> uR(0.0);
-      uR.x() = T::uR;
 
       if(phi < 0.0) {
         material(i) = T::mL;
@@ -165,16 +152,6 @@ shock_mm(flecsi::exec::cpu s,
       const auto x = m.template right<ax::x>(i);
 
       const double phi = x - T::x0;
-      const double eL = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
-      const double eR = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
-
-      vec<D> uL(0.0);
-      uL.x() = T::uL;
-      uL.y() = T::uL;
-
-      vec<D> uR(0.0);
-      uR.x() = T::uR;
-      uR.y() = T::uR;
 
       if(x < T::x0) {
         material(i, j) = T::mL;
@@ -224,18 +201,6 @@ shock_mm(flecsi::exec::cpu s,
       const auto x = m.template right<ax::x>(i);
 
       const double phi = x - T::x0;
-      const double eL = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
-      const double eR = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
-
-      vec<D> uL(0.0);
-      uL.x() = T::uL;
-      uL.y() = T::uL;
-      uL.z() = T::uL;
-
-      vec<D> uR(0.0);
-      uR.x() = T::uR;
-      uR.y() = T::uR;
-      uR.z() = T::uR;
 
       if(x < T::x0) {
         material(i, j, k) = T::mL;

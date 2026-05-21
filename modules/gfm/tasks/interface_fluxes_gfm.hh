@@ -169,24 +169,11 @@ compute_ghost_state_from_extp_q(const std::vector<eos::eos_wrapper> & eos_mm,
   int mat_id,
   const hard::tasks::util::extp_q<Dim> & q) noexcept {
 
-  using ids = hard::tasks::util::extp_q_ids<Dim>;
-
   ghost_state<Dim> ghost;
 
-  ghost.rho = std::max(q[ids::rho], 1e-14);
-
-  ghost.u = vec<Dim>(0.0);
-  ghost.u.x() = q[ids::vel + 0];
-
-  if constexpr(Dim >= 2) {
-    ghost.u.y() = q[ids::vel + 1];
-  }
-
-  if constexpr(Dim >= 3) {
-    ghost.u.z() = q[ids::vel + 2];
-  }
-
-  ghost.p = std::max(q[ids::pressure], 1e-14);
+  ghost.rho = std::max(q.rho(), 1e-14);
+  ghost.u = q.u();
+  ghost.p = std::max(q.p(), 1e-14);
 
   // Recompute EOS-consistent state.
   compute_state_from_rho_u_p<Dim>(eos_mm, mat_id, ghost);

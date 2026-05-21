@@ -431,6 +431,36 @@ minmax(double scalar, const vec<D> & v) {
 }
 
 // ----------------------------------------------------------------------------
+//  vec<D> view type
+// ----------------------------------------------------------------------------
+
+template<std::size_t D>
+struct vec_view {
+  double * data;
+
+  double & operator[](std::size_t i) {
+    return data[i];
+  }
+
+  const double & operator[](std::size_t i) const {
+    return data[i];
+  }
+
+  vec_view & operator=(const vec<D> & v) {
+    for(std::size_t d = 0; d < D; ++d)
+      data[d] = v[d];
+    return *this;
+  }
+
+  operator vec<D>() const {
+    vec<D> v{};
+    for(std::size_t d = 0; d < D; ++d)
+      v[d] = data[d];
+    return v;
+  }
+};
+
+// ----------------------------------------------------------------------------
 //  Tensor types definitions
 // ----------------------------------------------------------------------------
 

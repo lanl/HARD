@@ -271,15 +271,13 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
 
       if(psi(i) <= 0.0) {
-        for(std::size_t qid = 0; qid < N_q; ++qid) {
-          rhs(i)[qid] = 0.0;
-        };
+        rhs(i) = 0.0;
       }
       else {
 
         const double ax = normal(i).x();
 
-        for(std::size_t qid = 0; qid < N_q; ++qid) {
+        for(std::size_t qid = 0; qid < q(i).size(); ++qid) {
           rhs(i)[qid] = -ax * gradu_1d<5>({q(i - 2)[qid],
                                             q(i - 1)[qid],
                                             q(i)[qid],
@@ -302,10 +300,7 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
       auto [j, i] = ji;
 
       if(psi(i, j) <= 0.0) {
-
-        for(std::size_t qid = 0; qid < N_q; ++qid) {
-          rhs(i, j)[qid] = 0.0;
-        }
+        rhs(i, j) = 0.0;
       }
       else {
 
@@ -313,16 +308,16 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         const double ay = normal(i, j).y();
 
         // clang-format off
-	
-	for(std::size_t qid = 0; qid < N_q; ++qid){
-      rhs(i, j)[qid] =
-        -(ax * gradu_1d<5>(
-          {q(i - 2, j)[qid], q(i - 1, j)[qid], q(i, j)[qid], q(i + 1, j)[qid], q(i + 2, j)[qid]},
+        for(std::size_t qid = 0; qid < q(i, j).size(); ++qid){
+          rhs(i, j)[qid] = -(ax * gradu_1d<5>(
+          {q(i - 2, j)[qid], q(i - 1, j)[qid], q(i, j)[qid],
+           q(i + 1, j)[qid], q(i + 2, j)[qid]},
           ax, dx) +
         ay * gradu_1d<5>(
-          {q(i, j - 2)[qid], q(i, j - 1)[qid], q(i, j)[qid], q(i, j + 1)[qid], q(i, j + 2)[qid]},
+          {q(i, j - 2)[qid], q(i, j - 1)[qid], q(i, j)[qid],
+           q(i, j + 1)[qid], q(i, j + 2)[qid]},
           ay, dy));
-	}
+        }
         // clang-format on
       }
     };
@@ -340,9 +335,7 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
       auto [k, j, i] = kji;
 
       if(psi(i, j, k) <= 0.0) {
-        for(std::size_t qid = 0; qid < N_q; ++qid) {
-          rhs(i, j, k)[qid] = 0.0;
-        }
+        rhs(i, j, k) = 0.0;
       }
       else {
 
@@ -351,31 +344,20 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         const double az = normal(i, j, k).z();
 
         // clang-format off
-      
-	for(std::size_t qid = 0; qid < N_q; ++qid){
-      rhs(i, j, k)[qid] =
-        -(ax * gradu_1d<5>(
-          {q(i - 2, j, k)[qid],
-            q(i - 1, j, k)[qid],
-            q(i, j, k)[qid],
-            q(i + 1, j, k)[qid],
-            q(i + 2, j, k)[qid]},
+        for(std::size_t qid = 0; qid < q(i, j, k).size(); ++qid){
+          rhs(i, j, k)[qid] = -(ax * gradu_1d<5>(
+          {q(i - 2, j, k)[qid], q(i - 1, j, k)[qid], q(i, j, k)[qid],
+            q(i + 1, j, k)[qid], q(i + 2, j, k)[qid]},
           ax, dx) +
-        ay * gradu_1d<5>(
-          {q(i, j - 2, k)[qid],
-            q(i, j - 1, k)[qid],
-            q(i, j, k)[qid],
-            q(i, j + 1, k)[qid],
-            q(i, j + 2, k)[qid]},
+            ay * gradu_1d<5>(
+          {q(i, j - 2, k)[qid], q(i, j - 1, k)[qid], q(i, j, k)[qid],
+            q(i, j + 1, k)[qid], q(i, j + 2, k)[qid]},
           ay, dy) +
-        az * gradu_1d<5>(
-          {q(i, j, k - 2)[qid],
-            q(i, j, k - 1)[qid],
-            q(i, j, k)[qid],
-            q(i, j, k + 1)[qid],
-            q(i, j, k + 2)[qid]},
+            az * gradu_1d<5>(
+          {q(i, j, k - 2)[qid], q(i, j, k - 1)[qid], q(i, j, k)[qid],
+            q(i, j, k + 1)[qid], q(i, j, k + 2)[qid]},
           az, dz));
-	}
+        }
         // clang-format on
       }
     };
@@ -482,7 +464,6 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
   int source_material) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
-  using q_ids = hard::tasks::util::extp_q_ids<D>;
 
   auto ls_psi = m.template mdcolex<is::cells>(ls_psi_a);
   auto material = m.template mdcolex<is::cells>(material_a);
@@ -498,19 +479,10 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
 
   auto pack_q =
     [](auto & qcell, double r, const vec<D> & u, double p, double e) {
-      qcell[q_ids::rho] = r;
-      qcell[q_ids::vel + 0] = u.x();
-
-      if constexpr(D >= 2) {
-        qcell[q_ids::vel + 1] = u.y();
-      }
-
-      if constexpr(D >= 3) {
-        qcell[q_ids::vel + 2] = u.z();
-      }
-
-      qcell[q_ids::pressure] = p;
-      qcell[q_ids::sie] = e;
+      qcell.rho() = r;
+      qcell.u() = u;
+      qcell.p() = p;
+      qcell.e() = e;
     };
 
   if constexpr(D == 1) {
