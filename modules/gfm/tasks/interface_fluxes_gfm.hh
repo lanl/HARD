@@ -41,20 +41,54 @@ compute_state_from_rho_u_p(const std::vector<eos::eos_wrapper> & eos_mm,
   int mat_id,
   ghost_state<Dim> & ghost) noexcept {
 
-  const double rho_f = std::max(ghost.rho, 1e-14);
-  const double p_f = std::max(ghost.p, 1e-14);
+  constexpr double floor = 1e-16;
+
+  flog_assert(std::isfinite(ghost.rho) && ghost.rho > floor,
+    "compute_state_from_rho_u_p: non-finite/invalid ghost rho"
+      << " rho=" << ghost.rho << " p=" << ghost.p << " mat_id=" << mat_id);
+
+  flog_assert(std::isfinite(ghost.p) && ghost.p > floor,
+    "compute_state_from_rho_u_p: non-finite/invalid ghost pressure"
+      << " rho=" << ghost.rho << " p=" << ghost.p << " mat_id=" << mat_id);
+
+  flog_assert(mat_id >= 0,
+    "compute_state_from_rho_u_p: negative material id"
+      << " mat_id=" << mat_id << " rho=" << ghost.rho << " p=" << ghost.p);
 
   const auto mat = static_cast<std::size_t>(mat_id);
+
+  flog_assert(mat < eos_mm.size(),
+    "compute_state_from_rho_u_p: material id out of EOS range"
+      << " mat_id=" << mat_id << " eos_mm.size=" << eos_mm.size()
+      << " rho=" << ghost.rho << " p=" << ghost.p);
+
   const auto & eos = eos_mm[mat];
 
-  // Getting internal energy
-  ghost.e = hard::tasks::util::find_sie(eos, rho_f, p_f);
-  // Compute sound speed
-  ghost.c = eos.cRhoSie(rho_f, ghost.e);
+  // Getting internal energy.
+  ghost.e = hard::tasks::util::find_sie(eos, ghost.rho, ghost.p);
 
-  ghost.ru = rho_f * ghost.u;
-  // Compute total energy density
-  ghost.re = rho_f * ghost.e + 0.5 * rho_f * ghost.u.norm_squared();
+  flog_assert(std::isfinite(ghost.e) && ghost.e > 0.0,
+    "compute_state_from_rho_u_p: invalid ghost sie"
+      << " e=" << ghost.e << " rho=" << ghost.rho << " p=" << ghost.p
+      << " mat_id=" << mat_id);
+
+  // Compute sound speed.
+  ghost.c = eos.cRhoSie(ghost.rho, ghost.e);
+
+  flog_assert(std::isfinite(ghost.c) && ghost.c > 0.0,
+    "compute_state_from_rho_u_p: invalid ghost sound speed"
+      << " c=" << ghost.c << " e=" << ghost.e << " rho=" << ghost.rho
+      << " p=" << ghost.p << " mat_id=" << mat_id);
+
+  ghost.ru = ghost.rho * ghost.u;
+
+  // Compute total energy density.
+  ghost.re = ghost.rho * ghost.e + 0.5 * ghost.rho * ghost.u.norm_squared();
+
+  flog_assert(std::isfinite(ghost.re) && ghost.re > 0.0,
+    "compute_state_from_rho_u_p: invalid ghost total energy density"
+      << " re=" << ghost.re << " rho=" << ghost.rho << " e=" << ghost.e
+      << " p=" << ghost.p << " mat_id=" << mat_id);
 }
 
 // Helper function: compute all three HLLC fluxes at once
@@ -131,6 +165,51 @@ normalize_interface_normal(const vec<Dim> & n_left,
   return n_if;
 }
 
+// Helper function: Validate whether extrapolated value usable
+// as a ghost state for EOS/HLLC
+template<std::size_t Dim>
+bool
+valid_extp_q_for_gfm(const hard::tasks::util::extp_q<Dim> & q) noexcept {
+  return std::isfinite(q.rho()) && q.rho() > 0.0 && std::isfinite(q.p()) &&
+         q.p() > 0.0 && std::isfinite(q.u().norm());
+}
+
+// Helper function: Check mat ids for valid EOS indices
+inline bool
+valid_material_id(int mat_id,
+  const std::vector<eos::eos_wrapper> & eos_mm) noexcept {
+  return mat_id >= 0 && static_cast<std::size_t>(mat_id) < eos_mm.size();
+}
+
+// Helper for raw ghost checks
+template<std::size_t Dim>
+void
+assert_raw_ghost_state(const char * label,
+  std::size_t face_axis,
+  int mL,
+  int mR,
+  int mat_id,
+  const ghost_state<Dim> & ghost) noexcept {
+
+  flog_assert(std::isfinite(ghost.rho) && ghost.rho > 0.0,
+    label << ": invalid raw ghost rho before EOS"
+          << " face_axis=" << face_axis << " mL=" << mL << " mR=" << mR
+          << " mat_id=" << mat_id << " rho=" << ghost.rho << " p=" << ghost.p
+          << " e=" << ghost.e << " u_norm=" << ghost.u.norm());
+
+  flog_assert(std::isfinite(ghost.p) && ghost.p > 0.0,
+    label << ": invalid raw ghost pressure before EOS"
+          << " face_axis=" << face_axis << " mL=" << mL << " mR=" << mR
+          << " mat_id=" << mat_id << " rho=" << ghost.rho << " p=" << ghost.p
+          << " e=" << ghost.e << " u_norm=" << ghost.u.norm());
+
+  flog_assert(std::isfinite(ghost.u.norm()),
+    label << ": invalid raw ghost velocity before EOS"
+          << " face_axis=" << face_axis << " mL=" << mL << " mR=" << mR
+          << " mat_id=" << mat_id << " rho=" << ghost.rho << " p=" << ghost.p
+          << " e=" << ghost.e << " u_norm=" << ghost.u.norm());
+}
+
 // Helper function: compute ghost state for GFM cut face
 template<std::size_t Dim>
 ghost_state<Dim>
@@ -161,23 +240,19 @@ compute_ghost_state(const std::vector<eos::eos_wrapper> & eos_mm,
   return ghost;
 }
 
-// Helper function: build a complete EOS-consistent ghost state from
-// an extrapolated packed primitive state.
+// Helper function: Unpack ghost state and fill initial value from
+// extrapolation.
 template<std::size_t Dim>
 ghost_state<Dim>
-compute_ghost_state_from_extp_q(const std::vector<eos::eos_wrapper> & eos_mm,
-  int mat_id,
-  const hard::tasks::util::extp_q<Dim> & q) noexcept {
-
+unpack_raw_ghost_state(const hard::tasks::util::extp_q<Dim> & q) noexcept {
   ghost_state<Dim> ghost;
-
-  ghost.rho = std::max(q.rho(), 1e-14);
+  ghost.rho = q.rho();
   ghost.u = q.u();
-  ghost.p = std::max(q.p(), 1e-14);
-
-  // Recompute EOS-consistent state.
-  compute_state_from_rho_u_p<Dim>(eos_mm, mat_id, ghost);
-
+  ghost.p = q.p();
+  ghost.e = q.e();
+  ghost.c = 0.0;
+  ghost.ru = vec<Dim>{};
+  ghost.re = 0.0;
   return ghost;
 }
 
@@ -230,12 +305,16 @@ process_single_face(std::size_t face_axis,
     // Ghost state for the left owner problem:
     // left real state against left-material state extrapolated into the right
     // side.
-    auto ghostR_L = compute_ghost_state_from_extp_q<Dim>(eos_mm, mL, qGhostR_L);
+    auto ghostR_L = unpack_raw_ghost_state<Dim>(qGhostR_L);
+    assert_raw_ghost_state<Dim>("ghostR_L", face_axis, mL, mR, mL, ghostR_L);
+    compute_state_from_rho_u_p<Dim>(eos_mm, mL, ghostR_L);
 
     // Ghost state for the right owner problem:
     // right-material state extrapolated into the left side against right real
     // state.
-    auto ghostL_R = compute_ghost_state_from_extp_q<Dim>(eos_mm, mR, qGhostL_R);
+    auto ghostL_R = unpack_raw_ghost_state<Dim>(qGhostL_R);
+    assert_raw_ghost_state<Dim>("ghostL_R", face_axis, mL, mR, mR, ghostL_R);
+    compute_state_from_rho_u_p<Dim>(eos_mm, mR, ghostL_R);
 
     // Left-owner flux
     // clang-format off
@@ -320,9 +399,9 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     }
   }();
 
-  // ---------------------------------------------------------------------------
-  // 1D
-  // ---------------------------------------------------------------------------
+  // GFM switch
+  constexpr bool enable_gfm = true;
+
   if constexpr(Dim == 1) {
     flog_assert(
       face_axis == 0, "1D executable can only compute fluxes along X axis");
@@ -331,9 +410,20 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     const auto dx = 1.0 / inv_dx;
     const double g_comp = g[0];
 
+    // -------------------------------------------------------------------------
+    // Compute face fluxes on dm::corrector
+    //
+    // For normal faces:
+    //   r_f(i), ru_f(i), re_f(i) = regular HLLC flux.
+    //
+    // For GFM cut faces:
+    //   r_f(i), ru_f(i), re_f(i) = left-owner GFM flux.
+    //   Then add a correction to the right cell so it receives right-owner
+    //   flux.
+    // -------------------------------------------------------------------------
     for(auto i : m.template cells<ax::x, dm::corrector>()) {
-      const int mL = mat_id(i - 1);
-      const int mR = mat_id(i);
+      const int mL_raw = mat_id(i - 1);
+      const int mR_raw = mat_id(i);
 
       const double pLeft_wave =
         p_left(i - 1) + 0.5 * r_left(i - 1) * g_comp * dx;
@@ -348,46 +438,98 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const double reL = re_left(i - 1);
       const double reR = re_right(i);
 
-      flog_assert(rhoL >= 0, "rhoL(" << i << ") < 0");
-      flog_assert(rhoR >= 0, "rhoR(" << i << ") < 0");
-      flog_assert(pL >= 0, "pL(" << i << ") < 0");
-      flog_assert(pR >= 0, "pR(" << i << ") < 0");
-      flog_assert(cL >= 0, "cL(" << i << ") < 0");
-      flog_assert(cR >= 0, "cR(" << i << ") < 0");
-      flog_assert(reL >= 0, "reL(" << i << ") < 0");
-      flog_assert(reR >= 0, "reR(" << i << ") < 0");
+      // check boundary face with valid materail
+      const bool valid_material_pair =
+        valid_material_id(mL_raw, eos_mm) && valid_material_id(mR_raw, eos_mm);
+
+      // check boundary face with unfilled recon states
+      const bool face_state_valid =
+        std::isfinite(rhoL) && rhoL > 0.0 && std::isfinite(rhoR) &&
+        rhoR > 0.0 && std::isfinite(pL) && pL > 0.0 && std::isfinite(pR) &&
+        pR > 0.0 && std::isfinite(cL) && cL > 0.0 && std::isfinite(cR) &&
+        cR > 0.0 && std::isfinite(reL) && reL > 0.0 && std::isfinite(reR) &&
+        reR > 0.0;
+
+      flog_assert(std::isfinite(rhoL) && rhoL >= 0.0,
+        "rhoL(" << i << ") invalid: " << rhoL << " mL=" << mL_raw
+                << " mR=" << mR_raw);
+      flog_assert(std::isfinite(rhoR) && rhoR >= 0.0,
+        "rhoR(" << i << ") invalid: " << rhoR << " mL=" << mL_raw
+                << " mR=" << mR_raw);
+      flog_assert(std::isfinite(pL) && pL >= 0.0,
+        "pL(" << i << ") invalid: " << pL << " mL=" << mL_raw
+              << " mR=" << mR_raw);
+      flog_assert(std::isfinite(pR) && pR >= 0.0,
+        "pR(" << i << ") invalid: " << pR << " mL=" << mL_raw
+              << " mR=" << mR_raw);
+      flog_assert(std::isfinite(cL) && cL >= 0.0,
+        "cL(" << i << ") invalid: " << cL << " mL=" << mL_raw
+              << " mR=" << mR_raw);
+      flog_assert(std::isfinite(cR) && cR >= 0.0,
+        "cR(" << i << ") invalid: " << cR << " mL=" << mL_raw
+              << " mR=" << mR_raw);
+      flog_assert(std::isfinite(reL) && reL >= 0.0,
+        "reL(" << i << ") invalid: " << reL << " mL=" << mL_raw
+               << " mR=" << mR_raw);
+      flog_assert(std::isfinite(reR) && reR >= 0.0,
+        "reR(" << i << ") invalid: " << reR << " mL=" << mL_raw
+               << " mR=" << mR_raw);
+
+      const bool qext_valid_for_cut =
+        valid_extp_q_for_gfm<Dim>(q_ext_plus(i)) &&
+        valid_extp_q_for_gfm<Dim>(q_ext_minus(i - 1));
+
+      const bool use_gfm_cut = enable_gfm && valid_material_pair &&
+                               face_state_valid && (mL_raw != mR_raw) &&
+                               qext_valid_for_cut;
+
+      // Force normal HLLC branch if not using GFM.
+      // Preserve local left material ID for right material
+      // if material 0 doesn't exist.
+      const int mL_eff = mL_raw;
+      const int mR_eff = use_gfm_cut ? mR_raw : mL_raw;
+
+      // const int mL_eff = mL_raw;
+      // const int mR_eff = use_gfm_cut ? mR_raw : mL_raw;
 
       flux_result<Dim> fluxes_L, fluxes_R;
       bool is_cut;
+
       // clang-format off
       process_single_face<Dim>(0,
-        mL, mR, rhoL, u_left(i - 1), pL, cL, ru_left(i - 1), reL, rhoR,
+        mL_eff, mR_eff, rhoL, u_left(i - 1), pL, cL, ru_left(i - 1), reL, rhoR,
         u_right(i), pR, cR, ru_right(i), reR, n_left(i - 1), n_right(i),
         q_ext_plus(i), q_ext_minus(i-1), eos_mm, r_f(i), ru_f(i),
         re_f(i), fluxes_L, fluxes_R, is_cut);
       // clang-format on
 
-      if(!is_cut) {
-        dt_mass_density(i - 1) -= inv_dx * r_f(i);
-        dt_momentum_density(i - 1) -= inv_dx * ru_f(i);
-        dt_total_energy_density(i - 1) -= inv_dx * re_f(i);
-
-        dt_mass_density(i) += inv_dx * r_f(i);
-        dt_momentum_density(i) += inv_dx * ru_f(i);
-        dt_total_energy_density(i) += inv_dx * re_f(i);
-      }
-      else {
-        dt_mass_density(i - 1) -= inv_dx * fluxes_L.r_flux;
-        dt_momentum_density(i - 1) -= inv_dx * fluxes_L.ru_flux;
-        dt_total_energy_density(i - 1) -= inv_dx * fluxes_L.re_flux;
-
-        dt_mass_density(i) += inv_dx * fluxes_R.r_flux;
-        dt_momentum_density(i) += inv_dx * fluxes_R.ru_flux;
-        dt_total_energy_density(i) += inv_dx * fluxes_R.re_flux;
+      // For a true GFM cut:
+      //
+      //   r_f/ru_f/re_f store the left-owner flux.
+      //
+      // The regular divergence update below gives:
+      //   left cell  -= flux_L / dx
+      //   right cell += flux_L / dx
+      //
+      // But the right cell should receive flux_R, so add:
+      //   +(flux_R - flux_L) / dx
+      //
+      if(use_gfm_cut) {
+        dt_mass_density(i) += inv_dx * (fluxes_R.r_flux - fluxes_L.r_flux);
+        dt_momentum_density(i) +=
+          inv_dx * (fluxes_R.ru_flux - fluxes_L.ru_flux);
+        dt_total_energy_density(i) +=
+          inv_dx * (fluxes_R.re_flux - fluxes_L.re_flux);
       }
     }
-  }
 
+    // Apply flux divergence only on dm::quantities (like in regular hydro).
+    for(auto i : m.template cells<ax::x, dm::quantities>()) {
+      dt_mass_density(i) += inv_dx * (r_f(i) - r_f(i + 1));
+      dt_momentum_density(i) += inv_dx * (ru_f(i) - ru_f(i + 1));
+      dt_total_energy_density(i) += inv_dx * (re_f(i) - re_f(i + 1));
+    }
+  }
   // ---------------------------------------------------------------------------
   // 2D
   // ---------------------------------------------------------------------------
@@ -418,8 +560,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const int iL = i + offset[0];
       const int jL = j + offset[1];
 
-      const int mL = mat_id(iL, jL);
-      const int mR = mat_id(i, j);
+      const int mL_raw = mat_id(iL, jL);
+      const int mR_raw = mat_id(i, j);
 
       const double pLeft_wave =
         p_left(iL, jL) + 0.5 * r_left(iL, jL) * g_comp / inv_dx;
@@ -435,43 +577,90 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const double reL = re_left(iL, jL);
       const double reR = re_right(i, j);
 
-      flog_assert(rhoL >= 0, "rhoL(" << i << ", " << j << ") < 0");
-      flog_assert(rhoR >= 0, "rhoR(" << i << ", " << j << ") < 0");
-      flog_assert(pL >= 0, "pL(" << i << ", " << j << ") < 0");
-      flog_assert(pR >= 0, "pR(" << i << ", " << j << ") < 0");
-      flog_assert(cL >= 0, "cL(" << i << ", " << j << ") < 0");
-      flog_assert(cR >= 0, "cR(" << i << ", " << j << ") < 0");
-      flog_assert(reL >= 0, "reL(" << i << ", " << j << ") < 0");
-      flog_assert(reR >= 0, "reR(" << i << ", " << j << ") < 0");
+      flog_assert(std::isfinite(rhoL) && rhoL >= 0.0,
+        "rhoL(" << i << "," << j << ") invalid: " << rhoL << " mL=" << mL_raw
+                << " mR=" << mR_raw);
+      flog_assert(std::isfinite(rhoR) && rhoR >= 0.0,
+        "rhoR(" << i << "," << j << ") invalid: " << rhoR << " mL=" << mL_raw
+                << " mR=" << mR_raw);
+      flog_assert(std::isfinite(pL) && pL >= 0.0,
+        "pL(" << i << "," << j << ") invalid: " << pL << " mL=" << mL_raw
+              << " mR=" << mR_raw);
+      flog_assert(std::isfinite(pR) && pR >= 0.0,
+        "pR(" << i << "," << j << ") invalid: " << pR << " mL=" << mL_raw
+              << " mR=" << mR_raw);
+      flog_assert(std::isfinite(cL) && cL >= 0.0,
+        "cL(" << i << "," << j << ") invalid: " << cL << " mL=" << mL_raw
+              << " mR=" << mR_raw);
+      flog_assert(std::isfinite(cR) && cR >= 0.0,
+        "cR(" << i << "," << j << ") invalid: " << cR << " mL=" << mL_raw
+              << " mR=" << mR_raw);
+      flog_assert(std::isfinite(reL) && reL >= 0.0,
+        "reL(" << i << "," << j << ") invalid: " << reL << " mL=" << mL_raw
+               << " mR=" << mR_raw);
+      flog_assert(std::isfinite(reR) && reR >= 0.0,
+        "reR(" << i << "," << j << ") invalid: " << reR << " mL=" << mL_raw
+               << " mR=" << mR_raw);
+
+      const bool valid_material_pair =
+        valid_material_id(mL_raw, eos_mm) && valid_material_id(mR_raw, eos_mm);
+
+      // Strict check only for deciding whether GFM is allowed.
+      const bool face_state_valid_for_gfm =
+        std::isfinite(rhoL) && rhoL > 0.0 && std::isfinite(rhoR) &&
+        rhoR > 0.0 && std::isfinite(pL) && pL > 0.0 && std::isfinite(pR) &&
+        pR > 0.0 && std::isfinite(cL) && cL > 0.0 && std::isfinite(cR) &&
+        cR > 0.0 && std::isfinite(reL) && reL > 0.0 && std::isfinite(reR) &&
+        reR > 0.0;
+
+      const bool qext_valid_for_cut =
+        valid_extp_q_for_gfm<Dim>(q_ext_plus(i, j)) &&
+        valid_extp_q_for_gfm<Dim>(q_ext_minus(iL, jL));
+
+      const bool use_gfm_cut = enable_gfm && valid_material_pair &&
+                               face_state_valid_for_gfm && (mL_raw != mR_raw) &&
+                               qext_valid_for_cut;
+
+      // Force normal HLLC branch if not using GFM.
+      const int mL_eff = mL_raw;
+      const int mR_eff = use_gfm_cut ? mR_raw : mL_raw;
 
       flux_result<Dim> fluxes_L, fluxes_R;
-      bool is_cut;
+      bool is_cut = false;
       // clang-format off
       process_single_face<Dim>(face_axis,
-        mL, mR, rhoL, u_left(iL, jL), pL, cL, ru_left(iL, jL),
+        mL_eff, mR_eff, rhoL, u_left(iL, jL), pL, cL, ru_left(iL, jL),
         reL, rhoR, u_right(i, j), pR, cR, ru_right(i, j), reR,
         n_left(iL, jL), n_right(i, j),
         q_ext_plus(i,j), q_ext_minus(iL,jL), eos_mm, r_f(i, j),
         ru_f(i, j), re_f(i, j), fluxes_L, fluxes_R, is_cut);
       // clang-format on
 
-      if(!is_cut) {
-        dt_mass_density(iL, jL) -= inv_dx * r_f(i, j);
-        dt_momentum_density(iL, jL) -= inv_dx * ru_f(i, j);
-        dt_total_energy_density(iL, jL) -= inv_dx * re_f(i, j);
+      if(use_gfm_cut) {
+        dt_mass_density(i, j) += inv_dx * (fluxes_R.r_flux - fluxes_L.r_flux);
+        dt_momentum_density(i, j) +=
+          inv_dx * (fluxes_R.ru_flux - fluxes_L.ru_flux);
+        dt_total_energy_density(i, j) +=
+          inv_dx * (fluxes_R.re_flux - fluxes_L.re_flux);
+      }
+    }
+    // Apply regular hydro-style divergence only over dm::quantities.
+    auto mdpolicy_qq = get_mdiota_policy(dt_mass_density,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
 
-        dt_mass_density(i, j) += inv_dx * r_f(i, j);
-        dt_momentum_density(i, j) += inv_dx * ru_f(i, j);
-        dt_total_energy_density(i, j) += inv_dx * re_f(i, j);
+    for(auto ji : mdpolicy_qq) {
+      auto [j, i] = ji;
+
+      if(face_axis == 0) {
+        dt_mass_density(i, j) += inv_dx * (r_f(i, j) - r_f(i + 1, j));
+        dt_momentum_density(i, j) += inv_dx * (ru_f(i, j) - ru_f(i + 1, j));
+        dt_total_energy_density(i, j) += inv_dx * (re_f(i, j) - re_f(i + 1, j));
       }
       else {
-        dt_mass_density(iL, jL) -= inv_dx * fluxes_L.r_flux;
-        dt_momentum_density(iL, jL) -= inv_dx * fluxes_L.ru_flux;
-        dt_total_energy_density(iL, jL) -= inv_dx * fluxes_L.re_flux;
-
-        dt_mass_density(i, j) += inv_dx * fluxes_R.r_flux;
-        dt_momentum_density(i, j) += inv_dx * fluxes_R.ru_flux;
-        dt_total_energy_density(i, j) += inv_dx * fluxes_R.re_flux;
+        dt_mass_density(i, j) += inv_dx * (r_f(i, j) - r_f(i, j + 1));
+        dt_momentum_density(i, j) += inv_dx * (ru_f(i, j) - ru_f(i, j + 1));
+        dt_total_energy_density(i, j) += inv_dx * (re_f(i, j) - re_f(i, j + 1));
       }
     }
   }
@@ -511,8 +700,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const int jL = j + offset[1];
       const int kL = k + offset[2];
 
-      const int mL = mat_id(iL, jL, kL);
-      const int mR = mat_id(i, j, k);
+      const int mL_raw = mat_id(iL, jL, kL);
+      const int mR_raw = mat_id(i, j, k);
 
       const double pLeft_wave =
         p_left(iL, jL, kL) + 0.5 * r_left(iL, jL, kL) * g_comp / inv_dx;
@@ -528,43 +717,103 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const double reL = re_left(iL, jL, kL);
       const double reR = re_right(i, j, k);
 
-      flog_assert(rhoL >= 0, "rhoL(" << i << ", " << j << ", " << k << ") < 0");
-      flog_assert(rhoR >= 0, "rhoR(" << i << ", " << j << ", " << k << ") < 0");
-      flog_assert(pL >= 0, "pL(" << i << ", " << j << ", " << k << ") < 0");
-      flog_assert(pR >= 0, "pR(" << i << ", " << j << ", " << k << ") < 0");
-      flog_assert(cL >= 0, "cL(" << i << ", " << j << ", " << k << ") < 0");
-      flog_assert(cR >= 0, "cR(" << i << ", " << j << ", " << k << ") < 0");
-      flog_assert(reL >= 0, "reL(" << i << ", " << j << ", " << k << ") < 0");
-      flog_assert(reR >= 0, "reR(" << i << ", " << j << ", " << k << ") < 0");
+      flog_assert(std::isfinite(rhoL) && rhoL >= 0.0,
+        "rhoL(" << i << "," << j << "," << k << ") invalid: " << rhoL
+                << " mL=" << mL_raw << " mR=" << mR_raw);
+      flog_assert(std::isfinite(rhoR) && rhoR >= 0.0,
+        "rhoR(" << i << "," << j << "," << k << ") invalid: " << rhoR
+                << " mL=" << mL_raw << " mR=" << mR_raw);
+      flog_assert(std::isfinite(pL) && pL >= 0.0,
+        "pL(" << i << "," << j << "," << k << ") invalid: " << pL
+              << " mL=" << mL_raw << " mR=" << mR_raw);
+      flog_assert(std::isfinite(pR) && pR >= 0.0,
+        "pR(" << i << "," << j << "," << k << ") invalid: " << pR
+              << " mL=" << mL_raw << " mR=" << mR_raw);
+      flog_assert(std::isfinite(cL) && cL >= 0.0,
+        "cL(" << i << "," << j << "," << k << ") invalid: " << cL
+              << " mL=" << mL_raw << " mR=" << mR_raw);
+      flog_assert(std::isfinite(cR) && cR >= 0.0,
+        "cR(" << i << "," << j << "," << k << ") invalid: " << cR
+              << " mL=" << mL_raw << " mR=" << mR_raw);
+      flog_assert(std::isfinite(reL) && reL >= 0.0,
+        "reL(" << i << "," << j << "," << k << ") invalid: " << reL
+               << " mL=" << mL_raw << " mR=" << mR_raw);
+      flog_assert(std::isfinite(reR) && reR >= 0.0,
+        "reR(" << i << "," << j << "," << k << ") invalid: " << reR
+               << " mL=" << mL_raw << " mR=" << mR_raw);
+      const bool valid_material_pair =
+        valid_material_id(mL_raw, eos_mm) && valid_material_id(mR_raw, eos_mm);
+
+      // Strict check only for deciding whether GFM is allowed.
+      const bool face_state_valid_for_gfm =
+        std::isfinite(rhoL) && rhoL > 0.0 && std::isfinite(rhoR) &&
+        rhoR > 0.0 && std::isfinite(pL) && pL > 0.0 && std::isfinite(pR) &&
+        pR > 0.0 && std::isfinite(cL) && cL > 0.0 && std::isfinite(cR) &&
+        cR > 0.0 && std::isfinite(reL) && reL > 0.0 && std::isfinite(reR) &&
+        reR > 0.0;
+
+      const bool qext_valid_for_cut =
+        valid_extp_q_for_gfm<Dim>(q_ext_plus(i, j, k)) &&
+        valid_extp_q_for_gfm<Dim>(q_ext_minus(iL, jL, kL));
+
+      const bool use_gfm_cut = enable_gfm && valid_material_pair &&
+                               face_state_valid_for_gfm && (mL_raw != mR_raw) &&
+                               qext_valid_for_cut;
+
+      // Force normal HLLC branch if not using GFM.
+      const int mL_eff = mL_raw;
+      const int mR_eff = use_gfm_cut ? mR_raw : mL_raw;
 
       flux_result<Dim> fluxes_L, fluxes_R;
-      bool is_cut;
+      bool is_cut = false;
       // clang-format off
       process_single_face<Dim>(face_axis,
-        mL, mR, rhoL, u_left(iL, jL, kL), pL, cL, ru_left(iL, jL, kL),
+        mL_eff, mR_eff, rhoL, u_left(iL, jL, kL), pL, cL, ru_left(iL, jL, kL),
         reL, rhoR, u_right(i, j, k), pR, cR, ru_right(i, j, k), reR,
         n_left(iL, jL, kL), n_right(i, j, k),
         q_ext_plus(i,j,k), q_ext_minus(iL,jL,kL), eos_mm, r_f(i, j, k),
         ru_f(i, j, k), re_f(i, j, k), fluxes_L, fluxes_R, is_cut);
       // clang-format on
+      // GFM correction to the right/plus cell only.
+      if(use_gfm_cut) {
+        dt_mass_density(i, j, k) +=
+          inv_dx * (fluxes_R.r_flux - fluxes_L.r_flux);
+        dt_momentum_density(i, j, k) +=
+          inv_dx * (fluxes_R.ru_flux - fluxes_L.ru_flux);
+        dt_total_energy_density(i, j, k) +=
+          inv_dx * (fluxes_R.re_flux - fluxes_L.re_flux);
+      }
+    }
 
-      if(!is_cut) {
-        dt_mass_density(iL, jL, kL) -= inv_dx * r_f(i, j, k);
-        dt_momentum_density(iL, jL, kL) -= inv_dx * ru_f(i, j, k);
-        dt_total_energy_density(iL, jL, kL) -= inv_dx * re_f(i, j, k);
+    // Apply regular hydro-style divergence only over dm::quantities.
+    auto mdpolicy_qqq = get_mdiota_policy(dt_mass_density,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
 
-        dt_mass_density(i, j, k) += inv_dx * r_f(i, j, k);
-        dt_momentum_density(i, j, k) += inv_dx * ru_f(i, j, k);
-        dt_total_energy_density(i, j, k) += inv_dx * re_f(i, j, k);
+    for(auto kji : mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+
+      if(face_axis == 0) {
+        dt_mass_density(i, j, k) += inv_dx * (r_f(i, j, k) - r_f(i + 1, j, k));
+        dt_momentum_density(i, j, k) +=
+          inv_dx * (ru_f(i, j, k) - ru_f(i + 1, j, k));
+        dt_total_energy_density(i, j, k) +=
+          inv_dx * (re_f(i, j, k) - re_f(i + 1, j, k));
+      }
+      else if(face_axis == 1) {
+        dt_mass_density(i, j, k) += inv_dx * (r_f(i, j, k) - r_f(i, j + 1, k));
+        dt_momentum_density(i, j, k) +=
+          inv_dx * (ru_f(i, j, k) - ru_f(i, j + 1, k));
+        dt_total_energy_density(i, j, k) +=
+          inv_dx * (re_f(i, j, k) - re_f(i, j + 1, k));
       }
       else {
-        dt_mass_density(iL, jL, kL) -= inv_dx * fluxes_L.r_flux;
-        dt_momentum_density(iL, jL, kL) -= inv_dx * fluxes_L.ru_flux;
-        dt_total_energy_density(iL, jL, kL) -= inv_dx * fluxes_L.re_flux;
-
-        dt_mass_density(i, j, k) += inv_dx * fluxes_R.r_flux;
-        dt_momentum_density(i, j, k) += inv_dx * fluxes_R.ru_flux;
-        dt_total_energy_density(i, j, k) += inv_dx * fluxes_R.re_flux;
+        dt_mass_density(i, j, k) += inv_dx * (r_f(i, j, k) - r_f(i, j, k + 1));
+        dt_momentum_density(i, j, k) +=
+          inv_dx * (ru_f(i, j, k) - ru_f(i, j, k + 1));
+        dt_total_energy_density(i, j, k) +=
+          inv_dx * (re_f(i, j, k) - re_f(i, j, k + 1));
       }
     }
   }

@@ -182,7 +182,8 @@ unit_normals(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<vec<D>>::template accessor<ro, ro> dp_a,
   typename field<vec<D>>::template accessor<wo, na> normal_a,
-  typename faces_vec<D>::template accessor<wo, na> normal_f_a) noexcept {
+  typename faces_vec<D>::template accessor<wo, na> normal_f_a,
+  std::size_t face_axis) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
@@ -220,8 +221,16 @@ unit_normals(flecsi::exec::accelerator s,
       auto [j, i] = ji;
       normal(i, j) = dp(i, j) / (dp(i, j).norm() + eps);
 
-      n_right(i, j) = normalize(0.5 * (dp(i, j) + dp(i + 1, j)));
-      n_left(i, j) = normalize(0.5 * (dp(i - 1, j) + dp(i, j)));
+      if(face_axis == 0) {
+        // x faces: i +/- 1/2
+        n_right(i, j) = normalize(0.5 * (dp(i, j) + dp(i + 1, j)));
+        n_left(i, j) = normalize(0.5 * (dp(i - 1, j) + dp(i, j)));
+      }
+      else {
+        // y faces: j +/- 1/2
+        n_right(i, j) = normalize(0.5 * (dp(i, j) + dp(i, j + 1)));
+        n_left(i, j) = normalize(0.5 * (dp(i, j - 1) + dp(i, j)));
+      }
     };
   }
   else /* D == 3 */ {
@@ -234,8 +243,18 @@ unit_normals(flecsi::exec::accelerator s,
       auto [k, j, i] = kji;
       normal(i, j, k) = dp(i, j, k) / (dp(i, j, k).norm() + eps);
 
-      n_right(i, j, k) = normalize(0.5 * (dp(i, j, k) + dp(i + 1, j, k)));
-      n_left(i, j, k) = normalize(0.5 * (dp(i - 1, j, k) + dp(i, j, k)));
+      if(face_axis == 0) {
+        n_right(i, j, k) = normalize(0.5 * (dp(i, j, k) + dp(i + 1, j, k)));
+        n_left(i, j, k) = normalize(0.5 * (dp(i - 1, j, k) + dp(i, j, k)));
+      }
+      else if(face_axis == 1) {
+        n_right(i, j, k) = normalize(0.5 * (dp(i, j, k) + dp(i, j + 1, k)));
+        n_left(i, j, k) = normalize(0.5 * (dp(i, j - 1, k) + dp(i, j, k)));
+      }
+      else {
+        n_right(i, j, k) = normalize(0.5 * (dp(i, j, k) + dp(i, j, k + 1)));
+        n_left(i, j, k) = normalize(0.5 * (dp(i, j, k - 1) + dp(i, j, k)));
+      }
     };
   }
 }

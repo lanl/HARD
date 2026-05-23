@@ -117,7 +117,8 @@ advance_rk_stage_1(state<D> & s,
         *s.m,
         s.extp.dp(*s.m),
         s.extp.normal(*s.m),
-        s.extp.f.normal_face(s.m));
+        s.extp.f.normal_face(s.m),
+        axis);
 
       // Stage 1: rhs(q^n) -> rhs
       sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
@@ -184,7 +185,8 @@ advance_rk_stage_1(state<D> & s,
         *s.m,
         s.extp.dp(*s.m),
         s.extp.normal(*s.m),
-        s.extp.f.normal_face(s.m));
+        s.extp.f.normal_face(s.m),
+        axis);
 
       // Stage 1: rhs(q^n) -> rhs
       sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
