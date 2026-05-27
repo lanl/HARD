@@ -219,7 +219,7 @@ advance_rk_stage_2(state<D> & s,
         s.extp.q_scalar(*s.m), // q^n
         s.extp.q_rhs1(*s.m), // rhs(q1)
         s.extp.q_scalar1(*s.m), // q_stage
-        s.extp.q_ext_plus(*s.m), // q_new
+        s.extp.q_ext_minus(*s.m), // q_new
         s.dt(*s.gt)); // dtau in original work
 
       /* End of extrapolation*/

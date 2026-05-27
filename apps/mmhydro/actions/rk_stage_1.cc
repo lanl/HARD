@@ -164,7 +164,7 @@ advance_rk_stage_1(state<D> & s,
       sc.execute<tasks::extrapolation::prepare_extp_for_material<D>>(
         flecsi::exec::on,
         *s.m,
-        s.extp.extp_psi(*s.m),
+        s.ls.psi(*s.m),
         s.ls.material(*s.m),
         s.cons.hydro.mass_density(*s.m),
         s.prim.velocity(*s.m),
@@ -178,7 +178,7 @@ advance_rk_stage_1(state<D> & s,
       // Compute unit normal of level set gradient
       // dp = grad(psi)
       sc.execute<tasks::extrapolation::gradient_centered<D>>(
-        flecsi::exec::on, *s.m, s.ls.psi(*s.m), s.extp.dp(*s.m));
+        flecsi::exec::on, *s.m, s.extp.extp_psi(*s.m), s.extp.dp(*s.m));
 
       // normal = dp/|dp| and normal faces
       sc.execute<tasks::extrapolation::unit_normals<D>>(flecsi::exec::on,
