@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+from spack_repo.builtin.build_systems.cmake import CMakePackage
+from spack_repo.builtin.build_systems.cuda import CudaPackage
 from spack.package import *
 
 class Hard(CMakePackage, CudaPackage):
@@ -38,7 +40,7 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("python", when="+tests")
     depends_on("py-numpy", when="+tests")
     depends_on("py-scipy", when="+tests")
-    depends_on("py-exactpack", when="+tests")
+    depends_on("py_exactpack", when="+tests")
     depends_on("py-matplotlib", when="+tests")
 
     requires("%clang@17:", when="+cuda", msg="CUDA version only supports Clang compiler")
