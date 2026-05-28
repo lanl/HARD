@@ -31,8 +31,8 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("c", type="build")
     depends_on("cxx", type="build")
 
-    depends_on("singularity-eos@1.11.0: +hdf5 +spiner build_extra=sesame")
-    depends_on("singularity-eos~eospac+kokkos+kokkos-kernels+cuda", when="+cuda")
+    depends_on("singularity-eos@1.11.0: ~closure~fortran+hdf5 +spiner build_extra=sesame")
+    depends_on("singularity-eos~closure~fortran~eospac+kokkos+kokkos-kernels+cuda", when="+cuda")
     depends_on("ports-of-call@2.0.1:")
 
     depends_on("cmake@3.27:")
@@ -40,7 +40,7 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("python", when="+tests")
     depends_on("py-numpy", when="+tests")
     depends_on("py-scipy", when="+tests")
-    depends_on("py_exactpack", when="+tests")
+    depends_on("py-exactpack", when="+tests")
     depends_on("py-matplotlib", when="+tests")
 
     requires("%clang@17:", when="+cuda", msg="CUDA version only supports Clang compiler")
