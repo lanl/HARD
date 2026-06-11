@@ -7,7 +7,7 @@
 Visualization
 *************
 
-HARD supports two output formats for visualization and analysis.
+HARD supports three output formats for visualization and analysis.
 
 Output Formats
 ~~~~~~~~~~~~~~
