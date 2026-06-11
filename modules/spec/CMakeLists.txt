@@ -48,8 +48,15 @@ target_link_libraries(libspec
     Python::Python
 )
 
+# Link HDF5 (optional, for XDMF output)
+if(HARD_ENABLE_HDF5)
+  target_link_libraries(libspec INTERFACE ${HDF5_LIBRARIES})
+  target_include_directories(libspec INTERFACE ${HDF5_INCLUDE_DIRS})
+endif()
+
 target_compile_definitions(libspec
   INTERFACE
+    $<$<BOOL:${HARD_ENABLE_HDF5}>:HARD_ENABLE_HDF5>
     $<$<BOOL:${HARD_BENCHMARK_MODE}>:HARD_BENCHMARK_MODE>
     $<$<BOOL:${HARD_ENABLE_LEGION_TRACING}>:HARD_ENABLE_LEGION_TRACING>
     $<$<BOOL:${HARD_WRITE_CONTROL_INFO}>:HARD_WRITE_CONTROL_INFO>

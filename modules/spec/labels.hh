@@ -90,6 +90,11 @@ enum output_method {
   csv,
   /// VTK ImageData XML format (.vti/.pvti).
   vti
+#ifdef HARD_ENABLE_HDF5
+  /// XDMF + HDF5 format (.xmf + .h5) for large-scale simulations.
+  ,
+  xdmf
+#endif
 }; // enum output_method
 } // namespace om
 

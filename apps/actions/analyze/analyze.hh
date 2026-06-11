@@ -49,6 +49,18 @@ analyze([[maybe_unused]] control_policy<state, D> & cp,
           std::make_tuple(
             s.cons.hydro.momentum_density(lm), "momentum_density")});
     }
+#ifdef HARD_ENABLE_HDF5
+    else if(s.output_method == spec::om::xdmf) {
+      flecsi::execute<tasks::io::xdmf<D>, flecsi::mpi>(flecsi::exec::on,
+        spec::io::name{""} << std::setfill('0') << std::setw(5) << cp.step(),
+        s.t(*s.gt),
+        lm,
+        scalar_v,
+        std::vector{std::make_tuple(s.prim.velocity(lm), "velocity"),
+          std::make_tuple(
+            s.cons.hydro.momentum_density(lm), "momentum_density")});
+    }
+#endif
     else {
       flecsi::execute<tasks::io::csv<D>, flecsi::mpi>(flecsi::exec::on,
         spec::io::name{""} << std::setfill('0') << std::setw(5) << cp.step(),
