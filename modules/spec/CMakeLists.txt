@@ -53,9 +53,4 @@ target_compile_definitions(libspec
     $<$<BOOL:${HARD_BENCHMARK_MODE}>:HARD_BENCHMARK_MODE>
     $<$<BOOL:${HARD_ENABLE_LEGION_TRACING}>:HARD_ENABLE_LEGION_TRACING>
     $<$<BOOL:${HARD_WRITE_CONTROL_INFO}>:HARD_WRITE_CONTROL_INFO>
-    $<$<BOOL:${ENABLE_CATALYST}>:ENABLE_CATALYST>
 )
-
-if(ENABLE_CATALYST)
-  target_link_libraries(libspec INTERFACE catalyst::catalyst)
-endif()

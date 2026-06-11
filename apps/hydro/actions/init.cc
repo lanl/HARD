@@ -162,6 +162,18 @@ struct initialize {
     } // if
 
     /*--------------------------------------------------------------------------*
+      Output method configuration.
+      *--------------------------------------------------------------------------*/
+
+    // Default output method is csv (set in state initialization)
+    if(config.contains("output_method")) {
+      auto method = config["output_method"].cast<std::string>();
+      if(method == "vti") {
+        s.output_method = spec::om::vti;
+      }
+    }
+
+    /*--------------------------------------------------------------------------*
       Initialize time advance.
       *--------------------------------------------------------------------------*/
 

@@ -31,9 +31,5 @@ config = {
         "zlow": "periodic",
         "zhigh": "periodic",
     },
-    "catalyst": {
-        "script": "/path",
-        "implementation": "paraview",
-        "implementation_directory": "/path",
-    },
+    "output_method": "csv",
 }

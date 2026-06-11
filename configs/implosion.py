@@ -32,15 +32,11 @@ config = {
         "zlow": "periodic",
         "zhigh": "periodic",
     },
-    "catalyst": {
-        "script": "/path",
-        "implementation": "paraview",
-        "implementation_directory": "/path",
-    },
     "lowest_level": 5,
     "linear_solver": {
         "maxiter": 100,
         "rtol": 1.0e-7,
         "use_zero_guess": True,
     },
+    "output_method": "csv",
 }
