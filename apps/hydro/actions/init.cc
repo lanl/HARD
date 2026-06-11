@@ -171,6 +171,11 @@ struct initialize {
       if(method == "vti") {
         s.output_method = spec::om::vti;
       }
+#ifdef HARD_ENABLE_HDF5
+      else if(method == "xdmf") {
+        s.output_method = spec::om::xdmf;
+      }
+#endif
     }
 
     /*--------------------------------------------------------------------------*
