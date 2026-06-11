@@ -1,5 +1,7 @@
 # dependency package for singulary-opac
 
+from spack_repo.builtin.build_systems.cmake import CMakePackage
+
 import os
 from spack import *
 from spack.package import *
