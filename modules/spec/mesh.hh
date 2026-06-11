@@ -274,7 +274,8 @@ struct mesh : flecsi::topo::specialization<flecsi::topo::narray, mesh<D>> {
       }
       else if constexpr(D == 3 && A == ax::z) {
         return this->policy_meta().zdelta;
-      } // if
+      }
+
     } // delta
 
     /// Return the cell right for the given axis and id. The right is the
