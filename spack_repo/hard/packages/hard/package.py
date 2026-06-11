@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+from spack_repo.builtin.build_systems.cmake import CMakePackage
+from spack_repo.builtin.build_systems.cuda import CudaPackage
 from spack.package import *
 
 class Hard(CMakePackage, CudaPackage):
@@ -29,8 +31,8 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("c", type="build")
     depends_on("cxx", type="build")
 
-    depends_on("singularity-eos@1.11.0: +hdf5 +spiner build_extra=sesame")
-    depends_on("singularity-eos~eospac+kokkos+kokkos-kernels+cuda", when="+cuda")
+    depends_on("singularity-eos@1.11.0: ~closure~fortran+hdf5 +spiner build_extra=sesame")
+    depends_on("singularity-eos~closure~fortran~eospac+kokkos+kokkos-kernels+cuda", when="+cuda")
     depends_on("ports-of-call@2.0.1:")
 
     depends_on("cmake@3.27:")

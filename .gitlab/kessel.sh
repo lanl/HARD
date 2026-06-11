@@ -1,4 +1,4 @@
-DEPLOYMENT_VERSION="2026-02-26"
+DEPLOYMENT_VERSION="2026-06-10"
 SCRIPT_PATH=${BASH_SOURCE[0]:-${(%):-%x}}
 PARENT_DIR=$( cd "$( dirname "${SCRIPT_PATH}" )" &>/dev/null && pwd )
 
