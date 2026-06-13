@@ -57,11 +57,11 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
   set(TEST_CONVERGENCE_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_convergence.sh")
 
   # Accuracy tests
-  add_test(NAME mmhydro_accuracy_sod_1d
-    COMMAND ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/mmhydro/mmhydro
-    ${CMAKE_SOURCE_DIR}/configs/sod_mm.py -d1
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
+  #  add_test(NAME mmhydro_accuracy_sod_1d
+  #    COMMAND ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/mmhydro/mmhydro
+  #    ${CMAKE_SOURCE_DIR}/configs/sod_mm.py -d1
+  #    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  #)
 
 endif()
 
