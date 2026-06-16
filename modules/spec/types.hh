@@ -438,21 +438,21 @@ template<std::size_t D>
 struct vec_view {
   double * data;
 
-  double & operator[](std::size_t i) {
+  FLECSI_INLINE_TARGET double & operator[](std::size_t i) {
     return data[i];
   }
 
-  const double & operator[](std::size_t i) const {
+  FLECSI_INLINE_TARGET const double & operator[](std::size_t i) const {
     return data[i];
   }
 
-  vec_view & operator=(const vec<D> & v) {
+  FLECSI_INLINE_TARGET vec_view & operator=(const vec<D> & v) {
     for(std::size_t d = 0; d < D; ++d)
       data[d] = v[d];
     return *this;
   }
 
-  operator vec<D>() const {
+  FLECSI_INLINE_TARGET operator vec<D>() const {
     vec<D> v{};
     for(std::size_t d = 0; d < D; ++d)
       v[d] = data[d];

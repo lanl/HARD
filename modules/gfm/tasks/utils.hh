@@ -24,63 +24,66 @@ template<std::size_t D>
 struct extp_q {
   static constexpr std::size_t N_q = D + 4;
 
-  std::array<double, N_q> vals{};
+  std::array<double, N_q> vals;
 
-  double & rho() {
+  FLECSI_INLINE_TARGET double & rho() {
     return vals[0];
   }
 
-  spec::vec_view<D> u() {
+  FLECSI_INLINE_TARGET spec::vec_view<D> u() {
     return spec::vec_view<D>{vals.data() + 1};
   }
 
-  double & p() {
+  FLECSI_INLINE_TARGET double & p() {
     return vals[1 + D];
   }
-  double & e() {
+  FLECSI_INLINE_TARGET double & e() {
     return vals[2 + D];
   }
-  double & n_comps() {
+  FLECSI_INLINE_TARGET double & n_comps() {
     return vals[3 + D];
   }
 
-  double rho() const {
+  FLECSI_INLINE_TARGET double rho() const {
     return vals[0];
   }
 
-  vec<D> u() const {
+  FLECSI_INLINE_TARGET vec<D> u() const {
     vec<D> out{};
     for(std::size_t d = 0; d < D; ++d)
       out[d] = vals[1 + d];
     return out;
   }
 
-  double p() const {
+  FLECSI_INLINE_TARGET double p() const {
     return vals[1 + D];
   }
-  double e() const {
+  FLECSI_INLINE_TARGET double e() const {
     return vals[2 + D];
   }
-  double n_comps() const {
+  FLECSI_INLINE_TARGET double n_comps() const {
     return vals[3 + D];
   }
 
-  double & operator[](std::size_t i) {
+  FLECSI_INLINE_TARGET double & operator[](std::size_t i) {
     return vals[i];
   }
-  const double & operator[](std::size_t i) const {
+  FLECSI_INLINE_TARGET const double & operator[](std::size_t i) const {
     return vals[i];
   }
 
-  extp_q & operator=(double x) {
+  FLECSI_INLINE_TARGET extp_q & operator=(double x) {
     vals.fill(x);
     return *this;
   }
 
-  std::size_t size() const {
+  FLECSI_INLINE_TARGET std::size_t size() const {
     return N_q;
   }
 };
+
+static_assert(std::is_trivially_default_constructible_v<extp_q<1>>);
+static_assert(std::is_trivially_copyable_v<extp_q<1>>);
 
 } // namespace hard::tasks::util
 

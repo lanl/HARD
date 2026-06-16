@@ -419,9 +419,8 @@ advance_q_rk2_s2(flecsi::exec::accelerator s,
 
   using common::tasks::utils::get_mdiota_policy;
 
-  const double dt = *dt_a;
-
   s.executor().forall(i, flecsi::util::iota_view({}, q_new_a.span().size())) {
+    const double dt = *dt_a;
     if(psi_a(i) <= 0.0) {
       q_new_a(i) = q_known_a(i);
     }
