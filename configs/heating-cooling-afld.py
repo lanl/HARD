@@ -18,7 +18,7 @@ config = {
     "max_dt": 1.0,
     "log_frequency": 1,
     "output_frequency": 1,
-    "levels": [2, 1, 1],
+    "levels": [2, 2, 2],
     "coords": [
         [0.0, 0.0, 0.0],
         [1e7, 1.0, 1.0],
@@ -37,4 +37,9 @@ config = {
         "implementation_directory": "/path",
     },
     "lowest_level": 2,
+    "linear_solver": {
+        "maxiter": 100,
+        "rtol": 1.0e-7,
+        "use_zero_guess": True,
+    },
 }

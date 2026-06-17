@@ -2,6 +2,7 @@
 #define HARD_MODULES_RAD_TASKS_INITIAL_IMPLOSION_FORCED_T_HH
 
 #include "../../constants.hh"
+#include "options.hh"
 #include "types.hh"
 #include <../modules/spec/utils.hh>
 
@@ -49,11 +50,6 @@ implosion_forced_T(flecsi::exec::cpu s,
   // Constant radiation temperature in the domain
   const double radiation_temperature =
     config["problem_parameters"]["radiation_temperature"].cast<double>();
-
-  // Radiation temperature in the boundary
-  // TODO remove
-  std::cout << "Temperature boundary: " << temperature_boundary_a[0]
-            << std::endl;
 
   // Note : assuming ideal gas EOS
 
