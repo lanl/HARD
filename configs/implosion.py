@@ -19,7 +19,7 @@ config = {
     "max_dt": 1.0,  # 1e-10
     "log_frequency": 1,
     "output_frequency": 1,
-    "levels": [5, 1, 1],
+    "levels": [5, 5, 5],
     "coords": [
         [0.0, 0.0, 0.0],
         [1e3, 1.0, 1.0],
@@ -37,5 +37,10 @@ config = {
         "implementation": "paraview",
         "implementation_directory": "/path",
     },
-    "lowest_level": 1,
+    "lowest_level": 5,
+    "linear_solver": {
+        "maxiter": 100,
+        "rtol": 1.0e-7,
+        "use_zero_guess": True,
+    },
 }

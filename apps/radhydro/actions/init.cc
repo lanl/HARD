@@ -137,6 +137,7 @@ struct initialize {
       flecsi::exec::on, s.src_t.hydro.gravity_force(*s.m));
 
     // Ritchmyer-Meshkov works with both radiation on and off
+    // FIXME: This problem does not converge (negative radiation energy)
     if(config["problem"].cast<std::string>() == "richtmyer-meshkov") {
       execute<tasks::initial_data::richtmyer_meshkov<D>>(flecsi::exec::on,
         *s.m,
@@ -172,6 +173,7 @@ struct initialize {
         s.icst.particle_mass(*s.gt),
         config["gamma"].cast<double>());
     }
+    // FIXME: This problem does not converge (negative radiation energy)
     else if(config["problem"].cast<std::string>() == "implosion") {
       execute<tasks::initial_data::implosion_forced_T<D>>(flecsi::exec::on,
         *s.m,
@@ -184,6 +186,7 @@ struct initialize {
         config["gamma"].cast<double>());
     }
     // FIXME: This problem has not been tested for correctness
+    // also, there is no configuration for this problem
     else if(config["problem"].cast<std::string>() == "rad-rh") {
       execute<tasks::initial_data::
           rad_RH<tasks::initial_data::rad_shock::rad_rankine_hugoniot, D>>(

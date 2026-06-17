@@ -15,11 +15,6 @@ config = {
         "vel_per_y_frac": 0.1,  # bound of domain which has velocity perturbation
         "perturb_N": 4.0,
         "rad_temp": 3000,
-        "linear_solver": {
-            "maxiter": 100,
-            "rtol": 1.0e-7,
-            "use_zero_guess": True,
-        },
     },
     "gamma": 1.6667,
     "adaptive_check": False,
@@ -53,5 +48,10 @@ config = {
         "script": "/path",
         "implementation": "paraview",
         "implementation_directory": "/path",
+    },
+    "linear_solver": {
+        "maxiter": 100,
+        "rtol": 1.0e-7,
+        "use_zero_guess": True,
     },
 }
