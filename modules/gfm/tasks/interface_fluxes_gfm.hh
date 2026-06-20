@@ -382,7 +382,7 @@ compute_original_gfm_ghost_state(const EOS & eos_disp,
 // Process one face (device-callable)
 // -----------------------------------------------------------------------------
 
-template<std::size_t Dim, typename EOS>
+template<std::size_t Dim, typename VecOut, typename EOS>
 FLECSI_INLINE_TARGET void
 process_single_face(std::size_t face_axis,
   int mL,
@@ -405,7 +405,7 @@ process_single_face(std::size_t face_axis,
   const hard::tasks::util::extp_q<Dim> & qGhostL_R,
   const EOS & eos_disp,
   double & r_flux_out,
-  vec<Dim> & ru_flux_out,
+  VecOut && ru_flux_out,
   double & re_flux_out,
   flux_result<Dim> & fluxes_L_out,
   flux_result<Dim> & fluxes_R_out,
@@ -511,7 +511,7 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
 
   // Riemann fluxes at cell interfaces
   field<double>::accessor<wo, ro> r_f_a,
-  typename field<vec<Dim>>::template accessor<wo, ro> ru_f_a,
+  typename vector_field_double<Dim>::template accessor<wo, ro> ru_f_a,
   field<double>::accessor<wo, ro> re_f_a,
 
   // time derivative
@@ -536,7 +536,7 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
   auto q_ext_minus = m.template mdcolex<is::cells>(q_ext_minus_a);
 
   auto r_f = m.template mdcolex<is::cells>(r_f_a);
-  auto ru_f = m.template mdcolex<is::cells>(ru_f_a);
+  auto ru_f = vector_field_double<Dim>::mdcolex(m, ru_f_a);
   auto re_f = m.template mdcolex<is::cells>(re_f_a);
 
   auto [dt_mass_density, dt_total_energy_density, dt_momentum_density] =

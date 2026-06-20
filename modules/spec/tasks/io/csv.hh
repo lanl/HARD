@@ -17,7 +17,7 @@ void inline csv(flecsi::exec::cpu s,
   std::vector<std::tuple<multi<field<double>::accessor<ro, ro>>,
     const std::string &>> field_ma,
   std::vector<
-    std::tuple<multi<typename field<vec<D>>::template accessor<ro, ro>>,
+    std::tuple<typename vector_field_double<D>::template multi_accessor<ro, ro>,
       const std::string &>> field_vector_ma) {
 
   for(uint32_t i{0}; i < mm.depth(); ++i) {
@@ -37,13 +37,13 @@ void inline csv(flecsi::exec::cpu s,
       file << std::endl;
       file << std::fixed; // just to get a uniform file format
 
-      for(auto i : m.template cells<ax::x, dm::quantities>()) {
-        file << std::setprecision(16) << std::scientific << time << "," << i
-             << "," << m.template center<ax::x>(i) << std::setprecision(16);
-        for(auto f_ma : fields)
-          file << "," << f_ma(i);
-        for(auto f_ma : fields_vectors)
-          file << "," << f_ma(i)[0];
+      for(auto idx : m.template cells<ax::x, dm::quantities>()) {
+        file << std::setprecision(16) << std::scientific << time << "," << idx
+             << "," << m.template center<ax::x>(idx) << std::setprecision(16);
+        for(const auto & f_ma : fields)
+          file << "," << f_ma(idx);
+        for(const auto & f_ma_vec : fields_vectors)
+          file << "," << f_ma_vec[0](idx);
         file << std::endl;
       }
     }
@@ -60,16 +60,18 @@ void inline csv(flecsi::exec::cpu s,
       file << std::endl;
       file << std::fixed; // just to get a uniform file format
 
-      for(auto i : m.template cells<ax::x, dm::quantities>()) {
-        for(auto j : m.template cells<ax::y, dm::quantities>()) {
+      for(auto idx_i : m.template cells<ax::x, dm::quantities>()) {
+        for(auto idx_j : m.template cells<ax::y, dm::quantities>()) {
 
-          file << std::setprecision(16) << std::scientific << time << "," << i
-               << "," << j << "," << m.template center<ax::x>(i) << ","
-               << m.template center<ax::y>(j) << std::setprecision(16);
-          for(auto f_ma : fields)
-            file << "," << f_ma(i, j);
-          for(auto f_ma : fields_vectors)
-            file << "," << f_ma(i, j)[0] << "," << f_ma(i, j)[1];
+          file << std::setprecision(16) << std::scientific << time << ","
+               << idx_i << "," << idx_j << ","
+               << m.template center<ax::x>(idx_i) << ","
+               << m.template center<ax::y>(idx_j) << std::setprecision(16);
+          for(const auto & f_ma : fields)
+            file << "," << f_ma(idx_i, idx_j);
+          for(const auto & f_ma_vec : fields_vectors)
+            file << "," << f_ma_vec[0](idx_i, idx_j) << ","
+                 << f_ma_vec[1](idx_i, idx_j);
           file << std::endl;
         }
       }
@@ -87,19 +89,21 @@ void inline csv(flecsi::exec::cpu s,
       file << std::endl;
       file << std::fixed; // just to get a uniform file format
 
-      for(auto i : m.template cells<ax::x, dm::quantities>()) {
-        for(auto j : m.template cells<ax::y, dm::quantities>()) {
-          for(auto k : m.template cells<ax::z, dm::quantities>()) {
+      for(auto idx_i : m.template cells<ax::x, dm::quantities>()) {
+        for(auto idx_j : m.template cells<ax::y, dm::quantities>()) {
+          for(auto idx_k : m.template cells<ax::z, dm::quantities>()) {
 
-            file << std::setprecision(16) << std::scientific << time << "," << i
-                 << "," << j << "," << k << "," << m.template center<ax::x>(i)
-                 << "," << m.template center<ax::y>(j) << ","
-                 << m.template center<ax::z>(k) << std::setprecision(16);
-            for(auto f_ma : fields)
-              file << "," << f_ma(i, j, k);
-            for(auto f_ma : fields_vectors)
-              file << "," << f_ma(i, j, k)[0] << "," << f_ma(i, j, k)[1] << ","
-                   << f_ma(i, j, k)[2];
+            file << std::setprecision(16) << std::scientific << time << ","
+                 << idx_i << "," << idx_j << "," << idx_k << ","
+                 << m.template center<ax::x>(idx_i) << ","
+                 << m.template center<ax::y>(idx_j) << ","
+                 << m.template center<ax::z>(idx_k) << std::setprecision(16);
+            for(const auto & f_ma : fields)
+              file << "," << f_ma(idx_i, idx_j, idx_k);
+            for(const auto & f_ma_vec : fields_vectors)
+              file << "," << f_ma_vec[0](idx_i, idx_j, idx_k) << ","
+                   << f_ma_vec[1](idx_i, idx_j, idx_k) << ","
+                   << f_ma_vec[2](idx_i, idx_j, idx_k);
             file << std::endl;
           }
         }

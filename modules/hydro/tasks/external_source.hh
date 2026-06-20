@@ -16,19 +16,20 @@ void
 external_source(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   // Primitive variables
-  typename field<vec<D>>::template accessor<ro, na> velocity_a,
+  typename vector_field_double<D>::template accessor<ro, na> velocity_a,
   // Terms required for computing radiation force and photon tiring
-  typename field<vec<D>>::template accessor<ro, na> gravity_force_a,
+  typename vector_field_double<D>::template accessor<ro, na> gravity_force_a,
   // time derivative
-  typename field<vec<D>>::template accessor<rw, na> dt_momentum_density_a,
+  typename vector_field_double<D>::template accessor<rw, na>
+    dt_momentum_density_a,
   field<double>::accessor<rw, na> dt_total_energy_density_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
-  auto velocity = m.template mdcolex<is::cells>(velocity_a);
-  auto fg = m.template mdcolex<is::cells>(gravity_force_a);
+  auto velocity = vector_field_double<D>::mdcolex(m, velocity_a);
+  auto fg = vector_field_double<D>::mdcolex(m, gravity_force_a);
   auto dt_momentum_density =
-    m.template mdcolex<is::cells>(dt_momentum_density_a);
+    vector_field_double<D>::mdcolex(m, dt_momentum_density_a);
   auto dt_total_energy_density =
     m.template mdcolex<is::cells>(dt_total_energy_density_a);
 
@@ -45,7 +46,7 @@ external_source(flecsi::exec::accelerator s,
     };
   }
   else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(velocity,
+    auto mdpolicy_qq = get_mdiota_policy(velocity[0],
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
@@ -63,7 +64,7 @@ external_source(flecsi::exec::accelerator s,
     };
   }
   else {
-    auto mdpolicy_qqq = get_mdiota_policy(velocity,
+    auto mdpolicy_qqq = get_mdiota_policy(velocity[0],
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());

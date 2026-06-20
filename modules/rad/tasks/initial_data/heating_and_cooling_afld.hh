@@ -23,14 +23,16 @@ auto
 heating_and_cooling_afld(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
-  typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
+  typename vector_field_double<Dim>::template accessor<wo, na>
+    momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
   field<double>::accessor<wo, na> radiation_energy_density_a,
   single<double>::accessor<ro> particle_mass_a,
   const double gamma) noexcept {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
+  auto momentum_density =
+    vector_field_double<Dim>::mdcolex(m, momentum_density_a);
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto radiation_energy_density =

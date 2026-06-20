@@ -2,6 +2,7 @@
 #define HARD_MODULE_RAD_STATE_HH
 
 #include "../modules/spec/eos.hh"
+#include "spec/vector_field.hh"
 
 #include "flecsolve/operators/core.hh"
 #include "flecsolve/solvers/cg.hh"
@@ -98,9 +99,7 @@ struct state {
 
     struct source_term {
       // Radiation force
-      static inline const typename field<vec<D>>::template definition<mesh<D>,
-        is::cells>
-        radiation_force;
+      static inline const vector_field_double<D> radiation_force;
       // Radiation pressure (P^{ij})
       static inline const typename field<spec::tensor<D,
         spec::tensor_rank::Two>>::template definition<mesh<D>, is::cells>
@@ -110,9 +109,7 @@ struct state {
     struct limiter {
 
       // Gradient of a radiation energy density
-      static inline const typename field<vec<D>>::template definition<mesh<D>,
-        is::cells>
-        gradient_rad_energy;
+      static inline const vector_field_double<D> gradient_rad_energy;
 
       // Magnitude of the gradient of the radiation energy density
       static inline const field<double>::definition<mesh<D>, is::cells>

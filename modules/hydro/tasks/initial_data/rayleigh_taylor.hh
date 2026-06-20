@@ -17,15 +17,16 @@ auto
 rt_instability(flecsi::exec::cpu s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
-  typename field<vec<D>>::template accessor<wo, na> momentum_density_a,
-  typename field<vec<D>>::template accessor<wo, na> gravity_force_a,
+  typename vector_field_double<D>::template accessor<wo, na> momentum_density_a,
+  typename vector_field_double<D>::template accessor<wo, na> gravity_force_a,
   typename single<vec<D>>::template accessor<ro> gravity_acc_a,
   field<double>::accessor<wo, na> total_energy_density_a,
   const eos::eos_wrapper & eos) noexcept {
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto gravity_force = m.template mdcolex<is::cells>(gravity_force_a);
+  auto gravity_force = vector_field_double<D>::mdcolex(m, gravity_force_a);
   auto g = gravity_acc_a.get();
-  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
+  auto momentum_density =
+    vector_field_double<D>::mdcolex(m, momentum_density_a);
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
   // fixed values to be used

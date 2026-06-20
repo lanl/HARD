@@ -247,12 +247,14 @@ apply_boundaries(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
   std::vector<field<double>::accessor<rw, ro>> s_a,
-  std::vector<typename field<vec<D>>::template accessor<rw, ro>> v_a) noexcept {
+  std::vector<typename vector_field_double<D>::template accessor<rw, ro>>
+    v_a) noexcept {
   for(auto & f_a : s_a) {
     apply_boundary_one<D, isLevelSet, double>(s, m, bmap_a, f_a);
   }
   for(auto & f_a : v_a) {
-    apply_boundary_one<D, isLevelSet, vec<D>>(s, m, bmap_a, f_a);
+    for(int axis = 0; axis < D; axis++)
+      apply_boundary_one<D, isLevelSet, double>(s, m, bmap_a, f_a[axis]);
   }
 }
 
@@ -276,13 +278,14 @@ void
 apply_boundaries_vector(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
-  std::vector<typename field<vec<D>>::template accessor<rw, ro>> v_a) noexcept {
+  std::vector<typename vector_field_double<D>::template accessor<rw, ro>>
+    v_a) noexcept {
   for(auto & f_a : v_a) {
     apply_boundary_one<D, isLevelSet, vec<D>>(s, m, bmap_a, f_a);
   }
 }
 
-template<std::size_t D, bool isLevelSet = false>
+template<std::size_t D>
 void
 apply_dirichlet_boundaries(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,

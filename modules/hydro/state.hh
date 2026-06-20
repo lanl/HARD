@@ -2,6 +2,7 @@
 #define HARD_MODULE_HYDRO_STATE_HH
 
 #include "../modules/spec/eos.hh"
+#include "../modules/spec/vector_field.hh"
 #include "types.hh"
 
 namespace hard::hydro {
@@ -48,9 +49,7 @@ struct state {
       // Conserved quantities.
       static inline const field<double>::definition<mesh<D>, is::cells>
         mass_density;
-      static inline const typename field<vec<D>>::template definition<mesh<D>,
-        is::cells>
-        momentum_density;
+      static inline const vector_field_double<D> momentum_density;
       static inline const field<double>::definition<mesh<D>, is::cells>
         total_energy_density;
     } hydro;
@@ -60,9 +59,7 @@ struct state {
   // used in action, analyse, init
   struct primitives {
     // Primitives.
-    static inline const typename field<vec<D>>::template definition<mesh<D>,
-      is::cells>
-      velocity; // u
+    static inline const vector_field_double<D> velocity; // u
     static inline const field<double>::definition<mesh<D>, is::cells>
       pressure; // p
     static inline const field<double>::definition<mesh<D>, is::cells>
@@ -91,9 +88,7 @@ struct state {
     struct hydro {
       // Riemann fluxes.
       static inline const field<double>::definition<mesh<D>, is::cells> r_f;
-      static inline const typename field<vec<D>>::template definition<mesh<D>,
-        is::cells>
-        ru_f;
+      static inline const vector_field_double<D> ru_f;
       static inline const field<double>::definition<mesh<D>, is::cells> re_f;
     } hydro;
   } rf;
@@ -102,9 +97,7 @@ struct state {
   struct source_term {
     struct hydrodynamics {
       // Gravity force
-      static inline const typename field<vec<D>>::template definition<mesh<D>,
-        is::cells>
-        gravity_force;
+      static inline const vector_field_double<D> gravity_force;
     } hydro;
   } src_t;
 

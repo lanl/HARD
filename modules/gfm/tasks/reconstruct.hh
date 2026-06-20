@@ -60,6 +60,13 @@ tie(const std::tuple<T, T> & tup, T & a, T & b) noexcept {
   b = std::get<1>(tup);
 }
 
+template<typename T1, typename T2, typename U, typename V>
+FLECSI_INLINE_TARGET void
+tie(const std::tuple<T1, T2> & tup, U && a, V && b) noexcept {
+  a = std::get<0>(tup);
+  b = std::get<1>(tup);
+}
+
 } // namespace utils
 
 //
@@ -84,8 +91,9 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
   // cell-centered primitive varibles
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     typename faces<Dim>::template accessor<wo, na>>> cons_faces_a,
-  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
-    typename faces_vec<Dim>::template accessor<wo, na>>>
+  std::vector<
+    std::tuple<typename vector_field_double<Dim>::template accessor<ro, na>,
+      typename faces_vec<Dim>::template accessor<wo, na>>>
     cons_faces_vec_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -123,23 +131,27 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
 
     for(auto cf : cons_faces_vec_a) {
       auto [cons_a, face_a] = cf;
-      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
-      auto cons = m.template mdcolex<is::cells>(cons_a);
-      s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
-        const int m0 = material(i);
+      auto [h, t] = faces_vec<Dim>::mdcolex(m, face_a);
+      auto cons = vector_field_double<Dim>::mdcolex(m, cons_a);
+      for(std::size_t d = 0; d < Dim; ++d) {
+        s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
+          const int m0 = material(i);
 
-        const bool same_material_stencil =
-          (material(i - 2) == m0) && (material(i - 1) == m0) &&
-          (material(i + 1) == m0) && (material(i + 2) == m0);
+          const bool same_material_stencil =
+            (material(i - 2) == m0) && (material(i - 1) == m0) &&
+            (material(i + 1) == m0) && (material(i + 2) == m0);
 
-        if(same_material_stencil) {
-          utils::tie(stencil<Limiter>()(i, cons), h(i), t(i));
-        }
-        else {
-          h(i) = cons(i);
-          t(i) = cons(i);
-        }
-      };
+          if(same_material_stencil) {
+            auto [h_comp, t_comp] = stencil<Limiter>()(i, cons[d]);
+            h(i)[d] = h_comp;
+            t(i)[d] = t_comp;
+          }
+          else {
+            h(i)[d] = cons(i)[d];
+            t(i)[d] = cons(i)[d];
+          }
+        };
+      }
     }
   }
   else if constexpr(Dim == 2) {
@@ -183,34 +195,36 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
     }
     for(auto cf : cons_faces_vec_a) {
       auto [cons_a, face_a] = cf;
-      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
-      auto cons = m.template mdcolex<is::cells>(cons_a);
-      s.executor().forall(ji, mdpolicy_pp) {
-        auto [j, i] = ji;
+      auto [h, t] = faces_vec<Dim>::mdcolex(m, face_a);
+      auto cons = vector_field_double<Dim>::mdcolex(m, cons_a);
+      for(std::size_t d = 0; d < Dim; ++d) {
+        s.executor().forall(ji, mdpolicy_pp) {
+          auto [j, i] = ji;
+          const int m0 = material(i, j);
+          bool same_material_stencil = false;
 
-        const int m0 = material(i, j);
+          if(ra == 0) {
+            same_material_stencil =
+              (material(i - 2, j) == m0) && (material(i - 1, j) == m0) &&
+              (material(i + 1, j) == m0) && (material(i + 2, j) == m0);
+          }
+          else if(ra == 1) {
+            same_material_stencil =
+              (material(i, j - 2) == m0) && (material(i, j - 1) == m0) &&
+              (material(i, j + 1) == m0) && (material(i, j + 2) == m0);
+          }
 
-        bool same_material_stencil = false;
-
-        if(ra == 0) {
-          same_material_stencil =
-            (material(i - 2, j) == m0) && (material(i - 1, j) == m0) &&
-            (material(i + 1, j) == m0) && (material(i + 2, j) == m0);
-        }
-        else if(ra == 1) {
-          same_material_stencil =
-            (material(i, j - 2) == m0) && (material(i, j - 1) == m0) &&
-            (material(i, j + 1) == m0) && (material(i, j + 2) == m0);
-        }
-
-        if(same_material_stencil) {
-          utils::tie(stencil<Limiter>()(ra, i, j, cons), h(i, j), t(i, j));
-        }
-        else {
-          h(i, j) = cons(i, j);
-          t(i, j) = cons(i, j);
-        }
-      };
+          if(same_material_stencil) {
+            auto [h_comp, t_comp] = stencil<Limiter>()(ra, i, j, cons[d]);
+            h(i, j)[d] = h_comp;
+            t(i, j)[d] = t_comp;
+          }
+          else {
+            h(i, j)[d] = cons(i, j)[d];
+            t(i, j)[d] = cons(i, j)[d];
+          }
+        };
+      }
     }
   }
   else { // Dim == 3
@@ -261,39 +275,41 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
 
     for(auto cf : cons_faces_vec_a) {
       auto [cons_a, face_a] = cf;
-      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
-      auto cons = m.template mdcolex<is::cells>(cons_a);
-      s.executor().forall(kji, mdpolicy_ppp) {
-        auto [k, j, i] = kji;
-        const int m0 = material(i, j, k);
+      auto [h, t] = faces_vec<Dim>::mdcolex(m, face_a);
+      auto cons = vector_field_double<Dim>::mdcolex(m, cons_a);
+      for(std::size_t d = 0; d < Dim; ++d) {
+        s.executor().forall(kji, mdpolicy_ppp) {
+          auto [k, j, i] = kji;
+          const int m0 = material(i, j, k);
 
-        bool same_material_stencil = false;
+          bool same_material_stencil = false;
+          if(ra == 0) {
+            same_material_stencil =
+              (material(i - 2, j, k) == m0) && (material(i - 1, j, k) == m0) &&
+              (material(i + 1, j, k) == m0) && (material(i + 2, j, k) == m0);
+          }
+          else if(ra == 1) {
+            same_material_stencil =
+              (material(i, j - 2, k) == m0) && (material(i, j - 1, k) == m0) &&
+              (material(i, j + 1, k) == m0) && (material(i, j + 2, k) == m0);
+          }
+          else {
+            same_material_stencil =
+              (material(i, j, k - 2) == m0) && (material(i, j, k - 1) == m0) &&
+              (material(i, j, k + 1) == m0) && (material(i, j, k + 2) == m0);
+          }
 
-        if(ra == 0) {
-          same_material_stencil =
-            (material(i - 2, j, k) == m0) && (material(i - 1, j, k) == m0) &&
-            (material(i + 1, j, k) == m0) && (material(i + 2, j, k) == m0);
-        }
-        else if(ra == 1) {
-          same_material_stencil =
-            (material(i, j - 2, k) == m0) && (material(i, j - 1, k) == m0) &&
-            (material(i, j + 1, k) == m0) && (material(i, j + 2, k) == m0);
-        }
-        else {
-          same_material_stencil =
-            (material(i, j, k - 2) == m0) && (material(i, j, k - 1) == m0) &&
-            (material(i, j, k + 1) == m0) && (material(i, j, k + 2) == m0);
-        }
-
-        if(same_material_stencil) {
-          utils::tie(
-            stencil<Limiter>()(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
-        }
-        else {
-          h(i, j, k) = cons(i, j, k);
-          t(i, j, k) = cons(i, j, k);
-        }
-      };
+          if(same_material_stencil) {
+            auto [h_comp, t_comp] = stencil<Limiter>()(ra, i, j, k, cons[d]);
+            h(i, j, k)[d] = h_comp;
+            t(i, j, k)[d] = t_comp;
+          }
+          else {
+            h(i, j, k)[d] = cons(i, j, k)[d];
+            t(i, j, k)[d] = cons(i, j, k)[d];
+          }
+        };
+      }
     }
   }
 }
@@ -311,8 +327,9 @@ reconstruct_primitives(flecsi::exec::accelerator s,
   // cell-centered primitive varibles
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     typename faces<Dim>::template accessor<wo, na>>> cons_faces_a,
-  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
-    typename faces_vec<Dim>::template accessor<wo, na>>>
+  std::vector<
+    std::tuple<typename vector_field_double<Dim>::template accessor<ro, na>,
+      typename faces_vec<Dim>::template accessor<wo, na>>>
     cons_faces_vec_a) noexcept {
   reconstruct_primitives_f<Dim, Limiter>(
     s, reconstruction_axis, m, material_a, cons_faces_a, cons_faces_vec_a);

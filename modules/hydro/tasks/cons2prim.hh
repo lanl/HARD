@@ -15,9 +15,10 @@ void
 conserved_to_primitive(flecsi::exec::accelerator s,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<ro, na> mass_density_a,
-  typename field<vec<Dim>>::template accessor<ro, na> momentum_density_a,
+  typename vector_field_double<Dim>::template accessor<ro, na>
+    momentum_density_a,
   field<double>::accessor<ro, na> total_energy_density_a,
-  typename field<vec<Dim>>::template accessor<wo, na> velocity_a,
+  typename vector_field_double<Dim>::template accessor<wo, na> velocity_a,
   field<double>::accessor<wo, na> pressure_a,
   field<double>::accessor<wo, na> specific_internal_energy_a,
   field<double>::accessor<wo, na> soundspeed_a,
@@ -26,10 +27,11 @@ conserved_to_primitive(flecsi::exec::accelerator s,
   using common::tasks::utils::get_mdiota_policy;
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
+  auto momentum_density =
+    vector_field_double<Dim>::mdcolex(m, momentum_density_a);
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
-  auto velocity = m.template mdcolex<is::cells>(velocity_a);
+  auto velocity = vector_field_double<Dim>::mdcolex(m, velocity_a);
   auto pressure = m.template mdcolex<is::cells>(pressure_a);
   auto specific_internal_energy =
     m.template mdcolex<is::cells>(specific_internal_energy_a);
@@ -47,7 +49,7 @@ conserved_to_primitive(flecsi::exec::accelerator s,
     }; // for
   }
   else if constexpr(Dim == 2) {
-    auto mdpolicy_yx = get_mdiota_policy(velocity,
+    auto mdpolicy_yx = get_mdiota_policy(velocity[0],
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
@@ -64,7 +66,7 @@ conserved_to_primitive(flecsi::exec::accelerator s,
     }; // for
   }
   else /* Dim == 3 */ {
-    auto mdpolicy_zyx = get_mdiota_policy(velocity,
+    auto mdpolicy_zyx = get_mdiota_policy(velocity[0],
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());

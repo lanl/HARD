@@ -15,7 +15,7 @@ void
 update_energy_density(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
-  typename field<vec<D>>::template accessor<ro, na> u_a,
+  typename vector_field_double<D>::template accessor<ro, na> u_a,
   field<double>::accessor<rw, na> temperature_a,
   field<double>::accessor<rw, na> r_e_a,
   field<double>::accessor<rw, na> radiation_energy_density_a,
@@ -26,7 +26,7 @@ update_energy_density(flecsi::exec::accelerator s,
   using hard::tasks::util::get_mdiota_policy;
 
   auto r = m.template mdcolex<is::cells>(r_a);
-  auto u = m.template mdcolex<is::cells>(u_a);
+  auto u = vector_field_double<D>::mdcolex(m, u_a);
   auto temperature = m.template mdcolex<is::cells>(temperature_a);
   auto r_e = m.template mdcolex<is::cells>(r_e_a);
   auto radiation_energy_density =
@@ -81,7 +81,7 @@ update_energy_density(flecsi::exec::accelerator s,
   }
   else if constexpr(D == 2) {
 
-    auto mdpolicy_qq = get_mdiota_policy(u,
+    auto mdpolicy_qq = get_mdiota_policy(u[0],
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
@@ -115,7 +115,7 @@ update_energy_density(flecsi::exec::accelerator s,
     }; // forall
   }
   else {
-    auto mdpolicy_qqq = get_mdiota_policy(u,
+    auto mdpolicy_qqq = get_mdiota_policy(u[0],
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());

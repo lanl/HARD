@@ -15,6 +15,13 @@ tie(const std::tuple<T, T> & tup, T & a, T & b) noexcept {
   b = std::get<1>(tup);
 }
 
+template<typename T1, typename T2, typename U, typename V>
+FLECSI_INLINE_TARGET void
+tie(const std::tuple<T1, T2> & tup, U && a, V && b) noexcept {
+  a = std::get<0>(tup);
+  b = std::get<1>(tup);
+}
+
 } // namespace utils
 
 //
@@ -38,8 +45,9 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
   // cell-centered primitive varibles
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     typename faces<Dim>::template accessor<wo, na>>> cons_faces_a,
-  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
-    typename faces_vec<Dim>::template accessor<wo, na>>>
+  std::vector<
+    std::tuple<typename vector_field_double<Dim>::template accessor<ro, na>,
+      typename faces_vec<Dim>::template accessor<wo, na>>>
     cons_faces_vec_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -60,10 +68,15 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
 
     for(auto cf : cons_faces_vec_a) {
       auto [cons_a, face_a] = cf;
-      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
-      auto cons = m.template mdcolex<is::cells>(cons_a);
+      auto [h, t] = faces_vec<Dim>::mdcolex(m, face_a);
+      auto cons = vector_field_double<Dim>::mdcolex(m, cons_a);
+      auto cons_vec = vector_field_double<Dim>::mdcolex(m, cons_a);
       s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
-        utils::tie(Reconstructor::reconstruct(i, cons), h(i), t(i));
+        for(std::size_t d = 0; d < Dim; ++d) {
+          auto [h_comp, t_comp] = Reconstructor::reconstruct(i, cons_vec[d]);
+          h(i)[d] = h_comp;
+          t(i)[d] = t_comp;
+        }
       };
     }
   }
@@ -86,13 +99,16 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
     };
     for(auto cf : cons_faces_vec_a) {
       auto [cons_a, face_a] = cf;
-      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
-      auto cons = m.template mdcolex<is::cells>(cons_a);
-      s.executor().forall(ji, mdpolicy_pp) {
-        auto [j, i] = ji;
-        utils::tie(
-          Reconstructor::reconstruct(ra, i, j, cons), h(i, j), t(i, j));
-      };
+      auto [h, t] = faces_vec<Dim>::mdcolex(m, face_a);
+      auto cons_vec = vector_field_double<Dim>::mdcolex(m, cons_a);
+      for(std::size_t d = 0; d < Dim; ++d) {
+        s.executor().forall(ji, mdpolicy_pp) {
+          auto [j, i] = ji;
+          auto [h_comp, t_comp] = Reconstructor::reconstruct(ra, i, j, cons_vec[d]);
+          h(i, j)[d] = h_comp;
+          t(i, j)[d] = t_comp;
+        };
+      }
     };
   }
   else { // Dim == 3
@@ -117,14 +133,16 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
 
     for(auto cf : cons_faces_vec_a) {
       auto [cons_a, face_a] = cf;
-      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
-      auto cons = m.template mdcolex<is::cells>(cons_a);
-      s.executor().forall(kji, mdpolicy_ppp) {
-        auto [k, j, i] = kji;
-        utils::tie(Reconstructor::reconstruct(ra, i, j, k, cons),
-          h(i, j, k),
-          t(i, j, k));
-      };
+      auto [h, t] = faces_vec<Dim>::mdcolex(m, face_a);
+      auto cons_vec = vector_field_double<Dim>::mdcolex(m, cons_a);
+      for(std::size_t d = 0; d < Dim; ++d) {
+        s.executor().forall(kji, mdpolicy_ppp) {
+          auto [k, j, i] = kji;
+          auto [h_comp, t_comp] = Reconstructor::reconstruct(ra, i, j, k, cons_vec[d]);
+          h(i, j, k)[d] = h_comp;
+          t(i, j, k)[d] = t_comp;
+        };
+      }
     }
   }
 }
@@ -141,8 +159,9 @@ reconstruct_primitives(flecsi::exec::accelerator s,
   // cell-centered primitive varibles
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     typename faces<Dim>::template accessor<wo, na>>> cons_faces_a,
-  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
-    typename faces_vec<Dim>::template accessor<wo, na>>>
+  std::vector<
+    std::tuple<typename vector_field_double<Dim>::template accessor<ro, na>,
+      typename faces_vec<Dim>::template accessor<wo, na>>>
     cons_faces_vec_a) noexcept {
   reconstruct_primitives_f<Dim, Reconstructor>(
     s, reconstruction_axis, m, cons_faces_a, cons_faces_vec_a);

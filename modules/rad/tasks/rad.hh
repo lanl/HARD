@@ -135,9 +135,9 @@ getGradV(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
     na> gradV_a,
-  typename field<vec<D>>::template accessor<ro, ro> u_a) noexcept {
+  typename vector_field_double<D>::template accessor<ro, ro> u_a) noexcept {
 
-  auto u = m.template mdcolex<is::cells>(u_a);
+  auto u = vector_field_double<D>::mdcolex(m, u_a);
   auto grad_v = m.template mdcolex<is::cells>(gradV_a);
 
   if constexpr(D == 1) {
@@ -153,7 +153,7 @@ getGradV(flecsi::exec::accelerator s,
     const double one_over_12dx = 1.0 / (12.0 * m.template delta<ax::x>());
     const double one_over_12dy = 1.0 / (12.0 * m.template delta<ax::y>());
 
-    auto mdpolicy_qq = get_mdiota_policy(u,
+    auto mdpolicy_qq = get_mdiota_policy(u[0],
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
@@ -180,7 +180,7 @@ getGradV(flecsi::exec::accelerator s,
     const double one_over_12dy = 1.0 / (12.0 * m.template delta<ax::y>());
     const double one_over_12dz = 1.0 / (12.0 * m.template delta<ax::z>());
 
-    auto mdpolicy_qqq = get_mdiota_policy(u,
+    auto mdpolicy_qqq = get_mdiota_policy(u[0],
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
@@ -271,13 +271,13 @@ getTensorP(flecsi::exec::accelerator s,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
     na> P_tensor_a,
   field<double>::accessor<ro, na> Esf_a,
-  typename field<vec<D>>::template accessor<ro, na> gradEsf_a,
+  typename vector_field_double<D>::template accessor<ro, na> gradEsf_a,
   field<double>::accessor<ro, na> gradE_mag_a,
   field<double>::accessor<ro, na> edd_factor_a) noexcept {
 
   auto P_tensor = m.template mdcolex<is::cells>(P_tensor_a);
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
-  auto grad_esf = m.template mdcolex<is::cells>(gradEsf_a);
+  auto grad_esf = vector_field_double<D>::mdcolex(m, gradEsf_a);
   auto grad_e_mag = m.template mdcolex<is::cells>(gradE_mag_a);
   auto edd_factor = m.template mdcolex<is::cells>(edd_factor_a);
 
@@ -354,9 +354,10 @@ void
 getGradE(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, ro> Esf_a,
-  typename field<vec<D>>::template accessor<wo, ro> gradEsf_a) noexcept {
+  typename vector_field_double<D>::template accessor<wo, ro>
+    gradEsf_a) noexcept {
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
-  auto grad_esf = m.template mdcolex<is::cells>(gradEsf_a);
+  auto grad_esf = vector_field_double<D>::mdcolex(m, gradEsf_a);
 
   if constexpr(D == 1) {
     const double one_over_12dx = 1.0 / (12.0 * m.template delta<ax::x>());
@@ -430,7 +431,7 @@ getLambda(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
   field<double>::accessor<ro, na> Esf_a,
-  typename field<vec<D>>::template accessor<ro, na> gradEsf_a,
+  typename vector_field_double<D>::template accessor<ro, na> gradEsf_a,
   field<double>::accessor<rw, na> gradE_mag_a,
   field<double>::accessor<wo, na> R_a,
   field<double>::accessor<wo, na> lambda_a,
@@ -439,7 +440,7 @@ getLambda(flecsi::exec::accelerator s,
 
   auto r = m.template mdcolex<is::cells>(r_a);
   auto Esf = m.template mdcolex<is::cells>(Esf_a);
-  auto grad_esf = m.template mdcolex<is::cells>(gradEsf_a);
+  auto grad_esf = vector_field_double<D>::mdcolex(m, gradEsf_a);
   auto grad_e_mag = m.template mdcolex<is::cells>(gradE_mag_a);
   auto R = m.template mdcolex<is::cells>(R_a);
   auto lambda = m.template mdcolex<is::cells>(lambda_a);
@@ -492,12 +493,12 @@ void
 getRadForce(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> lambda_a,
-  typename field<vec<D>>::template accessor<ro, na> gradEsf_a,
-  typename field<vec<D>>::template accessor<wo, na> fr_a) noexcept {
+  typename vector_field_double<D>::template accessor<ro, na> gradEsf_a,
+  typename vector_field_double<D>::template accessor<wo, na> fr_a) noexcept {
 
   auto lambda = m.template mdcolex<is::cells>(lambda_a);
-  auto grad_esf = m.template mdcolex<is::cells>(gradEsf_a);
-  auto fr = m.template mdcolex<is::cells>(fr_a);
+  auto grad_esf = vector_field_double<D>::mdcolex(m, gradEsf_a);
+  auto fr = vector_field_double<D>::mdcolex(m, fr_a);
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
@@ -536,26 +537,26 @@ void
 explicit_source_update(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   // Primitive variables
-  typename field<vec<D>>::template accessor<ro, na> velocity_a,
+  typename vector_field_double<D>::template accessor<ro, na> velocity_a,
   // Terms required for computing radiation force and photon tiring
-  typename field<vec<D>>::template accessor<ro, na> fr_a,
+  typename vector_field_double<D>::template accessor<ro, na> fr_a,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<ro,
     na> P_tensor_a,
   typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<ro,
     na> gradV_a,
   // time derivative
   field<double>::accessor<rw, na> dt_total_energy_density_a,
-  typename field<vec<D>>::template accessor<rw, na>
+  typename vector_field_double<D>::template accessor<rw, na>
     dt_momentum_energy_density_a,
   field<double>::accessor<rw, na> dt_radiation_energy_density_a) noexcept {
 
-  auto velocity = m.template mdcolex<is::cells>(velocity_a);
-  auto fr = m.template mdcolex<is::cells>(fr_a);
+  auto velocity = vector_field_double<D>::mdcolex(m, velocity_a);
+  auto fr = vector_field_double<D>::mdcolex(m, fr_a);
   auto P_tensor = m.template mdcolex<is::cells>(P_tensor_a);
   auto grad_v = m.template mdcolex<is::cells>(gradV_a);
 
   auto dt_momentum_density =
-    m.template mdcolex<is::cells>(dt_momentum_energy_density_a);
+    vector_field_double<D>::mdcolex(m, dt_momentum_energy_density_a);
   auto dt_total_energy_density =
     m.template mdcolex<is::cells>(dt_total_energy_density_a);
   auto dt_radiation_energy_density =
@@ -586,7 +587,7 @@ explicit_source_update(flecsi::exec::accelerator s,
     };
   }
   else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(velocity,
+    auto mdpolicy_qq = get_mdiota_policy(velocity[0],
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
@@ -612,7 +613,7 @@ explicit_source_update(flecsi::exec::accelerator s,
     };
   }
   else {
-    auto mdpolicy_qqq = get_mdiota_policy(velocity,
+    auto mdpolicy_qqq = get_mdiota_policy(velocity[0],
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());

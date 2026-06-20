@@ -19,7 +19,7 @@ void inline xdmf(flecsi::exec::cpu s,
   std::vector<std::tuple<multi<field<double>::accessor<ro, ro>>,
     const std::string &>> field_ma,
   std::vector<
-    std::tuple<multi<typename field<vec<D>>::template accessor<ro, ro>>,
+    std::tuple<typename vector_field_double<D>::template multi_accessor<ro, ro>,
       const std::string &>> field_vector_ma) noexcept {
 
   const auto rank = s.launch().index;
@@ -95,22 +95,22 @@ void inline xdmf(flecsi::exec::cpu s,
         local_data.reserve(local_size[0] * local_size[1] * local_size[2]);
 
         if constexpr(D == 1) {
-          for(auto i : m.template cells<ax::x, L>()) {
-            local_data.push_back(fields[f](i));
+          for(auto idx : m.template cells<ax::x, L>()) {
+            local_data.push_back(fields[f](idx));
           }
         }
         else if constexpr(D == 2) {
-          for(auto j : m.template cells<ax::y, L>()) {
-            for(auto i : m.template cells<ax::x, L>()) {
-              local_data.push_back(fields[f](i, j));
+          for(auto idx_j : m.template cells<ax::y, L>()) {
+            for(auto idx_i : m.template cells<ax::x, L>()) {
+              local_data.push_back(fields[f](idx_i, idx_j));
             }
           }
         }
         else /* D == 3 */ {
-          for(auto k : m.template cells<ax::z, L>()) {
-            for(auto j : m.template cells<ax::y, L>()) {
-              for(auto i : m.template cells<ax::x, L>()) {
-                local_data.push_back(fields[f](i, j, k));
+          for(auto idx_k : m.template cells<ax::z, L>()) {
+            for(auto idx_j : m.template cells<ax::y, L>()) {
+              for(auto idx_i : m.template cells<ax::x, L>()) {
+                local_data.push_back(fields[f](idx_i, idx_j, idx_k));
               }
             }
           }
@@ -137,25 +137,25 @@ void inline xdmf(flecsi::exec::cpu s,
         local_data.reserve(local_size[0] * local_size[1] * local_size[2] * D);
 
         if constexpr(D == 1) {
-          for(auto i : m.template cells<ax::x, L>()) {
-            local_data.push_back(fields_vectors[f](i)[0]);
+          for(auto idx : m.template cells<ax::x, L>()) {
+            local_data.push_back(fields_vectors[f][0](idx));
           }
         }
         else if constexpr(D == 2) {
-          for(auto j : m.template cells<ax::y, L>()) {
-            for(auto i : m.template cells<ax::x, L>()) {
-              local_data.push_back(fields_vectors[f](i, j)[0]);
-              local_data.push_back(fields_vectors[f](i, j)[1]);
+          for(auto idx_j : m.template cells<ax::y, L>()) {
+            for(auto idx_i : m.template cells<ax::x, L>()) {
+              local_data.push_back(fields_vectors[f][0](idx_i, idx_j));
+              local_data.push_back(fields_vectors[f][1](idx_i, idx_j));
             }
           }
         }
         else /* D == 3 */ {
-          for(auto k : m.template cells<ax::z, L>()) {
-            for(auto j : m.template cells<ax::y, L>()) {
-              for(auto i : m.template cells<ax::x, L>()) {
-                local_data.push_back(fields_vectors[f](i, j, k)[0]);
-                local_data.push_back(fields_vectors[f](i, j, k)[1]);
-                local_data.push_back(fields_vectors[f](i, j, k)[2]);
+          for(auto idx_k : m.template cells<ax::z, L>()) {
+            for(auto idx_j : m.template cells<ax::y, L>()) {
+              for(auto idx_i : m.template cells<ax::x, L>()) {
+                local_data.push_back(fields_vectors[f][0](idx_i, idx_j, idx_k));
+                local_data.push_back(fields_vectors[f][1](idx_i, idx_j, idx_k));
+                local_data.push_back(fields_vectors[f][2](idx_i, idx_j, idx_k));
               }
             }
           }
