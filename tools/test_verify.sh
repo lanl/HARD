@@ -11,7 +11,7 @@ dimension="${additional_args[0]: -1}"
 
 rm -rf *.csv
 
-$mpi_executable -np 1 $hard_executable $config_file $additional_args
+$mpi_executable -n 1 $hard_executable $config_file $additional_args
 
 make verify CONFIG=$config_file DIMENSION=$dimension
 
