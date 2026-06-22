@@ -145,7 +145,7 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
           0.8);
       } // for
 
-      // Set the diffusion coefficient and the stencil (TODO)
+      // TODO: Set the diffusion coefficient and the stencil
       sc.execute<tasks::rad::cell_centered_weighting<D>>(
         flecsi::exec::on, mf, mc, s.rad.mgr.Df_x(mf), s.rad.mgr.Df_x(mc));
 
@@ -291,7 +291,7 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
           0.8);
       } // for
 
-      // Set the diffusion coefficient and the stencil (TODO)
+      // TODO: Set the diffusion coefficient and the stencil
       sc.execute<tasks::rad::cell_centered_weighting<D>>(
         flecsi::exec::on, mf, mc, s.mgr.Df_x(mf), s.mgr.Df_x(mc));
 
@@ -368,7 +368,7 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
       sc.execute<tasks::rad::cell_centered_weighting<D>>(
         flecsi::exec::on, mf, mc, s.mgr.Esf(mf), s.mgr.Esf(mc));
 
-      // Set the diffusion coefficient and the stencil (TODO)
+      // TODO: Set the diffusion coefficient and the stencil
       sc.execute<tasks::rad::cell_centered_weighting<D>>(
         flecsi::exec::on, mf, mc, s.mgr.Df_x(mf), s.mgr.Df_x(mc));
 

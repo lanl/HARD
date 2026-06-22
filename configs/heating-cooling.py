@@ -35,4 +35,9 @@ config = {
         "implementation": "paraview",
         "implementation_directory": "/path",
     },
+    "linear_solver": {
+        "maxiter": 100,
+        "rtol": 1.0e-7,
+        "use_zero_guess": True,
+    },
 }

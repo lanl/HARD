@@ -93,8 +93,7 @@ kh_instability_rad(flecsi::exec::cpu s,
   double rad_temp = config["problem_parameters"]["rad_temp"].cast<double>();
 
   if constexpr(D == 1) {
-    assert(
-      false &&
+    flog_fatal(
       "Kelvin-Helmholtz instability problem for D == 1 is not implemented");
   }
   else if constexpr(D == 2) {
