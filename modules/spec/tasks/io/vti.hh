@@ -106,7 +106,6 @@ void inline vtk(flecsi::exec::cpu s,
     piece_file << "      </FieldData>\n";
 
     // CellData
-    const std::size_t num_cells = local_size[0] * local_size[1] * local_size[2];
     piece_file << "      <CellData>\n";
 
     // Write scalar fields
