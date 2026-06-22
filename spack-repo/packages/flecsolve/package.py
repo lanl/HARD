@@ -10,7 +10,7 @@ class Flecsolve(CMakePackage):
     homepage="https://github.com/lanl/flecsolve.git"
     git = "https://github.com/lanl/flecsolve.git"
     # TO DO update to stable when available
-    version("main", branch="flecsi-2.4")
+    version("main", branch="main")
 
     variant("tests", default=False, description="Enable unit tests")
     variant("standard", default=False, description="Standard setup for flecsolve")
