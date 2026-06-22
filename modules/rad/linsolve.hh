@@ -142,7 +142,7 @@ fmg(control_policy<state, D> & cp, std::size_t index = 0) {
     sc.execute<tasks::rad::full_weighting<D>>(
       flecsi::exec::on, mf, mc, s.rad.mgr.Esf(mf), s.rad.mgr.Esf(mc));
 
-    // Set the diffusion coefficient and the stencil (TODO)
+    // TODO: Set the diffusion coefficient and the stencil
     sc.execute<tasks::rad::full_weighting<D>>(
       flecsi::exec::on, mf, mc, s.rad.mgr.Df_x(mf), s.rad.mgr.Df_x(mc));
 

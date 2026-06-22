@@ -14,8 +14,8 @@ config = {
     "max_dt": 1.0e-2,
     "log_frequency": 1000,
     "output_frequency": 1000,
-    "levels": [7, 11, 4],
-    "lowest_level": 9,
+    "levels": [7, 7, 7],
+    "lowest_level": 7,
     # "color_distribution": [8,16,1],
     "linear_solver": {
         "maxiter": 600,
