@@ -10,7 +10,7 @@ namespace hard::gfm {
 template<std::size_t D>
 struct state {
 
-  // Multi-mat EOS
+  // Multi-material EOS
   std::vector<eos::eos_wrapper> eos_mm;
 
   struct level_set {

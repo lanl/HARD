@@ -6,6 +6,7 @@
 #include "../modules/common/tasks/utils.hh"
 #include "../modules/spec/eos.hh"
 #include "../state.hh"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -13,7 +14,10 @@
 
 namespace hard::tasks::gfm {
 
+// -----------------------------------------------------------------------------
 // Helper structures for flux computation
+// -----------------------------------------------------------------------------
+
 template<std::size_t Dim>
 struct flux_result {
   double r_flux;
@@ -32,9 +36,10 @@ struct ghost_state {
   double re;
 };
 
-// Create artificial state for GFM cut-face.
-// We need to provide complete and EOS-consistent state
-// for the ghost side to HLLC (sound speed, total E den, mom).
+// -----------------------------------------------------------------------------
+// EOS-consistent ghost state completion
+// -----------------------------------------------------------------------------
+
 template<std::size_t Dim>
 void
 compute_state_from_rho_u_p(const std::vector<eos::eos_wrapper> & eos_mm,
@@ -64,7 +69,6 @@ compute_state_from_rho_u_p(const std::vector<eos::eos_wrapper> & eos_mm,
 
   const auto & eos = eos_mm[mat];
 
-  // Getting internal energy.
   ghost.e = hard::tasks::util::find_sie(eos, ghost.rho, ghost.p);
 
   flog_assert(std::isfinite(ghost.e) && ghost.e > 0.0,
@@ -72,7 +76,6 @@ compute_state_from_rho_u_p(const std::vector<eos::eos_wrapper> & eos_mm,
       << " e=" << ghost.e << " rho=" << ghost.rho << " p=" << ghost.p
       << " mat_id=" << mat_id);
 
-  // Compute sound speed.
   ghost.c = eos.cRhoSie(ghost.rho, ghost.e);
 
   flog_assert(std::isfinite(ghost.c) && ghost.c > 0.0,
@@ -81,8 +84,6 @@ compute_state_from_rho_u_p(const std::vector<eos::eos_wrapper> & eos_mm,
       << " p=" << ghost.p << " mat_id=" << mat_id);
 
   ghost.ru = ghost.rho * ghost.u;
-
-  // Compute total energy density.
   ghost.re = ghost.rho * ghost.e + 0.5 * ghost.rho * ghost.u.norm_squared();
 
   flog_assert(std::isfinite(ghost.re) && ghost.re > 0.0,
@@ -91,7 +92,39 @@ compute_state_from_rho_u_p(const std::vector<eos::eos_wrapper> & eos_mm,
       << " p=" << ghost.p << " mat_id=" << mat_id);
 }
 
-// Helper function: compute all three HLLC fluxes at once
+template<std::size_t D>
+void
+diagnose_rk_rhs_1d(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro> m,
+  typename RK<D>::template accessor<ro, ro> rk_dt_a) noexcept {
+
+  auto [dt_mass, dt_energy, dt_mom] = RK<D>::mdcolex(m, rk_dt_a);
+
+  double max_dm = 0.0;
+  double max_du = 0.0;
+  double max_de = 0.0;
+
+  for(auto i : m.template cells<ax::x, dm::quantities>()) {
+    max_dm = std::max(max_dm, std::abs(dt_mass(i)));
+    max_du = std::max(max_du, std::abs(dt_mom(i)[0]));
+    max_de = std::max(max_de, std::abs(dt_energy(i)));
+
+    if(std::abs(dt_mass(i)) > 1e-12 || std::abs(dt_mom(i)[0]) > 1e-12 ||
+       std::abs(dt_energy(i)) > 1e-12) {
+      std::cout << "[RHS nonzero] i=" << i << " dt_mass=" << dt_mass(i)
+                << " dt_mom_x=" << dt_mom(i)[0] << " dt_energy=" << dt_energy(i)
+                << "\n";
+    }
+  }
+
+  std::cout << "[RHS max] mass=" << max_dm << " mom_x=" << max_du
+            << " energy=" << max_de << "\n";
+}
+
+// -----------------------------------------------------------------------------
+// HLLC flux wrapper
+// -----------------------------------------------------------------------------
+
 template<std::size_t Dim>
 flux_result<Dim>
 compute_all_HLLC_fluxes(std::size_t face_axis,
@@ -107,14 +140,15 @@ compute_all_HLLC_fluxes(std::size_t face_axis,
   double cR,
   const vec<Dim> & ruR,
   double reR) noexcept {
+
   flux_result<Dim> result;
 
-  // Compute flux terms
   const double f_r_T = ruL[face_axis];
   const double f_r_H = ruR[face_axis];
 
   vec<Dim> f_ru_T = ruL[face_axis] * uL;
   vec<Dim> f_ru_H = ruR[face_axis] * uR;
+
   f_ru_T[face_axis] += pL;
   f_ru_H[face_axis] += pR;
 
@@ -126,16 +160,12 @@ compute_all_HLLC_fluxes(std::size_t face_axis,
     numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
       rhoL, rhoL, uL, reL, pL, cL, f_r_T, rhoR, rhoR, uR, reR,
       pR, cR, f_r_H, numerical_algorithms::field_tag::rho);
-  // clang-format on
 
-  // clang-format off
   result.ru_flux =
     numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
-      ruL, rhoL, uL, reL, pL, cL, f_ru_T, ruR, rhoR, uR, reR, pR,
-      cR, f_ru_H, numerical_algorithms::field_tag::ru);
-  // clang-format on
+      ruL, rhoL, uL, reL, pL, cL, f_ru_T, ruR, rhoR, uR, reR,
+      pR, cR, f_ru_H, numerical_algorithms::field_tag::ru);
 
-  // clang-format off
   result.re_flux =
     numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
       reL, rhoL, uL, reL, pL, cL, f_rE_T, reR, rhoR, uR, reR,
@@ -145,13 +175,17 @@ compute_all_HLLC_fluxes(std::size_t face_axis,
   return result;
 }
 
-// Helper function: normalize interface normal from left/right views
+// -----------------------------------------------------------------------------
+// Geometry / validation helpers
+// -----------------------------------------------------------------------------
+
 template<std::size_t Dim>
 vec<Dim>
-normalize_interface_normal(const vec<Dim> & n_left,
-  const vec<Dim> & n_right,
+normalize_interface_normal(const vec<Dim> & n_left_face,
+  const vec<Dim> & n_right_face,
   std::size_t face_axis) noexcept {
-  vec<Dim> n_if = 0.5 * (n_left + n_right);
+
+  vec<Dim> n_if = 0.5 * (n_left_face + n_right_face);
   const double nn = std::sqrt(n_if.norm_squared());
 
   if(nn > 1e-14) {
@@ -165,98 +199,236 @@ normalize_interface_normal(const vec<Dim> & n_left,
   return n_if;
 }
 
-// Helper function: Validate whether extrapolated value usable
-// as a ghost state for EOS/HLLC
+template<std::size_t Dim>
+inline double
+dot_vec(const vec<Dim> & a, const vec<Dim> & b) noexcept {
+  double out = 0.0;
+
+  for(std::size_t d = 0; d < Dim; ++d) {
+    out += a[d] * b[d];
+  }
+
+  return out;
+}
+
+template<std::size_t Dim>
+bool
+valid_face_state(double rho,
+  const vec<Dim> & u,
+  double p,
+  double c,
+  const vec<Dim> & ru,
+  double re) noexcept {
+  return std::isfinite(rho) && rho > 0.0 && std::isfinite(u.norm()) &&
+         std::isfinite(p) && p > 0.0 && std::isfinite(c) && c > 0.0 &&
+         std::isfinite(ru.norm()) && std::isfinite(re) && re > 0.0;
+}
+
+template<std::size_t Dim>
+flux_result<Dim>
+physical_flux_from_state(std::size_t face_axis,
+  const vec<Dim> & u,
+  double p,
+  const vec<Dim> & ru,
+  double re) noexcept {
+
+  flux_result<Dim> f;
+
+  f.r_flux = ru[face_axis];
+
+  f.ru_flux = ru[face_axis] * u;
+  f.ru_flux[face_axis] += p;
+
+  f.re_flux = (re + p) * u[face_axis];
+
+  return f;
+}
+
+// This is the basic original contact GFM:
+// pressure and velocity are copied from the real fluid at the ghost location.
+// Set this true only if you intentionally want the tangential-slip extension.
+inline constexpr bool gfm_preserve_tangential_jump = false;
+
+template<std::size_t Dim>
+vec<Dim>
+make_gfm_ghost_velocity(const vec<Dim> & n_if,
+  const vec<Dim> & u_owner_extrapolated,
+  const vec<Dim> & u_real_at_ghost_location) noexcept {
+
+  if constexpr(Dim == 1) {
+    return u_real_at_ghost_location;
+  }
+  else {
+    if constexpr(gfm_preserve_tangential_jump) {
+      const double un_owner = dot_vec<Dim>(u_owner_extrapolated, n_if);
+      const double un_real = dot_vec<Dim>(u_real_at_ghost_location, n_if);
+
+      // Owner tangential velocity + real normal velocity.
+      return u_owner_extrapolated - un_owner * n_if + un_real * n_if;
+    }
+    else {
+      // Basic GFM contact condition.
+      return u_real_at_ghost_location;
+    }
+  }
+}
+
+// The original ghost construction.  The copied pressure comes from
+// the real neighbor state, not from q_ext.
 template<std::size_t Dim>
 bool
 valid_extp_q_for_gfm(const hard::tasks::util::extp_q<Dim> & q) noexcept {
-  return std::isfinite(q.rho()) && q.rho() > 0.0 && std::isfinite(q.p()) &&
-         q.p() > 0.0 && std::isfinite(q.u().norm());
+  return std::isfinite(q.rho()) && q.rho() > 0.0 &&
+         std::isfinite(q.u().norm()) && std::isfinite(q.p()) && q.p() > 0.0 &&
+         std::isfinite(q.e()) && q.e() > 0.0;
 }
 
-// Helper function: Check mat ids for valid EOS indices
+template<std::size_t Dim>
+bool
+valid_owner_extp_for_gfm(const hard::tasks::util::extp_q<Dim> & q) noexcept {
+  return valid_extp_q_for_gfm<Dim>(q);
+}
+
 inline bool
 valid_material_id(int mat_id,
   const std::vector<eos::eos_wrapper> & eos_mm) noexcept {
   return mat_id >= 0 && static_cast<std::size_t>(mat_id) < eos_mm.size();
 }
 
-// Helper for raw ghost checks
+inline bool
+rel_close(double a,
+  double b,
+  double rtol = 1.0e-10,
+  double atol = 1.0e-12) noexcept {
+  return std::abs(a - b) <= atol + rtol * std::max(std::abs(a), std::abs(b));
+}
+
+template<std::size_t Dim>
+double
+sie_from_cons(double rho, const vec<Dim> & u, double re) noexcept {
+  return (re - 0.5 * rho * u.norm_squared()) / rho;
+}
+
+template<std::size_t Dim>
+bool
+eos_pair_equivalent_at_face(const std::vector<eos::eos_wrapper> & eos_mm,
+  int mL,
+  int mR,
+  double rhoL,
+  const vec<Dim> & uL,
+  double reL,
+  double rhoR,
+  const vec<Dim> & uR,
+  double reR) noexcept {
+
+  if(mL == mR) {
+    return true;
+  }
+
+  if(!valid_material_id(mL, eos_mm) || !valid_material_id(mR, eos_mm)) {
+    return false;
+  }
+
+  const double eL = sie_from_cons<Dim>(rhoL, uL, reL);
+  const double eR = sie_from_cons<Dim>(rhoR, uR, reR);
+
+  if(!std::isfinite(eL) || eL <= 0.0 || !std::isfinite(eR) || eR <= 0.0) {
+    return false;
+  }
+
+  const auto & eosL = eos_mm[static_cast<std::size_t>(mL)];
+  const auto & eosR = eos_mm[static_cast<std::size_t>(mR)];
+
+  const double pLL = eosL.pRhoSie(rhoL, eL);
+  const double pRL = eosR.pRhoSie(rhoL, eL);
+  const double cLL = eosL.cRhoSie(rhoL, eL);
+  const double cRL = eosR.cRhoSie(rhoL, eL);
+
+  const double pLR = eosL.pRhoSie(rhoR, eR);
+  const double pRR = eosR.pRhoSie(rhoR, eR);
+  const double cLR = eosL.cRhoSie(rhoR, eR);
+  const double cRR = eosR.cRhoSie(rhoR, eR);
+
+  return rel_close(pLL, pRL) && rel_close(cLL, cRL) && rel_close(pLR, pRR) &&
+         rel_close(cLR, cRR);
+}
+
 template<std::size_t Dim>
 void
-assert_raw_ghost_state(const char * label,
+assert_owner_extp_state(const char * label,
   std::size_t face_axis,
   int mL,
   int mR,
-  int mat_id,
-  const ghost_state<Dim> & ghost) noexcept {
+  int owner_mat,
+  const hard::tasks::util::extp_q<Dim> & q) noexcept {
 
-  flog_assert(std::isfinite(ghost.rho) && ghost.rho > 0.0,
-    label << ": invalid raw ghost rho before EOS"
+  flog_assert(std::isfinite(q.rho()) && q.rho() > 0.0,
+    label << ": invalid owner extrapolated rho"
           << " face_axis=" << face_axis << " mL=" << mL << " mR=" << mR
-          << " mat_id=" << mat_id << " rho=" << ghost.rho << " p=" << ghost.p
-          << " e=" << ghost.e << " u_norm=" << ghost.u.norm());
+          << " owner_mat=" << owner_mat << " rho=" << q.rho() << " p_ext="
+          << q.p() << " e_ext=" << q.e() << " u_ext_norm=" << q.u().norm());
 
-  flog_assert(std::isfinite(ghost.p) && ghost.p > 0.0,
-    label << ": invalid raw ghost pressure before EOS"
+  flog_assert(std::isfinite(q.u().norm()),
+    label << ": invalid owner extrapolated velocity"
           << " face_axis=" << face_axis << " mL=" << mL << " mR=" << mR
-          << " mat_id=" << mat_id << " rho=" << ghost.rho << " p=" << ghost.p
-          << " e=" << ghost.e << " u_norm=" << ghost.u.norm());
-
-  flog_assert(std::isfinite(ghost.u.norm()),
-    label << ": invalid raw ghost velocity before EOS"
-          << " face_axis=" << face_axis << " mL=" << mL << " mR=" << mR
-          << " mat_id=" << mat_id << " rho=" << ghost.rho << " p=" << ghost.p
-          << " e=" << ghost.e << " u_norm=" << ghost.u.norm());
+          << " owner_mat=" << owner_mat << " rho=" << q.rho() << " p_ext="
+          << q.p() << " e_ext=" << q.e() << " u_ext_norm=" << q.u().norm());
 }
 
-// Helper function: compute ghost state for GFM cut face
+// -----------------------------------------------------------------------------
+// original GFM ghost construction
+// -----------------------------------------------------------------------------
+//
+// qOwnerExt supplies the owner-material one-sided thermodynamic state.
+// With the current interface, the available thermodynamic variable is rho.
+// The ghost pressure and velocity are copied from the real fluid occupying the
+// ghost location, then the state is completed with owner_mat EOS.
+//
+
 template<std::size_t Dim>
 ghost_state<Dim>
-compute_ghost_state(const std::vector<eos::eos_wrapper> & eos_mm,
-  int mat_id,
+compute_original_gfm_ghost_state(const std::vector<eos::eos_wrapper> & eos_mm,
+  int owner_mat,
+  int mL,
+  int mR,
+  std::size_t face_axis,
   const vec<Dim> & n_if,
-  double rho_owner,
-  const vec<Dim> & u_owner,
-  const vec<Dim> & u_neighbor,
-  double p_neighbor) noexcept {
+  const hard::tasks::util::extp_q<Dim> & qOwnerExt,
+  const vec<Dim> & u_real_at_ghost_location,
+  double p_real_at_ghost_location,
+  const char * label) noexcept {
 
-  double un_owner = 0.0;
-  double un_neighbor = 0.0;
-  for(std::size_t d = 0; d < Dim; ++d) {
-    un_owner += u_owner[d] * n_if[d];
-    un_neighbor += u_neighbor[d] * n_if[d];
-  }
+  assert_owner_extp_state<Dim>(label, face_axis, mL, mR, owner_mat, qOwnerExt);
 
-  const vec<Dim> u_ghost = u_owner - un_owner * n_if + un_neighbor * n_if;
+  flog_assert(
+    std::isfinite(p_real_at_ghost_location) && p_real_at_ghost_location > 0.0,
+    label << ": invalid copied real pressure"
+          << " face_axis=" << face_axis << " mL=" << mL << " mR=" << mR
+          << " owner_mat=" << owner_mat
+          << " p_real=" << p_real_at_ghost_location);
+
+  flog_assert(std::isfinite(u_real_at_ghost_location.norm()),
+    label << ": invalid copied real velocity"
+          << " face_axis=" << face_axis << " mL=" << mL << " mR=" << mR
+          << " owner_mat=" << owner_mat
+          << " u_real_norm=" << u_real_at_ghost_location.norm());
 
   ghost_state<Dim> ghost;
-  ghost.rho = rho_owner;
-  ghost.p = p_neighbor;
-  ghost.u = u_ghost;
 
-  compute_state_from_rho_u_p<Dim>(eos_mm, mat_id, ghost);
+  ghost.rho = qOwnerExt.rho();
+  ghost.p = p_real_at_ghost_location;
+  ghost.u =
+    make_gfm_ghost_velocity<Dim>(n_if, qOwnerExt.u(), u_real_at_ghost_location);
+
+  compute_state_from_rho_u_p<Dim>(eos_mm, owner_mat, ghost);
 
   return ghost;
 }
 
-// Helper function: Unpack ghost state and fill initial value from
-// extrapolation.
-template<std::size_t Dim>
-ghost_state<Dim>
-unpack_raw_ghost_state(const hard::tasks::util::extp_q<Dim> & q) noexcept {
-  ghost_state<Dim> ghost;
-  ghost.rho = q.rho();
-  ghost.u = q.u();
-  ghost.p = q.p();
-  ghost.e = q.e();
-  ghost.c = 0.0;
-  ghost.ru = vec<Dim>{};
-  ghost.re = 0.0;
-  return ghost;
-}
+// -----------------------------------------------------------------------------
+// Process one face
+// -----------------------------------------------------------------------------
 
-// Helper function: process a single face (same material or GFM cut face)
 template<std::size_t Dim>
 void
 process_single_face(std::size_t face_axis,
@@ -274,8 +446,8 @@ process_single_face(std::size_t face_axis,
   double cR,
   const vec<Dim> & ruR,
   double reR,
-  const vec<Dim> & n_left,
-  const vec<Dim> & n_right,
+  const vec<Dim> & n_left_face,
+  const vec<Dim> & n_right_face,
   const hard::tasks::util::extp_q<Dim> & qGhostR_L,
   const hard::tasks::util::extp_q<Dim> & qGhostL_R,
   const std::vector<eos::eos_wrapper> & eos_mm,
@@ -289,50 +461,76 @@ process_single_face(std::size_t face_axis,
   is_cut_face = (mL != mR);
 
   if(!is_cut_face) {
-    // Same material face
-    auto fluxes = compute_all_HLLC_fluxes<Dim>(
+    const auto fluxes = compute_all_HLLC_fluxes<Dim>(
       face_axis, rhoL, uL, pL, cL, ruL, reL, rhoR, uR, pR, cR, ruR, reR);
+
+    fluxes_L_out = fluxes;
+    fluxes_R_out = fluxes;
 
     r_flux_out = fluxes.r_flux;
     ru_flux_out = fluxes.ru_flux;
     re_flux_out = fluxes.re_flux;
+
+    return;
   }
-  else {
-    // GFM cut face
-    const vec<Dim> n_if =
-      normalize_interface_normal(n_left, n_right, face_axis);
 
-    // Ghost state for the left owner problem:
-    // left real state against left-material state extrapolated into the right
-    // side.
-    auto ghostR_L = unpack_raw_ghost_state<Dim>(qGhostR_L);
-    assert_raw_ghost_state<Dim>("ghostR_L", face_axis, mL, mR, mL, ghostR_L);
-    compute_state_from_rho_u_p<Dim>(eos_mm, mL, ghostR_L);
+  const vec<Dim> n_if =
+    normalize_interface_normal(n_left_face, n_right_face, face_axis);
 
-    // Ghost state for the right owner problem:
-    // right-material state extrapolated into the left side against right real
-    // state.
-    auto ghostL_R = unpack_raw_ghost_state<Dim>(qGhostL_R);
-    assert_raw_ghost_state<Dim>("ghostL_R", face_axis, mL, mR, mR, ghostL_R);
-    compute_state_from_rho_u_p<Dim>(eos_mm, mR, ghostL_R);
+  // Left-owner one-phase problem:
+  //   real left material mL
+  //   ghost right state with material mL EOS
+  //   ghost p/u copied from real right state
+  auto ghostR_L = compute_original_gfm_ghost_state<Dim>(
+    eos_mm, mL, mL, mR, face_axis, n_if, qGhostR_L, uR, pR, "ghostR_L");
 
-    // Left-owner flux
-    // clang-format off
-    fluxes_L_out = compute_all_HLLC_fluxes<Dim>(face_axis,
-      rhoL, uL, pL, cL, ruL, reL, ghostR_L.rho, ghostR_L.u, ghostR_L.p,
-      ghostR_L.c, ghostR_L.ru, ghostR_L.re);
-    // Right-owner flux
-    fluxes_R_out = compute_all_HLLC_fluxes<Dim>(face_axis,
-      ghostL_R.rho, ghostL_R.u, ghostL_R.p, ghostL_R.c, ghostL_R.ru,
-      ghostL_R.re, rhoR, uR, pR, cR, ruR, reR);
-    // clang-format on
+  // Right-owner one-phase problem:
+  //   ghost left state with material mR EOS
+  //   real right material mR
+  //   ghost p/u copied from real left state
+  auto ghostL_R = compute_original_gfm_ghost_state<Dim>(
+    eos_mm, mR, mL, mR, face_axis, n_if, qGhostL_R, uL, pL, "ghostL_R");
 
-    // Store left-view flux
-    r_flux_out = fluxes_L_out.r_flux;
-    ru_flux_out = fluxes_L_out.ru_flux;
-    re_flux_out = fluxes_L_out.re_flux;
-  }
+  // clang-format off
+  fluxes_L_out = compute_all_HLLC_fluxes<Dim>(face_axis,
+    rhoL,
+    uL,
+    pL,
+    cL,
+    ruL,
+    reL,
+    ghostR_L.rho,
+    ghostR_L.u,
+    ghostR_L.p,
+    ghostR_L.c,
+    ghostR_L.ru,
+    ghostR_L.re);
+
+  fluxes_R_out = compute_all_HLLC_fluxes<Dim>(face_axis,
+    ghostL_R.rho,
+    ghostL_R.u,
+    ghostL_R.p,
+    ghostL_R.c,
+    ghostL_R.ru,
+    ghostL_R.re,
+    rhoR,
+    uR,
+    pR,
+    cR,
+    ruR,
+    reR);
+  // clang-format on
+
+  // Store left-owner flux in the face flux array.  The right/plus cell gets a
+  // correction later so that it receives the right-owner flux.
+  r_flux_out = fluxes_L_out.r_flux;
+  ru_flux_out = fluxes_L_out.ru_flux;
+  re_flux_out = fluxes_L_out.re_flux;
 }
+
+// -----------------------------------------------------------------------------
+// Main task
+// -----------------------------------------------------------------------------
 
 template<std::size_t Dim>
 void
@@ -345,6 +543,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
   typename faces<Dim>::template accessor<ro, ro> cFace_a,
   typename faces_vec<Dim>::template accessor<ro, ro> ru_face_a,
   typename faces<Dim>::template accessor<ro, ro> re_face_a,
+
   // GFM related
   typename field<int>::accessor<ro, ro> material_a,
   typename faces_vec<Dim>::template accessor<ro, ro> normal_f_a,
@@ -352,10 +551,12 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     q_ext_plus_a,
   typename field<hard::tasks::util::extp_q<Dim>>::template accessor<ro, ro>
     q_ext_minus_a,
+
   // Riemann fluxes at cell interfaces
   field<double>::accessor<wo, ro> r_f_a,
   typename field<vec<Dim>>::template accessor<wo, ro> ru_f_a,
   field<double>::accessor<wo, ro> re_f_a,
+
   // time derivative
   typename RK<Dim>::template accessor<rw, na> rk_dt_a,
   typename single<vec<Dim>>::template accessor<ro> g_acc,
@@ -399,9 +600,11 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     }
   }();
 
-  // GFM switch
   constexpr bool enable_gfm = true;
 
+  // ---------------------------------------------------------------------------
+  // 1D
+  // ---------------------------------------------------------------------------
   if constexpr(Dim == 1) {
     flog_assert(
       face_axis == 0, "1D executable can only compute fluxes along X axis");
@@ -410,17 +613,6 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     const auto dx = 1.0 / inv_dx;
     const double g_comp = g[0];
 
-    // -------------------------------------------------------------------------
-    // Compute face fluxes on dm::corrector
-    //
-    // For normal faces:
-    //   r_f(i), ru_f(i), re_f(i) = regular HLLC flux.
-    //
-    // For GFM cut faces:
-    //   r_f(i), ru_f(i), re_f(i) = left-owner GFM flux.
-    //   Then add a correction to the right cell so it receives right-owner
-    //   flux.
-    // -------------------------------------------------------------------------
     for(auto i : m.template cells<ax::x, dm::corrector>()) {
       const int mL_raw = mat_id(i - 1);
       const int mR_raw = mat_id(i);
@@ -438,12 +630,10 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const double reL = re_left(i - 1);
       const double reR = re_right(i);
 
-      // check boundary face with valid materail
       const bool valid_material_pair =
         valid_material_id(mL_raw, eos_mm) && valid_material_id(mR_raw, eos_mm);
 
-      // check boundary face with unfilled recon states
-      const bool face_state_valid =
+      const bool face_state_valid_for_gfm =
         std::isfinite(rhoL) && rhoL > 0.0 && std::isfinite(rhoR) &&
         rhoR > 0.0 && std::isfinite(pL) && pL > 0.0 && std::isfinite(pR) &&
         pR > 0.0 && std::isfinite(cL) && cL > 0.0 && std::isfinite(cR) &&
@@ -475,45 +665,136 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         "reR(" << i << ") invalid: " << reR << " mL=" << mL_raw
                << " mR=" << mR_raw);
 
+      const bool left_state_valid =
+        valid_material_id(mL_raw, eos_mm) &&
+        valid_face_state<Dim>(rhoL, u_left(i - 1), pL, cL, ru_left(i - 1), reL);
+
+      const bool right_state_valid =
+        valid_material_id(mR_raw, eos_mm) &&
+        valid_face_state<Dim>(rhoR, u_right(i), pR, cR, ru_right(i), reR);
+
+      // Physical boundary / invalid ghost-side guard.
+      // For transmissive/outflow boundary behavior, use the valid interior
+      // side.
+      if(!left_state_valid || !right_state_valid) {
+        flux_result<Dim> fb;
+
+        if(!left_state_valid && right_state_valid) {
+          // Left physical boundary: use right/interior state.
+          fb =
+            physical_flux_from_state<Dim>(0, u_right(i), pR, ru_right(i), reR);
+        }
+        else if(left_state_valid && !right_state_valid) {
+          // Right physical boundary: use left/interior state.
+          fb = physical_flux_from_state<Dim>(
+            0, u_left(i - 1), pL, ru_left(i - 1), reL);
+        }
+        else {
+          flog_fatal("Both sides of a face are invalid"
+                     << " i=" << i << " mL=" << mL_raw << " mR=" << mR_raw
+                     << " rhoL=" << rhoL << " rhoR=" << rhoR << " pL=" << pL
+                     << " pR=" << pR << " cL=" << cL << " cR=" << cR);
+        }
+
+        r_f(i) = fb.r_flux;
+        ru_f(i) = fb.ru_flux;
+        re_f(i) = fb.re_flux;
+
+        continue;
+      }
+
       const bool qext_valid_for_cut =
-        valid_extp_q_for_gfm<Dim>(q_ext_plus(i)) &&
-        valid_extp_q_for_gfm<Dim>(q_ext_minus(i - 1));
+        valid_owner_extp_for_gfm<Dim>(q_ext_plus(i)) &&
+        valid_owner_extp_for_gfm<Dim>(q_ext_minus(i - 1));
+
+      const bool material_cut = (mL_raw != mR_raw);
+      const bool equivalent_eos_pair =
+        valid_material_pair && eos_pair_equivalent_at_face<Dim>(eos_mm,
+                                 mL_raw,
+                                 mR_raw,
+                                 rhoL,
+                                 u_left(i - 1),
+                                 reL,
+                                 rhoR,
+                                 u_right(i),
+                                 reR);
 
       const bool use_gfm_cut = enable_gfm && valid_material_pair &&
-                               face_state_valid && (mL_raw != mR_raw) &&
-                               qext_valid_for_cut;
+                               face_state_valid_for_gfm && (mL_raw != mR_raw) &&
+                               qext_valid_for_cut && !equivalent_eos_pair;
 
-      // Force normal HLLC branch if not using GFM.
-      // Preserve local left material ID for right material
-      // if material 0 doesn't exist.
       const int mL_eff = mL_raw;
       const int mR_eff = use_gfm_cut ? mR_raw : mL_raw;
 
-      // const int mL_eff = mL_raw;
-      // const int mR_eff = use_gfm_cut ? mR_raw : mL_raw;
-
       flux_result<Dim> fluxes_L, fluxes_R;
-      bool is_cut;
+      bool is_cut = false;
 
       // clang-format off
       process_single_face<Dim>(0,
-        mL_eff, mR_eff, rhoL, u_left(i - 1), pL, cL, ru_left(i - 1), reL, rhoR,
-        u_right(i), pR, cR, ru_right(i), reR, n_left(i - 1), n_right(i),
-        q_ext_plus(i), q_ext_minus(i-1), eos_mm, r_f(i), ru_f(i),
-        re_f(i), fluxes_L, fluxes_R, is_cut);
+        mL_eff,
+        mR_eff,
+        rhoL,
+        u_left(i - 1),
+        pL,
+        cL,
+        ru_left(i - 1),
+        reL,
+        rhoR,
+        u_right(i),
+        pR,
+        cR,
+        ru_right(i),
+        reR,
+        n_right(i - 1),     // left cell plus/right face
+        n_left(i),          // right cell minus/left face
+        q_ext_plus(i),
+        q_ext_minus(i - 1),
+        eos_mm,
+        r_f(i),
+        ru_f(i),
+        re_f(i),
+        fluxes_L,
+        fluxes_R,
+        is_cut);
       // clang-format on
+#if 0
+      if(left_state_valid && right_state_valid && mL_raw != mR_raw) {
+        std::cout << "\n[GFM cut-face audit]\n"
+                  << "i=" << i << " mL_raw=" << mL_raw << " mR_raw=" << mR_raw
+                  << " valid_material_pair=" << valid_material_pair
+                  << " face_state_valid=" << face_state_valid_for_gfm
+                  << " qext_valid=" << qext_valid_for_cut
+                  << " use_gfm_cut=" << use_gfm_cut << "\n"
 
-      // For a true GFM cut:
-      //
-      //   r_f/ru_f/re_f store the left-owner flux.
-      //
-      // The regular divergence update below gives:
-      //   left cell  -= flux_L / dx
-      //   right cell += flux_L / dx
-      //
-      // But the right cell should receive flux_R, so add:
-      //   +(flux_R - flux_L) / dx
-      //
+                  << "real L: rho=" << rhoL << " u=" << u_left(i - 1)[0]
+                  << " p=" << pL << " c=" << cL << " re=" << reL << "\n"
+
+                  << "real R: rho=" << rhoR << " u=" << u_right(i)[0]
+                  << " p=" << pR << " c=" << cR << " re=" << reR << "\n"
+
+                  << "q_ext_plus at R: rho=" << q_ext_plus(i).rho()
+                  << " u=" << q_ext_plus(i).u()[0] << " p=" << q_ext_plus(i).p()
+                  << " e=" << q_ext_plus(i).e() << "\n"
+
+                  << "q_ext_minus at L: rho=" << q_ext_minus(i - 1).rho()
+                  << " u=" << q_ext_minus(i - 1).u()[0]
+                  << " p=" << q_ext_minus(i - 1).p()
+                  << " e=" << q_ext_minus(i - 1).e() << "\n"
+
+                  << "flux_L: mass=" << fluxes_L.r_flux
+                  << " mom=" << fluxes_L.ru_flux[0]
+                  << " energy=" << fluxes_L.re_flux << "\n"
+
+                  << "flux_R: mass=" << fluxes_R.r_flux
+                  << " mom=" << fluxes_R.ru_flux[0]
+                  << " energy=" << fluxes_R.re_flux << "\n"
+
+                  << "flux_R - flux_L: mass="
+                  << fluxes_R.r_flux - fluxes_L.r_flux
+                  << " mom=" << fluxes_R.ru_flux[0] - fluxes_L.ru_flux[0]
+                  << " energy=" << fluxes_R.re_flux - fluxes_L.re_flux << "\n";
+      }
+#endif
       if(use_gfm_cut) {
         dt_mass_density(i) += inv_dx * (fluxes_R.r_flux - fluxes_L.r_flux);
         dt_momentum_density(i) +=
@@ -523,13 +804,13 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       }
     }
 
-    // Apply flux divergence only on dm::quantities (like in regular hydro).
     for(auto i : m.template cells<ax::x, dm::quantities>()) {
       dt_mass_density(i) += inv_dx * (r_f(i) - r_f(i + 1));
       dt_momentum_density(i) += inv_dx * (ru_f(i) - ru_f(i + 1));
       dt_total_energy_density(i) += inv_dx * (re_f(i) - re_f(i + 1));
     }
   }
+
   // ---------------------------------------------------------------------------
   // 2D
   // ---------------------------------------------------------------------------
@@ -537,11 +818,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
     flog_assert(
       face_axis <= 1, "2D executable cannot compute fluxes along Z axis");
 
-    // Index offsets for left cell: [face_axis][dimension]
-    const std::array<std::array<int, 2>, 2> left_offset = {{
-      {-1, 0}, // face_axis == 0: i-1, j
-      {0, -1} // face_axis == 1: i, j-1
-    }};
+    const std::array<std::array<int, 2>, 2> left_offset = {{{-1, 0}, {0, -1}}};
 
     const auto & offset = left_offset[face_axis];
     const auto inv_dx = one_over_dx_i[face_axis];
@@ -557,6 +834,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
 
     for(auto ji : mdpolicy) {
       auto [j, i] = ji;
+
       const int iL = i + offset[0];
       const int jL = j + offset[1];
 
@@ -605,7 +883,6 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       const bool valid_material_pair =
         valid_material_id(mL_raw, eos_mm) && valid_material_id(mR_raw, eos_mm);
 
-      // Strict check only for deciding whether GFM is allowed.
       const bool face_state_valid_for_gfm =
         std::isfinite(rhoL) && rhoL > 0.0 && std::isfinite(rhoR) &&
         rhoR > 0.0 && std::isfinite(pL) && pL > 0.0 && std::isfinite(pR) &&
@@ -614,26 +891,46 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         reR > 0.0;
 
       const bool qext_valid_for_cut =
-        valid_extp_q_for_gfm<Dim>(q_ext_plus(i, j)) &&
-        valid_extp_q_for_gfm<Dim>(q_ext_minus(iL, jL));
+        valid_owner_extp_for_gfm<Dim>(q_ext_plus(i, j)) &&
+        valid_owner_extp_for_gfm<Dim>(q_ext_minus(iL, jL));
 
       const bool use_gfm_cut = enable_gfm && valid_material_pair &&
                                face_state_valid_for_gfm && (mL_raw != mR_raw) &&
                                qext_valid_for_cut;
 
-      // Force normal HLLC branch if not using GFM.
       const int mL_eff = mL_raw;
       const int mR_eff = use_gfm_cut ? mR_raw : mL_raw;
 
       flux_result<Dim> fluxes_L, fluxes_R;
       bool is_cut = false;
+
       // clang-format off
       process_single_face<Dim>(face_axis,
-        mL_eff, mR_eff, rhoL, u_left(iL, jL), pL, cL, ru_left(iL, jL),
-        reL, rhoR, u_right(i, j), pR, cR, ru_right(i, j), reR,
-        n_left(iL, jL), n_right(i, j),
-        q_ext_plus(i,j), q_ext_minus(iL,jL), eos_mm, r_f(i, j),
-        ru_f(i, j), re_f(i, j), fluxes_L, fluxes_R, is_cut);
+        mL_eff,
+        mR_eff,
+        rhoL,
+        u_left(iL, jL),
+        pL,
+        cL,
+        ru_left(iL, jL),
+        reL,
+        rhoR,
+        u_right(i, j),
+        pR,
+        cR,
+        ru_right(i, j),
+        reR,
+        n_right(iL, jL),     // left cell plus face
+        n_left(i, j),        // right cell minus face
+        q_ext_plus(i, j),
+        q_ext_minus(iL, jL),
+        eos_mm,
+        r_f(i, j),
+        ru_f(i, j),
+        re_f(i, j),
+        fluxes_L,
+        fluxes_R,
+        is_cut);
       // clang-format on
 
       if(use_gfm_cut) {
@@ -644,7 +941,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
           inv_dx * (fluxes_R.re_flux - fluxes_L.re_flux);
       }
     }
-    // Apply regular hydro-style divergence only over dm::quantities.
+
     auto mdpolicy_qq = get_mdiota_policy(dt_mass_density,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
@@ -669,12 +966,8 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
   // 3D
   // ---------------------------------------------------------------------------
   else {
-    // Index offsets for left cell: [face_axis][dimension]
-    const std::array<std::array<int, 3>, 3> left_offset = {{
-      {-1, 0, 0}, // face_axis == 0: i-1, j, k
-      {0, -1, 0}, // face_axis == 1: i, j-1, k
-      {0, 0, -1} // face_axis == 2: i, j, k-1
-    }};
+    const std::array<std::array<int, 3>, 3> left_offset = {
+      {{-1, 0, 0}, {0, -1, 0}, {0, 0, -1}}};
 
     const auto & offset = left_offset[face_axis];
     const auto inv_dx = one_over_dx_i[face_axis];
@@ -696,6 +989,7 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
 
     for(auto kji : mdpolicy) {
       auto [k, j, i] = kji;
+
       const int iL = i + offset[0];
       const int jL = j + offset[1];
       const int kL = k + offset[2];
@@ -741,10 +1035,10 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       flog_assert(std::isfinite(reR) && reR >= 0.0,
         "reR(" << i << "," << j << "," << k << ") invalid: " << reR
                << " mL=" << mL_raw << " mR=" << mR_raw);
+
       const bool valid_material_pair =
         valid_material_id(mL_raw, eos_mm) && valid_material_id(mR_raw, eos_mm);
 
-      // Strict check only for deciding whether GFM is allowed.
       const bool face_state_valid_for_gfm =
         std::isfinite(rhoL) && rhoL > 0.0 && std::isfinite(rhoR) &&
         rhoR > 0.0 && std::isfinite(pL) && pL > 0.0 && std::isfinite(pR) &&
@@ -753,28 +1047,48 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
         reR > 0.0;
 
       const bool qext_valid_for_cut =
-        valid_extp_q_for_gfm<Dim>(q_ext_plus(i, j, k)) &&
-        valid_extp_q_for_gfm<Dim>(q_ext_minus(iL, jL, kL));
+        valid_owner_extp_for_gfm<Dim>(q_ext_plus(i, j, k)) &&
+        valid_owner_extp_for_gfm<Dim>(q_ext_minus(iL, jL, kL));
 
       const bool use_gfm_cut = enable_gfm && valid_material_pair &&
                                face_state_valid_for_gfm && (mL_raw != mR_raw) &&
                                qext_valid_for_cut;
 
-      // Force normal HLLC branch if not using GFM.
       const int mL_eff = mL_raw;
       const int mR_eff = use_gfm_cut ? mR_raw : mL_raw;
 
       flux_result<Dim> fluxes_L, fluxes_R;
       bool is_cut = false;
+
       // clang-format off
       process_single_face<Dim>(face_axis,
-        mL_eff, mR_eff, rhoL, u_left(iL, jL, kL), pL, cL, ru_left(iL, jL, kL),
-        reL, rhoR, u_right(i, j, k), pR, cR, ru_right(i, j, k), reR,
-        n_left(iL, jL, kL), n_right(i, j, k),
-        q_ext_plus(i,j,k), q_ext_minus(iL,jL,kL), eos_mm, r_f(i, j, k),
-        ru_f(i, j, k), re_f(i, j, k), fluxes_L, fluxes_R, is_cut);
+        mL_eff,
+        mR_eff,
+        rhoL,
+        u_left(iL, jL, kL),
+        pL,
+        cL,
+        ru_left(iL, jL, kL),
+        reL,
+        rhoR,
+        u_right(i, j, k),
+        pR,
+        cR,
+        ru_right(i, j, k),
+        reR,
+        n_right(iL, jL, kL),   // left cell plus face
+        n_left(i, j, k),       // right cell minus face
+        q_ext_plus(i, j, k),
+        q_ext_minus(iL, jL, kL),
+        eos_mm,
+        r_f(i, j, k),
+        ru_f(i, j, k),
+        re_f(i, j, k),
+        fluxes_L,
+        fluxes_R,
+        is_cut);
       // clang-format on
-      // GFM correction to the right/plus cell only.
+
       if(use_gfm_cut) {
         dt_mass_density(i, j, k) +=
           inv_dx * (fluxes_R.r_flux - fluxes_L.r_flux);
@@ -785,7 +1099,6 @@ compute_interface_fluxes_gfm(flecsi::exec::cpu s,
       }
     }
 
-    // Apply regular hydro-style divergence only over dm::quantities.
     auto mdpolicy_qqq = get_mdiota_policy(dt_mass_density,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),

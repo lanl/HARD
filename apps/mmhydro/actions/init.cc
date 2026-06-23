@@ -76,6 +76,8 @@ initialize(control_policy<state, D> & cp) {
 
   eos::init_eos_mm(s.eos_mm, config);
 
+  
+
   /*--------------------------------------------------------------------------*
     Initialize problem state.
    *--------------------------------------------------------------------------*/
@@ -172,6 +174,40 @@ initialize(control_policy<state, D> & cp) {
       s.cons.hydro.momentum_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m),
       config["gamma"].cast<double>());
+  }
+  else if(problem == "CONTACT_stat") {
+    execute<tasks::initial_data::
+        shock_mm<tasks::initial_data::shock_tubes::CONTACT_stat, D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.ls.material(*s.m),
+      s.ls.frozen_material(*s.m),
+      s.ls.psi(*s.m),
+      s.extp.q_scalar(*s.m),
+      s.extp.q_scalar_known(*s.m),
+      s.extp.q_ext_plus(*s.m),
+      s.extp.q_ext_minus(*s.m),
+      s.eos_mm);
+  }
+  else if(problem == "CONTACT_move") {
+    execute<tasks::initial_data::
+        shock_mm<tasks::initial_data::shock_tubes::CONTACT_move, D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.ls.material(*s.m),
+      s.ls.frozen_material(*s.m),
+      s.ls.psi(*s.m),
+      s.extp.q_scalar(*s.m),
+      s.extp.q_scalar_known(*s.m),
+      s.extp.q_ext_plus(*s.m),
+      s.extp.q_ext_minus(*s.m),
+      s.eos_mm);
   }
   else {
     flog_fatal("unsupported problem(" << problem << ")");

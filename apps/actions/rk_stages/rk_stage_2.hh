@@ -204,6 +204,7 @@ update_rk_stage_2(state<D> & s,
     auto scalar_v = std::vector{s.cons.hydro.mass_density(*s.m),
       s.prim.pressure(*s.m),
       s.prim.specific_internal_energy(*s.m),
+      s.prim.sound_speed(*s.m), // added but not necessary for mmhydro
       s.cons.hydro.total_energy_density(*s.m)};
 
     for(auto & v : v_t) {

@@ -144,48 +144,102 @@ template<std::size_t D, std::size_t STEP>
 void
 advance_psi_s1(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, ro> psi_n0_a, // psi^n
-  typename field<double>::template accessor<ro, ro> rhs_a, // k(psi_stage)
-  typename field<double>::template accessor<wo, ro>
-    psi_out_a, // stage output (psi1/psi2/psi3)
+  typename field<double>::template accessor<ro, ro> psi_n0_a,
+  typename field<double>::template accessor<ro, ro> rhs_a,
+  typename field<double>::template accessor<wo, ro> psi_out_a,
   typename single<double>::template accessor<ro> dt_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
-  s.executor().forall(i, flecsi::util::iota_view({}, psi_out_a.span().size())) {
-    psi_out_a(i) = psi_n0_a(i) + *dt_a * rhs_a(i);
-  };
+  auto psi_n0 = m.template mdcolex<is::cells>(psi_n0_a);
+  auto rhs = m.template mdcolex<is::cells>(rhs_a);
+  auto psi_out = m.template mdcolex<is::cells>(psi_out_a);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+      psi_out(i) = psi_n0(i) + *dt_a * rhs(i);
+    };
+  }
+  else if constexpr(D == 2) {
+    auto pol = get_mdiota_policy(psi_out,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, pol) {
+      auto [j, i] = ji;
+      psi_out(i, j) = psi_n0(i, j) + *dt_a * rhs(i, j);
+    };
+  }
+  else {
+    auto pol = get_mdiota_policy(psi_out,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, pol) {
+      auto [k, j, i] = kji;
+      psi_out(i, j, k) = psi_n0(i, j, k) + *dt_a * rhs(i, j, k);
+    };
+  }
 }
 
 template<std::size_t D, std::size_t STEP>
 void
 advance_psi(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, ro> psi_n0_a, // psi^n
-  typename field<double>::template accessor<ro, ro> rhs_a, // k(psi_stage)
-  typename field<double>::template accessor<ro, ro>
-    psi_prev_a, // stage input (psi1 or psi2)
-  typename field<double>::template accessor<wo, ro>
-    psi_out_a, // stage output (psi1/psi2/psi3)
+  typename field<double>::template accessor<ro, ro> psi_n0_a,
+  typename field<double>::template accessor<ro, ro> rhs_a,
+  typename field<double>::template accessor<ro, ro> psi_prev_a,
+  typename field<double>::template accessor<wo, ro> psi_out_a,
   typename single<double>::template accessor<ro> dt_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
-  static_assert(STEP >= 1 && STEP <= 3, "STEP is 1, 2 or 3");
+  static_assert(STEP >= 2 && STEP <= 3, "STEP must be 2 or 3 here");
 
-  s.executor().forall(i, flecsi::util::iota_view({}, psi_out_a.span().size())) {
-    if constexpr(STEP == 1) {
-      psi_out_a(i) = psi_n0_a(i) + *dt_a * rhs_a(i);
+  auto psi_n0 = m.template mdcolex<is::cells>(psi_n0_a);
+  auto rhs = m.template mdcolex<is::cells>(rhs_a);
+  auto psi_prev = m.template mdcolex<is::cells>(psi_prev_a);
+  auto psi_out = m.template mdcolex<is::cells>(psi_out_a);
+
+  // const double dt = *dt_a;
+
+  auto update_one = [=](double psi0, double psip, double k) {
+    if constexpr(STEP == 2) {
+      return 0.75 * psi0 + 0.25 * (psip + *dt_a * k);
     }
-    else if constexpr(STEP == 2) {
-      psi_out_a(i) =
-        0.75 * psi_n0_a(i) + 0.25 * (psi_prev_a(i) + *dt_a * rhs_a(i));
-    }
-    else { // STEP == 3
-      psi_out_a(i) = (1.0 / 3.0) * psi_n0_a(i) +
-                     (2.0 / 3.0) * (psi_prev_a(i) + *dt_a * rhs_a(i));
+    else {
+      return (1.0 / 3.0) * psi0 + (2.0 / 3.0) * (psip + *dt_a * k);
     }
   };
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+      psi_out(i) = update_one(psi_n0(i), psi_prev(i), rhs(i));
+    };
+  }
+  else if constexpr(D == 2) {
+    auto pol = get_mdiota_policy(psi_out,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, pol) {
+      auto [j, i] = ji;
+      psi_out(i, j) = update_one(psi_n0(i, j), psi_prev(i, j), rhs(i, j));
+    };
+  }
+  else {
+    auto pol = get_mdiota_policy(psi_out,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, pol) {
+      auto [k, j, i] = kji;
+      psi_out(i, j, k) =
+        update_one(psi_n0(i, j, k), psi_prev(i, j, k), rhs(i, j, k));
+    };
+  }
 }
 
 // Determine state at time level n+1 (2-neigh 1D, 4-neigh 2D, 6-neigh 3D)
@@ -300,6 +354,493 @@ determine_psi(flecsi::exec::accelerator s,
         mat(i, j, k) = fmat(i, j, k);
       }
     };
+  }
+}
+
+template<std::size_t D>
+double
+cell_sie_from_cons(double rho, const vec<D> & mom, double rhoE) noexcept {
+  const vec<D> u = (1.0 / rho) * mom;
+  return (rhoE - 0.5 * rho * u.norm_squared()) / rho;
+}
+
+inline bool
+rel_close_local(double a,
+  double b,
+  double rtol = 1.0e-10,
+  double atol = 1.0e-12) noexcept {
+  return std::abs(a - b) <= atol + rtol * std::max(std::abs(a), std::abs(b));
+}
+
+template<std::size_t D>
+bool
+eos_pair_equivalent_at_cell(const std::vector<eos::eos_wrapper> & eos_mm,
+  int old_mat,
+  int new_mat,
+  double rho,
+  const vec<D> & mom,
+  double rhoE) noexcept {
+
+  if(old_mat == new_mat) {
+    return true;
+  }
+
+  if(old_mat < 0 || new_mat < 0 ||
+     static_cast<std::size_t>(old_mat) >= eos_mm.size() ||
+     static_cast<std::size_t>(new_mat) >= eos_mm.size()) {
+    return false;
+  }
+
+  if(!std::isfinite(rho) || rho <= 0.0) {
+    return false;
+  }
+
+  const double e = cell_sie_from_cons<D>(rho, mom, rhoE);
+
+  if(!std::isfinite(e) || e <= 0.0) {
+    return false;
+  }
+
+  const auto & eos_old = eos_mm[static_cast<std::size_t>(old_mat)];
+  const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+
+  const double p_old = eos_old.pRhoSie(rho, e);
+  const double p_new = eos_new.pRhoSie(rho, e);
+  const double c_old = eos_old.cRhoSie(rho, e);
+  const double c_new = eos_new.cRhoSie(rho, e);
+
+  return rel_close_local(p_old, p_new) && rel_close_local(c_old, c_new);
+}
+
+template<std::size_t D>
+void
+promote_changed_material_cells(flecsi::exec::cpu s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<int>::template accessor<ro, ro> old_material_a,
+  typename field<int>::template accessor<ro, ro> new_material_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+    q_ext_plus_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+    q_ext_minus_a,
+  field<double>::accessor<rw, na> mass_density_a,
+  typename field<vec<D>>::template accessor<rw, na> momentum_density_a,
+  field<double>::accessor<rw, na> total_energy_density_a,
+  typename field<vec<D>>::template accessor<rw, na> velocity_a,
+  field<double>::accessor<rw, na> pressure_a,
+  field<double>::accessor<rw, na> sie_a,
+  field<double>::accessor<rw, na> sound_speed_a,
+  const std::vector<eos::eos_wrapper> & eos_mm) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  auto old_material = m.template mdcolex<is::cells>(old_material_a);
+  auto new_material = m.template mdcolex<is::cells>(new_material_a);
+
+  auto q_ext_plus = m.template mdcolex<is::cells>(q_ext_plus_a);
+  auto q_ext_minus = m.template mdcolex<is::cells>(q_ext_minus_a);
+
+  auto rho = m.template mdcolex<is::cells>(mass_density_a);
+  auto mom = m.template mdcolex<is::cells>(momentum_density_a);
+  auto rhoE = m.template mdcolex<is::cells>(total_energy_density_a);
+
+  auto velocity = m.template mdcolex<is::cells>(velocity_a);
+  auto pressure = m.template mdcolex<is::cells>(pressure_a);
+  auto sie = m.template mdcolex<is::cells>(sie_a);
+  auto sound_speed = m.template mdcolex<is::cells>(sound_speed_a);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+      const int old_mat = old_material(i);
+      const int new_mat = new_material(i);
+
+      if(old_mat == new_mat) {
+        return;
+      }
+
+      // CPU task: keep simple asserts here because EOS access is CPU-only.
+      assert(new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_mm.size());
+
+      const double r_old = rho(i);
+      const vec<D> u_old = (1.0 / r_old) * mom(i);
+      const double e_old =
+        (rhoE(i) - 0.5 * r_old * u_old.norm_squared()) / r_old;
+
+      const bool equivalent_eos = eos_pair_equivalent_at_cell<D>(
+        eos_mm, old_mat, new_mat, r_old, mom(i), rhoE(i));
+
+      if(equivalent_eos) {
+        const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+
+        velocity(i) = u_old;
+        sie(i) = e_old;
+        pressure(i) = eos_new.pRhoSie(r_old, e_old);
+        sound_speed(i) = eos_new.cRhoSie(r_old, e_old);
+
+        return;
+      }
+
+      const auto & eos_old = eos_mm[static_cast<std::size_t>(old_mat)];
+      const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+
+      const double p_copy = eos_old.pRhoSie(r_old, e_old);
+      const vec<D> u_copy = u_old;
+
+      const auto & q = (new_mat == 0) ? q_ext_plus(i) : q_ext_minus(i);
+      const double r_new = q.rho();
+
+      // CPU task: validate extrapolated state.
+      assert(std::isfinite(r_new) && r_new > 0.0);
+
+      // CPU task: validate extrapolated state.
+      assert(std::isfinite(p_copy) && p_copy > 0.0);
+
+      const double e_new = hard::tasks::util::find_sie(eos_new, r_new, p_copy);
+      const double c_new = eos_new.cRhoSie(r_new, e_new);
+
+      rho(i) = r_new;
+      velocity(i) = u_copy;
+      pressure(i) = p_copy;
+      sie(i) = e_new;
+      sound_speed(i) = c_new;
+
+      mom(i) = r_new * u_copy;
+      rhoE(i) = r_new * e_new + 0.5 * r_new * u_copy.norm_squared();
+    };
+  }
+  else if constexpr(D == 2) {
+    auto pol = get_mdiota_policy(rho,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, pol) {
+      auto [j, i] = ji;
+
+      const int old_mat = old_material(i, j);
+      const int new_mat = new_material(i, j);
+
+      if(old_mat == new_mat) {
+        return;
+      }
+
+      // CPU task: keep simple asserts here because EOS access is CPU-only.
+      assert(new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_mm.size());
+
+      const double r_old = rho(i, j);
+      const vec<D> u_old = (1.0 / r_old) * mom(i, j);
+      const double e_old =
+        (rhoE(i, j) - 0.5 * r_old * u_old.norm_squared()) / r_old;
+
+      const bool equivalent_eos = eos_pair_equivalent_at_cell<D>(
+        eos_mm, old_mat, new_mat, r_old, mom(i, j), rhoE(i, j));
+
+      if(equivalent_eos) {
+        const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+
+        velocity(i, j) = u_old;
+        sie(i, j) = e_old;
+        pressure(i, j) = eos_new.pRhoSie(r_old, e_old);
+        sound_speed(i, j) = eos_new.cRhoSie(r_old, e_old);
+
+        return;
+      }
+
+      const auto & eos_old = eos_mm[static_cast<std::size_t>(old_mat)];
+      const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+
+      const double p_copy = eos_old.pRhoSie(r_old, e_old);
+      const vec<D> u_copy = u_old;
+
+      const auto & q = (new_mat == 0) ? q_ext_plus(i, j) : q_ext_minus(i, j);
+      const double r_new = q.rho();
+
+      // CPU task: validate extrapolated state.
+      assert(std::isfinite(r_new) && r_new > 0.0);
+
+      // CPU task: validate extrapolated state.
+      assert(std::isfinite(p_copy) && p_copy > 0.0);
+
+      const double e_new = hard::tasks::util::find_sie(eos_new, r_new, p_copy);
+      const double c_new = eos_new.cRhoSie(r_new, e_new);
+
+      rho(i, j) = r_new;
+      velocity(i, j) = u_copy;
+      pressure(i, j) = p_copy;
+      sie(i, j) = e_new;
+      sound_speed(i, j) = c_new;
+
+      mom(i, j) = r_new * u_copy;
+      rhoE(i, j) = r_new * e_new + 0.5 * r_new * u_copy.norm_squared();
+    };
+  }
+  else {
+    auto pol = get_mdiota_policy(rho,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, pol) {
+      auto [k, j, i] = kji;
+
+      const int old_mat = old_material(i, j, k);
+      const int new_mat = new_material(i, j, k);
+
+      if(old_mat == new_mat) {
+        return;
+      }
+
+      // CPU task: keep simple asserts here because EOS access is CPU-only.
+      assert(new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_mm.size());
+
+      const double r_old = rho(i, j, k);
+      const vec<D> u_old = (1.0 / r_old) * mom(i, j, k);
+      const double e_old =
+        (rhoE(i, j, k) - 0.5 * r_old * u_old.norm_squared()) / r_old;
+
+      const bool equivalent_eos = eos_pair_equivalent_at_cell<D>(
+        eos_mm, old_mat, new_mat, r_old, mom(i, j, k), rhoE(i, j, k));
+
+      if(equivalent_eos) {
+        const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+
+        velocity(i, j, k) = u_old;
+        sie(i, j, k) = e_old;
+        pressure(i, j, k) = eos_new.pRhoSie(r_old, e_old);
+        sound_speed(i, j, k) = eos_new.cRhoSie(r_old, e_old);
+
+        return;
+      }
+
+      const auto & eos_old = eos_mm[static_cast<std::size_t>(old_mat)];
+      const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+
+      const double p_copy = eos_old.pRhoSie(r_old, e_old);
+      const vec<D> u_copy = u_old;
+
+      const auto & q =
+        (new_mat == 0) ? q_ext_plus(i, j, k) : q_ext_minus(i, j, k);
+      const double r_new = q.rho();
+
+      // CPU task: validate extrapolated state.
+      assert(std::isfinite(r_new) && r_new > 0.0);
+
+      // CPU task: validate extrapolated state.
+      assert(std::isfinite(p_copy) && p_copy > 0.0);
+
+      const double e_new = hard::tasks::util::find_sie(eos_new, r_new, p_copy);
+      const double c_new = eos_new.cRhoSie(r_new, e_new);
+
+      rho(i, j, k) = r_new;
+      velocity(i, j, k) = u_copy;
+      pressure(i, j, k) = p_copy;
+      sie(i, j, k) = e_new;
+      sound_speed(i, j, k) = c_new;
+
+      mom(i, j, k) = r_new * u_copy;
+      rhoE(i, j, k) = r_new * e_new + 0.5 * r_new * u_copy.norm_squared();
+    };
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 1D diagnostic: print cells whose material changed during determine_psi.
+// -----------------------------------------------------------------------------
+template<std::size_t D>
+void
+diagnose_material_changes_1d(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<int>::template accessor<ro, ro> old_material_a,
+  typename field<int>::template accessor<ro, ro> new_material_a,
+  field<double>::accessor<ro, ro> mass_density_a,
+  typename field<vec<D>>::template accessor<ro, ro> momentum_density_a,
+  field<double>::accessor<ro, ro> total_energy_density_a,
+  const std::vector<eos::eos_wrapper> & eos_mm,
+  int max_print) noexcept {
+
+  if constexpr(D == 1) {
+    auto old_material = m.template mdcolex<is::cells>(old_material_a);
+    auto new_material = m.template mdcolex<is::cells>(new_material_a);
+    auto rho = m.template mdcolex<is::cells>(mass_density_a);
+    auto mom = m.template mdcolex<is::cells>(momentum_density_a);
+    auto rhoE = m.template mdcolex<is::cells>(total_energy_density_a);
+
+    int nchanged = 0;
+    int nprinted = 0;
+
+    for(auto i : m.template cells<ax::x, dm::quantities>()) {
+      const int old_mat = old_material(i);
+      const int new_mat = new_material(i);
+
+      if(old_mat == new_mat) {
+        continue;
+      }
+
+      ++nchanged;
+
+      const double r = rho(i);
+      const double u = mom(i)[0] / r;
+      const double e = (rhoE(i) - 0.5 * r * u * u) / r;
+
+      double p_old = -1.0;
+      double c_old = -1.0;
+      double p_new = -1.0;
+      double c_new = -1.0;
+
+      if(old_mat >= 0 && static_cast<std::size_t>(old_mat) < eos_mm.size()) {
+        const auto & eos_old = eos_mm[static_cast<std::size_t>(old_mat)];
+        p_old = eos_old.pRhoSie(r, e);
+        c_old = eos_old.cRhoSie(r, e);
+      }
+
+      if(new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_mm.size()) {
+        const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+        p_new = eos_new.pRhoSie(r, e);
+        c_new = eos_new.cRhoSie(r, e);
+      }
+
+      if(nprinted < max_print) {
+        std::cout << "[material changed] i=" << i << " old=" << old_mat
+                  << " new=" << new_mat << " rho=" << r << " u=" << u
+                  << " rhoE=" << rhoE(i) << " e_from_cons=" << e
+                  << " p_oldEOS=" << p_old << " c_oldEOS=" << c_old
+                  << " p_newEOS=" << p_new << " c_newEOS=" << c_new << "\n";
+
+        ++nprinted;
+      }
+    }
+
+    std::cout << "[material changed total] " << nchanged << "\n";
+  }
+}
+
+template<std::size_t D>
+void
+diagnose_psi_range_1d(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro> m,
+  field<double>::accessor<ro, ro> psi_a,
+  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
+  const char * label) noexcept {
+
+  if constexpr(D == 1) {
+    auto psi = m.template mdcolex<is::cells>(psi_a);
+    auto vel = m.template mdcolex<is::cells>(velocity_a);
+
+    double min_psi = std::numeric_limits<double>::max();
+    double max_psi = -std::numeric_limits<double>::max();
+    double max_abs_psi = 0.0;
+    double min_u = std::numeric_limits<double>::max();
+    double max_u = -std::numeric_limits<double>::max();
+
+    int bad = 0;
+
+    for(auto i : m.template cells<ax::x, dm::quantities>()) {
+      const double p = psi(i);
+      const double u = vel(i)[0];
+
+      min_psi = std::min(min_psi, p);
+      max_psi = std::max(max_psi, p);
+      max_abs_psi = std::max(max_abs_psi, std::abs(p));
+      min_u = std::min(min_u, u);
+      max_u = std::max(max_u, u);
+
+      if(!std::isfinite(p) || std::abs(p) > 10.0) {
+        ++bad;
+        if(bad <= 10) {
+          std::cout << "[bad psi] " << label << " i=" << i << " psi=" << p
+                    << " u=" << u << "\n";
+        }
+      }
+    }
+
+    if(bad > 0) {
+      std::cout << "[psi range] " << label << " min=" << min_psi
+                << " max=" << max_psi << " maxabs=" << max_abs_psi
+                << " u_min=" << min_u << " u_max=" << max_u
+                << " bad_count=" << bad << "\n";
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 1D outflow copy for level-set scalar + integer material fields.
+//
+// Use this because tasks::apply_boundaries<D> appears to be used for double
+// scalar fields and vec fields in the RK stages, not int material fields.
+// -----------------------------------------------------------------------------
+template<std::size_t D>
+void
+apply_ls_outflow_boundaries_1d(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro> m,
+  field<double>::accessor<rw, ro> psi_a,
+  typename field<int>::template accessor<rw, ro> material_a) noexcept {
+
+  if constexpr(D == 1) {
+    auto psi = m.template mdcolex<is::cells>(psi_a);
+    auto material = m.template mdcolex<is::cells>(material_a);
+
+    auto cells = m.template cells<ax::x, dm::quantities>();
+
+    std::size_t first = 0;
+    std::size_t last = 0;
+    bool initialized = false;
+
+    for(auto i : cells) {
+      if(!initialized) {
+        first = static_cast<std::size_t>(i);
+        last = first;
+        initialized = true;
+      }
+      else {
+        last = static_cast<std::size_t>(i);
+      }
+    }
+
+    if(!initialized) {
+      return;
+    }
+
+    const std::size_t n = psi_a.span().size();
+
+    for(std::size_t i = 0; i < first; ++i) {
+      psi(i) = psi(first);
+      material(i) = material(first);
+    }
+
+    for(std::size_t i = last + 1; i < n; ++i) {
+      psi(i) = psi(last);
+      material(i) = material(last);
+    }
+  }
+}
+
+template<std::size_t D>
+void
+diagnose_material_cuts_1d(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<int>::template accessor<ro, ro> material_a,
+  field<double>::accessor<ro, ro> psi_a) noexcept {
+
+  if constexpr(D == 1) {
+    auto material = m.template mdcolex<is::cells>(material_a);
+    auto psi = m.template mdcolex<is::cells>(psi_a);
+
+    int ncuts = 0;
+
+    for(auto i : m.template cells<ax::x, dm::corrector>()) {
+      if(material(i - 1) != material(i)) {
+        ++ncuts;
+
+        const double xL = 0.5 * (m.template left<ax::x>(i - 1) +
+                                  m.template right<ax::x>(i - 1));
+        const double xR =
+          0.5 * (m.template left<ax::x>(i) + m.template right<ax::x>(i));
+
+        std::cout << "[material cut] i=" << i << " xL=" << xL << " xR=" << xR
+                  << " mL=" << material(i - 1) << " mR=" << material(i)
+                  << " psiL=" << psi(i - 1) << " psiR=" << psi(i) << "\n";
+      }
+    }
+
+    std::cout << "[material cuts total] " << ncuts << "\n";
   }
 }
 

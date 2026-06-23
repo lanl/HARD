@@ -366,6 +366,72 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
   }
 }
 
+// Arturo s
+
+// Pseudo-time step helper
+template<std::size_t D>
+inline double
+min_mesh_spacing(typename mesh<D>::template accessor<ro> m) noexcept {
+  if constexpr(D == 1) {
+    return m.template delta<ax::x>();
+  }
+  else if constexpr(D == 2) {
+    return std::min(m.template delta<ax::x>(), m.template delta<ax::y>());
+  }
+  else {
+    return std::min({m.template delta<ax::x>(),
+      m.template delta<ax::y>(),
+      m.template delta<ax::z>()});
+  }
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET hard::tasks::util::extp_q<D>
+q_stage1(const hard::tasks::util::extp_q<D> & q0,
+  const hard::tasks::util::extp_q<D> & rhs,
+  double dtau) noexcept {
+
+  hard::tasks::util::extp_q<D> out{};
+
+  out.rho() = q0.rho() + dtau * rhs.rho();
+
+  for(std::size_t d = 0; d < D; ++d) {
+    out.u()[d] = q0.u()[d] + dtau * rhs.u()[d];
+  }
+
+  out.p() = q0.p() + dtau * rhs.p();
+  out.e() = q0.e() + dtau * rhs.e();
+  out.n_comps() = q0.n_comps();
+
+  return out;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET hard::tasks::util::extp_q<D>
+q_stage2(const hard::tasks::util::extp_q<D> & q0,
+  const hard::tasks::util::extp_q<D> & q1,
+  const hard::tasks::util::extp_q<D> & rhs1,
+  double dtau) noexcept {
+
+  hard::tasks::util::extp_q<D> out{};
+
+  out.rho() = 0.5 * (q0.rho() + q1.rho() + dtau * rhs1.rho());
+
+  for(std::size_t d = 0; d < D; ++d) {
+    out.u()[d] = 0.5 * (q0.u()[d] + q1.u()[d] + dtau * rhs1.u()[d]);
+  }
+
+  out.p() = 0.5 * (q0.p() + q1.p() + dtau * rhs1.p());
+  out.e() = 0.5 * (q0.e() + q1.e() + dtau * rhs1.e());
+  out.n_comps() = q0.n_comps();
+
+  return out;
+}
+
+// Arturo e
+
+// Arturo s
+// PREVIOUS RK2, CHANGING IT TO THE CFL DEPENDENT ONE RIGHT BELOW
 // RK2(Heun) advance for constant extrapolation
 // STEP=1: q_stage = q + dt * rhs
 // STEP=2: q_out   = 0.5*( q + q_stage + dt*rhs_stage )
@@ -432,6 +498,165 @@ advance_q_rk2_s2(flecsi::exec::accelerator s,
     }
   };
 }
+
+template<std::size_t D>
+void
+advance_q_rk2_s1_cfl(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  field<double>::accessor<ro, ro> extp_psi_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+    q_known_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> q0_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> rhs_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na> q1_a,
+  double extp_cfl) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  const double dtau = extp_cfl * min_mesh_spacing<D>(m);
+
+  auto psi = m.template mdcolex<is::cells>(extp_psi_a);
+  auto q_known = m.template mdcolex<is::cells>(q_known_a);
+  auto q0 = m.template mdcolex<is::cells>(q0_a);
+  auto rhs = m.template mdcolex<is::cells>(rhs_a);
+  auto q1 = m.template mdcolex<is::cells>(q1_a);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+      q1(i) = (psi(i) <= 0.0) ? q_known(i) : q_stage1<D>(q0(i), rhs(i), dtau);
+    };
+  }
+  else if constexpr(D == 2) {
+    auto pol = get_mdiota_policy(q1,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+    s.executor().forall(ji, pol) {
+      auto [j, i] = ji;
+      q1(i, j) = (psi(i, j) <= 0.0) ? q_known(i, j)
+                                    : q_stage1<D>(q0(i, j), rhs(i, j), dtau);
+    };
+  }
+  else {
+    auto pol = get_mdiota_policy(q1,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, pol) {
+      auto [k, j, i] = kji;
+      q1(i, j, k) = (psi(i, j, k) <= 0.0)
+                      ? q_known(i, j, k)
+                      : q_stage1<D>(q0(i, j, k), rhs(i, j, k), dtau);
+    };
+  }
+}
+
+template<std::size_t D>
+void
+advance_q_rk2_s2_cfl(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  field<double>::accessor<ro, ro> extp_psi_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+    q_known_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> q0_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+    rhs1_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> q1_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    qnew_a,
+  double extp_cfl) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  const double dtau = extp_cfl * min_mesh_spacing<D>(m);
+
+  auto psi = m.template mdcolex<is::cells>(extp_psi_a);
+  auto q_known = m.template mdcolex<is::cells>(q_known_a);
+  auto q0 = m.template mdcolex<is::cells>(q0_a);
+  auto rhs1 = m.template mdcolex<is::cells>(rhs1_a);
+  auto q1 = m.template mdcolex<is::cells>(q1_a);
+  auto qnew = m.template mdcolex<is::cells>(qnew_a);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+      qnew(i) =
+        (psi(i) <= 0.0) ? q_known(i) : q_stage2<D>(q0(i), q1(i), rhs1(i), dtau);
+    };
+  }
+  else if constexpr(D == 2) {
+    auto pol = get_mdiota_policy(qnew,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, pol) {
+      auto [j, i] = ji;
+      qnew(i, j) = (psi(i, j) <= 0.0)
+                     ? q_known(i, j)
+                     : q_stage2<D>(q0(i, j), q1(i, j), rhs1(i, j), dtau);
+    };
+  }
+  else {
+    auto pol = get_mdiota_policy(qnew,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, pol) {
+      auto [k, j, i] = kji;
+      qnew(i, j, k) =
+        (psi(i, j, k) <= 0.0)
+          ? q_known(i, j, k)
+          : q_stage2<D>(q0(i, j, k), q1(i, j, k), rhs1(i, j, k), dtau);
+    };
+  }
+}
+// Arturo e
+
+// Arturo s
+
+template<std::size_t D>
+void
+copy_extp_q(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> src_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    dst_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  auto src = m.template mdcolex<is::cells>(src_a);
+  auto dst = m.template mdcolex<is::cells>(dst_a);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+      dst(i) = src(i);
+    };
+  }
+  else if constexpr(D == 2) {
+    auto pol = get_mdiota_policy(dst,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, pol) {
+      auto [j, i] = ji;
+      dst(i, j) = src(i, j);
+    };
+  }
+  else {
+    auto pol = get_mdiota_policy(dst,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, pol) {
+      auto [k, j, i] = kji;
+      dst(i, j, k) = src(i, j, k);
+    };
+  }
+}
+
+// Arturo e
+
 // Prepare one material's state for constant extrapolation.
 //
 // source_material:

@@ -48,6 +48,34 @@ if(ENABLE_UNIT_TESTS)
 
   set(FLECSI_UNIT_MAIN ${CMAKE_SOURCE_DIR}/apps/mmhydro/tests/main.cc)
 
+  flecsi_add_test(mmhydro_level_set_test
+    SOURCES
+      tests/level_set.cc
+      actions/update_ls.cc
+  )
+
+  target_include_directories(mmhydro_level_set_test
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}
+      ${CMAKE_SOURCE_DIR}/modules
+      ${CMAKE_SOURCE_DIR}/apps/mmhydro/tests
+  )
+
+  target_link_libraries(mmhydro_level_set_test
+    PRIVATE
+      libcommon::libcommon
+      libhydro::libhydro
+      libspec::libspec
+      singularity-eos::singularity-eos
+      FleCSI::FleCSI
+      libgfm::libgfm
+  )
+
+  target_compile_definitions(mmhydro_level_set_test
+    PRIVATE
+      IN_TEST
+  )
+
 endif()
 
 if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)

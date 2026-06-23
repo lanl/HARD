@@ -19,7 +19,7 @@ struct sod_mm {
   static constexpr double uR = 0.0;
   static constexpr double pR = 0.1;
 
-  static constexpr double x0 = 0.5;
+  static constexpr double x0 = 0.5; // 0.5
 
   static constexpr int mL = 0;
   static constexpr int mR = 1;
@@ -39,6 +39,36 @@ struct shyue_shock {
   static constexpr int mL = 0;
   static constexpr int mR = 1;
 }; // struct shyue_shock
+
+struct CONTACT_stat {
+  static constexpr double rL = 1.0;
+  static constexpr double uL = 0.0;
+  static constexpr double pL = 1.0;
+
+  static constexpr double rR = 0.125;
+  static constexpr double uR = 0.0;
+  static constexpr double pR = 1.0;
+
+  static constexpr double x0 = 0.5;
+
+  static constexpr int mL = 0;
+  static constexpr int mR = 1;
+}; // struct stationary contact test
+
+struct CONTACT_move {
+  static constexpr double rL = 1.0;
+  static constexpr double uL = 1.0;
+  static constexpr double pL = 1.0;
+
+  static constexpr double rR = 0.125;
+  static constexpr double uR = 1.0;
+  static constexpr double pR = 1.0;
+
+  static constexpr double x0 = 0.5;
+
+  static constexpr int mL = 0;
+  static constexpr int mR = 1;
+}; // struct moving contact test
 
 } // namespace shock_tubes
 

@@ -1,10 +1,13 @@
 #ifndef TEST_LS_UTILS_HH
 #define TEST_LS_UTILS_HH
 
-#include "../tasks/utils.hh"
+#include "common/tasks/utils.hh"
+#include "spec/labels.hh"
+#include "spec/mesh.hh"
+#include "spec/types.hh"
 
 using namespace spec;
-using namespace hard::tasks::util;
+using namespace common::tasks::utils;
 
 namespace tests::level_set_utils {
 
@@ -39,7 +42,7 @@ struct state {
 };
 
 template<std::size_t D>
-vec<D>
+FLECSI_INLINE_TARGET vec<D>
 time_reversal_vel(double t, const std::array<double, D> & x) {
 
   if constexpr(D == 1) {
@@ -71,9 +74,9 @@ time_reversal_vel(double t, const std::array<double, D> & x) {
 template<std::size_t D>
 void
 copy_test_vel(flecsi::exec::accelerator s,
-  typename mesh<D>::template accessor<ro> m,
-  typename field<vec<D>>::template accessor<wo, ro> velocity_a,
-  typename single<double>::template accessor<ro> t) noexcept {
+  typename mesh<D>::template accessor<spec::ro> m,
+  typename field<vec<D>>::template accessor<spec::wo, spec::ro> velocity_a,
+  typename single<double>::template accessor<spec::ro> t) noexcept {
 
   auto u = m.template mdcolex<is::cells>(velocity_a);
 

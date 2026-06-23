@@ -28,7 +28,7 @@ init_boundaries(flecsi::exec::cpu,
   if constexpr(D == 2 || D == 3) {
     p[ax::y] = false;
   }
-  else if constexpr(D == 3) {
+  if constexpr(D == 3) {
     p[ax::z] = false;
   } // if
 
@@ -59,8 +59,9 @@ init_boundaries(flecsi::exec::cpu,
     if((bnds[ax::z][bl::low] == periodic &&
          bnds[ax::z][bl::high] != periodic) ||
        (bnds[ax::z][bl::low] != periodic && bnds[ax::z][bl::high] == periodic))
-      p[ax::z] =
-        bnds[ax::z][bl::low] == periodic && bnds[ax::z][bl::high] == periodic;
+      flog_fatal("Wrong periodicity in the boundaries.");
+    p[ax::z] =
+      bnds[ax::z][bl::low] == periodic && bnds[ax::z][bl::high] == periodic;
   } // if
 
   return p;
@@ -241,6 +242,109 @@ apply_dirichlet_boundaries(flecsi::exec::accelerator s,
   std::vector<field<double>::accessor<rw, ro>> f_a,
   flecsi::future<double> value) noexcept {
   apply_boundary<D, double>(s, m, bmap_a, f_a, value.get());
+}
+
+template<std::size_t D>
+void
+apply_boundaries_int(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
+  std::vector<field<int>::accessor<rw, ro>> f_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  const size_t ghost_zone_size = m.ghost_zone_size();
+  const flow<D> f(ghost_zone_size);
+
+  for(auto f_c : f_a) {
+    auto f_acc = m.template mdcolex<is::cells>(f_c);
+    if constexpr(D == 1) {
+      std::array<int, 2> levels = {
+        m.template is_low<ax::x>() ? bl::low : bl::none,
+        m.template is_high<ax::x>() ? bl::high : bl::none};
+      for(auto l : levels)
+        if(l != bl::none) {
+          std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
+          flecsi::util::iota_view policy{0, 1};
+          s.executor().forall(x, policy) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
+            (void)x;
+            f(f_acc, i, l);
+          };
+        }
+    }
+    else if constexpr(D == 2) {
+      std::array<int, 2> levels_x = {
+        m.template is_low<ax::x>() ? bl::low : bl::none,
+        m.template is_high<ax::x>() ? bl::high : bl::none};
+      std::array<int, 2> levels_y = {
+        m.template is_low<ax::y>() ? bl::low : bl::none,
+        m.template is_high<ax::y>() ? bl::high : bl::none};
+      for(auto l : levels_x)
+        if(l != bl::none) {
+          std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
+          s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
+            f(ax::x, f_acc, i, j, l);
+          };
+        }
+      for(auto l : levels_y)
+        if(l != bl::none) {
+          std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
+          s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
+            f(ax::y, f_acc, i, j, l);
+          };
+        }
+    }
+    else if constexpr(D == 3) {
+      std::array<int, 2> levels_x = {
+        m.template is_low<ax::x>() ? bl::low : bl::none,
+        m.template is_high<ax::x>() ? bl::high : bl::none};
+      std::array<int, 2> levels_y = {
+        m.template is_low<ax::y>() ? bl::low : bl::none,
+        m.template is_high<ax::y>() ? bl::high : bl::none};
+      std::array<int, 2> levels_z = {
+        m.template is_low<ax::z>() ? bl::low : bl::none,
+        m.template is_high<ax::z>() ? bl::high : bl::none};
+      for(auto l : levels_x)
+        if(l != bl::none) {
+          auto mdpolicy_zy = get_mdiota_policy(f_acc,
+            m.template cells<ax::z, dm::quantities>(),
+            m.template cells<ax::y, dm::quantities>());
+          std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
+          s.executor().forall(kj, mdpolicy_zy) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
+            auto [k, j] = kj;
+            f(ax::x, f_acc, i, j, k, l);
+          };
+        }
+      for(auto l : levels_y)
+        if(l != bl::none) {
+          auto mdpolicy_zx = get_mdiota_policy(f_acc,
+            m.template cells<ax::z, dm::quantities>(),
+            m.template cells<ax::x, dm::quantities>());
+          std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
+          s.executor().forall(ki, mdpolicy_zx) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
+            auto [k, i] = ki;
+            f(ax::y, f_acc, i, j, k, l);
+          };
+        }
+      for(auto l : levels_z)
+        if(l != bl::none) {
+          auto mdpolicy_yx = get_mdiota_policy(f_acc,
+            m.template cells<ax::y, dm::quantities>(),
+            m.template cells<ax::x, dm::quantities>());
+          std::size_t k = l == bl::low ? 0 : m.template size<ax::z, dm::all>();
+          s.executor().forall(ji, mdpolicy_yx) {
+            const typename mesh<D>::bmap & bm = *bmap_a;
+            auto [j, i] = ji;
+            f(ax::z, f_acc, i, j, k, l);
+          };
+        }
+    }
+  }
 }
 
 } // namespace hard::tasks
