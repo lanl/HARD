@@ -76,15 +76,15 @@ struct reflective<2> {
             a(i - 1 - m, j).x() = -1 * a(i - 2 * ghost_zone_size + m, j).x();
             a(i - 1 - m, j).y() = a(i - 2 * ghost_zone_size + m, j).y();
           }
-        if(axis == ax::y) {
-          for(int m = 0; m < ghost_zone_size; ++m)
-            if constexpr(std::is_same_v<T, double>)
-              a(i, j - 1 - m) = a(i, j - 2 * ghost_zone_size + m);
-            else {
-              a(i, j - 1 - m).x() = a(i, j - 2 * ghost_zone_size + m).y();
-              a(i, j - 1 - m).y() = -1 * a(i, j - 2 * ghost_zone_size + m).y();
-            }
-        }
+      }
+      if(axis == ax::y) {
+        for(int m = 0; m < ghost_zone_size; ++m)
+          if constexpr(std::is_same_v<T, double>)
+            a(i, j - 1 - m) = a(i, j - 2 * ghost_zone_size + m);
+          else {
+            a(i, j - 1 - m).x() = a(i, j - 2 * ghost_zone_size + m).x();
+            a(i, j - 1 - m).y() = -1 * a(i, j - 2 * ghost_zone_size + m).y();
+          }
       }
     }
   }
