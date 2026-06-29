@@ -21,7 +21,7 @@ class Hard(CMakePackage, CudaPackage):
     variant("verification", default=False, description="Enable physics verification tests")
     variant("format", default=False, description="Enable format target")
 
-    depends_on("flecsi@2.4: +flog")
+    depends_on("flecsi@2.4.2: +flog")
     depends_on("flecsi +cuda", when="+cuda")
     depends_on("flecsolve")
     depends_on("flecsolve+cuda", when="+cuda")
