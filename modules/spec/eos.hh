@@ -8,10 +8,20 @@
 #include <singularity-eos/base/robust_utils.hpp>
 #include <singularity-eos/eos/eos.hpp>
 
+#include <array>
 #include <cmath>
+#include <concepts>
+#include <cstddef>
+#include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace eos {
+
+/**
+ * maximum number of different materials
+ */
+constexpr std::size_t kMaxMaterials = 10;
 
 struct eos_wrapper {
   using eos_t = singularity::Variant<singularity::IdealGas,
@@ -19,9 +29,28 @@ struct eos_wrapper {
     singularity::Gruneisen,
     singularity::JWL>;
 
-  eos_wrapper() {}
+  eos_wrapper() = default;
+
+  template<class M>
+  static constexpr bool is_supported_eos_v =
+    std::same_as<std::remove_cvref_t<M>, singularity::IdealGas> ||
+    std::same_as<std::remove_cvref_t<M>, singularity::SpinerEOSDependsRhoSie> ||
+    std::same_as<std::remove_cvref_t<M>, singularity::Gruneisen> ||
+    std::same_as<std::remove_cvref_t<M>, singularity::JWL>;
+
   template<typename M>
+    requires is_supported_eos_v<M>
   eos_wrapper(M const & m) : model_(m), lambda_(model_.nlambda()) {}
+
+  static eos_wrapper from_host_device(eos_wrapper const & host) {
+    eos_wrapper dev = host;
+    dev.model_.GetOnDevice();
+    return dev;
+  }
+
+  void finalize_device() {
+    model_.Finalize();
+  }
 
   /*!
     Return pressure as a function of density and specific internal energy.
@@ -54,11 +83,15 @@ struct eos_wrapper {
 
 private:
   friend flecsi::util::serial::traits<eos_wrapper>;
+  template<class Exec>
+  friend struct eos_dispatch;
+
   eos_wrapper(eos_t const & eos, std::vector<double> const & l)
     : model_(eos), lambda_(l) {}
+
   eos_t model_;
   std::vector<double> lambda_;
-}; // struct eos_base
+};
 
 inline eos::eos_wrapper
 init_eos(spec::config_py & config) {
@@ -119,6 +152,61 @@ init_eos_mm(std::vector<eos::eos_wrapper> & eos_mm, spec::config_py & config) {
     eos_mm.emplace_back(init_eos(mat));
   }
 }
+
+template<class Exec>
+struct eos_dispatch {
+  using exec_t = std::remove_cvref_t<Exec>;
+
+  static constexpr bool on_device =
+    std::is_same_v<exec_t, flecsi::exec::gpu> ||
+    std::is_same_v<exec_t, flecsi::exec::accelerator>;
+
+  using eos_type = eos_wrapper;
+
+  std::array<eos_type, kMaxMaterials> models_{};
+  std::size_t size_ = 0;
+  bool initialized_ = false;
+
+  explicit eos_dispatch(std::vector<eos_wrapper> const & eos_vec) {
+    if(eos_vec.size() > kMaxMaterials) {
+      throw std::runtime_error("too many materials for eos_dispatch");
+    }
+
+    size_ = eos_vec.size();
+
+    for(std::size_t i = 0; i < size_; ++i) {
+      if constexpr(on_device) {
+        models_[i] = eos_wrapper::from_host_device(eos_vec[i]);
+      }
+      else {
+        models_[i] = eos_vec[i];
+      }
+    }
+
+    initialized_ = true;
+  }
+
+  ~eos_dispatch() {
+    if constexpr(on_device) {
+      if(initialized_) {
+        for(std::size_t i = 0; i < size_; ++i) {
+          models_[i].finalize_device();
+        }
+      }
+    }
+
+    initialized_ = false;
+    size_ = 0;
+  }
+
+  FLECSI_INLINE_TARGET eos_type const & operator[](std::size_t mat) const {
+    return models_[mat];
+  }
+
+  std::size_t size() const {
+    return size_;
+  }
+};
 
 } // namespace eos
 
