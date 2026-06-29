@@ -47,9 +47,5 @@ config = {
         "zlow": "flow",
         "zhigh": "flow",
     },
-    "catalyst": {
-        "script": "/path",
-        "implementation": "paraview",
-        "implementation_directory": "/path",
-    },
+    "output_method": "csv",
 }

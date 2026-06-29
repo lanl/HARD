@@ -40,11 +40,6 @@ target_compile_definitions(radhydro
     $<$<BOOL:${HARD_WRITE_CONTROL_INFO}>:HARD_WRITE_CONTROL_INFO>
 )
 
-if(ENABLE_CATALYST)
-  target_link_libraries(hydro PRIVATE catalyst::catalyst)
-  target_compile_definitions(hydro PRIVATE ENABLE_CATALYST)
-endif()
-
 install(TARGETS radhydro)
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/configs/

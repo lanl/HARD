@@ -23,9 +23,5 @@ config = {
         "ylow": "reflecting",
         "yhigh": "reflecting",
     },
-    "catalyst": {
-        "script": "/path",
-        "implementation": "paraview",
-        "implementation_directory": "/path",
-    },
+    "output_method": "csv",
 }

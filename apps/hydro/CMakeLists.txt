@@ -37,11 +37,6 @@ target_compile_definitions(hydro
     $<$<BOOL:${HARD_WRITE_CONTROL_INFO}>:HARD_WRITE_CONTROL_INFO>
 )
 
-if(ENABLE_CATALYST)
-  target_link_libraries(hydro PRIVATE catalyst::catalyst)
-  target_compile_definitions(hydro PRIVATE ENABLE_CATALYST)
-endif()
-
 if(ENABLE_UNIT_TESTS)
 
   set(FLECSI_UNIT_MAIN ${CMAKE_SOURCE_DIR}/apps/hydro/tests/main.cc)
@@ -53,7 +48,7 @@ if(ENABLE_UNIT_TESTS)
 
 endif()
 
-if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS AND NOT ENABLE_CATALYST)
+if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
 
   set(TEST_VERIFY_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_verify.sh")
   set(TEST_DISTRIBUTED_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_distributed.sh")

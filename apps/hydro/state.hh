@@ -44,6 +44,8 @@ struct state : hydro::state<D> {
   std::size_t min_highest_level;
   std::size_t max_num_levels;
 
+  spec::om::output_method output_method = spec::om::csv;
+
 }; // struct state
 
 } // namespace hard

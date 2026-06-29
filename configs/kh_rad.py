@@ -44,14 +44,10 @@ config = {
         "zlow": "flow",
         "zhigh": "flow",
     },
-    "catalyst": {
-        "script": "/path",
-        "implementation": "paraview",
-        "implementation_directory": "/path",
-    },
     "linear_solver": {
         "maxiter": 100,
         "rtol": 1.0e-7,
         "use_zero_guess": True,
     },
+    "output_method": "csv",
 }

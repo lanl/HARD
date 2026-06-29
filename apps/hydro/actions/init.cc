@@ -162,6 +162,23 @@ struct initialize {
     } // if
 
     /*--------------------------------------------------------------------------*
+      Output method configuration.
+      *--------------------------------------------------------------------------*/
+
+    // Default output method is csv (set in state initialization)
+    if(config.contains("output_method")) {
+      auto method = config["output_method"].cast<std::string>();
+      if(method == "vti") {
+        s.output_method = spec::om::vti;
+      }
+#ifdef HARD_ENABLE_HDF5
+      else if(method == "xdmf") {
+        s.output_method = spec::om::xdmf;
+      }
+#endif
+    }
+
+    /*--------------------------------------------------------------------------*
       Initialize time advance.
       *--------------------------------------------------------------------------*/
 
