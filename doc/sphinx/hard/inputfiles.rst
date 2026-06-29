@@ -73,12 +73,11 @@ logging and output
     * `reflecting`
     * `dirichlet`
 
-`catalyst`
-  All these options are needed under catalyst to specify the location of the script and the paraview library.
-    * `script`, path to the python script that interface the output data and catalyst. An example is provided in `tools/gridwriter.py`
-    * `implementation`, only value for now is `paraview`
-    * `implementation_directory`, path to the catalyst library compiled using the implementation. Something like `libcatalyst_paraview.so`
-
+`output_method`
+  Specifies the output format for visualization. See :ref:`hard_visualization` for details.
+    * `csv` - Text-based output (default, always available)
+    * `vti` - Parallel XML VTK format for ParaView (always available)
+    * `xdmf` - XDMF+HDF5 format for efficient large-scale output (requires HDF5 support)
 
 Some problems have specific input information. These are all defined under the `problem_parameters` group.
 
