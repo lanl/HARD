@@ -12,11 +12,10 @@ This program was produced under U.S. Government contract 89233218CNA000001 for L
 
 The easiest way to build HARD is to use *spack*.
 
-Clone the spack repo, pick the right version, and initialize:
+Clone the spack repo (version 1.0 or later required) and initialize:
 ```
 $ git clone git@github.com:spack/spack.git $HOME/.spack
 $ cd $HOME/.spack
-$ git checkout v0.23.1
 $ source $HOME/.spack/share/spack/setup-env.sh
 ```
 
@@ -40,7 +39,7 @@ $ spacktivate hard
 ```
 Once you are in the *hard* environment, you can specify the repository:
 ```
-$ spack repo add /PATH-TO-HARD-CLONE/spack-repo
+$ spack repo add /PATH-TO-HARD-CLONE/spack_repo/hard
 ```
 You can find the compiler we loaded earlier using:
 ```
@@ -51,7 +50,15 @@ You can see the different options available for *hard* by using:
 ```
 $ spack info hard
 ```
-And add *hard* to the environment:
+
+Available variants include:
+- `+cuda` - Enable CUDA support for GPU acceleration
+- `+radiation` - Enable radiation physics (default: on)
+- `+tests` - Enable unit tests
+- `+verification` - Enable physics verification tests
+- `+format` - Enable code formatting target
+
+Add *hard* to the environment:
 ```
 $ spack add hard
 ```
@@ -91,10 +98,41 @@ $ cd build
 $ cmake ..
 ```
 This will configure your build with the default settings for HARD.
+
+Available CMake options (use `-DOPTION=ON/OFF`):
+- `ENABLE_HDF5` - Enable HDF5-based I/O for XDMF output (default: ON, requires parallel HDF5)
+- `ENABLE_FORMAT` - Enable code formatting target (default: OFF, requires LLVM 20)
+- `ENABLE_DOCUMENTATION` - Enable documentation generation (default: OFF)
+- `ENABLE_UNIT_TESTS` - Enable unit tests (default: OFF)
+- `ENABLE_VERIFICATION` - Enable physics verification tests (default: OFF, requires unit tests)
+- `HARD_BENCHMARK_MODE` - Disable I/O and add time measurement for benchmarking (default: OFF)
+- `HARD_ENABLE_LEGION_TRACING` - Enable Legion tracing (default: OFF)
+- `HARD_WRITE_CONTROL_INFO` - Output control model graph at startup (default: ON, requires FleCSI Graphviz support)
+
 When cmake has completed, simply run make:
 ```
 $ make
 ```
+
+# Output Formats
+
+HARD supports multiple output formats for visualization in ParaView:
+
+- **CSV** - Text-based output (always available)
+- **VTK** - Parallel XML VTK format (.pvti/.vti files, always available)
+- **XDMF+HDF5** - Binary HDF5 data with XDMF metadata (requires `ENABLE_HDF5=ON` and parallel HDF5)
+
+For large-scale simulations, XDMF+HDF5 provides the most efficient I/O with full parallel write support.
+
+# Running Simulations
+
+HARD uses Python-based configuration files for problem setup. Example configuration files are provided in the `configs/` directory:
+
+```
+$ ./apps/hydro/hydro-{backend} -i configs/sod.py
+```
+
+Configuration files define initial conditions, boundary conditions, equation of state parameters, and output settings using Python syntax (replacing the previous YAML format).
 
 # Code Formatting and Style
 

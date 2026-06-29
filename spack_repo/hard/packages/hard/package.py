@@ -15,7 +15,7 @@ class Hard(CMakePackage, CudaPackage):
 
     version("main", branch="main")
 
-    variant("catalyst", default=False, description="Enable catalyst for paraview interface")
+    variant("hdf5", default=True, description="Enable HDF5-based I/O (XDMF output)")
     variant("radiation", default=True, description="Enable support for radiation physics")
     variant("tests", default=False, description="Enable unit tests")
     variant("verification", default=False, description="Enable physics verification tests")
@@ -25,8 +25,7 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("flecsi +cuda", when="+cuda")
     depends_on("flecsolve")
     depends_on("flecsolve+cuda", when="+cuda")
-    depends_on("libcatalyst", when="+catalyst")
-    #depends_on("paraview@5.12.1+libcatalyst+python", when="+catalyst")
+    depends_on("hdf5@1.10: +mpi", when="+hdf5")
     depends_on("py-pybind11")
     depends_on("c", type="build")
     depends_on("cxx", type="build")
@@ -57,7 +56,7 @@ class Hard(CMakePackage, CudaPackage):
         options = [
             self.define_from_variant("ENABLE_UNIT_TESTS", "tests"),
             self.define_from_variant("ENABLE_VERIFICATION", "verification"),
-            self.define_from_variant("ENABLE_CATALYST", "catalyst"),
+            self.define_from_variant("ENABLE_HDF5", "hdf5"),
             self.define_from_variant("ENABLE_FORMAT", "format"),
         ]
 
