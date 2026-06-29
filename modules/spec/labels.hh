@@ -82,6 +82,22 @@ enum boundary_type {
 }; // enum boundary_type
 } // namespace bd
 
+namespace om {
+/// Output method.
+/// Identifies the output format for visualization and analysis.
+enum output_method {
+  /// CSV text output format.
+  csv,
+  /// VTK ImageData XML format (.vti/.pvti).
+  vti
+#ifdef HARD_ENABLE_HDF5
+  /// XDMF + HDF5 format (.xmf + .h5) for large-scale simulations.
+  ,
+  xdmf
+#endif
+}; // enum output_method
+} // namespace om
+
 } // namespace spec
 
 #endif // SPEC_ENUM_HH

@@ -14,18 +14,6 @@ inline flecsi::program_option<std::string> config("python file",
              : (ss << "file(" << v << ") has invalid suffix") && false;
   });
 
-#ifdef USE_CATALYST
-inline flecsi::program_option<std::string> catalyst_script("catalyst script",
-  "The catalyst script file.",
-  1,
-  [](flecsi::any const & v, std::stringstream & ss) {
-    const std::string value = flecsi::option_value<std::string>(v);
-    return value.find(".py") != std::string::npos
-             ? true
-             : (ss << "file(" << value << ") has invalid suffix") && false;
-  });
-#endif
-
 inline flecsi::program_option<unsigned int> dimension("Hard Options",
   "dimension,d",
   "Specify the dimension of the solver (default: 3).",
