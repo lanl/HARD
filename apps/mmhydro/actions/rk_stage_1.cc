@@ -136,7 +136,6 @@ advance_rk_stage_1(state<D> & s,
 
       sc.execute<tasks::extrapolation::prepare_extp_for_material<D>>(
         flecsi::exec::on,
-        *s.m,
         s.ls.psi(*s.m),
         s.ls.material(*s.m),
         s.cons.hydro.mass_density(*s.m),
@@ -203,17 +202,14 @@ advance_rk_stage_1(state<D> & s,
           extp_cfl); // dtau in original work
 
         if(n + 1 < extp_steps) {
-          sc.execute<tasks::extrapolation::copy_extp_q<D>>(flecsi::exec::on,
-            *s.m,
-            s.extp.q_ext_plus(*s.m),
-            s.extp.q_scalar(*s.m));
+          sc.execute<tasks::extrapolation::copy_extp_q<D>>(
+            flecsi::exec::on, s.extp.q_ext_plus(*s.m), s.extp.q_scalar(*s.m));
         }
       }
       // Extrapolation for ghost fill: minus direction
 
       sc.execute<tasks::extrapolation::prepare_extp_for_material<D>>(
         flecsi::exec::on,
-        *s.m,
         s.ls.psi(*s.m),
         s.ls.material(*s.m),
         s.cons.hydro.mass_density(*s.m),
@@ -281,10 +277,8 @@ advance_rk_stage_1(state<D> & s,
           extp_cfl); // dtau in original work
 
         if(n + 1 < extp_steps) {
-          sc.execute<tasks::extrapolation::copy_extp_q<D>>(flecsi::exec::on,
-            *s.m,
-            s.extp.q_ext_minus(*s.m),
-            s.extp.q_scalar(*s.m));
+          sc.execute<tasks::extrapolation::copy_extp_q<D>>(
+            flecsi::exec::on, s.extp.q_ext_minus(*s.m), s.extp.q_scalar(*s.m));
         }
       }
       /* End of extrapolation*/

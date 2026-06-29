@@ -13,6 +13,7 @@ struct state {
   // Multi-material EOS
   std::vector<eos::eos_wrapper> eos_mm;
 
+
   struct level_set {
     // Level set
     // Signed distance-like scalar and integer material label per cell

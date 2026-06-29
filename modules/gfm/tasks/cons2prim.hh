@@ -21,73 +21,30 @@ conservative_to_primitive_mm(flecsi::exec::accelerator s,
   typename field<int>::accessor<ro, ro> material_a,
   std::vector<eos::eos_wrapper> const & eos_mm) noexcept {
 
-  using common::tasks::utils::get_mdiota_policy;
+  eos::eos_dispatch<flecsi::exec::accelerator> eos_disp(eos_mm);
 
-  auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
-  auto total_energy_density =
-    m.template mdcolex<is::cells>(total_energy_density_a);
-  auto velocity = m.template mdcolex<is::cells>(velocity_a);
-  auto pressure = m.template mdcolex<is::cells>(pressure_a);
-  auto specific_internal_energy =
-    m.template mdcolex<is::cells>(specific_internal_energy_a);
-  auto soundspeed = m.template mdcolex<is::cells>(soundspeed_a);
-  auto material = m.template mdcolex<is::cells>(material_a);
-
-  if constexpr(Dim == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      velocity(i) = momentum_density(i) / mass_density(i);
-      specific_internal_energy(i) =
-        (total_energy_density(i) -
-          0.5 * mass_density(i) * (velocity(i).norm_squared())) /
-        mass_density(i);
-      const auto mat = static_cast<std::size_t>(material(i));
-      const auto & eos = eos_mm[mat];
-
-      pressure(i) = eos.pRhoSie(mass_density(i), specific_internal_energy(i));
-      soundspeed(i) = eos.cRhoSie(mass_density(i), specific_internal_energy(i));
-    }; // for
-  }
-  else if constexpr(Dim == 2) {
-    auto mdpolicy_yx = get_mdiota_policy(velocity,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(ji, mdpolicy_yx) {
-      auto [j, i] = ji;
-      velocity(i, j) = momentum_density(i, j) / mass_density(i, j);
-      specific_internal_energy(i, j) =
-        total_energy_density(i, j) / mass_density(i, j) -
-        0.5 * velocity(i, j).norm_squared();
-      const auto mat = static_cast<std::size_t>(material(i, j));
-      const auto & eos = eos_mm[mat];
-      pressure(i, j) =
-        eos.pRhoSie(mass_density(i, j), specific_internal_energy(i, j));
-      soundspeed(i, j) =
-        eos.cRhoSie(mass_density(i, j), specific_internal_energy(i, j));
-    }; // for
-  }
-  else /* Dim == 3 */ {
-    auto mdpolicy_zyx = get_mdiota_policy(velocity,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, mdpolicy_zyx) {
-      auto [k, j, i] = kji;
-      velocity(i, j, k) = momentum_density(i, j, k) / mass_density(i, j, k);
-      specific_internal_energy(i, j, k) =
-        total_energy_density(i, j, k) / mass_density(i, j, k) -
-        0.5 * velocity(i, j, k).norm_squared();
-      const auto mat = static_cast<std::size_t>(material(i, j, k));
-      const auto & eos = eos_mm[mat];
-      pressure(i, j, k) =
-        eos.pRhoSie(mass_density(i, j, k), specific_internal_energy(i, j, k));
-      soundspeed(i, j, k) =
-        eos.cRhoSie(mass_density(i, j, k), specific_internal_energy(i, j, k));
-
-    }; // forall
-  } // if
+  /**
+   * Important: we are using a flat iterator over the entire domain
+   * including ghost cells. At this stage ghost cells might be not
+   * correctly populated, triggering wrong const auto & eos = eos_disp[mat]
+   * accessing
+   */
+  s.executor().forall(
+    i, flecsi::util::iota_view({}, pressure_a.span().size())) {
+    const auto mat = static_cast<std::size_t>(material_a(i));
+    if(mat < eos_disp.size_) {
+      const auto & eos = eos_disp[mat];
+      velocity_a(i) = momentum_density_a(i) / mass_density_a(i);
+      specific_internal_energy_a(i) =
+        (total_energy_density_a(i) -
+          0.5 * mass_density_a(i) * (velocity_a(i).norm_squared())) /
+        mass_density_a(i);
+      pressure_a(i) =
+        eos.pRhoSie(mass_density_a(i), specific_internal_energy_a(i));
+      soundspeed_a(i) =
+        eos.cRhoSie(mass_density_a(i), specific_internal_energy_a(i));
+    }
+  };
 }
 
 } // namespace hard::tasks::gfm

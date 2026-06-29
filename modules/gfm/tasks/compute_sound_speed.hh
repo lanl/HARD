@@ -10,35 +10,32 @@ namespace hard::tasks::gfm {
 template<std::size_t Dim>
 void
 compute_sound_speed_from_eos(flecsi::exec::accelerator s,
-  typename mesh<Dim>::template accessor<ro> m,
-  field<double>::accessor<ro, na> mass_density,
-  // field<double>::accessor<ro, na> pressure_a,
-  field<double>::accessor<ro, na> specific_internal_energy,
-  typename field<int>::accessor<ro, ro> material,
-  field<double>::accessor<wo, na> soundspeed,
+  typename mesh<Dim>::template accessor<ro> m_a,
+  field<double>::accessor<ro, na> mass_density_a,
+  field<double>::accessor<ro, na> specific_internal_energy_a,
+  typename field<int>::accessor<ro, ro> material_a,
+  field<double>::accessor<wo, na> soundspeed_a,
   std::vector<eos::eos_wrapper> const & eos_mm) noexcept {
 
-  using common::tasks::utils::get_mdiota_policy;
+  eos::eos_dispatch<flecsi::exec::accelerator> eos_disp(eos_mm);
 
-  // std::cout << "---- speed_sound ----" << std::endl;
+  /**
+   * Important: we are using a flat iterator over the entire domain
+   * including ghost cells. At this stage ghost cells might be not
+   * correctly populated, triggering wrong const auto & eos = eos_disp[mat]
+   * accessing
+   */
+  s.executor().forall(
+    i, flecsi::util::iota_view({}, soundspeed_a.span().size())) {
+    const auto mat = static_cast<std::size_t>(material_a(i));
+    if(mat < eos_disp.size_) {
+      const auto & eos = eos_disp[mat];
+      soundspeed_a(i) =
+        eos.cRhoSie(mass_density_a(i), specific_internal_energy_a(i));
+    }
+  };
+}
 
-  if constexpr(Dim == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      // velocity(i) = momentum_density(i) / mass_density(i);
-      // specific_internal_energy(i) =
-      //   (total_energy_density(i) -
-      //     0.5 * mass_density(i) * (velocity(i).norm_squared())) /
-      //   mass_density(i);
-      const auto mat = static_cast<std::size_t>(material(i));
-      const auto & eos = eos_mm[mat];
-
-      // pressure(i) = eos.pRhoSie(mass_density(i),
-      // specific_internal_energy(i));
-      soundspeed(i) = eos.cRhoSie(mass_density(i), specific_internal_energy(i));
-    }; // for
-  }
-} // if
 } // namespace hard::tasks::gfm
-  // namespace hard::tasks::gfm
 
 #endif
