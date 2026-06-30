@@ -12,7 +12,6 @@ config = {
     "log_frequency": 1000,
     "output_frequency": 1000,
     "levels": [10, 1, 1],
-    "lowest_level": 10,
     "problem_parameters": {
         "E_0": 0.0673185,
         "hotspot_position": [
