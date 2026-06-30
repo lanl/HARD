@@ -18,7 +18,6 @@ config = {
     "log_frequency": 100,
     "output_frequency": 100,
     "levels": [7, 6, 5],
-    "lowest_level": 5,
     "coords": [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]],
     "boundaries": {
         "xlow": "periodic",

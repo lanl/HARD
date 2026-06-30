@@ -201,11 +201,6 @@ init_mesh(state<D> & s,
              : opt::resolution.value();
   };
 
-  // Record lowest level
-  s.lowest_level = opt::resolution.value() == 0
-                     ? config["lowest_level"].cast<std::size_t>()
-                     : opt::resolution.value();
-
   // Find highest level
   s.min_highest_level = get_resolution(0);
   if(D == 2 || D == 3) {
@@ -214,6 +209,15 @@ init_mesh(state<D> & s,
   if(D == 3) {
     s.min_highest_level = std::min(get_resolution(2), s.min_highest_level);
   } // if
+
+  // Record lowest level
+  if(opt::resolution.value() != 0)
+    s.lowest_level = opt::resolution.value();
+  else if(config.contains("lowest_level"))
+    s.lowest_level = config["lowest_level"].cast<std::size_t>();
+  else
+    s.lowest_level = s.min_highest_level;
+
   s.max_num_levels = s.min_highest_level - s.lowest_level + 1;
 
   if(s.lowest_level > s.min_highest_level)

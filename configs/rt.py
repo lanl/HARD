@@ -16,7 +16,6 @@ config = {
     "log_frequency": 1,
     "output_frequency": 10000,
     "levels": [8, 8, 4],
-    "lowest_level": 8,
     "coords": [
         [0.0, 0.0, 0.0],  # [-0.25, -0.75, 0.0],
         [0.5, 1.5, 1.0],  # [0.25, 0.75, 1.0],
