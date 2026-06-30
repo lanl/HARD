@@ -16,9 +16,9 @@ template<std::size_t D>
 auto
 sedov_blast(flecsi::exec::cpu s,
   typename mesh<D>::template accessor<ro> m,
-  field<double>::accessor<rw, ro> mass_density_a,
-  typename field<vec<D>>::template accessor<rw, ro> momentum_density_a,
-  field<double>::accessor<rw, ro> total_energy_density_a) {
+  field<double>::accessor<wo, na> mass_density_a,
+  typename field<vec<D>>::template accessor<wo, na> momentum_density_a,
+  field<double>::accessor<wo, na> total_energy_density_a) {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
