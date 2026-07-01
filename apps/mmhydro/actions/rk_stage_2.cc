@@ -72,13 +72,13 @@ advance_rk_stage_2(state<D> & s,
 
   // ---- material update added --------------------------------- start
   // Update INTEGER material field in ghost cells BEFORE flux computation
-  sc.execute<tasks::apply_boundaries_int<D>>(flecsi::exec::on,
+  sc.execute<tasks::apply_boundaries_scalar<D, true, int>>(flecsi::exec::on,
     *s.m,
     s.icst.bmap(*s.gt),
     std::vector{s.ls.material(*s.m)}); // Only int fields
 
   // Update DOUBLE psi field in ghost cells
-  sc.execute<tasks::apply_boundaries_scalar<D>>(flecsi::exec::on,
+  sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(flecsi::exec::on,
     *s.m,
     s.icst.bmap(*s.gt),
     std::vector{s.ls.psi(*s.m)}); // Only double scalar fields
@@ -424,13 +424,14 @@ update_rk_stage_2(state<D> & s,
     // ---- other mat update ---- start
     // Update INTEGER material field in ghost cells before hydro/primitive
     // variables.
-    sc.execute<tasks::apply_boundaries_int<D>>(flecsi::exec::on,
+    sc.execute<tasks::apply_boundaries_scalar<D, true, int>>(flecsi::exec::on,
       *s.m,
       s.icst.bmap(*s.gt),
       std::vector{s.ls.material(*s.m)}); // Only int field
 
     // Update DOUBLE psi field in ghost cells
-    sc.execute<tasks::apply_boundaries_scalar<D>>(flecsi::exec::on,
+    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(
+      flecsi::exec::on,
       *s.m,
       s.icst.bmap(*s.gt),
       std::vector{s.ls.psi(*s.m)}); // Only double scalar field

@@ -358,13 +358,13 @@ determine_psi(flecsi::exec::accelerator s,
 }
 
 template<std::size_t D>
-double
+FLECSI_INLINE_TARGET double
 cell_sie_from_cons(double rho, const vec<D> & mom, double rhoE) noexcept {
   const vec<D> u = (1.0 / rho) * mom;
   return (rhoE - 0.5 * rho * u.norm_squared()) / rho;
 }
 
-inline bool
+FLECSI_INLINE_TARGET bool
 rel_close_local(double a,
   double b,
   double rtol = 1.0e-10,
@@ -372,9 +372,9 @@ rel_close_local(double a,
   return std::abs(a - b) <= atol + rtol * std::max(std::abs(a), std::abs(b));
 }
 
-template<std::size_t D>
-bool
-eos_pair_equivalent_at_cell(const std::vector<eos::eos_wrapper> & eos_mm,
+template<std::size_t D, typename eosType>
+FLECSI_INLINE_TARGET bool
+eos_pair_equivalent_at_cell(const eosType & eos_disp,
   int old_mat,
   int new_mat,
   double rho,
@@ -386,8 +386,8 @@ eos_pair_equivalent_at_cell(const std::vector<eos::eos_wrapper> & eos_mm,
   }
 
   if(old_mat < 0 || new_mat < 0 ||
-     static_cast<std::size_t>(old_mat) >= eos_mm.size() ||
-     static_cast<std::size_t>(new_mat) >= eos_mm.size()) {
+     static_cast<std::size_t>(old_mat) >= eos_disp.size() ||
+     static_cast<std::size_t>(new_mat) >= eos_disp.size()) {
     return false;
   }
 
@@ -401,8 +401,8 @@ eos_pair_equivalent_at_cell(const std::vector<eos::eos_wrapper> & eos_mm,
     return false;
   }
 
-  const auto & eos_old = eos_mm[static_cast<std::size_t>(old_mat)];
-  const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+  const auto & eos_old = eos_disp[static_cast<std::size_t>(old_mat)];
+  const auto & eos_new = eos_disp[static_cast<std::size_t>(new_mat)];
 
   const double p_old = eos_old.pRhoSie(rho, e);
   const double p_new = eos_new.pRhoSie(rho, e);
@@ -414,7 +414,7 @@ eos_pair_equivalent_at_cell(const std::vector<eos::eos_wrapper> & eos_mm,
 
 template<std::size_t D>
 void
-promote_changed_material_cells(flecsi::exec::cpu s,
+promote_changed_material_cells(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<int>::template accessor<ro, ro> old_material_a,
   typename field<int>::template accessor<ro, ro> new_material_a,
@@ -430,6 +430,8 @@ promote_changed_material_cells(flecsi::exec::cpu s,
   field<double>::accessor<rw, na> sie_a,
   field<double>::accessor<rw, na> sound_speed_a,
   const std::vector<eos::eos_wrapper> & eos_mm) noexcept {
+
+  eos::eos_dispatch<flecsi::exec::accelerator> eos_disp(eos_mm);
 
   using common::tasks::utils::get_mdiota_policy;
 
@@ -457,8 +459,8 @@ promote_changed_material_cells(flecsi::exec::cpu s,
         return;
       }
 
-      // CPU task: keep simple asserts here because EOS access is CPU-only.
-      assert(new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_mm.size());
+      assert(
+        new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_disp.size());
 
       const double r_old = rho(i);
       const vec<D> u_old = (1.0 / r_old) * mom(i);
@@ -466,10 +468,10 @@ promote_changed_material_cells(flecsi::exec::cpu s,
         (rhoE(i) - 0.5 * r_old * u_old.norm_squared()) / r_old;
 
       const bool equivalent_eos = eos_pair_equivalent_at_cell<D>(
-        eos_mm, old_mat, new_mat, r_old, mom(i), rhoE(i));
+        eos_disp, old_mat, new_mat, r_old, mom(i), rhoE(i));
 
       if(equivalent_eos) {
-        const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+        const auto & eos_new = eos_disp[static_cast<std::size_t>(new_mat)];
 
         velocity(i) = u_old;
         sie(i) = e_old;
@@ -479,8 +481,8 @@ promote_changed_material_cells(flecsi::exec::cpu s,
         return;
       }
 
-      const auto & eos_old = eos_mm[static_cast<std::size_t>(old_mat)];
-      const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+      const auto & eos_old = eos_disp[static_cast<std::size_t>(old_mat)];
+      const auto & eos_new = eos_disp[static_cast<std::size_t>(new_mat)];
 
       const double p_copy = eos_old.pRhoSie(r_old, e_old);
       const vec<D> u_copy = u_old;
@@ -488,10 +490,7 @@ promote_changed_material_cells(flecsi::exec::cpu s,
       const auto & q = (new_mat == 0) ? q_ext_plus(i) : q_ext_minus(i);
       const double r_new = q.rho();
 
-      // CPU task: validate extrapolated state.
       assert(std::isfinite(r_new) && r_new > 0.0);
-
-      // CPU task: validate extrapolated state.
       assert(std::isfinite(p_copy) && p_copy > 0.0);
 
       const double e_new = hard::tasks::util::find_sie(eos_new, r_new, p_copy);
@@ -522,8 +521,8 @@ promote_changed_material_cells(flecsi::exec::cpu s,
         return;
       }
 
-      // CPU task: keep simple asserts here because EOS access is CPU-only.
-      assert(new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_mm.size());
+      assert(
+        new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_disp.size());
 
       const double r_old = rho(i, j);
       const vec<D> u_old = (1.0 / r_old) * mom(i, j);
@@ -531,10 +530,10 @@ promote_changed_material_cells(flecsi::exec::cpu s,
         (rhoE(i, j) - 0.5 * r_old * u_old.norm_squared()) / r_old;
 
       const bool equivalent_eos = eos_pair_equivalent_at_cell<D>(
-        eos_mm, old_mat, new_mat, r_old, mom(i, j), rhoE(i, j));
+        eos_disp, old_mat, new_mat, r_old, mom(i, j), rhoE(i, j));
 
       if(equivalent_eos) {
-        const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+        const auto & eos_new = eos_disp[static_cast<std::size_t>(new_mat)];
 
         velocity(i, j) = u_old;
         sie(i, j) = e_old;
@@ -544,8 +543,8 @@ promote_changed_material_cells(flecsi::exec::cpu s,
         return;
       }
 
-      const auto & eos_old = eos_mm[static_cast<std::size_t>(old_mat)];
-      const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+      const auto & eos_old = eos_disp[static_cast<std::size_t>(old_mat)];
+      const auto & eos_new = eos_disp[static_cast<std::size_t>(new_mat)];
 
       const double p_copy = eos_old.pRhoSie(r_old, e_old);
       const vec<D> u_copy = u_old;
@@ -553,10 +552,7 @@ promote_changed_material_cells(flecsi::exec::cpu s,
       const auto & q = (new_mat == 0) ? q_ext_plus(i, j) : q_ext_minus(i, j);
       const double r_new = q.rho();
 
-      // CPU task: validate extrapolated state.
       assert(std::isfinite(r_new) && r_new > 0.0);
-
-      // CPU task: validate extrapolated state.
       assert(std::isfinite(p_copy) && p_copy > 0.0);
 
       const double e_new = hard::tasks::util::find_sie(eos_new, r_new, p_copy);
@@ -588,8 +584,8 @@ promote_changed_material_cells(flecsi::exec::cpu s,
         return;
       }
 
-      // CPU task: keep simple asserts here because EOS access is CPU-only.
-      assert(new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_mm.size());
+      assert(
+        new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_disp.size());
 
       const double r_old = rho(i, j, k);
       const vec<D> u_old = (1.0 / r_old) * mom(i, j, k);
@@ -597,10 +593,10 @@ promote_changed_material_cells(flecsi::exec::cpu s,
         (rhoE(i, j, k) - 0.5 * r_old * u_old.norm_squared()) / r_old;
 
       const bool equivalent_eos = eos_pair_equivalent_at_cell<D>(
-        eos_mm, old_mat, new_mat, r_old, mom(i, j, k), rhoE(i, j, k));
+        eos_disp, old_mat, new_mat, r_old, mom(i, j, k), rhoE(i, j, k));
 
       if(equivalent_eos) {
-        const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+        const auto & eos_new = eos_disp[static_cast<std::size_t>(new_mat)];
 
         velocity(i, j, k) = u_old;
         sie(i, j, k) = e_old;
@@ -610,8 +606,8 @@ promote_changed_material_cells(flecsi::exec::cpu s,
         return;
       }
 
-      const auto & eos_old = eos_mm[static_cast<std::size_t>(old_mat)];
-      const auto & eos_new = eos_mm[static_cast<std::size_t>(new_mat)];
+      const auto & eos_old = eos_disp[static_cast<std::size_t>(old_mat)];
+      const auto & eos_new = eos_disp[static_cast<std::size_t>(new_mat)];
 
       const double p_copy = eos_old.pRhoSie(r_old, e_old);
       const vec<D> u_copy = u_old;
@@ -620,10 +616,7 @@ promote_changed_material_cells(flecsi::exec::cpu s,
         (new_mat == 0) ? q_ext_plus(i, j, k) : q_ext_minus(i, j, k);
       const double r_new = q.rho();
 
-      // CPU task: validate extrapolated state.
       assert(std::isfinite(r_new) && r_new > 0.0);
-
-      // CPU task: validate extrapolated state.
       assert(std::isfinite(p_copy) && p_copy > 0.0);
 
       const double e_new = hard::tasks::util::find_sie(eos_new, r_new, p_copy);
@@ -756,58 +749,6 @@ diagnose_psi_range_1d(flecsi::exec::cpu,
                 << " max=" << max_psi << " maxabs=" << max_abs_psi
                 << " u_min=" << min_u << " u_max=" << max_u
                 << " bad_count=" << bad << "\n";
-    }
-  }
-}
-
-// -----------------------------------------------------------------------------
-// 1D outflow copy for level-set scalar + integer material fields.
-//
-// Use this because tasks::apply_boundaries<D> appears to be used for double
-// scalar fields and vec fields in the RK stages, not int material fields.
-// -----------------------------------------------------------------------------
-template<std::size_t D>
-void
-apply_ls_outflow_boundaries_1d(flecsi::exec::cpu,
-  typename mesh<D>::template accessor<ro> m,
-  field<double>::accessor<rw, ro> psi_a,
-  typename field<int>::template accessor<rw, ro> material_a) noexcept {
-
-  if constexpr(D == 1) {
-    auto psi = m.template mdcolex<is::cells>(psi_a);
-    auto material = m.template mdcolex<is::cells>(material_a);
-
-    auto cells = m.template cells<ax::x, dm::quantities>();
-
-    std::size_t first = 0;
-    std::size_t last = 0;
-    bool initialized = false;
-
-    for(auto i : cells) {
-      if(!initialized) {
-        first = static_cast<std::size_t>(i);
-        last = first;
-        initialized = true;
-      }
-      else {
-        last = static_cast<std::size_t>(i);
-      }
-    }
-
-    if(!initialized) {
-      return;
-    }
-
-    const std::size_t n = psi_a.span().size();
-
-    for(std::size_t i = 0; i < first; ++i) {
-      psi(i) = psi(first);
-      material(i) = material(first);
-    }
-
-    for(std::size_t i = last + 1; i < n; ++i) {
-      psi(i) = psi(last);
-      material(i) = material(last);
     }
   }
 }

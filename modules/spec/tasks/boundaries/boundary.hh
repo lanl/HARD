@@ -67,12 +67,12 @@ init_boundaries(flecsi::exec::cpu,
   return p;
 } // boundaries
 
-template<std::size_t D, typename T>
+template<std::size_t D, bool isLevelSet = false, typename T>
 void
-apply_boundary(flecsi::exec::accelerator & s,
+apply_boundary_one(flecsi::exec::accelerator & s,
   typename mesh<D>::template accessor<ro> & m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> & bmap_a,
-  std::vector<typename field<T>::template accessor<rw, ro>> & f_a,
+  typename field<T>::template accessor<rw, ro> & f_a,
   double value = 0) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -83,268 +83,201 @@ apply_boundary(flecsi::exec::accelerator & s,
   const reflective<D> r(ghost_zone_size);
   const dirichlet<D> d(ghost_zone_size);
 
-  for(auto f_c : f_a) {
-    auto f_acc = m.template mdcolex<is::cells>(f_c);
-    if constexpr(D == 1) {
-      std::array<int, 2> levels = {
-        m.template is_low<ax::x>() ? bl::low : bl::none,
-        m.template is_high<ax::x>() ? bl::high : bl::none};
-      for(auto l : levels)
-        if(l != bl::none) {
-          std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
-          flecsi::util::iota_view policy{0, 1}; // default execution space
-          s.executor().forall(x, policy) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
-            (void)x; // remove compiler warning for unused
+  auto f_acc = m.template mdcolex<is::cells>(f_a);
+
+  if constexpr(D == 1) {
+    std::array<int, 2> levels = {
+      m.template is_low<ax::x>() ? bl::low : bl::none,
+      m.template is_high<ax::x>() ? bl::high : bl::none};
+    for(auto l : levels)
+      if(l != bl::none) {
+        std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
+        flecsi::util::iota_view policy{0, 1}; // default execution space
+        s.executor().forall(x, policy) {
+          const typename mesh<D>::bmap & bm = *bmap_a;
+          (void)x; // remove compiler warning for unused
+          if constexpr(isLevelSet) {
+            f(f_acc, i, l);
+          }
+          else {
             if(bm[0][l] == bd::flow)
               f(f_acc, i, l);
             if(bm[0][l] == bd::reflecting)
               r(f_acc, i, l);
             if(bm[0][l] == bd::dirichlet)
               d(f_acc, value, i, l);
-          };
-        }
-    }
-    else if constexpr(D == 2) {
-      std::array<int, 2> levels_x = {
-        m.template is_low<ax::x>() ? bl::low : bl::none,
-        m.template is_high<ax::x>() ? bl::high : bl::none};
-      std::array<int, 2> levels_y = {
-        m.template is_low<ax::y>() ? bl::low : bl::none,
-        m.template is_high<ax::y>() ? bl::high : bl::none};
-      for(auto l : levels_x)
-        if(l != bl::none) {
-          std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
-          s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
+          }
+        };
+      }
+  }
+  else if constexpr(D == 2) {
+    std::array<int, 2> levels_x = {
+      m.template is_low<ax::x>() ? bl::low : bl::none,
+      m.template is_high<ax::x>() ? bl::high : bl::none};
+    std::array<int, 2> levels_y = {
+      m.template is_low<ax::y>() ? bl::low : bl::none,
+      m.template is_high<ax::y>() ? bl::high : bl::none};
+    for(auto l : levels_x)
+      if(l != bl::none) {
+        std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
+        s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
+          const typename mesh<D>::bmap & bm = *bmap_a;
+          if constexpr(isLevelSet) {
+            f(ax::x, f_acc, i, j, l);
+          }
+          else {
             if(bm[0][l] == bd::flow)
               f(ax::x, f_acc, i, j, l);
             if(bm[0][l] == bd::reflecting)
               r(ax::x, f_acc, i, j, l);
             if(bm[0][l] == bd::dirichlet)
               d(ax::x, f_acc, value, i, j, l);
-          };
-        }
-      for(auto l : levels_y)
-        if(l != bl::none) {
-          std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
-          s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
+          }
+        };
+      }
+    for(auto l : levels_y)
+      if(l != bl::none) {
+        std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
+        s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+          const typename mesh<D>::bmap & bm = *bmap_a;
+          if constexpr(isLevelSet) {
+            f(ax::y, f_acc, i, j, l);
+          }
+          else {
             if(bm[1][l] == bd::flow)
               f(ax::y, f_acc, i, j, l);
             if(bm[1][l] == bd::reflecting)
               r(ax::y, f_acc, i, j, l);
             if(bm[1][l] == bd::dirichlet)
               d(ax::y, f_acc, value, i, j, l);
-          }; // forall
-        }
-    }
-    else if constexpr(D == 3) {
-      std::array<int, 2> levels_x = {
-        m.template is_low<ax::x>() ? bl::low : bl::none,
-        m.template is_high<ax::x>() ? bl::high : bl::none};
-      std::array<int, 2> levels_y = {
-        m.template is_low<ax::y>() ? bl::low : bl::none,
-        m.template is_high<ax::y>() ? bl::high : bl::none};
-      std::array<int, 2> levels_z = {
-        m.template is_low<ax::z>() ? bl::low : bl::none,
-        m.template is_high<ax::z>() ? bl::high : bl::none};
-      for(auto l : levels_x)
-        if(l != bl::none) {
-          auto mdpolicy_zy = get_mdiota_policy(f_acc,
-            m.template cells<ax::z, dm::quantities>(),
-            m.template cells<ax::y, dm::quantities>());
-          std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
-          s.executor().forall(kj, mdpolicy_zy) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
-            auto [k, j] = kj;
+          }
+        }; // forall
+      }
+  }
+  else if constexpr(D == 3) {
+    std::array<int, 2> levels_x = {
+      m.template is_low<ax::x>() ? bl::low : bl::none,
+      m.template is_high<ax::x>() ? bl::high : bl::none};
+    std::array<int, 2> levels_y = {
+      m.template is_low<ax::y>() ? bl::low : bl::none,
+      m.template is_high<ax::y>() ? bl::high : bl::none};
+    std::array<int, 2> levels_z = {
+      m.template is_low<ax::z>() ? bl::low : bl::none,
+      m.template is_high<ax::z>() ? bl::high : bl::none};
+    for(auto l : levels_x)
+      if(l != bl::none) {
+        auto mdpolicy_zy = get_mdiota_policy(f_acc,
+          m.template cells<ax::z, dm::quantities>(),
+          m.template cells<ax::y, dm::quantities>());
+        std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
+        s.executor().forall(kj, mdpolicy_zy) {
+          const typename mesh<D>::bmap & bm = *bmap_a;
+          auto [k, j] = kj;
+          if constexpr(isLevelSet) {
+            f(ax::x, f_acc, i, j, k, l);
+          }
+          else {
             if(bm[0][l] == bd::flow)
               f(ax::x, f_acc, i, j, k, l);
             if(bm[0][l] == bd::reflecting)
               r(ax::x, f_acc, i, j, k, l);
             if(bm[0][l] == bd::dirichlet)
               d(ax::x, f_acc, value, i, j, k, l);
-          };
-        }
-      for(auto l : levels_y)
-        if(l != bl::none) {
-          auto mdpolicy_zx = get_mdiota_policy(f_acc,
-            m.template cells<ax::z, dm::quantities>(),
-            m.template cells<ax::x, dm::quantities>());
-          std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
-          s.executor().forall(ki, mdpolicy_zx) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
-            auto [k, i] = ki;
+          }
+        };
+      }
+    for(auto l : levels_y)
+      if(l != bl::none) {
+        auto mdpolicy_zx = get_mdiota_policy(f_acc,
+          m.template cells<ax::z, dm::quantities>(),
+          m.template cells<ax::x, dm::quantities>());
+        std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
+        s.executor().forall(ki, mdpolicy_zx) {
+          const typename mesh<D>::bmap & bm = *bmap_a;
+          auto [k, i] = ki;
+          if constexpr(isLevelSet) {
+            f(ax::y, f_acc, i, j, k, l);
+          }
+          else {
             if(bm[1][l] == bd::flow)
               f(ax::y, f_acc, i, j, k, l);
             if(bm[1][l] == bd::reflecting)
               r(ax::y, f_acc, i, j, k, l);
             if(bm[1][l] == bd::dirichlet)
               d(ax::y, f_acc, value, i, j, k, l);
-          };
-        }
-      for(auto l : levels_z)
-        if(l != bl::none) {
-          auto mdpolicy_yx = get_mdiota_policy(f_acc,
-            m.template cells<ax::y, dm::quantities>(),
-            m.template cells<ax::x, dm::quantities>());
-          std::size_t k = l == bl::low ? 0 : m.template size<ax::z, dm::all>();
-          s.executor().forall(ji, mdpolicy_yx) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
-            auto [j, i] = ji;
+          }
+        };
+      }
+    for(auto l : levels_z)
+      if(l != bl::none) {
+        auto mdpolicy_yx = get_mdiota_policy(f_acc,
+          m.template cells<ax::y, dm::quantities>(),
+          m.template cells<ax::x, dm::quantities>());
+        std::size_t k = l == bl::low ? 0 : m.template size<ax::z, dm::all>();
+        s.executor().forall(ji, mdpolicy_yx) {
+          const typename mesh<D>::bmap & bm = *bmap_a;
+          auto [j, i] = ji;
+          if constexpr(isLevelSet) {
+            f(ax::z, f_acc, i, j, k, l);
+          }
+          else {
             if(bm[2][l] == bd::flow)
               f(ax::z, f_acc, i, j, k, l);
             if(bm[2][l] == bd::reflecting)
               r(ax::z, f_acc, i, j, k, l);
             if(bm[2][l] == bd::dirichlet)
               d(ax::z, f_acc, value, i, j, k, l);
-          };
-        }
-    }
+          }
+        };
+      }
   }
 }
 
-template<std::size_t D>
+template<std::size_t D, bool isLevelSet = false>
 void
 apply_boundaries(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
-  std::vector<field<double>::accessor<rw, ro>> f_a,
-  std::vector<typename field<vec<D>>::template accessor<rw, ro>>
-    fv_a) noexcept {
-  apply_boundary<D, double>(s, m, bmap_a, f_a);
-  apply_boundary<D, vec<D>>(s, m, bmap_a, fv_a);
+  std::vector<field<double>::accessor<rw, ro>> s_a,
+  std::vector<typename field<vec<D>>::template accessor<rw, ro>> v_a) noexcept {
+  for(auto & f_a : s_a) {
+    apply_boundary_one<D, isLevelSet, double>(s, m, bmap_a, f_a);
+  }
+  for(auto & f_a : v_a) {
+    apply_boundary_one<D, isLevelSet, vec<D>>(s, m, bmap_a, f_a);
+  }
 }
 
-template<std::size_t D>
+template<std::size_t D, bool isLevelSet = false, typename T>
 void
 apply_boundaries_scalar(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
-  std::vector<field<double>::accessor<rw, ro>> f_a) noexcept {
-  apply_boundary<D, double>(s, m, bmap_a, f_a);
+  std::vector<typename field<T>::template accessor<rw, ro>> s_a) noexcept {
+  for(auto & f_a : s_a) {
+    apply_boundary_one<D, isLevelSet, T>(s, m, bmap_a, f_a);
+  }
 }
 
-template<std::size_t D>
+template<std::size_t D, bool isLevelSet = false>
 void
 apply_boundaries_vector(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
-  std::vector<typename field<vec<D>>::template accessor<rw, ro>> f_a) noexcept {
-  apply_boundary<D, vec<D>>(s, m, bmap_a, f_a);
+  std::vector<typename field<vec<D>>::template accessor<rw, ro>> v_a) noexcept {
+  for(auto & f_a : v_a) {
+    apply_boundary_one<D, isLevelSet, vec<D>>(s, m, bmap_a, f_a);
+  }
 }
 
-template<std::size_t D>
+template<std::size_t D, bool isLevelSet = false>
 void
 apply_dirichlet_boundaries(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
   std::vector<field<double>::accessor<rw, ro>> f_a,
   flecsi::future<double> value) noexcept {
-  apply_boundary<D, double>(s, m, bmap_a, f_a, value.get());
-}
-
-template<std::size_t D>
-void
-apply_boundaries_int(flecsi::exec::accelerator s,
-  typename mesh<D>::template accessor<ro> m,
-  typename single<typename mesh<D>::bmap>::template accessor<ro> bmap_a,
-  std::vector<field<int>::accessor<rw, ro>> f_a) noexcept {
-
-  using common::tasks::utils::get_mdiota_policy;
-
-  const size_t ghost_zone_size = m.ghost_zone_size();
-  const flow<D> f(ghost_zone_size);
-
-  for(auto f_c : f_a) {
-    auto f_acc = m.template mdcolex<is::cells>(f_c);
-    if constexpr(D == 1) {
-      std::array<int, 2> levels = {
-        m.template is_low<ax::x>() ? bl::low : bl::none,
-        m.template is_high<ax::x>() ? bl::high : bl::none};
-      for(auto l : levels)
-        if(l != bl::none) {
-          std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
-          flecsi::util::iota_view policy{0, 1};
-          s.executor().forall(x, policy) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
-            (void)x;
-            f(f_acc, i, l);
-          };
-        }
-    }
-    else if constexpr(D == 2) {
-      std::array<int, 2> levels_x = {
-        m.template is_low<ax::x>() ? bl::low : bl::none,
-        m.template is_high<ax::x>() ? bl::high : bl::none};
-      std::array<int, 2> levels_y = {
-        m.template is_low<ax::y>() ? bl::low : bl::none,
-        m.template is_high<ax::y>() ? bl::high : bl::none};
-      for(auto l : levels_x)
-        if(l != bl::none) {
-          std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
-          s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
-            f(ax::x, f_acc, i, j, l);
-          };
-        }
-      for(auto l : levels_y)
-        if(l != bl::none) {
-          std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
-          s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
-            f(ax::y, f_acc, i, j, l);
-          };
-        }
-    }
-    else if constexpr(D == 3) {
-      std::array<int, 2> levels_x = {
-        m.template is_low<ax::x>() ? bl::low : bl::none,
-        m.template is_high<ax::x>() ? bl::high : bl::none};
-      std::array<int, 2> levels_y = {
-        m.template is_low<ax::y>() ? bl::low : bl::none,
-        m.template is_high<ax::y>() ? bl::high : bl::none};
-      std::array<int, 2> levels_z = {
-        m.template is_low<ax::z>() ? bl::low : bl::none,
-        m.template is_high<ax::z>() ? bl::high : bl::none};
-      for(auto l : levels_x)
-        if(l != bl::none) {
-          auto mdpolicy_zy = get_mdiota_policy(f_acc,
-            m.template cells<ax::z, dm::quantities>(),
-            m.template cells<ax::y, dm::quantities>());
-          std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
-          s.executor().forall(kj, mdpolicy_zy) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
-            auto [k, j] = kj;
-            f(ax::x, f_acc, i, j, k, l);
-          };
-        }
-      for(auto l : levels_y)
-        if(l != bl::none) {
-          auto mdpolicy_zx = get_mdiota_policy(f_acc,
-            m.template cells<ax::z, dm::quantities>(),
-            m.template cells<ax::x, dm::quantities>());
-          std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
-          s.executor().forall(ki, mdpolicy_zx) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
-            auto [k, i] = ki;
-            f(ax::y, f_acc, i, j, k, l);
-          };
-        }
-      for(auto l : levels_z)
-        if(l != bl::none) {
-          auto mdpolicy_yx = get_mdiota_policy(f_acc,
-            m.template cells<ax::y, dm::quantities>(),
-            m.template cells<ax::x, dm::quantities>());
-          std::size_t k = l == bl::low ? 0 : m.template size<ax::z, dm::all>();
-          s.executor().forall(ji, mdpolicy_yx) {
-            const typename mesh<D>::bmap & bm = *bmap_a;
-            auto [j, i] = ji;
-            f(ax::z, f_acc, i, j, k, l);
-          };
-        }
-    }
-  }
+  apply_boundary_one<D, false, double>(s, m, bmap_a, f_a, value.get());
 }
 
 } // namespace hard::tasks

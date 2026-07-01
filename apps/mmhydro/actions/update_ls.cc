@@ -224,8 +224,18 @@ ssprk3_step(
           s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
     }
 
-    sc.execute<apply_ls_outflow_boundaries_1d<D>>(
-      flecsi::exec::on, *s.m, s.ls.psi(*s.m), s.ls.material(*s.m));
+    // Update INTEGER material field in ghost cells BEFORE flux computation
+    sc.execute<tasks::apply_boundaries_scalar<D, true, int>>(flecsi::exec::on,
+      *s.m,
+      s.icst.bmap(*s.gt),
+      std::vector{s.ls.material(*s.m)}); // Only int fields
+
+    // Update DOUBLE psi field in ghost cells
+    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(
+      flecsi::exec::on,
+      *s.m,
+      s.icst.bmap(*s.gt),
+      std::vector{s.ls.psi(*s.m)}); // Only double scalar fields
   }
 
 #endif

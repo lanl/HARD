@@ -20,14 +20,14 @@ struct reflective<1> {
   operator()(flecsi::util::mdcolex<T, 1> a, int i, int level) const {
     if(level == bl::low) {
       for(int m = 0; m < ghost_zone_size; ++m)
-        if constexpr(std::is_same_v<T, double>)
+        if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
           a(m) = a(2 * ghost_zone_size - 1 - m);
         else
           a(m) = -1 * a(2 * ghost_zone_size - 1 - m);
     }
     if(level == bl::high) {
       for(int m = 0; m < ghost_zone_size; ++m)
-        if constexpr(std::is_same_v<T, double>)
+        if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
           a(i - 1 - m) = a(i - 2 * ghost_zone_size + m);
         else
           a(i - 1 - m) = -1 * a(i - 2 * ghost_zone_size + m);
@@ -50,7 +50,7 @@ struct reflective<2> {
     if(level == bl::low) {
       if(axis == ax::x) {
         for(int m = 0; m < ghost_zone_size; ++m)
-          if constexpr(std::is_same_v<T, double>)
+          if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
             a(m, j) = a(2 * ghost_zone_size - 1 - m, j);
           else {
             a(m, j).x() = -1 * a(2 * ghost_zone_size - 1 - m, j).x();
@@ -59,7 +59,7 @@ struct reflective<2> {
       }
       if(axis == ax::y) {
         for(int m = 0; m < ghost_zone_size; ++m)
-          if constexpr(std::is_same_v<T, double>)
+          if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
             a(i, m) = a(i, 2 * ghost_zone_size - 1 - m);
           else {
             a(i, m).x() = a(i, 2 * ghost_zone_size - 1 - m).x();
@@ -70,7 +70,7 @@ struct reflective<2> {
     if(level == bl::high) {
       if(axis == ax::x) {
         for(int m = 0; m < ghost_zone_size; ++m)
-          if constexpr(std::is_same_v<T, double>)
+          if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
             a(i - 1 - m, j) = a(i - 2 * ghost_zone_size + m, j);
           else {
             a(i - 1 - m, j).x() = -1 * a(i - 2 * ghost_zone_size + m, j).x();
@@ -79,7 +79,7 @@ struct reflective<2> {
       }
       if(axis == ax::y) {
         for(int m = 0; m < ghost_zone_size; ++m)
-          if constexpr(std::is_same_v<T, double>)
+          if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
             a(i, j - 1 - m) = a(i, j - 2 * ghost_zone_size + m);
           else {
             a(i, j - 1 - m).x() = a(i, j - 2 * ghost_zone_size + m).x();
@@ -106,7 +106,7 @@ struct reflective<3> {
     if(level == bl::low) {
       if(axis == ax::x) {
         for(int m = 0; m < ghost_zone_size; ++m)
-          if constexpr(std::is_same_v<T, double>)
+          if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
             a(m, j, k) = a(2 * ghost_zone_size - 1 - m, j, k);
           else {
             a(m, j, k).x() = -1 * a(2 * ghost_zone_size - 1 - m, j, k).x();
@@ -116,7 +116,7 @@ struct reflective<3> {
       }
       if(axis == ax::y) {
         for(int m = 0; m < ghost_zone_size; ++m)
-          if constexpr(std::is_same_v<T, double>)
+          if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
             a(i, m, k) = a(i, 2 * ghost_zone_size - 1 - m, k);
           else {
             a(i, m, k).x() = a(i, 2 * ghost_zone_size - 1 - m, k).x();
@@ -126,7 +126,7 @@ struct reflective<3> {
       }
       if(axis == ax::z) {
         for(int m = 0; m < ghost_zone_size; ++m)
-          if constexpr(std::is_same_v<T, double>)
+          if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
             a(i, j, m) = a(i, j, 2 * ghost_zone_size - 1 - m);
           else {
             a(i, j, m).x() = a(i, j, 2 * ghost_zone_size - 1 - m).x();
@@ -138,7 +138,7 @@ struct reflective<3> {
     if(level == bl::high) {
       if(axis == ax::x) {
         for(int m = 0; m < ghost_zone_size; ++m)
-          if constexpr(std::is_same_v<T, double>)
+          if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
             a(i - 1 - m, j, k) = a(i - 2 * ghost_zone_size + m, j, k);
           else {
             a(i - 1 - m, j, k).x() =
@@ -149,7 +149,7 @@ struct reflective<3> {
       }
       if(axis == ax::y) {
         for(int m = 0; m < ghost_zone_size; ++m)
-          if constexpr(std::is_same_v<T, double>)
+          if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
             a(i, j - 1 - m, k) = a(i, j - 2 * ghost_zone_size + m, k);
           else {
             a(i, j - 1 - m, k).x() = a(i, j - 2 * ghost_zone_size + m, k).x();
@@ -160,7 +160,7 @@ struct reflective<3> {
       }
       if(axis == ax::z) {
         for(int m = 0; m < ghost_zone_size; ++m)
-          if constexpr(std::is_same_v<T, double>)
+          if constexpr(std::is_same_v<T, double> || std::is_same_v<T, int>)
             a(i, j, k - 1 - m) = a(i, j, k - 2 * ghost_zone_size + m);
           else {
             a(i, j, k - 1 - m).x() = a(i, j, k - 2 * ghost_zone_size + m).x();

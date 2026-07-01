@@ -46,7 +46,8 @@ struct radiation {
       s.rad.icst.kappa(*s.gt),
       s.rad.icst.limiter_id(*s.gt));
 
-    sc.execute<tasks::apply_boundaries_scalar<D>>(flecsi::exec::on,
+    sc.execute<tasks::apply_boundaries_scalar<D, false, double>>(
+      flecsi::exec::on,
       *s.m,
       s.icst.bmap(*s.gt),
       std::vector{s.rad.limiter.lambda_bridge(*s.m)});

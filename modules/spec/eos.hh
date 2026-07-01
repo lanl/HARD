@@ -203,7 +203,7 @@ struct eos_dispatch {
     return models_[mat];
   }
 
-  std::size_t size() const {
+  FLECSI_INLINE_TARGET std::size_t size() const {
     return size_;
   }
 };
