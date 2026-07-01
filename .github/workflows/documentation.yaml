@@ -14,9 +14,12 @@ jobs:
       - name: Install dependencies
         run: |
           pip install sphinx sphinx_rtd_theme myst_parser
+      - name: Generate conf.py from template
+        run: |
+          sed 's/@FleCSI_SP_FVM_VERSION@/latest/g; s/@HARD_VERSION@/latest/g' doc/sphinx/conf.py.in > doc/sphinx/conf.py
       - name: Sphinx build
         run: |
-          sphinx-build doc _build
+          sphinx-build doc/sphinx _build
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
