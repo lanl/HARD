@@ -29,17 +29,30 @@ advect_conserved(const T left,
          (Lmax - Lmin);
 }
 
-// Compute S* for HLLC flux computation
-FLECSI_INLINE_TARGET std::tuple<double, double, double>
-compute_S_star(const double u_l,
+// Function pointer for defining wavespeed estimates
+using wave_speed_est = std::pair<double, double> (*)(const double u_l,
   const double u_r,
   const double rho_l,
   const double rho_r,
+  const double e_l,
+  const double e_r,
+  const double p_l,
+  const double p_r,
+  const double c_l,
+  const double c_r);
+
+FLECSI_INLINE_TARGET std::pair<double, double>
+RoeAvg( // Default Riemann Solver for HLLC.
+  const double u_l,
+  const double u_r,
+  const double rho_l,
+  const double rho_r,
+  const double e_l,
+  const double e_r,
   const double p_l,
   const double p_r,
   const double c_l,
   const double c_r) {
-
   const double sqrt_rho_l = std::sqrt(rho_l);
   const double sqrt_rho_r = std::sqrt(rho_r);
   const double denom = sqrt_rho_l + sqrt_rho_r;
@@ -52,13 +65,114 @@ compute_S_star(const double u_l,
 
   const double s_l = std::min(u_l - c_l, u_hat - c_hat);
   const double s_r = std::max(u_r + c_r, u_hat + c_hat);
+  return std::make_pair(s_l, s_r);
+};
+
+FLECSI_INLINE_TARGET std::pair<double, double>
+ClayTovWSE(const double u_l,
+  const double u_r,
+  const double rho_l,
+  const double rho_r,
+  const double e_l, // e_z not used
+  const double e_r,
+  const double p_l,
+  const double p_r,
+  const double c_l,
+  const double
+    c_r) { // Adapted from Bennett Clayton and Eric Tovar's preprint
+           // "Preserving the minimum principle...with General EoS" (2026)
+  const double K_l = rho_l * c_l * c_l;
+  const double K_r = rho_r * c_r * c_r;
+
+  const double p_min = std::min(p_l, p_r);
+  const double p_max = std::max(p_l, p_r);
+
+  const double pInf_min = std::min(K_l - p_l, K_r - p_r);
+  const double pInf_max = std::max(K_l - p_l, K_r - p_r);
+
+  double f_l;
+  double f_r;
+  auto phi = [&](const double p) -> double {
+    if(p <= p_l) {
+      f_l = c_l * (std::log(p + K_l - p_l) - std::log(K_l));
+      f_r = c_r * (std::log(p + K_r - p_r) - std::log(K_r));
+    }
+    else if(p <= p_r) {
+      f_l = (p - p_l) / std::sqrt(rho_l * (p + K_l - p_l));
+      f_r = c_r * (std::log(p + K_r - p_r) - std::log(K_r));
+    }
+    else {
+      f_l = (p - p_l) / std::sqrt(rho_l * (p + K_l - p_l));
+      f_r = (p - p_r) / std::sqrt(rho_r * (p + K_r - p_r));
+    }
+    return f_l + f_r + u_r - u_l; // phi function is u^*_L - u^*_r.
+                                  // The goal is find star state pressure such
+                                  // that u^*_L = u^*_r
+  };
+
+  double p_star; // p_star computed below is an approximation of the root
+                 // phi(p) = 0
+  if(phi(p_min) >= 0) {
+    p_star = -pInf_min;
+  }
+  else if(phi(p_max) >= 0) {
+    const double p_rr =
+      std::exp(
+        (c_l * std::log(K_l) + c_r * log(K_r) - (u_r - u_l)) / (c_l + c_r)) -
+      pInf_min;
+    p_star = std::min(p_max, p_rr);
+  }
+  else {
+    const double p_rr =
+      std::exp(
+        (c_l * std::log(K_l) + c_r * log(K_r) - (u_r - u_l)) / (c_l + c_r)) -
+      pInf_min;
+    const double a = std::sqrt(rho_l) + std::sqrt(rho_r);
+    const double b = std::sqrt(rho_l * rho_r) * (u_r - u_l);
+    const double c = -std::sqrt(rho_r) * (p_l + pInf_max) -
+                     std::sqrt(rho_l) * (p_r + pInf_max);
+    const double p_ss =
+      (b * b - 2 * a * c - b * std::sqrt(b * b - 4 * a * c)) / (2 * a * a) -
+      pInf_max; // Quadratic formula here
+    p_star = std::min(p_rr, p_ss);
+  }
+
+  auto shock_factor = [&](
+                        const double p_st, const double p_z, const double K_z) {
+    if(p_st <= p_z) {
+      return 1.; // When we have a rarefaction, wavespeed travels at speed
+                 // of sound ahead of the velocity (s_z = u_z +/- c_z)
+    }
+    else {
+      return std::sqrt(
+        1 + (p_st - p_z) / K_z); // When we have a shock, we have
+                                 // faster-than-sound travel of s_z.
+    }
+  };
+
+  double s_l = u_l - c_l * shock_factor(p_star, p_l, K_l);
+  double s_r = u_r + c_r * shock_factor(p_star, p_r, K_r);
+  return std::make_pair(s_l, s_r);
+};
+
+// Compute S* for HLLC flux computation
+FLECSI_INLINE_TARGET double
+compute_S_star(const double u_l,
+  const double u_r,
+  const double rho_l,
+  const double rho_r,
+  const double p_l,
+  const double p_r,
+  const double c_l,
+  const double c_r,
+  const double s_l,
+  const double s_r) {
 
   const double s_star =
     (p_r - p_l + rho_l * u_l * (s_l - u_l) - rho_r * u_r * (s_r - u_r)) /
     (rho_l * (s_l - u_l) - rho_r * (s_r - u_r));
-
-  return std::make_tuple(s_l, s_r, s_star);
-}
+  return s_star;
+};
 
 // Compute U* for HLLC flux computation
 template<std::size_t Dim, typename T>
@@ -146,25 +260,22 @@ compute_F_star(const T f_l,
   }
 }
 
-// computes and applies  HLLC fluxes to a homogeneous conservation equation
+// Compute HLLC star states
 template<std::size_t Dim, typename T>
-FLECSI_INLINE_TARGET T
-compute_HLLC_fluxes(std::size_t fa,
-  const T q_l,
+FLECSI_INLINE_TARGET std::pair<T, T>
+compute_HLLC_states(std::size_t fa,
   const double rho_l,
   const vec<Dim> u_l,
   const double e_l,
   const double p_l,
   const double c_l,
-  const T f_l,
-  const T q_r,
   const double rho_r,
   const vec<Dim> u_r,
   const double e_r,
   const double p_r,
   const double c_r,
-  const T f_r,
-  const field_tag & ft) {
+  const field_tag & ft,
+  const wave_speed_est wse = RoeAvg) {
 
   double u_l_n = 0.0, u_r_n = 0.0;
 
@@ -183,8 +294,79 @@ compute_HLLC_fluxes(std::size_t fa,
       u_r_n = u_r.z();
     }
 
-  auto [s_l, s_r, s_star] =
-    compute_S_star(u_l_n, u_r_n, rho_l, rho_r, p_l, p_r, c_l, c_r);
+  auto [s_l, s_r] =
+    wse(u_l_n, u_r_n, rho_l, rho_r, e_l, e_r, p_l, p_r, c_l, c_r);
+
+  auto s_star =
+    compute_S_star(u_l_n, u_r_n, rho_l, rho_r, p_l, p_r, c_l, c_r, s_l, s_r);
+
+  vec<Dim> vel_l_star = u_l, vel_r_star = u_r;
+  if(fa == 0) {
+    vel_l_star.x() = s_star;
+    vel_r_star.x() = s_star;
+  }
+  if constexpr(Dim > 1)
+    if(fa == 1) {
+      vel_l_star.y() = s_star;
+      vel_r_star.y() = s_star;
+    }
+  if constexpr(Dim > 2)
+    if(fa == 2) {
+      vel_l_star.z() = s_star;
+      vel_r_star.z() = s_star;
+    }
+
+  // clang-format off
+  return compute_U_star<Dim, T>(u_l_n, u_r_n,
+    vel_l_star, vel_r_star, rho_l, rho_r, e_l, e_r, p_l, p_r, s_l, s_r, s_star, ft);
+  // clang-format on
+}
+
+// computes and applies HLLC fluxes to a homogeneous conservation equation
+template<std::size_t Dim, typename T>
+FLECSI_INLINE_TARGET T
+compute_HLLC_fluxes(std::size_t fa,
+  const T q_l,
+  const double rho_l,
+  const vec<Dim> u_l,
+  const double e_l,
+  const double p_l,
+  const double c_l,
+  const T f_l,
+  const T q_r,
+  const double rho_r,
+  const vec<Dim> u_r,
+  const double e_r,
+  const double p_r,
+  const double c_r,
+  const T f_r,
+  const field_tag & ft,
+  const wave_speed_est wse =
+    ClayTovWSE // Optional argument for wave speed estimate
+) {
+
+  double u_l_n = 0.0, u_r_n = 0.0;
+
+  if(fa == 0) {
+    u_l_n = u_l.x();
+    u_r_n = u_r.x();
+  }
+  if constexpr(Dim > 1)
+    if(fa == 1) {
+      u_l_n = u_l.y();
+      u_r_n = u_r.y();
+    }
+  if constexpr(Dim > 2)
+    if(fa == 2) {
+      u_l_n = u_l.z();
+      u_r_n = u_r.z();
+    }
+
+  auto [s_l, s_r] =
+    wse(u_l_n, u_r_n, rho_l, rho_r, e_l, e_r, p_l, p_r, c_l, c_r);
+
+  auto s_star =
+    compute_S_star(u_l_n, u_r_n, rho_l, rho_r, p_l, p_r, c_l, c_r, s_l, s_r);
 
   vec<Dim> vel_l_star = u_l, vel_r_star = u_r;
   if(fa == 0) {
@@ -210,6 +392,7 @@ compute_HLLC_fluxes(std::size_t fa,
   return compute_F_star<T>(
     f_l, f_r, q_l, q_r, u_l_star, u_r_star, s_l, s_r, s_star);
 }
+
 } // namespace hard::numerical_algorithms
 
 #endif // HARD_MODULE_HYDRO_RIEMANN_SOLVERS_HH
