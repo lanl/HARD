@@ -2,8 +2,33 @@
 #define HARD_APPS_ACTIONS_INITIALIZE_MESH_HH
 
 #include "spec/types.hh"
+#ifdef HARD_ENABLE_CALIPER
+#include <flecsi/utilities.hh>
+#endif
 
 namespace hard::actions {
+
+#ifdef HARD_ENABLE_CALIPER
+struct init_timestep_region
+  : flecsi::util::annotation::region<flecsi::util::annotation::execution> {
+  inline static const std::string name{"init_timestep"};
+};
+
+struct init_boundaries_region
+  : flecsi::util::annotation::region<flecsi::util::annotation::execution> {
+  inline static const std::string name{"init_boundaries"};
+};
+
+struct init_topologies_region
+  : flecsi::util::annotation::region<flecsi::util::annotation::execution> {
+  inline static const std::string name{"init_topologies"};
+};
+
+struct init_mesh_region
+  : flecsi::util::annotation::region<flecsi::util::annotation::execution> {
+  inline static const std::string name{"init_mesh"};
+};
+#endif
 
 template<std::size_t D>
 void
@@ -146,6 +171,10 @@ init_timestep(state<D> & s,
   std::vector<flecsi::field<double>::Reference<spec::mesh<D>, spec::is::cells>>
     fr = {}) {
 
+#ifdef HARD_ENABLE_CALIPER
+  flecsi::util::annotation::rguard<init_timestep_region> guard;
+#endif
+
   /*--------------------------------------------------------------------------*
      Initialize time advance.
     *--------------------------------------------------------------------------*/
@@ -197,6 +226,10 @@ init_boundaries(state<D> & s,
   std::vector<double> & temperature,
   spec::config_py & config) {
 
+#ifdef HARD_ENABLE_CALIPER
+  flecsi::util::annotation::rguard<init_boundaries_region> guard;
+#endif
+
   std::array<std::array<bd::boundary_type, 2>, D> bnds;
   bnds[ax::x][bd::low] =
     utils::mesh_boundary<D>(config["boundaries"]["xlow"].cast<std::string>());
@@ -242,6 +275,10 @@ init_topologies(state<D> & s,
   std::vector<double> & time,
   std::vector<double> & temperature) {
 
+#ifdef HARD_ENABLE_CALIPER
+  flecsi::util::annotation::rguard<init_topologies_region> guard;
+#endif
+
   /*--------------------------------------------------------------------------*
     Global and color topology allocations.
    *--------------------------------------------------------------------------*/
@@ -286,6 +323,10 @@ init_mesh(state<D> & s,
   flecsi::future<typename mesh<D>::periodic_axes> & bf,
   spec::config_py & config) {
   using namespace common::utils;
+
+#ifdef HARD_ENABLE_CALIPER
+  flecsi::util::annotation::rguard<init_mesh_region> guard;
+#endif
 
   /*--------------------------------------------------------------------------*
     Mesh topology allocation.

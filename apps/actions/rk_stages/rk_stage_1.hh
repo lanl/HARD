@@ -9,8 +9,22 @@
 #include "reconstruct_dispatch.hh"
 #include "spec/reconstruct.hh"
 #include "spec/tasks/boundaries/boundary.hh"
+#ifdef HARD_ENABLE_CALIPER
+#include <flecsi/utilities.hh>
+#endif
 
 namespace hard::actions {
+
+#ifdef HARD_ENABLE_CALIPER
+struct rk_stage_1_advance_region
+  : flecsi::util::annotation::region<flecsi::util::annotation::execution> {
+  inline static const std::string name{"rk_stage_1_advance"};
+};
+struct rk_stage_1_update_region
+  : flecsi::util::annotation::region<flecsi::util::annotation::execution> {
+  inline static const std::string name{"rk_stage_1_update"};
+};
+#endif
 
 template<std::size_t D>
 using field_double =
@@ -26,6 +40,10 @@ advance_rk_stage_1(state<D> & s,
   std::vector<std::tuple<field_double<D>, field_double<D>, face_pair<D>>> v_t =
     {},
   F f = nullptr) {
+
+#ifdef HARD_ENABLE_CALIPER
+  flecsi::util::annotation::rguard<rk_stage_1_advance_region> guard;
+#endif
 
   // RK Stage: 1 - Explicit source term (gravity) update for RT case in hydro
   // file
@@ -132,6 +150,10 @@ update_rk_stage_1(state<D> & s,
   // conserved, dt1, n
   std::vector<std::tuple<field_double<D>, field_double<D>, field_double<D>>>
     v_t = {}) {
+
+#ifdef HARD_ENABLE_CALIPER
+  flecsi::util::annotation::rguard<rk_stage_1_update_region> guard;
+#endif
 
   {
     auto scalar_v = std::vector{std::make_tuple(s.rk_n.mass_density()(*s.m),

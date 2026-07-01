@@ -3,12 +3,26 @@
 
 #include "hydro/tasks/maxcharspeed.hh"
 #include "hydro/tasks/rhs.hh"
+#ifdef HARD_ENABLE_CALIPER
+#include <flecsi/utilities.hh>
+#endif
 
 namespace hard::actions {
+
+#ifdef HARD_ENABLE_CALIPER
+struct update_dt_region
+  : flecsi::util::annotation::region<flecsi::util::annotation::execution> {
+  inline static const std::string name{"update_dt"};
+};
+#endif
 
 template<std::size_t D>
 void
 update_dt(state<D> & s, flecsi::scheduler & sc) {
+
+#ifdef HARD_ENABLE_CALIPER
+  flecsi::util::annotation::rguard<update_dt_region> guard;
+#endif
 
   auto lmax_f = sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
     flecsi::exec::on,

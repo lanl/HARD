@@ -3,6 +3,13 @@
 
 namespace hard::actions {
 
+#ifdef HARD_ENABLE_CALIPER
+struct analyze_region
+  : flecsi::util::annotation::region<flecsi::util::annotation::execution> {
+  inline static const std::string name{"analyze"};
+};
+#endif
+
 template<std::size_t D>
 using field_multi_double = flecsi::data::
   multi_reference<double, flecsi::data::dense, spec::mesh<D>, spec::is::cells>;
@@ -12,6 +19,10 @@ void
 analyze([[maybe_unused]] control_policy<state, D> & cp,
   [[maybe_unused]] std::vector<std::tuple<field_multi_double<D>, std::string>>
     v_t = {}) {
+
+#ifdef HARD_ENABLE_CALIPER
+  flecsi::util::annotation::rguard<analyze_region> guard;
+#endif
 
 #ifndef HARD_BENCHMARK_MODE
 
