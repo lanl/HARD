@@ -20,11 +20,14 @@ class Hard(CMakePackage, CudaPackage):
     variant("tests", default=False, description="Enable unit tests")
     variant("verification", default=False, description="Enable physics verification tests")
     variant("format", default=False, description="Enable format target")
-    variant("caliper", default=False, description="Enable Caliper instrumentation")
+    variant("caliper_detail", default="none", values=("none", "low", "medium", "high"),
+        multi=False, description="Caliper instrumentation detail level")
 
     depends_on("flecsi@2.4.2: +flog")
     depends_on("flecsi +cuda", when="+cuda")
-    depends_on("flecsi caliper_detail=high", when="+caliper")
+    depends_on("flecsi caliper_detail=low", when="caliper_detail=low")
+    depends_on("flecsi caliper_detail=medium", when="caliper_detail=medium")
+    depends_on("flecsi caliper_detail=high", when="caliper_detail=high")
     depends_on("flecsolve")
     depends_on("flecsolve+cuda", when="+cuda")
     depends_on("hdf5@1.10: +mpi", when="+hdf5")

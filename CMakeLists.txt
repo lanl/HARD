@@ -94,17 +94,6 @@ option(HARD_ENABLE_LEGION_TRACING
 mark_as_advanced(HARD_ENABLE_LEGION_TRACING)
 
 #------------------------------------------------------------------------------#
-# Caliper Profiling
-#------------------------------------------------------------------------------#
-
-option(ENABLE_CALIPER "Enable Caliper instrumentation" OFF)
-mark_as_advanced(ENABLE_CALIPER)
-
-if(ENABLE_CALIPER)
-  message(STATUS "Caliper instrumentation enabled")
-endif()
-
-#------------------------------------------------------------------------------#
 # Formatting
 #------------------------------------------------------------------------------#
 

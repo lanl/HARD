@@ -8,6 +8,8 @@
 #include <spec/types.hh>
 #include <spec/utils.hh>
 
+#include <flecsi/utilities.hh>
+
 namespace hard {
 
 /*----------------------------------------------------------------------------*
@@ -32,6 +34,14 @@ using spec::single;
 using spec::stencil;
 using spec::vec;
 using spec::st::dirs;
+
+struct annotation_execution : flecsi::util::annotation::context<annotation_execution> {
+  static constexpr char name[] = "HARD-Execution";
+};
+
+using annotation_region = flecsi::util::annotation::region<annotation_execution>;
+template<class Region>
+using annotation_rguard = flecsi::util::annotation::rguard<Region>;
 
 /*----------------------------------------------------------------------------*
   Namespace labels.

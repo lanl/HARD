@@ -4,18 +4,13 @@
 #include "common/tasks/utils.hh"
 #include "hydro/tasks/init.hh"
 #include "hydro/tasks/rhs.hh"
-#ifdef HARD_ENABLE_CALIPER
-#include <flecsi/utilities.hh>
-#endif
 
 namespace hard::actions {
 
-#ifdef HARD_ENABLE_CALIPER
 struct rhs_region
-  : flecsi::util::annotation::region<flecsi::util::annotation::execution> {
+  : annotation_region {
   inline static const std::string name{"rhs"};
 };
-#endif
 
 template<std::size_t D>
 using field_double =
@@ -30,9 +25,7 @@ rhs(state<D> & s,
       tuple<field_double<D>, field_double<D>, field_double<D>, field_double<D>>>
     v_f = {}) {
 
-#ifdef HARD_ENABLE_CALIPER
-  flecsi::util::annotation::rguard<rhs_region> guard;
-#endif
+  annotation_rguard<rhs_region> guard;
 
   sc.execute<tasks::init::compute_dt_weighted>(flecsi::exec::on,
     s.dt(*s.gt),
