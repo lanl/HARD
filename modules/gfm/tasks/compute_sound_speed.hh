@@ -7,6 +7,10 @@
 
 namespace hard::tasks::gfm {
 
+struct compute_sound_speed_from_eos_task : annotation_task_region {
+  inline static const std::string name{"compute_sound_speed_from_eos"};
+};
+
 template<std::size_t Dim>
 void
 compute_sound_speed_from_eos(flecsi::exec::accelerator s,

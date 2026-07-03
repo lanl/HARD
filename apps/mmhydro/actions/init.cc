@@ -20,9 +20,16 @@
 
 namespace hard {
 
+struct initialize_region : annotation_action_region {
+  inline static const std::string name{"initialize"};
+};
+
 template<std::size_t D>
 void
 initialize(control_policy<state, D> & cp) {
+
+  annotation_rguard<initialize_region> guard;
+
   using namespace flecsi;
   using namespace common::utils;
   auto & s = cp.state();
@@ -56,13 +63,16 @@ initialize(control_policy<state, D> & cp) {
     if constexpr(D > 2)
       g[2] = config["gravity_acc"][2].cast<double>();
   }
-  execute<tasks::init::initialize_gravity_acc<D>>(s.icst.gravity_acc(*s.gt), g);
+  annotation_rguard<tasks::init::initialize_gravity_acc_task>(),
+    execute<tasks::init::initialize_gravity_acc<D>>(
+      s.icst.gravity_acc(*s.gt), g);
 
   /*--------------------------------------------------------------------------*
     Particle mass
    *--------------------------------------------------------------------------*/
-  execute<tasks::init::particle_mass>(s.icst.particle_mass(*s.gt),
-    config["mean_molecular_weight"].cast<double>());
+  annotation_rguard<tasks::init::particle_mass_task>(),
+    execute<tasks::init::particle_mass>(s.icst.particle_mass(*s.gt),
+      config["mean_molecular_weight"].cast<double>());
 
   /*--------------------------------------------------------------------------*
     Mesh topology allocation
@@ -83,132 +93,144 @@ initialize(control_policy<state, D> & cp) {
     Initialize problem state.
    *--------------------------------------------------------------------------*/
 
-  execute<tasks::init::initialize_gravity_force<D>>(
-    flecsi::exec::on, s.src_t.hydro.gravity_force(*s.m));
+  annotation_rguard<tasks::init::initialize_gravity_force_task>(),
+    execute<tasks::init::initialize_gravity_force<D>>(
+      flecsi::exec::on, s.src_t.hydro.gravity_force(*s.m));
 
   auto problem = config["problem"].cast<std::string>();
 
   if(problem == "sod") {
-    execute<
-      tasks::initial_data::shock<tasks::initial_data::shock_tubes::sod, D>>(
-      flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.eos);
+    annotation_rguard<tasks::initial_data::shock_task>(),
+      execute<
+        tasks::initial_data::shock<tasks::initial_data::shock_tubes::sod, D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.eos);
   }
   else if(problem == "sod_mm") {
-    execute<tasks::initial_data::
-        shock_mm<tasks::initial_data::shock_tubes::sod_mm, D>>(flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.ls.material(*s.m),
-      s.ls.frozen_material(*s.m),
-      s.ls.psi(*s.m),
-      s.extp.q_scalar(*s.m),
-      s.extp.q_scalar_known(*s.m),
-      s.extp.q_ext_plus(*s.m),
-      s.extp.q_ext_minus(*s.m),
-      s.eos_mm);
+    annotation_rguard<tasks::initial_data::shock_mm_task>(),
+      execute<tasks::initial_data::
+          shock_mm<tasks::initial_data::shock_tubes::sod_mm, D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.ls.material(*s.m),
+        s.ls.frozen_material(*s.m),
+        s.ls.psi(*s.m),
+        s.extp.q_scalar(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_ext_plus(*s.m),
+        s.extp.q_ext_minus(*s.m),
+        s.eos_mm);
   }
   else if(problem == "rankine-hugoniot") {
-    execute<tasks::initial_data::
-        shock<tasks::initial_data::shock_tubes::rankine_hugoniot, D>>(
-      flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.eos);
+    annotation_rguard<tasks::initial_data::shock_task>(),
+      execute<tasks::initial_data::
+          shock<tasks::initial_data::shock_tubes::rankine_hugoniot, D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.eos);
   }
   else if(problem == "leblanc") {
-    execute<
-      tasks::initial_data::shock<tasks::initial_data::shock_tubes::leblanc, D>>(
-      flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.eos);
+    annotation_rguard<tasks::initial_data::shock_task>(),
+      execute<tasks::initial_data::
+          shock<tasks::initial_data::shock_tubes::leblanc, D>>(flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.eos);
   }
   else if(problem == "acoustic-wave") {
-    execute<tasks::initial_data::acoustic_wave<D>>(flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.eos);
+    annotation_rguard<tasks::initial_data::acoustic_wave_task>(),
+      execute<tasks::initial_data::acoustic_wave<D>>(flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.eos);
   }
   else if(problem == "kh-test") {
-    execute<tasks::initial_data::kh_instability<D>>(flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.eos);
+    annotation_rguard<tasks::initial_data::kh_instability_task>(),
+      execute<tasks::initial_data::kh_instability<D>>(flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.eos);
   }
   // Rayleigh-Taylor setup
   else if(problem == "rt-test") {
-    execute<tasks::initial_data::rt_instability<D>>(flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.src_t.hydro.gravity_force(*s.m),
-      s.icst.gravity_acc(*s.gt),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.eos);
+    annotation_rguard<tasks::initial_data::rt_instability_task>(),
+      execute<tasks::initial_data::rt_instability<D>>(flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.src_t.hydro.gravity_force(*s.m),
+        s.icst.gravity_acc(*s.gt),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.eos);
   }
   else if(problem == "sedov") {
-    execute<tasks::initial_data::sedov_blast<D>>(flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m));
+    annotation_rguard<tasks::initial_data::sedov_blast_task>(),
+      execute<tasks::initial_data::sedov_blast<D>>(flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m));
   }
   else if(problem == "lw-implosion") {
-    execute<tasks::initial_data::lw_implosion<D>>(flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      config["gamma"].cast<double>());
+    annotation_rguard<tasks::initial_data::lw_implosion_task>(),
+      execute<tasks::initial_data::lw_implosion<D>>(flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        config["gamma"].cast<double>());
   }
   else if(problem == "CONTACT_stat") {
-    execute<tasks::initial_data::
-        shock_mm<tasks::initial_data::shock_tubes::CONTACT_stat, D>>(
-      flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.ls.material(*s.m),
-      s.ls.frozen_material(*s.m),
-      s.ls.psi(*s.m),
-      s.extp.q_scalar(*s.m),
-      s.extp.q_scalar_known(*s.m),
-      s.extp.q_ext_plus(*s.m),
-      s.extp.q_ext_minus(*s.m),
-      s.eos_mm);
+    annotation_rguard<tasks::initial_data::shock_mm_task>(),
+      execute<tasks::initial_data::
+          shock_mm<tasks::initial_data::shock_tubes::CONTACT_stat, D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.ls.material(*s.m),
+        s.ls.frozen_material(*s.m),
+        s.ls.psi(*s.m),
+        s.extp.q_scalar(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_ext_plus(*s.m),
+        s.extp.q_ext_minus(*s.m),
+        s.eos_mm);
   }
   else if(problem == "CONTACT_move") {
-    execute<tasks::initial_data::
-        shock_mm<tasks::initial_data::shock_tubes::CONTACT_move, D>>(
-      flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.cons.hydro.momentum_density(*s.m),
-      s.cons.hydro.total_energy_density(*s.m),
-      s.ls.material(*s.m),
-      s.ls.frozen_material(*s.m),
-      s.ls.psi(*s.m),
-      s.extp.q_scalar(*s.m),
-      s.extp.q_scalar_known(*s.m),
-      s.extp.q_ext_plus(*s.m),
-      s.extp.q_ext_minus(*s.m),
-      s.eos_mm);
+    annotation_rguard<tasks::initial_data::shock_mm_task>(),
+      execute<tasks::initial_data::
+          shock_mm<tasks::initial_data::shock_tubes::CONTACT_move, D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.ls.material(*s.m),
+        s.ls.frozen_material(*s.m),
+        s.ls.psi(*s.m),
+        s.extp.q_scalar(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_ext_plus(*s.m),
+        s.extp.q_ext_minus(*s.m),
+        s.eos_mm);
   }
   else {
     flog_fatal("unsupported problem(" << problem << ")");

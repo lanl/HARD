@@ -532,6 +532,10 @@ process_single_face(std::size_t face_axis,
 // Main task
 // -----------------------------------------------------------------------------
 
+struct compute_interface_fluxes_gfm_task : annotation_task_region {
+  inline static const std::string name{"compute_interface_fluxes_gfm"};
+};
+
 template<std::size_t Dim>
 void
 compute_interface_fluxes_gfm(flecsi::exec::cpu s,

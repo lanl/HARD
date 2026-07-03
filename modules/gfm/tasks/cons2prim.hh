@@ -7,6 +7,10 @@
 
 namespace hard::tasks::gfm {
 
+struct conservative_to_primitive_mm_task : annotation_task_region {
+  inline static const std::string name{"conservative_to_primitive_mm"};
+};
+
 template<std::size_t Dim>
 void
 conservative_to_primitive_mm(flecsi::exec::accelerator s,

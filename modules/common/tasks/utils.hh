@@ -81,6 +81,10 @@ copy_scalar(flecsi::exec::accelerator s,
   };
 }
 
+struct copy_scalar_v_vector_task : hard::annotation_task_region {
+  inline static const std::string name{"copy_scalar_v_vector"};
+};
+
 // Copy a field to another one
 // The tuple contains the <from, to> fields
 template<std::size_t Dim, class V>

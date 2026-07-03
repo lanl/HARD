@@ -5,6 +5,10 @@
 
 namespace hard::tasks {
 
+struct external_source_task : annotation_task_region {
+  inline static const std::string name{"external_source"};
+};
+
 // Gravity force and work terms. (Explicit source terms) (for RT instability
 // test case)
 template<std::size_t D>

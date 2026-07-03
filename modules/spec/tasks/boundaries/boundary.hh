@@ -15,6 +15,10 @@ using hard::tasks::util::bl;
   Boundary input translation.
  *----------------------------------------------------------------------------*/
 
+struct init_boundaries_task : annotation_task_region {
+  inline static const std::string name{"init_boundaries"};
+};
+
 template<std::size_t D>
 typename mesh<D>::periodic_axes
 init_boundaries(flecsi::exec::cpu,
@@ -233,6 +237,10 @@ apply_boundary_one(flecsi::exec::accelerator & s,
   }
 }
 
+struct apply_boundaries_task : annotation_task_region {
+  inline static const std::string name{"apply_boundaries"};
+};
+
 template<std::size_t D, bool isLevelSet = false>
 void
 apply_boundaries(flecsi::exec::accelerator s,
@@ -247,6 +255,10 @@ apply_boundaries(flecsi::exec::accelerator s,
     apply_boundary_one<D, isLevelSet, vec<D>>(s, m, bmap_a, f_a);
   }
 }
+
+struct apply_boundaries_scalar_task : annotation_task_region {
+  inline static const std::string name{"apply_boundaries_scalar"};
+};
 
 template<std::size_t D, bool isLevelSet = false, typename T>
 void

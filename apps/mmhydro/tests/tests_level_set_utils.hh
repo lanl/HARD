@@ -71,6 +71,10 @@ time_reversal_vel(double t, const std::array<double, D> & x) {
   }
 }; // time_reversal_vel
 
+struct copy_test_vel_task : hard::annotation_task_region {
+  inline static const std::string name{"copy_test_vel"};
+};
+
 template<std::size_t D>
 void
 copy_test_vel(flecsi::exec::accelerator s,

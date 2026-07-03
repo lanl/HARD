@@ -298,6 +298,10 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
   }
 }
 
+struct reconstruct_primitives_task : annotation_task_region {
+  inline static const std::string name{"reconstruct_primitives"};
+};
+
 template<std::size_t Dim, typename Limiter>
 void
 reconstruct_primitives(flecsi::exec::accelerator s,
@@ -326,6 +330,10 @@ reconstruct_primitives_scalar(flecsi::exec::accelerator s,
   reconstruct_primitives_f<Dim, Limiter>(
     s, reconstruction_axis, m, material_a, cons_faces_a, {});
 }
+
+struct reconstruct_conserved_task : annotation_task_region {
+  inline static const std::string name{"reconstruct_conserved"};
+};
 
 template<std::size_t Dim>
 void

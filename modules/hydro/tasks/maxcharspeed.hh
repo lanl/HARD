@@ -4,6 +4,11 @@
 #include "../modules/common/tasks/utils.hh"
 
 namespace hard::tasks::hydro {
+
+struct update_max_characteristic_speed_task : annotation_task_region {
+  inline static const std::string name{"update_max_characteristic_speed"};
+};
+
 template<std::size_t D>
 double
 update_max_characteristic_speed(flecsi::exec::accelerator s,

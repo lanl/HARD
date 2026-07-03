@@ -2,6 +2,25 @@
 
 namespace hard {
 
+struct rk_stage_2_advance_region : annotation_action_region {
+  inline static const std::string name{"rk_stage_2_advance"};
+};
+struct rk_stage_2_update_region : annotation_action_region {
+  inline static const std::string name{"rk_stage_2_update"};
+};
+struct rk_stage_2_advance_2_region : annotation_action_region {
+  inline static const std::string name{"rk_stage_2_advance_2"};
+};
+struct rk_stage_2_update_vars_2_region : annotation_action_region {
+  inline static const std::string name{"rk_stage_2_update_vars_2"};
+};
+
+template<std::size_t D>
+using field_double =
+  flecsi::field<double>::Reference<spec::mesh<D>, spec::is::cells>;
+template<std::size_t D>
+using face_pair = typename hard::faces<D>::ref_pair;
+
 template<std::size_t D, class F = std::nullptr_t>
 void
 advance_rk_stage_2(state<D> & s,
@@ -26,6 +45,8 @@ update_rk_stage_2(state<D> & s,
       tuple<field_double<D>, field_double<D>, field_double<D>, field_double<D>>>
     v_t = {}) {
 
+  annotation_rguard<rk_stage_2_update_region> guard;
+
   {
     auto scalar_v = std::vector{std::make_tuple(s.rk_dt1.mass_density()(*s.m),
                                   s.rk_dt2.mass_density()(*s.m)),
@@ -38,12 +59,13 @@ update_rk_stage_2(state<D> & s,
 
     // First compute K1' = (K1 + K2) * 0.5
     // clang-format off
-  sc.execute<tasks::hydro::add_k1_k2<D>>(flecsi::exec::on,
-    scalar_v,
-    std::vector{
-      std::make_tuple(
-        s.rk_dt1.momentum_energy_density()(*s.m),
-        s.rk_dt2.momentum_energy_density()(*s.m))});
+    annotation_rguard<tasks::hydro::add_k1_k2_task>(),
+      sc.execute<tasks::hydro::add_k1_k2<D>>(flecsi::exec::on,
+        scalar_v,
+        std::vector{
+          std::make_tuple(
+            s.rk_dt1.momentum_energy_density()(*s.m),
+            s.rk_dt2.momentum_energy_density()(*s.m))});
     // clang-format on
   }
 
@@ -58,11 +80,12 @@ update_rk_stage_2(state<D> & s,
     }
 
     // Now get U_n(+1) = U_n + h * K1'
-    sc.execute<tasks::hydro::update_u<D>>(flecsi::exec::on,
-      s.dt(*s.gt),
-      scalar_v,
-      std::vector{std::make_tuple(s.rk_dt1.momentum_energy_density()(*s.m),
-        s.rk_n.momentum_energy_density()(*s.m))});
+    annotation_rguard<tasks::hydro::update_u_task>(),
+      sc.execute<tasks::hydro::update_u<D>>(flecsi::exec::on,
+        s.dt(*s.gt),
+        scalar_v,
+        std::vector{std::make_tuple(s.rk_dt1.momentum_energy_density()(*s.m),
+          s.rk_n.momentum_energy_density()(*s.m))});
   }
   {
     auto scalar_v = std::vector{std::make_tuple(s.rk_n.mass_density()(*s.m),
@@ -75,11 +98,12 @@ update_rk_stage_2(state<D> & s,
     }
 
     // Finish by updating the values stored in U_n to U
-    sc.execute<common::tasks::utils::copy_scalar_v_vector<D, vec<D>>>(
-      flecsi::exec::on,
-      scalar_v,
-      std::vector{std::make_tuple(s.rk_n.momentum_energy_density()(*s.m),
-        s.cons.hydro.momentum_density(*s.m))});
+    annotation_rguard<common::tasks::utils::copy_scalar_v_vector_task>(),
+      sc.execute<common::tasks::utils::copy_scalar_v_vector<D, vec<D>>>(
+        flecsi::exec::on,
+        scalar_v,
+        std::vector{std::make_tuple(s.rk_n.momentum_energy_density()(*s.m),
+          s.cons.hydro.momentum_density(*s.m))});
   }
 
   // Perform primitive recovery
@@ -104,6 +128,8 @@ template<std::size_t D>
 void
 RK_advance_2(control_policy<state, D> & cp) {
 
+  annotation_rguard<rk_stage_2_advance_2_region> guard;
+
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();
 
@@ -113,6 +139,8 @@ RK_advance_2(control_policy<state, D> & cp) {
 template<std::size_t D>
 void
 update_vars_2(control_policy<state, D> & cp) {
+
+  annotation_rguard<rk_stage_2_update_vars_2_region> guard;
 
   auto & s = cp.state();
   flecsi::scheduler & sc = cp.scheduler();

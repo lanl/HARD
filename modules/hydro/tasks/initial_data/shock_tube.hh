@@ -49,6 +49,10 @@ struct leblanc {
   Shock Tube.
  *----------------------------------------------------------------------------*/
 
+struct shock_task : annotation_task_region {
+  inline static const std::string name{"shock"};
+};
+
 template<typename T, std::size_t D>
 auto
 shock(flecsi::exec::cpu s,

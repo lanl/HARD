@@ -11,6 +11,10 @@ using namespace hard::tasks::util;
 
 namespace hard::tasks::level_set {
 
+struct freeze_material_task : annotation_task_region {
+  inline static const std::string name{"freeze_material"};
+};
+
 // Freeze material labels at the start of each step
 template<std::size_t D>
 void
@@ -26,6 +30,10 @@ freeze_material(flecsi::exec::accelerator s,
     frozen_material_a(i) = material_a(i);
   };
 }
+
+struct rhs_upwind_task : annotation_task_region {
+  inline static const std::string name{"rhs_upwind"};
+};
 
 // upwind HJ RHS (acts on material-signed psi_m)
 template<std::size_t D>
@@ -139,6 +147,10 @@ rhs_upwind(flecsi::exec::accelerator s,
   }
 }
 
+struct advance_psi_s1_task : annotation_task_region {
+  inline static const std::string name{"advance_psi_s1"};
+};
+
 // SSPRK3 stage update
 template<std::size_t D, std::size_t STEP>
 void
@@ -182,6 +194,10 @@ advance_psi_s1(flecsi::exec::accelerator s,
     };
   }
 }
+
+struct advance_psi_task : annotation_task_region {
+  inline static const std::string name{"advance_psi"};
+};
 
 template<std::size_t D, std::size_t STEP>
 void
@@ -241,6 +257,10 @@ advance_psi(flecsi::exec::accelerator s,
     };
   }
 }
+
+struct determine_psi_task : annotation_task_region {
+  inline static const std::string name{"determine_psi"};
+};
 
 // Determine state at time level n+1 (2-neigh 1D, 4-neigh 2D, 6-neigh 3D)
 // algorithm 1 in Aslam et al. 2024
@@ -411,6 +431,10 @@ eos_pair_equivalent_at_cell(const eosType & eos_disp,
 
   return rel_close_local(p_old, p_new) && rel_close_local(c_old, c_new);
 }
+
+struct promote_changed_material_cells_task : annotation_task_region {
+  inline static const std::string name{"promote_changed_material_cells"};
+};
 
 template<std::size_t D>
 void
@@ -704,6 +728,10 @@ diagnose_material_changes_1d(flecsi::exec::cpu,
     std::cout << "[material changed total] " << nchanged << "\n";
   }
 }
+
+struct diagnose_psi_range_1d_task : annotation_task_region {
+  inline static const std::string name{"diagnose_psi_range_1d"};
+};
 
 template<std::size_t D>
 void

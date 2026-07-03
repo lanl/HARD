@@ -6,8 +6,7 @@
 
 namespace hard::actions {
 
-struct update_dt_region
-  : annotation_region {
+struct update_dt_region : annotation_action_region {
   inline static const std::string name{"update_dt"};
 };
 

@@ -3,6 +3,10 @@
 
 namespace hard::tasks::initial_data {
 
+struct kh_instability_task : annotation_task_region {
+  inline static const std::string name{"kh_instability"};
+};
+
 /*----------------------------------------------------------------------------*
   Kelvin-Helmholtz Instability.
  *----------------------------------------------------------------------------*/

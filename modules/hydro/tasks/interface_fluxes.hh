@@ -6,6 +6,10 @@
 
 namespace hard::tasks::hydro {
 
+struct compute_interface_fluxes_task : annotation_task_region {
+  inline static const std::string name{"compute_interface_fluxes"};
+};
+
 template<std::size_t Dim>
 void
 compute_interface_fluxes(flecsi::exec::accelerator s,

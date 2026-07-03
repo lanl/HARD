@@ -5,23 +5,19 @@
 
 namespace hard::actions {
 
-struct init_timestep_region
-  : annotation_region {
+struct init_timestep_region : annotation_action_region {
   inline static const std::string name{"init_timestep"};
 };
 
-struct init_boundaries_region
-  : annotation_region {
+struct init_boundaries_region : annotation_action_region {
   inline static const std::string name{"init_boundaries"};
 };
 
-struct init_topologies_region
-  : annotation_region {
+struct init_topologies_region : annotation_action_region {
   inline static const std::string name{"init_topologies"};
 };
 
-struct init_mesh_region
-  : annotation_region {
+struct init_mesh_region : annotation_action_region {
   inline static const std::string name{"init_mesh"};
 };
 
@@ -172,25 +168,36 @@ init_timestep(state<D> & s,
      Initialize time advance.
     *--------------------------------------------------------------------------*/
 
-  sc.execute<tasks::hydro::conserved_to_primitive<D>>(flecsi::exec::on,
-    *s.m,
-    s.cons.hydro.mass_density(*s.m),
-    s.cons.hydro.momentum_density(*s.m),
-    s.cons.hydro.total_energy_density(*s.m),
-    s.prim.velocity(*s.m),
-    s.prim.pressure(*s.m),
-    s.prim.specific_internal_energy(*s.m),
-    s.prim.sound_speed(*s.m),
-    s.eos);
+  annotation_rguard<tasks::hydro::conserved_to_primitive_task>(),
+    sc.execute<tasks::hydro::conserved_to_primitive<D>>(flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.prim.velocity(*s.m),
+      s.prim.pressure(*s.m),
+      s.prim.specific_internal_energy(*s.m),
+      s.prim.sound_speed(*s.m),
+      s.eos);
 
-  auto lmax_f = sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
-    flecsi::exec::on,
-    *s.m,
-    s.cons.hydro.mass_density(*s.m),
-    s.prim.velocity(*s.m),
-    s.prim.sound_speed(*s.m));
-  s.dtmin_ = sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
-    flecsi::exec::on, *s.m, lmax_f);
+  auto lmax_f = [&] {
+    annotation_rguard<tasks::hydro::update_max_characteristic_speed_task>
+      task_guard;
+
+    return sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.prim.velocity(*s.m),
+      s.prim.sound_speed(*s.m));
+  }();
+
+  {
+    annotation_rguard<tasks::hydro::update_dtmin_task> task_guard;
+    s.dtmin_ =
+      sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
+        flecsi::exec::on, *s.m, lmax_f);
+  }
 
   auto scalar_v = std::vector{s.cons.hydro.mass_density(*s.m),
     s.prim.pressure(*s.m),
@@ -198,17 +205,19 @@ init_timestep(state<D> & s,
     s.cons.hydro.total_energy_density(*s.m)};
   scalar_v.insert(scalar_v.end(), fr.begin(), fr.end());
 
-  sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-    *s.m,
-    s.icst.bmap(*s.gt),
-    scalar_v,
-    std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
+  annotation_rguard<tasks::apply_boundaries_task>(),
+    sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
+      *s.m,
+      s.icst.bmap(*s.gt),
+      scalar_v,
+      std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
 
   /*--------------------------------------------------------------------------*
     Initialize time to 0
    *--------------------------------------------------------------------------*/
-  sc.execute<tasks::init::init_time>(
-    flecsi::exec::on, s.t(*s.gt), config["t0"].cast<double>());
+  annotation_rguard<tasks::init::init_time_task>(),
+    sc.execute<tasks::init::init_time>(
+      flecsi::exec::on, s.t(*s.gt), config["t0"].cast<double>());
 }
 
 template<std::size_t D>
@@ -239,22 +248,28 @@ init_boundaries(state<D> & s,
       config["boundaries"]["zhigh"].cast<std::string>());
   } // if
 
-  auto bf = sc.execute<tasks::init_boundaries<D>>(
-    flecsi::exec::on, s.icst.bmap(*s.gt), bnds);
+  auto bf = [&] {
+    annotation_rguard<tasks::init_boundaries_task> init_boundaries_task_guard;
+    return sc.execute<tasks::init_boundaries<D>>(
+      flecsi::exec::on, s.icst.bmap(*s.gt), bnds);
+  }();
 
   /*--------------------------------------------------------------------------*
     T boundary.
    *--------------------------------------------------------------------------*/
 
-  sc.execute<tasks::init::set_t_boundary>(
-    flecsi::exec::on, s.icst.time_boundary(*s.dense_topology), time);
-  sc.execute<tasks::init::set_t_boundary>(flecsi::exec::on,
-    s.icst.temperature_boundary(*s.dense_topology),
-    temperature);
-  if(config["problem"].cast<std::string>() == "implosion")
-    sc.execute<tasks::init::convert_temperature>(flecsi::exec::on,
+  annotation_rguard<tasks::init::set_t_boundary_task>(),
+    sc.execute<tasks::init::set_t_boundary>(
+      flecsi::exec::on, s.icst.time_boundary(*s.dense_topology), time);
+  annotation_rguard<tasks::init::set_t_boundary_task>(),
+    sc.execute<tasks::init::set_t_boundary>(flecsi::exec::on,
       s.icst.temperature_boundary(*s.dense_topology),
-      config["temperature_units"].cast<std::string>());
+      temperature);
+  if(config["problem"].cast<std::string>() == "implosion")
+    annotation_rguard<tasks::init::convert_temperature_task>(),
+      sc.execute<tasks::init::convert_temperature>(flecsi::exec::on,
+        s.icst.temperature_boundary(*s.dense_topology),
+        config["temperature_units"].cast<std::string>());
 
   return bf;
 }

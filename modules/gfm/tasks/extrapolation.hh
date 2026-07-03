@@ -121,6 +121,10 @@ gradu_1d(const std::array<double, sten_size> & u, double a, double dx) {
   }
 }
 
+struct gradient_centered_task : annotation_task_region {
+  inline static const std::string name{"gradient_centered"};
+};
+
 // gradients and unit normals (for GFM & extrapolation)
 // centered gradient: dpsi/dx, dpsi/dy, dpsi/dz at cell centers
 template<std::size_t D>
@@ -174,6 +178,10 @@ gradient_centered(flecsi::exec::accelerator s,
     };
   }
 }
+
+struct unit_normals_task : annotation_task_region {
+  inline static const std::string name{"unit_normals"};
+};
 
 // Unit normal computation: n = \nabla psi / |\nabla psi|
 template<std::size_t D>
@@ -263,6 +271,10 @@ unit_normals(flecsi::exec::accelerator s,
 // RHS: R(u) = - H(psi) * (n · grad(u))  in psi>0, else 0.
 // grad(u) computed with 2nd-order upwind + MinMod for each component.
 // ----------------------------
+
+struct rhs_constant_extrapolation_minmod_task : annotation_task_region {
+  inline static const std::string name{"rhs_constant_extrapolation_minmod"};
+};
 
 template<std::size_t D>
 void
@@ -492,6 +504,10 @@ advance_q_rk2_s2(flecsi::exec::accelerator s,
   };
 }
 
+struct advance_q_rk2_s1_cfl_task : annotation_task_region {
+  inline static const std::string name{"advance_q_rk2_s1_cfl"};
+};
+
 template<std::size_t D>
 void
 advance_q_rk2_s1_cfl(flecsi::exec::accelerator s,
@@ -511,6 +527,10 @@ advance_q_rk2_s1_cfl(flecsi::exec::accelerator s,
                                      : q_stage1<D>(q0_a(i), rhs_a(i), dtau);
   };
 }
+
+struct advance_q_rk2_s2_cfl_task : annotation_task_region {
+  inline static const std::string name{"advance_q_rk2_s2_cfl"};
+};
 
 template<std::size_t D>
 void
@@ -536,6 +556,10 @@ advance_q_rk2_s2_cfl(flecsi::exec::accelerator s,
   };
 }
 
+struct copy_extp_q_task : annotation_task_region {
+  inline static const std::string name{"copy_extp_q"};
+};
+
 template<std::size_t D>
 void
 copy_extp_q(flecsi::exec::accelerator s,
@@ -547,6 +571,10 @@ copy_extp_q(flecsi::exec::accelerator s,
     dst_a(i) = src_a(i);
   };
 }
+
+struct prepare_extp_for_material_task : annotation_task_region {
+  inline static const std::string name{"prepare_extp_for_material"};
+};
 
 // Arturo e
 

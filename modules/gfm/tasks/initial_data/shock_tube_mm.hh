@@ -76,6 +76,10 @@ struct CONTACT_move {
   Shock Tube.
  *----------------------------------------------------------------------------*/
 
+struct shock_mm_task : annotation_task_region {
+  inline static const std::string name{"shock_mm"};
+};
+
 template<typename T, std::size_t D>
 auto
 shock_mm(flecsi::exec::cpu s,

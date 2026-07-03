@@ -5,6 +5,10 @@
 
 namespace hard::tasks::initial_data {
 
+struct acoustic_wave_task : annotation_task_region {
+  inline static const std::string name{"acoustic_wave"};
+};
+
 //
 // An acoustic wave set-up
 //

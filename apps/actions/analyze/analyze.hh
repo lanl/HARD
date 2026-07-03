@@ -3,8 +3,7 @@
 
 namespace hard::actions {
 
-struct analyze_region
-  : annotation_region {
+struct analyze_region : annotation_action_region {
   inline static const std::string name{"analyze"};
 };
 

@@ -36,17 +36,18 @@ constexpr double extp_cfl = 1.0;
 template<std::size_t D>
 inline void
 perform_cons2prim(state<D> & s, flecsi::scheduler & sc) {
-  sc.execute<tasks::gfm::conservative_to_primitive_mm<D>>(flecsi::exec::on,
-    *s.m,
-    s.cons.hydro.mass_density(*s.m),
-    s.cons.hydro.momentum_density(*s.m),
-    s.cons.hydro.total_energy_density(*s.m),
-    s.prim.velocity(*s.m),
-    s.prim.pressure(*s.m),
-    s.prim.specific_internal_energy(*s.m),
-    s.prim.sound_speed(*s.m),
-    s.ls.material(*s.m),
-    s.eos_mm);
+  annotation_rguard<tasks::gfm::conservative_to_primitive_mm_task>(),
+    sc.execute<tasks::gfm::conservative_to_primitive_mm<D>>(flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.prim.velocity(*s.m),
+      s.prim.pressure(*s.m),
+      s.prim.specific_internal_energy(*s.m),
+      s.prim.sound_speed(*s.m),
+      s.ls.material(*s.m),
+      s.eos_mm);
 }
 
 // Update the INTEGER material field and the DOUBLE psi field in ghost cells.
@@ -55,16 +56,24 @@ inline void
 apply_material_boundaries(state<D> & s, flecsi::scheduler & sc) {
   // Update INTEGER material field in ghost cells before hydro/primitive
   // variables.
-  sc.execute<tasks::apply_boundaries_scalar<D, true, int>>(flecsi::exec::on,
-    *s.m,
-    s.icst.bmap(*s.gt),
-    std::vector{s.ls.material(*s.m)}); // Only int fields
+  annotation_rguard<tasks::apply_boundaries_scalar_task>(),
+    sc.execute<tasks::apply_boundaries_scalar<D>>(flecsi::exec::on,
+      *s.m,
+      s.icst.bmap(*s.gt),
+      std::vector{s.ls.material(*s.m)}); // Only int fields
+
+  annotation_rguard<tasks::apply_boundaries_int_task>(),
+    sc.execute<tasks::apply_boundaries_scalar<D, true, int>>(flecsi::exec::on,
+      *s.m,
+      s.icst.bmap(*s.gt),
+      std::vector{s.ls.material(*s.m)}); // Only int fields
 
   // Update DOUBLE psi field in ghost cells
-  sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(flecsi::exec::on,
-    *s.m,
-    s.icst.bmap(*s.gt),
-    std::vector{s.ls.psi(*s.m)}); // Only double scalar fields
+  annotation_rguard<tasks::apply_boundaries_scalar_task>(),
+    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(flecsi::exec::on,
+      *s.m,
+      s.icst.bmap(*s.gt),
+      std::vector{s.ls.psi(*s.m)}); // Only double scalar fields
 }
 
 // Update material/psi ghost cells followed by the primitive variables in ghost
@@ -77,25 +86,27 @@ apply_scalar_boundaries(state<D> & s,
   apply_material_boundaries(s, sc);
 
   // Update boundary cells
-  sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-    *s.m,
-    s.icst.bmap(*s.gt),
-    scalar_v,
-    std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
+  annotation_rguard<tasks::apply_boundaries_task>(),
+    sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
+      *s.m,
+      s.icst.bmap(*s.gt),
+      scalar_v,
+      std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
 }
 
 // Recompute sound speed from EOS in ghost cells.
 template<std::size_t D>
 inline void
 recompute_sound_speed(state<D> & s, flecsi::scheduler & sc) {
-  sc.execute<hard::tasks::gfm::compute_sound_speed_from_eos<D>>(
-    flecsi::exec::on,
-    *s.m,
-    s.cons.hydro.mass_density(*s.m),
-    s.prim.specific_internal_energy(*s.m),
-    s.ls.material(*s.m),
-    s.prim.sound_speed(*s.m),
-    s.eos_mm);
+  annotation_rguard<hard::tasks::gfm::compute_sound_speed_from_eos_task>(),
+    sc.execute<hard::tasks::gfm::compute_sound_speed_from_eos<D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.prim.specific_internal_energy(*s.m),
+      s.ls.material(*s.m),
+      s.prim.sound_speed(*s.m),
+      s.eos_mm);
 }
 
 // Aslam JCP 2003 constant extrapolation routine used to fill the ghost stage
@@ -108,76 +119,84 @@ extrapolate_ghost(state<D> & s,
   std::size_t axis,
   int direction,
   QExt q_ext_out) {
-
-  sc.execute<tasks::extrapolation::prepare_extp_for_material<D>>(
-    flecsi::exec::on,
-    s.ls.psi(*s.m),
-    s.ls.material(*s.m),
-    s.cons.hydro.mass_density(*s.m),
-    s.prim.velocity(*s.m),
-    s.prim.pressure(*s.m),
-    s.prim.specific_internal_energy(*s.m),
-    s.extp.extp_psi(*s.m),
-    s.extp.q_scalar(*s.m),
-    s.extp.q_scalar_known(*s.m),
-    direction);
+  
+  annotation_rguard<tasks::extrapolation::prepare_extp_for_material_task>(),
+    sc.execute<tasks::extrapolation::prepare_extp_for_material<D>>(
+      flecsi::exec::on,
+      s.ls.psi(*s.m),
+      s.ls.material(*s.m),
+      s.cons.hydro.mass_density(*s.m),
+      s.prim.velocity(*s.m),
+      s.prim.pressure(*s.m),
+      s.prim.specific_internal_energy(*s.m),
+      s.extp.extp_psi(*s.m),
+      s.extp.q_scalar(*s.m),
+      s.extp.q_scalar_known(*s.m),
+      direction);
 
   // Compute unit normal of level set gradient
   // dp = grad(psi)
-  sc.execute<tasks::extrapolation::gradient_centered<D>>(
-    flecsi::exec::on, *s.m, s.extp.extp_psi(*s.m), s.extp.dp(*s.m));
+  annotation_rguard<tasks::tasks::gfm::compute_sound_speed_from_eos_task>(),
+    sc.execute<tasks::extrapolation::gradient_centered<D>>(
+      flecsi::exec::on, *s.m, s.extp.extp_psi(*s.m), s.extp.dp(*s.m));
 
   // normal = dp/|dp| and normal faces
-  sc.execute<tasks::extrapolation::unit_normals<D>>(flecsi::exec::on,
-    *s.m,
-    s.extp.dp(*s.m),
-    s.extp.normal(*s.m),
-    s.extp.f.normal_face(s.m),
-    axis);
+  annotation_rguard<tasks::extrapolation::unit_normals_task>(),
+    sc.execute<tasks::extrapolation::unit_normals<D>>(flecsi::exec::on,
+      *s.m,
+      s.extp.dp(*s.m),
+      s.extp.normal(*s.m),
+      s.extp.f.normal_face(s.m),
+      axis);
 
   for(int n = 0; n < extp_steps; ++n) {
     // Stage 1: rhs(q^n) -> rhs
-    sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
-      flecsi::exec::on,
-      *s.m,
-      s.extp.q_scalar(*s.m),
-      s.extp.extp_psi(*s.m),
-      s.extp.normal(*s.m),
-      s.extp.q_rhs(*s.m));
+    annotation_rguard<tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
+      sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.extp.q_scalar(*s.m),
+        s.extp.extp_psi(*s.m),
+        s.extp.normal(*s.m),
+        s.extp.q_rhs(*s.m));
 
     // q1 = q^n + dt * rhs(q^n)
-    sc.execute<tasks::extrapolation::advance_q_rk2_s1_cfl<D>>(flecsi::exec::on,
-      *s.m,
-      s.extp.extp_psi(*s.m),
-      s.extp.q_scalar_known(*s.m),
-      s.extp.q_scalar(*s.m),
-      s.extp.q_rhs(*s.m),
-      s.extp.q_scalar1(*s.m), // output stage-1
-      extp_cfl); // dtau in the origianl work
+    annotation_rguard<tasks::extrapolation::advance_q_rk2_s1_cfl_task>(),
+      sc.execute<tasks::extrapolation::advance_q_rk2_s1_cfl<D>>(flecsi::exec::on,
+        *s.m,
+        s.extp.extp_psi(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_scalar(*s.m),
+        s.extp.q_rhs(*s.m),
+        s.extp.q_scalar1(*s.m), // output stage-1
+        extp_cfl); // dtau in the origianl work
 
     // Stage 2: rhs(q1) -> rhs1
-    sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
-      flecsi::exec::on,
-      *s.m,
-      s.extp.q_scalar1(*s.m),
-      s.extp.extp_psi(*s.m),
-      s.extp.normal(*s.m),
-      s.extp.q_rhs1(*s.m));
+    annotation_rguard<tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
+      sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.extp.q_scalar1(*s.m),
+        s.extp.extp_psi(*s.m),
+        s.extp.normal(*s.m),
+        s.extp.q_rhs1(*s.m));
 
     // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
-    sc.execute<tasks::extrapolation::advance_q_rk2_s2_cfl<D>>(flecsi::exec::on,
-      *s.m,
-      s.extp.extp_psi(*s.m),
-      s.extp.q_scalar_known(*s.m),
-      s.extp.q_scalar(*s.m), // q^n
-      s.extp.q_rhs1(*s.m), // rhs(q1)
-      s.extp.q_scalar1(*s.m), // q_stage
-      q_ext_out, // q_new
-      extp_cfl); // dtau in original work
+    annotation_rguard<tasks::extrapolation::advance_q_rk2_s2_cfl_task>(),
+      sc.execute<tasks::extrapolation::advance_q_rk2_s2_cfl<D>>(flecsi::exec::on,
+        *s.m,
+        s.extp.extp_psi(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_scalar(*s.m), // q^n
+        s.extp.q_rhs1(*s.m), // rhs(q1)
+        s.extp.q_scalar1(*s.m), // q_stage
+        q_ext_out, // q_new
+        extp_cfl); // dtau in original work
 
     if(n + 1 < extp_steps) {
-      sc.execute<tasks::extrapolation::copy_extp_q<D>>(
-        flecsi::exec::on, q_ext_out, s.extp.q_scalar(*s.m));
+      annotation_rguard<tasks::extrapolation::copy_extp_q_task>(),
+        sc.execute<tasks::extrapolation::copy_extp_q<D>>(
+          flecsi::exec::on, q_ext_out, s.extp.q_scalar(*s.m));
     }
   }
 }
@@ -218,49 +237,52 @@ advance_rk_stage_axis_loop(state<D> & s,
       /* End of extrapolation*/
 
       // clang-format off
-    sc.execute<tasks::hydro::reconstruct_primitives<D, limiter>>(
-      flecsi::exec::on,
-      axis,
-      *s.m,
-      s.ls.material(*s.m),
-      scalar_v,
-      std::vector{
-        std::make_tuple(
-          s.prim.velocity(*s.m),
-          s.f.hydro.u_face(s.m))});
+      annotation_rguard<tasks::hydro::reconstruct_primitives_task>(),
+        sc.execute<tasks::hydro::reconstruct_primitives<D, limiter>>(
+          flecsi::exec::on,
+          axis,
+          *s.m,
+          s.ls.material(*s.m),
+          scalar_v,
+          std::vector{
+            std::make_tuple(
+              s.prim.velocity(*s.m),
+              s.f.hydro.u_face(s.m))});
       // clang-format on
     }
 
-    sc.execute<tasks::hydro::reconstruct_conserved<D>>(flecsi::exec::on,
-      *s.m,
-      s.f.hydro.r_face(s.m),
-      s.f.hydro.u_face(s.m),
-      s.f.hydro.e_face(s.m),
-      s.f.hydro.ru_face(s.m),
-      s.f.hydro.re_face(s.m));
+    annotation_rguard<tasks::hydro::reconstruct_conserved_task>(),
+      sc.execute<tasks::hydro::reconstruct_conserved<D>>(flecsi::exec::on,
+        *s.m,
+        s.f.hydro.r_face(s.m),
+        s.f.hydro.u_face(s.m),
+        s.f.hydro.e_face(s.m),
+        s.f.hydro.ru_face(s.m),
+        s.f.hydro.re_face(s.m));
 
     // Calculate K1 and save it to dt_U
-    sc.execute<tasks::gfm::compute_interface_fluxes_gfm<D>>(flecsi::exec::on,
-      axis,
-      *s.m,
-      s.f.hydro.r_face(s.m),
-      s.f.hydro.u_face(s.m),
-      s.f.hydro.p_face(s.m),
-      s.f.hydro.c_face(s.m),
-      s.f.hydro.ru_face(s.m),
-      s.f.hydro.re_face(s.m),
-      // GFM
-      s.ls.material(*s.m),
-      s.extp.f.normal_face(s.m),
-      s.extp.q_ext_plus(*s.m),
-      s.extp.q_ext_minus(*s.m),
-      // Riemann Fluxes
-      s.rf.hydro.r_f(*s.m),
-      s.rf.hydro.ru_f(*s.m),
-      s.rf.hydro.re_f(*s.m),
-      s.rk_dt1(s.m),
-      s.icst.gravity_acc(*s.gt),
-      s.eos_mm);
+    annotation_rguard<tasks::gfm::compute_interface_fluxes_gfm_task>(),
+      sc.execute<tasks::gfm::compute_interface_fluxes_gfm<D>>(flecsi::exec::on,
+        axis,
+        *s.m,
+        s.f.hydro.r_face(s.m),
+        s.f.hydro.u_face(s.m),
+        s.f.hydro.p_face(s.m),
+        s.f.hydro.c_face(s.m),
+        s.f.hydro.ru_face(s.m),
+        s.f.hydro.re_face(s.m),
+        // GFM
+        s.ls.material(*s.m),
+        s.extp.f.normal_face(s.m),
+        s.extp.q_ext_plus(*s.m),
+        s.extp.q_ext_minus(*s.m),
+        // Riemann Fluxes
+        s.rf.hydro.r_f(*s.m),
+        s.rf.hydro.ru_f(*s.m),
+        s.rf.hydro.re_f(*s.m),
+        s.rk_dt1(s.m),
+        s.icst.gravity_acc(*s.gt),
+        s.eos_mm);
 
     // Apply function if present
     if constexpr(!std::is_same_v<F, std::nullptr_t>)
@@ -284,13 +306,14 @@ advance_rk_stage_common(state<D> & s,
   F f = nullptr) {
 
   // Explicit source term (gravity) update for RT case in hydro file
-  sc.execute<tasks::external_source<D>>(flecsi::exec::on,
-    *s.m,
-    s.prim.velocity(*s.m),
-    s.src_t.hydro.gravity_force(*s.m),
-    // time-derivatives
-    rk_dt.momentum_energy_density()(*s.m),
-    rk_dt.total_energy_density()(*s.m));
+  annotation_rguard<tasks::external_source_task>(),
+    sc.execute<tasks::external_source<D>>(flecsi::exec::on,
+      *s.m,
+      s.prim.velocity(*s.m),
+      s.src_t.hydro.gravity_force(*s.m),
+      // time-derivatives
+      s.rk_dt1.momentum_energy_density()(*s.m),
+      s.rk_dt1.total_energy_density()(*s.m));
 
   {
     auto scalar_v = std::vector{std::make_tuple(rk_dt.mass_density()(*s.m),
@@ -305,13 +328,14 @@ advance_rk_stage_common(state<D> & s,
     // We need update_u here before we compute fluxes in the presence of
     // hydro::explict_source_update with body forces. See Moens'21 Eq. 24-26
     // clang-format off
-    sc.execute<tasks::hydro::update_u<D>>(flecsi::exec::on,
-      s.dt(*s.gt),
-      scalar_v,
-      std::vector{
-        std::make_tuple(
-          rk_dt.momentum_energy_density()(*s.m),
-          s.cons.hydro.momentum_density(*s.m))});
+    annotation_rguard<tasks::hydro::update_u_task>(),
+      sc.execute<tasks::hydro::update_u<D>>(flecsi::exec::on,
+        s.dt(*s.gt),
+        scalar_v,
+        std::vector{
+          std::make_tuple(
+            s.rk_dt1.momentum_energy_density()(*s.m),
+            s.cons.hydro.momentum_density(*s.m))});
     // clang-format on
   }
 

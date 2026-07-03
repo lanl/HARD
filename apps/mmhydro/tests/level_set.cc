@@ -1,6 +1,7 @@
 #include "flecsi/execution.hh"
 #include "flecsi/util/unit.hh"
 
+#include "../types.hh"
 #include "common/tasks/utils.hh"
 #include "spec/labels.hh"
 

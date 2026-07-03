@@ -7,6 +7,10 @@
 
 namespace hard::tasks::initial_data {
 
+struct sedov_blast_task : annotation_task_region {
+  inline static const std::string name{"sedov_blast"};
+};
+
 //
 // A sedov blast wave is being initialized.
 // A hotspot of high temperature is added at the center of a

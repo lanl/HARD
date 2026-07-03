@@ -6,6 +6,10 @@
 
 namespace hard::tasks::hydro {
 
+struct conserved_to_primitive_task : annotation_task_region {
+  inline static const std::string name{"conserved_to_primitive"};
+};
+
 template<std::size_t Dim>
 void
 conserved_to_primitive(flecsi::exec::accelerator s,
