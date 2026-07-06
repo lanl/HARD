@@ -3,16 +3,27 @@
 # Hydro application (executable).
 #------------------------------------------------------------------------------#
 
+#add_executable(hydro
+#  hydro.cc
+#  actions/init.cc
+#  actions/rhs.cc
+#  actions/rk_stage_1.cc
+#  actions/rk_stage_2.cc
+#  actions/update_dt.cc
+#  actions/finalize.cc
+#  actions/analyze.cc
+#)
+
 add_executable(hydro
   hydro.cc
   actions/init.cc
   actions/rhs.cc
-  actions/rk_stage_1.cc
-  actions/rk_stage_2.cc
+  actions/flecsolve_advance.cc
   actions/update_dt.cc
   actions/finalize.cc
   actions/analyze.cc
 )
+
 
 target_include_directories(hydro
   PRIVATE
