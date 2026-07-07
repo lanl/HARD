@@ -339,6 +339,30 @@ operator*(const vec<D> & a, const vec<D> & b) {
 }
 
 template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D> &
+operator*=(vec<D> & a, double s) {
+  a[0] *= s;
+  if constexpr(D > 1)
+    a[1] *= s;
+  if constexpr(D > 2)
+    a[2] *= s;
+
+  return a;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D> &
+operator*=(vec<D> & a, const vec<D> & b) {
+  a[0] *= b[0];
+  if constexpr(D > 1)
+    a[1] *= b[1];
+  if constexpr(D > 2)
+    a[2] *= b[2];
+
+  return a;
+}
+
+template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
 operator/(const vec<D> & a, double s) {
   vec<D> result;

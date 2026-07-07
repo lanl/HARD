@@ -5,7 +5,11 @@
 #include <spec/runtime.hh>
 #include <flecsi/flog.hh>
 
+#include "flecsolve/time-integrators/rk23.hh"
+
 namespace hard {
+
+namespace rk23 = flecsolve::time_integrator::rk23;
 
 template<std::size_t D>
 struct hydro_flecsolve_advance {
@@ -13,78 +17,50 @@ struct hydro_flecsolve_advance {
     auto & s = cp.state();
     flecsi::scheduler & sc = cp.scheduler();
 
-    /*
-      FleCSolve-style hydro RHS operator.
-    */
-    actions::flecsolve_hydro::rhs_params<D> params{&s, &sc};
-    actions::flecsolve_hydro::rhs_operator<D> rhs(params);
-
-    /*
-      Read dt from HARD's timestep field.
-
-      The old HARD update tasks used s.dt directly inside tasks.
-      The FleCSolve vector algebra needs dt as a scalar.
-    */
     const double dt =
       sc.template execute<actions::flecsolve_hydro::read_dt_task>(
           flecsi::exec::on, s.dt(*s.gt))
         .get();
 
-    /*
-      Vector views:
+    if(dt <= 0.0) {
+      return;
+    }
 
-          U  -> current conserved state, s.cons.hydro
-          Un -> saved beginning-of-step state, s.rk_n
-          R1 -> first RHS, s.rk_dt1
-          R2 -> second RHS, s.rk_dt2
+    /*
+      IMPORTANT:
+
+      Do not wrap this in flecsolve::op::core. The core wrapper tries to
+      subset anonymous FleCSolve variables, but our hydro multivector uses
+      hard::actions::flecsolve_hydro::var.
     */
+    actions::flecsolve_hydro::rhs_params<D> params{&s, &sc};
+    actions::flecsolve_hydro::rhs_operator<D> F(params);
+
     auto U = actions::flecsolve_hydro::make_state_vector(s);
-    auto Un = actions::flecsolve_hydro::make_saved_state_vector(s);
-    auto R1 = actions::flecsolve_hydro::make_rhs_vector(s);
-    auto R2 = actions::flecsolve_hydro::make_rhs2_vector(s);
+    auto Uout = actions::flecsolve_hydro::make_saved_state_vector(s);
 
-    /*
-      Stage 1:
+    rk23::settings settings{};
 
-          R1 = F(U^n)
-    */
-    rhs.apply(U, R1);
+    settings.initial_time = 0.0;
+    settings.final_time = dt;
+    settings.max_steps = 1;
 
-    /*
-      Stage 1 update:
+    settings.initial_dt = dt;
+    settings.min_dt = dt;
+    settings.max_dt = dt;
 
-          U* = U^n + dt R1
+    settings.safety_factor = 0.9f;
+    settings.atol = 1.0e-12f;
+    settings.use_fixed_dt = true;
 
-      This replaces update_rk_stage_1.
-    */
-    U.axpy(dt, R1, Un);
+    rk23::integrator ti(rk23::parameters(
+      settings,
+      flecsolve::op::ref(F),
+      rk23::make_work(U)));
 
-    actions::flecsolve_hydro::recover_primitives_and_apply_boundaries(s, sc);
+    ti.advance(dt, U, Uout);
 
-    /*
-      Stage 2:
-
-          R2 = F(U*)
-    */
-    rhs.apply(U, R2);
-
-    /*
-      Average the two RK slopes:
-
-          R1 <- 0.5 R1 + 0.5 R2
-    */
-    R1.linear_sum(0.5, R1, 0.5, R2);
-
-    /*
-      Final Heun update:
-
-          U^{n+1} = U^n + dt R1
-
-      Since R1 now stores the averaged slope, this is equivalent to:
-
-          U^{n+1} = U^n + 0.5 dt (F(U^n) + F(U*))
-    */
-    U.axpy(dt, R1, Un);
+    U.copy(Uout);
 
     actions::flecsolve_hydro::recover_primitives_and_apply_boundaries(s, sc);
   }
