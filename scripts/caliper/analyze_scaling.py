@@ -52,49 +52,58 @@ def load_all_files(file_args):
     return data
 
 def get_task_scaling_data(data_dict):
+    """Extract task-level scaling data using task ID as unique identifier"""
     all_tasks = {}
+    task_time_percentages = {}
+    task_id_to_name = {}
     
     for worker_count, df in sorted(data_dict.items()):
-        # Group by task
-        df_tasks = df.groupby('HARD-Task').agg({
-            'time-ns': 'sum'
-        }).reset_index()
+        df_filtered = df[df['HARD-Task'].notna()].copy()
+        df_filtered = df_filtered[df_filtered['HARD-Task'].astype(str).str.contains(r'[a-zA-Z_]', regex=True)]
+        df_filtered['time_ms'] = df_filtered['time-ns'] / 1e6
         
-        # Filter valid tasks
-        df_tasks = df_tasks[df_tasks['HARD-Task'].notna()]
-        df_tasks = df_tasks[df_tasks['HARD-Task'].astype(str).str.contains(r'[a-zA-Z_]', regex=True)]
-        df_tasks['time_ms'] = df_tasks['time-ns'] / 1e6
-        
-        for _, row in df_tasks.iterrows():
+        for _, row in df_filtered.iterrows():
+            task_id = row['id']
             task_name = row['HARD-Task']
-            if task_name not in all_tasks:
-                all_tasks[task_name] = {}
-            all_tasks[task_name][worker_count] = row['time_ms']
+            task_key = (task_id, task_name)
+            
+            # Stocker le mapping
+            if task_id not in task_id_to_name:
+                task_id_to_name[task_id] = task_name
+            
+            if task_key not in all_tasks:
+                all_tasks[task_key] = {}
+            all_tasks[task_key][worker_count] = row['time_ms']
+            
+            if worker_count == min(data_dict.keys()):
+                task_time_percentages[task_key] = row['total-time-%']
     
-    return all_tasks
+    return all_tasks, task_time_percentages
 
 def plot_task_scaling(all_tasks, data_dict, top_n=10, output_file='scaling_tasks.png'):
     # Get minimum worker count
     min_workers = min(data_dict.keys())
     
     # Find top N tasks for minimum worker count
-    tasks_at_min = [(task, times.get(min_workers, 0)) 
-                    for task, times in all_tasks.items() 
+    tasks_at_min = [(task_key, times.get(min_workers, 0)) 
+                    for task_key, times in all_tasks.items() 
                     if min_workers in times]
     tasks_at_min.sort(key=lambda x: x[1], reverse=True)
-    top_tasks = [task for task, _ in tasks_at_min[:top_n]]
+    top_tasks = [task_key for task_key, _ in tasks_at_min[:top_n]]
     
     fig, ax = plt.subplots(figsize=(14, 8))
     
     colors = plt.cm.tab20(np.linspace(0, 1, len(top_tasks)))
     
-    for i, task in enumerate(top_tasks):
-        task_data = all_tasks[task]
+    for i, task_key in enumerate(top_tasks):
+        task_id, task_name = task_key
+        task_data = all_tasks[task_key]
         workers = sorted(task_data.keys())
         times = [task_data[w] for w in workers]
         
+        label = f"{task_name[:35]} (ID:{task_id})"
         ax.plot(workers, times, marker='o', linewidth=2, markersize=8,
-                label=task[:40], color=colors[i])
+                label=label, color=colors[i])
     
     ax.set_xlabel('Number of Workers', fontsize=12)
     ax.set_ylabel('Execution Time (ms)', fontsize=12)
@@ -164,7 +173,7 @@ def plot_total_scaling(data_dict, output_file='scaling_total.png'):
     plt.tight_layout()
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
 
-def generate_scaling_report(data_dict, all_tasks, output_file='scaling_report.txt'):
+def generate_scaling_report(data_dict, all_tasks, task_time_percentages, output_file='scaling_report.txt'):
     workers = sorted(data_dict.keys())
     
     with open(output_file, 'w', encoding='utf-8') as f:
@@ -175,7 +184,6 @@ def generate_scaling_report(data_dict, all_tasks, output_file='scaling_report.tx
         final_workers = workers[-1]
         final_time = data_dict[final_workers]['time-ns'].sum() / 1e6
         
-        # Detailed results
         f.write("\n" + "="*70 + "\n\n")
         f.write("DETAILED SCALING RESULTS\n")
         f.write("-" * 70 + "\n\n")
@@ -189,28 +197,15 @@ def generate_scaling_report(data_dict, all_tasks, output_file='scaling_report.tx
             eff = (speedup / (w / baseline_workers)) * 100
             f.write(f"{w:<10} {total_time:<15.2f} {speedup:<12.2f} {eff:<15.2f}\n")
         
-        # Create mapping of task name to task ID
-        task_id_map = {}
-        for w in workers:
-            df = data_dict[w]
-            for _, row in df.iterrows():
-                task_name = row['HARD-Task']
-                task_id = row['id']
-                if task_name not in task_id_map:
-                    task_id_map[task_name] = task_id
-        
-        # Prepare scaling data for all tasks with speedup for each worker count
         all_tasks_data = []
-        for task, times in all_tasks.items():
-            # Check if task exists for baseline
+        for task_key, times in all_tasks.items():
             if baseline_workers not in times:
                 continue
             
+            task_id, task_name = task_key
             baseline_task_time = times[baseline_workers]
+            time_percent = task_time_percentages.get(task_key, 0.0)
             
-            task_id = task_id_map.get(task, float('inf'))
-            
-            # Calculate speedups and efficiencies for all worker counts
             speedups_by_workers = {}
             efficiencies_by_workers = []
             
@@ -219,44 +214,42 @@ def generate_scaling_report(data_dict, all_tasks, output_file='scaling_report.tx
                     speedup = baseline_task_time / times[w]
                     speedups_by_workers[w] = speedup
                     
-                    # Calculate efficiency for this worker count
                     ideal_speedup_w = w / baseline_workers
                     efficiency_w = (speedup / ideal_speedup_w) * 100
                     efficiencies_by_workers.append(efficiency_w)
                 else:
                     speedups_by_workers[w] = 0.0
             
-            # Calculate average efficiency across all worker counts
             avg_efficiency = np.mean(efficiencies_by_workers) if efficiencies_by_workers else 0.0
             
-            # Final speedup (for sorting purposes)
             if final_workers in times and times[final_workers] > 0:
                 final_speedup = baseline_task_time / times[final_workers]
             else:
                 final_speedup = 0.0
             
-            all_tasks_data.append((task, speedups_by_workers, avg_efficiency, final_speedup, task_id))
+            all_tasks_data.append((task_name, speedups_by_workers, avg_efficiency, final_speedup, task_id, time_percent))
         
-        # Helper function to write task table
         def write_task_table(tasks_subset, title, f):
             f.write(f"\n{'='*70}\n\n")
             f.write(f"{title}\n")
             f.write("-" * 70 + "\n\n")
             
-            # Build header dynamically based on worker counts
             min_workers = workers[0]
             max_workers = workers[-1]
+            time_pct_header = f"Time%({min_workers}w)"
             eff_header = f"Eff%({min_workers}w→{max_workers}w)"
             
-            header = f"{'Task':<50} {eff_header:<15}"
+            header = f"{'Task':<50} {time_pct_header:<12} {eff_header:<15}"
             for w in workers:
                 header += f" {'Speedup ' + str(w) + 'w':<12}"
             f.write(header + "\n")
-            f.write("-" * (65 + 12 * len(workers)) + "\n")
             
-            # Write tasks
-            for task, speedups_dict, avg_eff, _, _ in tasks_subset:
-                line = f"{task[:50]:<50} {avg_eff:<15.2f}"
+            separator_width = 50 + 12 + 15 + 12 * len(workers) + len(workers) + 2
+            f.write("-" * separator_width + "\n")
+            
+            for task, speedups_dict, avg_eff, _, task_id, time_pct in tasks_subset:
+                task_display = f"{task[:40]} (ID:{task_id})"
+                line = f"{task_display[:50]:<50} {time_pct:<12.2f} {avg_eff:<15.2f}"
                 for w in workers:
                     speedup_val = speedups_dict.get(w, 0.0)
                     line += f" {speedup_val:<12.2f}"
@@ -266,14 +259,14 @@ def generate_scaling_report(data_dict, all_tasks, output_file='scaling_report.tx
         best_scaling = sorted(all_tasks_data, key=lambda x: x[3], reverse=True)
         write_task_table(best_scaling[:20], "TOP 20 BEST SCALING TASKS", f)
         
-        # Top 20 worst scaling tasks (among significant tasks)
+        # Top 20 worst scaling tasks
         # Filter tasks with >10ms at baseline
         significant_tasks = []
-        for task, times in all_tasks.items():
+        for task_key, times in all_tasks.items():
             if baseline_workers in times and times[baseline_workers] > 10:
-                # Find this task in all_tasks_data
+                task_id, task_name = task_key
                 for task_data in all_tasks_data:
-                    if task_data[0] == task:
+                    if task_data[4] == task_id:
                         significant_tasks.append(task_data)
                         break
         
@@ -282,7 +275,6 @@ def generate_scaling_report(data_dict, all_tasks, output_file='scaling_report.tx
                         f"TOP 20 WORST SCALING TASKS\n(Among tasks with >10ms at {baseline_workers} workers)", 
                         f)
         
-        # Complete list of all tasks - SORTED BY TASK ID
         all_tasks_by_id = sorted(all_tasks_data, key=lambda x: x[4])
         write_task_table(all_tasks_by_id,
                         f"COMPLETE TASK LIST ({len(all_tasks_by_id)} tasks)\n(Sorted by task ID / order of appearance)",
@@ -314,7 +306,6 @@ Argument format:
     
     args = parser.parse_args()
     
-    # Load all files
     data_dict = load_all_files(args.files)
     
     if len(data_dict) < 2:
@@ -324,14 +315,13 @@ Argument format:
     print(f"\nLoaded {len(data_dict)} configurations")
     print(f"Worker counts: {sorted(data_dict.keys())}")
     
-    # Extract task scaling data
-    all_tasks = get_task_scaling_data(data_dict)
+    all_tasks, task_time_percentages = get_task_scaling_data(data_dict)
     print(f"Analyzing {len(all_tasks)} unique tasks")
     
     plot_task_scaling(all_tasks, data_dict, top_n=args.top_tasks,
                         output_file=f'{args.output_prefix}_tasks.png')
     plot_total_scaling(data_dict, output_file=f'{args.output_prefix}_total.png')
-    generate_scaling_report(data_dict, all_tasks,
+    generate_scaling_report(data_dict, all_tasks, task_time_percentages,
                             output_file=f'{args.output_prefix}_report.txt')
     
     print("\nScaling analysis completed successfully!")
