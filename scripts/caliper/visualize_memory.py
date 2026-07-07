@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""
-visualize_memory.py
-Visualizes memory consumption from Caliper output files
-"""
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,12 +9,10 @@ import matplotlib
 matplotlib.use("Agg")
 
 def parse_caliper_file(filename):
-    """Parse Caliper file and return DataFrame"""
     df = pd.read_csv(filename, delim_whitespace=True, skiprows=0)
     return df
 
 def plot_memory_by_id(df, output_file='memory_by_id.png'):
-    """Plot memory consumption by function ID (starting from 1)"""
     df['rss_mb'] = df['avg-rss-kb'] / 1024
     df['vm_mb'] = df['avg-vm-kb'] / 1024
     df['data_mb'] = df['avg-data-kb'] / 1024
@@ -46,7 +39,6 @@ def plot_memory_by_id(df, output_file='memory_by_id.png'):
     print(f"Chart saved to {output_file}")
 
 def plot_task_memory(df, top_n=20, output_file='task_memory.png'):
-    """Plot average memory consumption by task"""
     df_tasks = df.groupby('HARD-Task').agg({
         'avg-rss-kb': 'mean',
         'count': 'sum'
@@ -54,7 +46,6 @@ def plot_task_memory(df, top_n=20, output_file='task_memory.png'):
     
     df_tasks = df_tasks[df_tasks['HARD-Task'].notna()]
     
-    # Filter to keep only valid task names (containing letters/underscores, not just numbers)
     df_tasks = df_tasks[df_tasks['HARD-Task'].astype(str).str.contains(r'[a-zA-Z_]', regex=True)]
     
     df_tasks['avg_rss_mb'] = df_tasks['avg-rss-kb'] / 1024
@@ -81,7 +72,6 @@ def plot_task_memory(df, top_n=20, output_file='task_memory.png'):
     print(f"Chart saved to {output_file}")
 
 def plot_time_vs_memory(df, output_file='time_vs_memory.png'):
-    """Plot execution time vs memory consumption"""
     df['time_ms'] = df['time-ns'] / 1e6
     df['rss_mb'] = df['avg-rss-kb'] / 1024
     
@@ -110,35 +100,6 @@ def plot_time_vs_memory(df, output_file='time_vs_memory.png'):
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
     print(f"Chart saved to {output_file}")
     
-def print_memory_statistics(df):
-    """Print memory consumption statistics"""
-    print("\n" + "="*70)
-    print("MEMORY CONSUMPTION STATISTICS")
-    print("="*70)
-    
-    max_rss = df['max-rss-kb'].max() / 1024
-    avg_rss = df['avg-rss-kb'].mean() / 1024
-    max_vm = df['max-vm-kb'].max() / 1024
-    
-    print(f"\nMaximum RSS memory: {max_rss:.2f} MB")
-    print(f"Global average RSS memory: {avg_rss:.2f} MB")
-    print(f"Maximum VM memory: {max_vm:.2f} MB")
-    
-    df_tasks = df.groupby('HARD-Task').agg({
-        'avg-rss-kb': 'mean'
-    }).reset_index()
-    df_tasks = df_tasks[df_tasks['HARD-Task'].notna()]
-    df_tasks['avg_rss_mb'] = df_tasks['avg-rss-kb'] / 1024
-    
-    print("\n--- Top 10 Tasks by Average Memory Consumption ---")
-    top10 = df_tasks.nlargest(10, 'avg_rss_mb')
-    print(f"{'Task':<50} {'Avg RSS (MB)':>15}")
-    print("-" * 70)
-    
-    for idx, row in top10.iterrows():
-        task_name = row['HARD-Task'][:47] + '...' if len(str(row['HARD-Task'])) > 50 else row['HARD-Task']
-        print(f"{task_name:<50} {row['avg_rss_mb']:>15.2f}")
-
 def main():
     parser = argparse.ArgumentParser(
         description='Visualize memory consumption from Caliper output files',
@@ -151,39 +112,23 @@ Examples:
         """
     )
     
-    parser.add_argument('input_file', 
-                        help='Caliper output file to analyze')
-    parser.add_argument('-n', '--top-n', 
-                        type=int, 
-                        default=20,
+    parser.add_argument('input_file', help='Caliper output file to analyze')
+    parser.add_argument('-n', '--top-n', type=int, default=20,
                         help='Number of top tasks to display (default: 20)')
-    parser.add_argument('--output-prefix',
-                        default='',
+    parser.add_argument('--output-prefix', default='',
                         help='Prefix for output files')
-    
     args = parser.parse_args()
     
-    try:
-        df = parse_caliper_file(args.input_file)
-        print(f"Loaded {len(df)} entries from {args.input_file}")
+    df = parse_caliper_file(args.input_file)
+    print(f"Loaded {len(df)} entries from {args.input_file}")
+    
+    prefix = args.output_prefix + '_' if args.output_prefix else ''
+    
+    plot_memory_by_id(df, output_file=f'{prefix}memory_by_id.png')
+    plot_task_memory(df, top_n=args.top_n, output_file=f'{prefix}task_memory.png')
+    plot_time_vs_memory(df, output_file=f'{prefix}time_vs_memory.png')
+    
+    print("\nAnalysis completed successfully!")
         
-        prefix = args.output_prefix + '_' if args.output_prefix else ''
-        
-        print_memory_statistics(df)
-        plot_memory_by_id(df, output_file=f'{prefix}memory_by_id.png')
-        plot_task_memory(df, top_n=args.top_n, output_file=f'{prefix}task_memory.png')
-        plot_time_vs_memory(df, output_file=f'{prefix}time_vs_memory.png')
-        
-        print("\n✅ Analysis completed successfully!")
-        
-    except FileNotFoundError:
-        print(f"Error: File '{args.input_file}' not found")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
 if __name__ == "__main__":
     main()

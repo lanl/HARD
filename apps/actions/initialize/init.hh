@@ -180,24 +180,18 @@ init_timestep(state<D> & s,
       s.prim.sound_speed(*s.m),
       s.eos);
 
-  auto lmax_f = [&] {
-    annotation_rguard<tasks::hydro::update_max_characteristic_speed_task>
-      task_guard;
+  auto lmax_f =
+    (annotation_rguard<tasks::hydro::update_max_characteristic_speed_task>(),
+      sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.prim.velocity(*s.m),
+        s.prim.sound_speed(*s.m)));
 
-    return sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
-      flecsi::exec::on,
-      *s.m,
-      s.cons.hydro.mass_density(*s.m),
-      s.prim.velocity(*s.m),
-      s.prim.sound_speed(*s.m));
-  }();
-
-  {
-    annotation_rguard<tasks::hydro::update_dtmin_task> task_guard;
-    s.dtmin_ =
-      sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
-        flecsi::exec::on, *s.m, lmax_f);
-  }
+  s.dtmin_ = (annotation_rguard<tasks::hydro::update_dtmin_task>(),
+    sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
+      flecsi::exec::on, *s.m, lmax_f));
 
   auto scalar_v = std::vector{s.cons.hydro.mass_density(*s.m),
     s.prim.pressure(*s.m),

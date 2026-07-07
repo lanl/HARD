@@ -2,6 +2,7 @@
 #define HARD_HYDRO_STATE_HH
 
 #include "types.hh"
+
 #include "gfm/state.hh"
 #include "hydro/state.hh"
 

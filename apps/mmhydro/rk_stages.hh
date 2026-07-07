@@ -57,12 +57,6 @@ apply_material_boundaries(state<D> & s, flecsi::scheduler & sc) {
   // Update INTEGER material field in ghost cells before hydro/primitive
   // variables.
   annotation_rguard<tasks::apply_boundaries_scalar_task>(),
-    sc.execute<tasks::apply_boundaries_scalar<D>>(flecsi::exec::on,
-      *s.m,
-      s.icst.bmap(*s.gt),
-      std::vector{s.ls.material(*s.m)}); // Only int fields
-
-  annotation_rguard<tasks::apply_boundaries_int_task>(),
     sc.execute<tasks::apply_boundaries_scalar<D, true, int>>(flecsi::exec::on,
       *s.m,
       s.icst.bmap(*s.gt),
@@ -70,7 +64,8 @@ apply_material_boundaries(state<D> & s, flecsi::scheduler & sc) {
 
   // Update DOUBLE psi field in ghost cells
   annotation_rguard<tasks::apply_boundaries_scalar_task>(),
-    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(flecsi::exec::on,
+    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(
+      flecsi::exec::on,
       *s.m,
       s.icst.bmap(*s.gt),
       std::vector{s.ls.psi(*s.m)}); // Only double scalar fields
@@ -119,7 +114,7 @@ extrapolate_ghost(state<D> & s,
   std::size_t axis,
   int direction,
   QExt q_ext_out) {
-  
+
   annotation_rguard<tasks::extrapolation::prepare_extp_for_material_task>(),
     sc.execute<tasks::extrapolation::prepare_extp_for_material<D>>(
       flecsi::exec::on,
@@ -136,7 +131,7 @@ extrapolate_ghost(state<D> & s,
 
   // Compute unit normal of level set gradient
   // dp = grad(psi)
-  annotation_rguard<tasks::tasks::gfm::compute_sound_speed_from_eos_task>(),
+  annotation_rguard<tasks::extrapolation::gradient_centered_task>(),
     sc.execute<tasks::extrapolation::gradient_centered<D>>(
       flecsi::exec::on, *s.m, s.extp.extp_psi(*s.m), s.extp.dp(*s.m));
 
@@ -151,7 +146,8 @@ extrapolate_ghost(state<D> & s,
 
   for(int n = 0; n < extp_steps; ++n) {
     // Stage 1: rhs(q^n) -> rhs
-    annotation_rguard<tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
+    annotation_rguard<
+      tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
       sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
         flecsi::exec::on,
         *s.m,
@@ -162,7 +158,8 @@ extrapolate_ghost(state<D> & s,
 
     // q1 = q^n + dt * rhs(q^n)
     annotation_rguard<tasks::extrapolation::advance_q_rk2_s1_cfl_task>(),
-      sc.execute<tasks::extrapolation::advance_q_rk2_s1_cfl<D>>(flecsi::exec::on,
+      sc.execute<tasks::extrapolation::advance_q_rk2_s1_cfl<D>>(
+        flecsi::exec::on,
         *s.m,
         s.extp.extp_psi(*s.m),
         s.extp.q_scalar_known(*s.m),
@@ -172,7 +169,8 @@ extrapolate_ghost(state<D> & s,
         extp_cfl); // dtau in the origianl work
 
     // Stage 2: rhs(q1) -> rhs1
-    annotation_rguard<tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
+    annotation_rguard<
+      tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
       sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
         flecsi::exec::on,
         *s.m,
@@ -183,7 +181,8 @@ extrapolate_ghost(state<D> & s,
 
     // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
     annotation_rguard<tasks::extrapolation::advance_q_rk2_s2_cfl_task>(),
-      sc.execute<tasks::extrapolation::advance_q_rk2_s2_cfl<D>>(flecsi::exec::on,
+      sc.execute<tasks::extrapolation::advance_q_rk2_s2_cfl<D>>(
+        flecsi::exec::on,
         *s.m,
         s.extp.extp_psi(*s.m),
         s.extp.q_scalar_known(*s.m),

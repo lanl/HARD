@@ -16,15 +16,18 @@ update_dt(state<D> & s, flecsi::scheduler & sc) {
 
   annotation_rguard<update_dt_region> guard;
 
-  auto lmax_f = sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
-    flecsi::exec::on,
-    *s.m,
-    s.cons.hydro.mass_density(*s.m),
-    s.prim.velocity(*s.m),
-    s.prim.sound_speed(*s.m));
+  auto lmax_f =
+    (annotation_rguard<tasks::hydro::update_max_characteristic_speed_task>(),
+      sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.prim.velocity(*s.m),
+        s.prim.sound_speed(*s.m)));
 
-  s.dtmin_ = sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
-    flecsi::exec::on, *s.m, lmax_f);
+  s.dtmin_ = (annotation_rguard<tasks::hydro::update_dtmin_task>(),
+    sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
+      flecsi::exec::on, *s.m, lmax_f));
 }
 
 } // namespace hard::actions
