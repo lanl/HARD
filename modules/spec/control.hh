@@ -107,7 +107,7 @@ struct control_base : flecsi::run::control_base {
       // updates for next iteration
       cp.start_timer_ = stop_timer;
       cp.total_runtime_ += runtime;
-      if(cp.step_ == cp.max_steps_ && flecsi::process() == 0) {
+      if(cp.step_ == cp.max_steps_ && cp.scheduler().runtime().process() == 0) {
 #if defined(FLECSI_ENABLE_HPX)
         auto threads = hpx::get_os_thread_count();
 #else
@@ -115,8 +115,8 @@ struct control_base : flecsi::run::control_base {
 #endif
         std::ofstream runtime_file;
         runtime_file.open("result/runtimes.txt", std::ios_base::app);
-        runtime_file << flecsi::processes() << ";" << threads << ";"
-                     << cp.max_steps_ << ";" << cp.total_runtime_ << ";"
+        runtime_file << cp.scheduler().runtime().processes() << ";" << threads
+                     << ";" << cp.max_steps_ << ";" << cp.total_runtime_ << ";"
                      << cp.runtimes_ << std::endl;
         runtime_file.close();
       }
@@ -487,7 +487,7 @@ struct control_policy : flecsi::run::control_base {
       // updates for next iteration
       cp.start_timer_ = stop_timer;
       cp.total_runtime_ += runtime;
-      if(cp.step_ == cp.max_steps_ && flecsi::process() == 0) {
+      if(cp.step_ == cp.max_steps_ && cp.scheduler().runtime().process() == 0) {
 #if defined(FLECSI_ENABLE_HPX)
         auto threads = hpx::get_os_thread_count();
 #else
@@ -495,8 +495,8 @@ struct control_policy : flecsi::run::control_base {
 #endif
         std::ofstream runtime_file;
         runtime_file.open("result/runtimes.txt", std::ios_base::app);
-        runtime_file << flecsi::processes() << ";" << threads << ";"
-                     << cp.max_steps_ << ";" << cp.total_runtime_ << ";"
+        runtime_file << cp.scheduler().runtime().processes() << ";" << threads
+                     << ";" << cp.max_steps_ << ";" << cp.total_runtime_ << ";"
                      << cp.runtimes_ << std::endl;
         runtime_file.close();
       }

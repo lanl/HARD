@@ -53,7 +53,7 @@ main(int argc, char ** argv) {
 
 #ifdef HARD_BENCHMARK_MODE
   // Write header if process 0 and header==1
-  if(flecsi::process() == 0 && opt::header.value()) {
+  if(run.process() == 0 && opt::header.value()) {
     std::ofstream runtime_file;
     runtime_file.open("result/runtimes.txt", std::ios_base::app);
     runtime_file << "process;threads;max_iterations;total_runtime;iteration_"
