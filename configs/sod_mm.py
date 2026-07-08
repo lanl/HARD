@@ -18,7 +18,7 @@ config = {
     "mean_molecular_weight": 1.0,
     "t0": 0.0,
     "tf": 0.3,
-    "max_steps": 100,
+    "max_steps": 10000,
     "cfl": 0.3,
     "max_dt": 0.0001,
     "log_frequency": 100,

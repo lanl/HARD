@@ -1,3 +1,5 @@
+#------ SHYUE SHOCK TUBE TEST ------#
+# NOTE: the eos parameters are set for TNT
 config = {
     "problem": "shyue_shock",
     "eos_list": [
@@ -5,33 +7,34 @@ config = {
             "eos": "jwl",
             "JWL_A": 8.545,
             "JWL_B": 0.205,
-            "JWL_R1": 4.6,
-            "JWL_R2": 1.35,
+            "JWL_R1": 1.35,
+            "JWL_R2": 4.6,
             "JWL_w": 0.25,
             "JWL_rho0": 1.84,
-            "JWL_Cv": 0.213,
+            "JWL_Cv": 428.4,
         },
         {
             "eos": "jwl",
             "JWL_A": 8.545,
             "JWL_B": 0.205,
-            "JWL_R1": 4.6,
-            "JWL_R2": 1.35,
+            "JWL_R1": 1.35,
+            "JWL_R2": 4.6,
             "JWL_w": 0.25,
             "JWL_rho0": 1.84,
-            "JWL_Cv": 0.213,
+            "JWL_Cv": 428.4,
         },
     ],
     "kappa": 1.0e-100,
     "mean_molecular_weight": 1.0,
     "t0": 0.0,
-    "tf": 0.12,
-    "max_steps": 1000,
+    "tf": 0.2,
+    "max_steps": 20000,
     "cfl": 0.3,
     "max_dt": 0.0001,
     "log_frequency": 500,
     "output_frequency": 500,
     "levels": [8, 8, 8],
+    "lowest_level": 8,
     "coords": [
         [0.0, 0.0, 0.0],
         [1.0, 1.0, 1.0],
@@ -44,10 +47,4 @@ config = {
         "zlow": "flow",
         "zhigh": "flow",
     },
-    "catalyst": {
-        "script": "/path",
-        "implementation": "paraview",
-        "implementation_directory": "/path",
-    },
 }
-

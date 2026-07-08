@@ -91,7 +91,7 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   # Accuracy tests
   add_test(NAME mmhydro_accuracy_sod_1d
     COMMAND ${MPIEXEC_EXECUTABLE} -n 1 ${CMAKE_BINARY_DIR}/apps/mmhydro/mmhydro
-    ${LEGION_GPU_FLAGS} ${CMAKE_SOURCE_DIR}/configs/sod_mm.py -d1
+    ${LEGION_GPU_FLAGS} ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod_mm.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   set_tests_properties(mmhydro_accuracy_sod_1d PROPERTIES

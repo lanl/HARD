@@ -3,4 +3,8 @@
 
 #include "shock_tube_mm.hh"
 
+#include "kelvin_helm_mm.hh"
+
+#include "helium_bubble_mm.hh"
+
 #endif // HARD_MODULES_GFM_ALL_INITIAL_DATA

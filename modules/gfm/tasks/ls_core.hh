@@ -15,6 +15,10 @@ struct freeze_material_task : annotation_task_region {
   inline static const std::string name{"freeze_material"};
 };
 
+struct rhs_upwind_task : annotation_task_region {
+  inline static const std::string name{"rhs_upwind"};
+};
+
 // Freeze material labels at the start of each step
 template<std::size_t D>
 void

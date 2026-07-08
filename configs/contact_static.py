@@ -17,7 +17,7 @@ config = {
     "tf": 0.2,
     "max_steps": 5000,
     "cfl": 0.3,
-    "max_dt": 0.0001,
+    "max_dt": 0.01,
     "log_frequency": 500,
     "output_frequency": 1000,
     "levels": [9, 9, 9],

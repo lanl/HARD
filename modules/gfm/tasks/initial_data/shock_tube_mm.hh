@@ -40,20 +40,21 @@ struct shyue_shock {
   static constexpr int mR = 1;
 }; // struct shyue_shock
 
-struct lee_shock {
-  static constexpr double rL = 0.9525;
+struct helium_bubble_mm_init {
+  static constexpr double rL = 1.7;
   static constexpr double uL = 0.0;
-  static constexpr double pL = 1.0;
+  static constexpr double pL = 10.0;
 
-  static constexpr double rR = 3.810;
+  static constexpr double rR = 1.0;
   static constexpr double uR = 0.0;
-  static constexpr double pR = 2.0;
+  static constexpr double pR = 0.5;
 
-  static constexpr double x0 = 0.5;
+  static constexpr double x0 = 100.0;
 
+  // Both sides of the initial discontinuity are ambient gas.
   static constexpr int mL = 0;
-  static constexpr int mR = 1;
-}; // struct lee_shock
+  static constexpr int mR = 0;
+}; // struct helium_bubble_mm
 
 struct CONTACT_stat {
   static constexpr double rL = 1.0;
@@ -105,13 +106,13 @@ shock_mm(flecsi::exec::cpu s,
   typename field<int>::accessor<wo, na> material_a,
   typename field<int>::accessor<wo, na> frozen_material_a,
   field<double>::accessor<wo, na> psi_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_scalar_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_scalar_known_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_ext_plus_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_ext_minus_a,
   const std::vector<eos::eos_wrapper> & eos_mm) {
 
