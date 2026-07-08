@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from verify_lib import compute_l1_error_fvm
+from verify_lib import compute_l1_error_fvm, simple_quad_2d, simple_quad_3d
 
 
 def cell_integral_power(bounds: list[tuple[float, float]]) -> float:
@@ -57,6 +57,30 @@ class ComputeL1ErrorFVMTest(unittest.TestCase):
         )
 
         self.assertAlmostEqual(error, 0.0)
+
+
+class SimpleQuadTensorProductTest(unittest.TestCase):
+    def test_2d_asymmetric_box_and_integrand(self) -> None:
+        got = simple_quad_2d(
+            lambda c: np.sin(c[0] + 2.0 * c[1]), 0.0, 1.0, 0.0, 2.0
+        )
+        expected = (np.sin(1.0) - np.sin(5.0) + np.sin(4.0)) * 0.5
+        self.assertAlmostEqual(got, expected)
+
+    def test_3d_asymmetric_box_and_integrand(self) -> None:
+        got = simple_quad_3d(
+            lambda c: np.sin(c[0] + 2.0 * c[1]) * np.exp(0.5 * c[2]),
+            0.0,
+            1.0,
+            0.0,
+            2.0,
+            0.0,
+            3.0,
+        )
+        expected = (np.sin(1.0) - np.sin(5.0) + np.sin(4.0)) * (
+            np.exp(1.5) - 1.0
+        )
+        self.assertAlmostEqual(got, expected)
 
 
 if __name__ == "__main__":
