@@ -15,5 +15,6 @@ include:
  - .gitlab/common.yml
  - .gitlab/checks.yml
  - .gitlab/mpi.yml
- - .gitlab/hpx.yml
  - .gitlab/legion.yml
+
+# - .gitlab/hpx.yml
