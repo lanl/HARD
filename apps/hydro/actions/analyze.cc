@@ -16,6 +16,9 @@ struct analyze {
   }
 };
 
+static const auto initial_analyze_action =
+  spec::register_action<control, state, analyze, cp::initial_analyze>();
+
 static const auto analyze_action =
   spec::register_action<control, state, analyze, cp::analyze>();
 

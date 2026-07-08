@@ -185,6 +185,8 @@ enum class cp {
   ///
   initialize,
   ///
+  initial_analyze,
+  ///
   rhs,
   ///
   rk_stage_1,
@@ -203,6 +205,8 @@ operator*(cp control_point) {
   switch(control_point) {
     case cp::initialize:
       return "initialize";
+    case cp::initial_analyze:
+      return "initial_analyze";
     case cp::rhs:
       return "rhs";
     case cp::rk_stage_1:
@@ -241,6 +245,7 @@ struct control_policy : spec::control_base<S, D, control_policy<S, D>> {
     : base_t(t0, tf, max_steps, cfl, max_dt, log_frequency, output_frequency) {}
 
   using control_points = list<point<cp::initialize>,
+    point<cp::initial_analyze>,
     cycle<base_t::cycle_control,
       point<cp::rhs>,
       point<cp::rk_stage_1>,
@@ -259,6 +264,8 @@ namespace rad {
 enum class cp {
   ///
   initialize,
+  ///
+  initial_analyze,
   ///
   rhs,
   ///
@@ -284,6 +291,8 @@ operator*(cp control_point) {
   switch(control_point) {
     case cp::initialize:
       return "initialize";
+    case cp::initial_analyze:
+      return "initial_analyze";
     case cp::rhs:
       return "rhs";
     case cp::radiation:
@@ -328,6 +337,7 @@ struct control_policy : spec::control_base<S, D, control_policy<S, D>> {
     : base_t(t0, tf, max_steps, cfl, max_dt, log_frequency, output_frequency) {}
 
   using control_points = list<point<cp::initialize>,
+    point<cp::initial_analyze>,
     cycle<base_t::cycle_control,
       point<cp::rhs>,
       point<cp::radiation>,
@@ -352,6 +362,8 @@ enum class cp {
   ///
   initialize,
   ///
+  initial_analyze,
+  ///
   rhs,
   ///
   rk_stage_1,
@@ -372,6 +384,8 @@ operator*(cp control_point) {
   switch(control_point) {
     case cp::initialize:
       return "hydro_initialize";
+    case cp::initial_analyze:
+      return "hydro_initial_analyze";
     case cp::rhs:
       return "hydro_rhs";
     case cp::rk_stage_1:
@@ -539,6 +553,7 @@ struct control_policy : flecsi::run::control_base {
   } // cycle_control
 
   using control_points = list<point<cp::initialize>,
+    point<cp::initial_analyze>,
     cycle<cycle_control,
       point<cp::rhs>,
       point<cp::rk_stage_1>,
