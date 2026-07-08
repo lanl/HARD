@@ -61,11 +61,45 @@ struct state {
       hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
       q_ext_minus; // RK final extrapolated state used by GMF on minus/left
                    // state
-    // RHS for extrapolation
+    // RHS for constant extrapolation
     // TODO : Maybe don't need this?
     static inline const field<
       hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
       q_rhs, q_rhs1;
+
+    // First directional derivative - used for linear and quadratic
+    // extrapolation
+    struct linear {
+      static inline const field<
+        hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+        qn_scalar; // first directional derivative (u_n = n · ∇u)
+      static inline const field<
+        hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+        qn_scalar_known; // fixed known-side values used to preserve psi<=0
+                         // region
+      static inline const field<
+        hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+        qn_scalar1; // RK2 stage-1 scratch for qn
+      static inline const field<
+        hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+        qn_rhs, qn_rhs1; // RHS for qn evolution (RK_stage1 and RK_stage2)
+    } lin;
+
+    // Second directional derivative - used for quadratic extrapolation
+    struct quadratic {
+      static inline const field<
+        hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+        qnn_scalar; // second directional derivative (u_nn = n · ∇(n · ∇u))
+      static inline const field<
+        hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+        qnn_scalar_known; // fixed known-side values
+      static inline const field<
+        hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+        qnn_scalar1; // RK2 stage-1 scratch for qnn
+      static inline const field<
+        hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
+        qnn_rhs, qnn_rhs1; // RHS for qnn evolution
+    } quad;
 
     // Normal faces for the surfaces
     struct faces_rl {

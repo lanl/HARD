@@ -267,10 +267,293 @@ unit_normals(flecsi::exec::accelerator s,
   }
 }
 
-// ----------------------------
+// Compute directional derivative q_n = n · \nabla q, in the known region (psi
+// <= 0) This corresponds to Eq. (4) in Aslam's paper.
+template<std::size_t D>
+void
+compute_directional_derivative(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> q_a,
+  typename field<double>::template accessor<ro, ro> psi_a,
+  typename field<vec<D>>::template accessor<ro, ro> normal_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    qn_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  auto q = m.template mdcolex<is::cells>(q_a);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto normal = m.template mdcolex<is::cells>(normal_a);
+  auto qn = m.template mdcolex<is::cells>(qn_a);
+
+  const double dx = m.template delta<ax::x>();
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      if(psi(i) > 0.0) {
+        qn(i) = 0.0; // Only compute in known region (psi <= 0)
+      }
+      else {
+        for(std::size_t qid = 0; qid < q(i).size(); ++qid) {
+          // q_n = n · \nabla q,  using central differences
+          qn(i)[qid] =
+            normal(i).x() * (q(i + 1)[qid] - q(i - 1)[qid]) / (2.0 * dx);
+        }
+      }
+    };
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(q,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    const double dy = m.template delta<ax::y>();
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      if(psi(i, j) > 0.0) {
+        qn(i, j) = 0.0;
+      }
+      else {
+        for(std::size_t qid = 0; qid < q(i, j).size(); ++qid) {
+          // q_n = n · \nabla q = nx * \del q / \del x + ny * \del q / \del y
+          qn(i, j)[qid] = normal(i, j).x() *
+                            (q(i + 1, j)[qid] - q(i - 1, j)[qid]) / (2.0 * dx) +
+                          normal(i, j).y() *
+                            (q(i, j + 1)[qid] - q(i, j - 1)[qid]) / (2.0 * dy);
+        }
+      }
+    };
+  }
+  else /* D == 3 */ {
+    auto mdpolicy_qqq = get_mdiota_policy(q,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    const double dy = m.template delta<ax::y>();
+    const double dz = m.template delta<ax::z>();
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      if(psi(i, j, k) > 0.0) {
+        qn(i, j, k) = 0.0;
+      }
+      else {
+        for(std::size_t qid = 0; qid < q(i, j, k).size(); ++qid) {
+          // q_n = n · \nabla q = nx * \del q / \del x + ny * \del q / \del y +
+          // nz * \del q / \del z
+          qn(i, j, k)[qid] =
+            normal(i, j, k).x() * (q(i + 1, j, k)[qid] - q(i - 1, j, k)[qid]) /
+              (2.0 * dx) +
+            normal(i, j, k).y() * (q(i, j + 1, k)[qid] - q(i, j - 1, k)[qid]) /
+              (2.0 * dy) +
+            normal(i, j, k).z() * (q(i, j, k + 1)[qid] - q(i, j, k - 1)[qid]) /
+              (2.0 * dz);
+        }
+      }
+    };
+  }
+}
+
+// Compute second directional derivative q_nn = n̂ · ∇(n̂ · ∇q) in the known
+// region (ψ ≤ 0) This corresponds to Eq. (7) in Aslam's paper: u_nn = n̂ · ∇(n̂ ·
+// ∇u)
+template<std::size_t D>
+void
+compute_second_directional_derivative(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> q_a,
+  typename field<double>::template accessor<ro, ro> psi_a,
+  typename field<vec<D>>::template accessor<ro, ro> normal_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    qnn_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  auto q = m.template mdcolex<is::cells>(q_a);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto normal = m.template mdcolex<is::cells>(normal_a);
+  auto qnn = m.template mdcolex<is::cells>(qnn_a);
+
+  const double dx = m.template delta<ax::x>();
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      if(psi(i) > 0.0) {
+        qnn(i) = 0.0; // Only compute in known region (ψ ≤ 0)
+      }
+      else {
+        for(std::size_t qid = 0; qid < q(i).size(); ++qid) {
+          // First compute q_n = n̂ · ∇q at i-1, i, i+1
+          double qn_im1 =
+            normal(i - 1).x() * (q(i)[qid] - q(i - 2)[qid]) / (2.0 * dx);
+          double qn_i =
+            normal(i).x() * (q(i + 1)[qid] - q(i - 1)[qid]) / (2.0 * dx);
+          double qn_ip1 =
+            normal(i + 1).x() * (q(i + 2)[qid] - q(i)[qid]) / (2.0 * dx);
+
+          // Then compute q_nn = n̂ · ∇(q_n) using central differences
+          qnn(i)[qid] = normal(i).x() * (qn_ip1 - qn_im1) / (2.0 * dx);
+        }
+      }
+    };
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(q,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    const double dy = m.template delta<ax::y>();
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      if(psi(i, j) > 0.0) {
+        qnn(i, j) = 0.0;
+      }
+      else {
+        for(std::size_t qid = 0; qid < q(i, j).size(); ++qid) {
+          // Compute q_n at neighboring cells
+          // For x-direction neighbors
+          double qn_x_im1 = normal(i - 1, j).x() *
+                              (q(i, j)[qid] - q(i - 2, j)[qid]) / (2.0 * dx) +
+                            normal(i - 1, j).y() *
+                              (q(i - 1, j + 1)[qid] - q(i - 1, j - 1)[qid]) /
+                              (2.0 * dy);
+          double qn_x_i = normal(i, j).x() *
+                            (q(i + 1, j)[qid] - q(i - 1, j)[qid]) / (2.0 * dx) +
+                          normal(i, j).y() *
+                            (q(i, j + 1)[qid] - q(i, j - 1)[qid]) / (2.0 * dy);
+          double qn_x_ip1 = normal(i + 1, j).x() *
+                              (q(i + 2, j)[qid] - q(i, j)[qid]) / (2.0 * dx) +
+                            normal(i + 1, j).y() *
+                              (q(i + 1, j + 1)[qid] - q(i + 1, j - 1)[qid]) /
+                              (2.0 * dy);
+
+          // For y-direction neighbors
+          double qn_y_jm1 = normal(i, j - 1).x() *
+                              (q(i + 1, j - 1)[qid] - q(i - 1, j - 1)[qid]) /
+                              (2.0 * dx) +
+                            normal(i, j - 1).y() *
+                              (q(i, j)[qid] - q(i, j - 2)[qid]) / (2.0 * dy);
+          double qn_y_j = normal(i, j).x() *
+                            (q(i + 1, j)[qid] - q(i - 1, j)[qid]) / (2.0 * dx) +
+                          normal(i, j).y() *
+                            (q(i, j + 1)[qid] - q(i, j - 1)[qid]) / (2.0 * dy);
+          double qn_y_jp1 = normal(i, j + 1).x() *
+                              (q(i + 1, j + 1)[qid] - q(i - 1, j + 1)[qid]) /
+                              (2.0 * dx) +
+                            normal(i, j + 1).y() *
+                              (q(i, j + 2)[qid] - q(i, j)[qid]) / (2.0 * dy);
+
+          // q_nn = n̂ · ∇(q_n) = nx * ∂q_n/∂x + ny * ∂q_n/∂y
+          qnn(i, j)[qid] =
+            normal(i, j).x() * (qn_x_ip1 - qn_x_im1) / (2.0 * dx) +
+            normal(i, j).y() * (qn_y_jp1 - qn_y_jm1) / (2.0 * dy);
+        }
+      }
+    };
+  }
+  else /* D == 3 */ {
+    auto mdpolicy_qqq = get_mdiota_policy(q,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    const double dy = m.template delta<ax::y>();
+    const double dz = m.template delta<ax::z>();
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      if(psi(i, j, k) > 0.0) {
+        qnn(i, j, k) = 0.0;
+      }
+      else {
+        for(std::size_t qid = 0; qid < q(i, j, k).size(); ++qid) {
+          // Compute q_n at neighboring cells in x-direction
+          double qn_x_im1 =
+            normal(i - 1, j, k).x() * (q(i, j, k)[qid] - q(i - 2, j, k)[qid]) /
+              (2.0 * dx) +
+            normal(i - 1, j, k).y() *
+              (q(i - 1, j + 1, k)[qid] - q(i - 1, j - 1, k)[qid]) / (2.0 * dy) +
+            normal(i - 1, j, k).z() *
+              (q(i - 1, j, k + 1)[qid] - q(i - 1, j, k - 1)[qid]) / (2.0 * dz);
+          double qn_x_i =
+            normal(i, j, k).x() * (q(i + 1, j, k)[qid] - q(i - 1, j, k)[qid]) /
+              (2.0 * dx) +
+            normal(i, j, k).y() * (q(i, j + 1, k)[qid] - q(i, j - 1, k)[qid]) /
+              (2.0 * dy) +
+            normal(i, j, k).z() * (q(i, j, k + 1)[qid] - q(i, j, k - 1)[qid]) /
+              (2.0 * dz);
+          double qn_x_ip1 =
+            normal(i + 1, j, k).x() * (q(i + 2, j, k)[qid] - q(i, j, k)[qid]) /
+              (2.0 * dx) +
+            normal(i + 1, j, k).y() *
+              (q(i + 1, j + 1, k)[qid] - q(i + 1, j - 1, k)[qid]) / (2.0 * dy) +
+            normal(i + 1, j, k).z() *
+              (q(i + 1, j, k + 1)[qid] - q(i + 1, j, k - 1)[qid]) / (2.0 * dz);
+
+          // Compute q_n at neighboring cells in y-direction
+          double qn_y_jm1 =
+            normal(i, j - 1, k).x() *
+              (q(i + 1, j - 1, k)[qid] - q(i - 1, j - 1, k)[qid]) / (2.0 * dx) +
+            normal(i, j - 1, k).y() * (q(i, j, k)[qid] - q(i, j - 2, k)[qid]) /
+              (2.0 * dy) +
+            normal(i, j - 1, k).z() *
+              (q(i, j - 1, k + 1)[qid] - q(i, j - 1, k - 1)[qid]) / (2.0 * dz);
+          double qn_y_j =
+            normal(i, j, k).x() * (q(i + 1, j, k)[qid] - q(i - 1, j, k)[qid]) /
+              (2.0 * dx) +
+            normal(i, j, k).y() * (q(i, j + 1, k)[qid] - q(i, j - 1, k)[qid]) /
+              (2.0 * dy) +
+            normal(i, j, k).z() * (q(i, j, k + 1)[qid] - q(i, j, k - 1)[qid]) /
+              (2.0 * dz);
+          double qn_y_jp1 =
+            normal(i, j + 1, k).x() *
+              (q(i + 1, j + 1, k)[qid] - q(i - 1, j + 1, k)[qid]) / (2.0 * dx) +
+            normal(i, j + 1, k).y() * (q(i, j + 2, k)[qid] - q(i, j, k)[qid]) /
+              (2.0 * dy) +
+            normal(i, j + 1, k).z() *
+              (q(i, j + 1, k + 1)[qid] - q(i, j + 1, k - 1)[qid]) / (2.0 * dz);
+
+          // Compute q_n at neighboring cells in z-direction
+          double qn_z_km1 =
+            normal(i, j, k - 1).x() *
+              (q(i + 1, j, k - 1)[qid] - q(i - 1, j, k - 1)[qid]) / (2.0 * dx) +
+            normal(i, j, k - 1).y() *
+              (q(i, j + 1, k - 1)[qid] - q(i, j - 1, k - 1)[qid]) / (2.0 * dy) +
+            normal(i, j, k - 1).z() * (q(i, j, k)[qid] - q(i, j, k - 2)[qid]) /
+              (2.0 * dz);
+          double qn_z_k =
+            normal(i, j, k).x() * (q(i + 1, j, k)[qid] - q(i - 1, j, k)[qid]) /
+              (2.0 * dx) +
+            normal(i, j, k).y() * (q(i, j + 1, k)[qid] - q(i, j - 1, k)[qid]) /
+              (2.0 * dy) +
+            normal(i, j, k).z() * (q(i, j, k + 1)[qid] - q(i, j, k - 1)[qid]) /
+              (2.0 * dz);
+          double qn_z_kp1 =
+            normal(i, j, k + 1).x() *
+              (q(i + 1, j, k + 1)[qid] - q(i - 1, j, k + 1)[qid]) / (2.0 * dx) +
+            normal(i, j, k + 1).y() *
+              (q(i, j + 1, k + 1)[qid] - q(i, j - 1, k + 1)[qid]) / (2.0 * dy) +
+            normal(i, j, k + 1).z() * (q(i, j, k + 2)[qid] - q(i, j, k)[qid]) /
+              (2.0 * dz);
+
+          // q_nn = n̂ · ∇(q_n) = nx * ∂q_n/∂x + ny * ∂q_n/∂y + nz * ∂q_n/∂z
+          qnn(i, j, k)[qid] =
+            normal(i, j, k).x() * (qn_x_ip1 - qn_x_im1) / (2.0 * dx) +
+            normal(i, j, k).y() * (qn_y_jp1 - qn_y_jm1) / (2.0 * dy) +
+            normal(i, j, k).z() * (qn_z_kp1 - qn_z_km1) / (2.0 * dz);
+        }
+      }
+    };
+  }
+}
+
+// -------------------------------------------------------------------
 // RHS: R(u) = - H(psi) * (n · grad(u))  in psi>0, else 0.
 // grad(u) computed with 2nd-order upwind + MinMod for each component.
-// ----------------------------
+// -------------------------------------------------------------------
 
 struct rhs_constant_extrapolation_minmod_task : annotation_task_region {
   inline static const std::string name{"rhs_constant_extrapolation_minmod"};
@@ -378,7 +661,279 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
   }
 }
 
-// Arturo s
+// -------------------------------------------------------------------
+// RHS: R(u_n) = - H(psi + \delta x) * (n · grad(u_n))  in psi>0, else 0.
+// grad(u_n) computed with 2nd-order upwind + MinMod for each component.
+// -------------------------------------------------------------------
+
+// RHS for linear extrapolation: ∂u/∂t = -H(ψ)(n̂ · ∇u - u_n)
+// Corresponds to Eq. (6) in Aslam's paper
+template<std::size_t D>
+void
+rhs_linear_extrapolation_minmod(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> q_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> qn_a,
+  typename field<double>::template accessor<ro, ro> psi_a,
+  typename field<vec<D>>::template accessor<ro, ro> normal_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    rhs_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  auto q = m.template mdcolex<is::cells>(q_a);
+  auto qn = m.template mdcolex<is::cells>(qn_a);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto normal = m.template mdcolex<is::cells>(normal_a);
+  auto rhs = m.template mdcolex<is::cells>(rhs_a);
+
+  const double dx = m.template delta<ax::x>();
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      if(psi(i) <= 0.0) {
+        rhs(i) = 0.0; // H(ψ) = 0 in known region
+      }
+      else {
+        const double ax = normal(i).x();
+        for(std::size_t qid = 0; qid < q(i).size(); ++qid) {
+          double grad_u = gradu_1d<5>({q(i - 2)[qid],
+                                        q(i - 1)[qid],
+                                        q(i)[qid],
+                                        q(i + 1)[qid],
+                                        q(i + 2)[qid]},
+            ax,
+            dx);
+
+          // RHS = -H(ψ)(n̂ · ∇u - u_n) = -ax * grad_u + qn
+          rhs(i)[qid] = -ax * grad_u + qn(i)[qid];
+        }
+      }
+    };
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(q,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    const double dy = m.template delta<ax::y>();
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      if(psi(i, j) <= 0.0) {
+        rhs(i, j) = 0.0;
+      }
+      else {
+        const double ax = normal(i, j).x();
+        const double ay = normal(i, j).y();
+
+        for(std::size_t qid = 0; qid < q(i, j).size(); ++qid) {
+          double grad_u_x = gradu_1d<5>({q(i - 2, j)[qid],
+                                          q(i - 1, j)[qid],
+                                          q(i, j)[qid],
+                                          q(i + 1, j)[qid],
+                                          q(i + 2, j)[qid]},
+            ax,
+            dx);
+          double grad_u_y = gradu_1d<5>({q(i, j - 2)[qid],
+                                          q(i, j - 1)[qid],
+                                          q(i, j)[qid],
+                                          q(i, j + 1)[qid],
+                                          q(i, j + 2)[qid]},
+            ay,
+            dy);
+
+          // RHS = -(ax * ∂q/∂x + ay * ∂q/∂y) + q_n
+          rhs(i, j)[qid] = -(ax * grad_u_x + ay * grad_u_y) + qn(i, j)[qid];
+        }
+      }
+    };
+  }
+  else /* D == 3 */ {
+    auto mdpolicy_qqq = get_mdiota_policy(q,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    const double dy = m.template delta<ax::y>();
+    const double dz = m.template delta<ax::z>();
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      if(psi(i, j, k) <= 0.0) {
+        rhs(i, j, k) = 0.0;
+      }
+      else {
+        const double ax = normal(i, j, k).x();
+        const double ay = normal(i, j, k).y();
+        const double az = normal(i, j, k).z();
+
+        for(std::size_t qid = 0; qid < q(i, j, k).size(); ++qid) {
+          double grad_u_x = gradu_1d<5>({q(i - 2, j, k)[qid],
+                                          q(i - 1, j, k)[qid],
+                                          q(i, j, k)[qid],
+                                          q(i + 1, j, k)[qid],
+                                          q(i + 2, j, k)[qid]},
+            ax,
+            dx);
+          double grad_u_y = gradu_1d<5>({q(i, j - 2, k)[qid],
+                                          q(i, j - 1, k)[qid],
+                                          q(i, j, k)[qid],
+                                          q(i, j + 1, k)[qid],
+                                          q(i, j + 2, k)[qid]},
+            ay,
+            dy);
+          double grad_u_z = gradu_1d<5>({q(i, j, k - 2)[qid],
+                                          q(i, j, k - 1)[qid],
+                                          q(i, j, k)[qid],
+                                          q(i, j, k + 1)[qid],
+                                          q(i, j, k + 2)[qid]},
+            az,
+            dz);
+
+          // RHS = -(ax * ∂q/∂x + ay * ∂q/∂y + az * ∂q/∂z) + q_n
+          rhs(i, j, k)[qid] =
+            -(ax * grad_u_x + ay * grad_u_y + az * grad_u_z) + qn(i, j, k)[qid];
+        }
+      }
+    };
+  }
+}
+
+// RHS for quadratic extrapolation of u_n: ∂u_n/∂t = -H(ψ)(n̂ · ∇u_n - u_nn)
+// Corresponds to Eq. (9) in Aslam's paper
+template<std::size_t D>
+void
+rhs_quadratic_extrapolation_qn_minmod(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> qn_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> qnn_a,
+  typename field<double>::template accessor<ro, ro> psi_a,
+  typename field<vec<D>>::template accessor<ro, ro> normal_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+    rhs_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  auto qn = m.template mdcolex<is::cells>(qn_a);
+  auto qnn = m.template mdcolex<is::cells>(qnn_a);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto normal = m.template mdcolex<is::cells>(normal_a);
+  auto rhs = m.template mdcolex<is::cells>(rhs_a);
+
+  const double dx = m.template delta<ax::x>();
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+      if(psi(i) <= 0.0) {
+        rhs(i) = 0.0;
+      }
+      else {
+        const double ax = normal(i).x();
+        for(std::size_t qid = 0; qid < qn(i).size(); ++qid) {
+          double grad_qn = gradu_1d<5>({qn(i - 2)[qid],
+                                         qn(i - 1)[qid],
+                                         qn(i)[qid],
+                                         qn(i + 1)[qid],
+                                         qn(i + 2)[qid]},
+            ax,
+            dx);
+
+          // RHS = -H(ψ)(n̂ · ∇u_n - u_nn) = -ax * grad_qn + qnn
+          rhs(i)[qid] = -ax * grad_qn + qnn(i)[qid];
+        }
+      }
+    };
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_qq = get_mdiota_policy(qn,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    const double dy = m.template delta<ax::y>();
+
+    s.executor().forall(ji, mdpolicy_qq) {
+      auto [j, i] = ji;
+      if(psi(i, j) <= 0.0) {
+        rhs(i, j) = 0.0;
+      }
+      else {
+        const double ax = normal(i, j).x();
+        const double ay = normal(i, j).y();
+
+        for(std::size_t qid = 0; qid < qn(i, j).size(); ++qid) {
+          double grad_qn_x = gradu_1d<5>({qn(i - 2, j)[qid],
+                                           qn(i - 1, j)[qid],
+                                           qn(i, j)[qid],
+                                           qn(i + 1, j)[qid],
+                                           qn(i + 2, j)[qid]},
+            ax,
+            dx);
+          double grad_qn_y = gradu_1d<5>({qn(i, j - 2)[qid],
+                                           qn(i, j - 1)[qid],
+                                           qn(i, j)[qid],
+                                           qn(i, j + 1)[qid],
+                                           qn(i, j + 2)[qid]},
+            ay,
+            dy);
+
+          // RHS = -(ax * ∂q_n/∂x + ay * ∂q_n/∂y) + q_nn
+          rhs(i, j)[qid] = -(ax * grad_qn_x + ay * grad_qn_y) + qnn(i, j)[qid];
+        }
+      }
+    };
+  }
+  else /* D == 3 */ {
+    auto mdpolicy_qqq = get_mdiota_policy(qn,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    const double dy = m.template delta<ax::y>();
+    const double dz = m.template delta<ax::z>();
+
+    s.executor().forall(kji, mdpolicy_qqq) {
+      auto [k, j, i] = kji;
+      if(psi(i, j, k) <= 0.0) {
+        rhs(i, j, k) = 0.0;
+      }
+      else {
+        const double ax = normal(i, j, k).x();
+        const double ay = normal(i, j, k).y();
+        const double az = normal(i, j, k).z();
+
+        for(std::size_t qid = 0; qid < qn(i, j, k).size(); ++qid) {
+          double grad_qn_x = gradu_1d<5>({qn(i - 2, j, k)[qid],
+                                           qn(i - 1, j, k)[qid],
+                                           qn(i, j, k)[qid],
+                                           qn(i + 1, j, k)[qid],
+                                           qn(i + 2, j, k)[qid]},
+            ax,
+            dx);
+          double grad_qn_y = gradu_1d<5>({qn(i, j - 2, k)[qid],
+                                           qn(i, j - 1, k)[qid],
+                                           qn(i, j, k)[qid],
+                                           qn(i, j + 1, k)[qid],
+                                           qn(i, j + 2, k)[qid]},
+            ay,
+            dy);
+          double grad_qn_z = gradu_1d<5>({qn(i, j, k - 2)[qid],
+                                           qn(i, j, k - 1)[qid],
+                                           qn(i, j, k)[qid],
+                                           qn(i, j, k + 1)[qid],
+                                           qn(i, j, k + 2)[qid]},
+            az,
+            dz);
+
+          // RHS = -(ax * ∂q_n/∂x + ay * ∂q_n/∂y + az * ∂q_n/∂z) + q_nn
+          rhs(i, j, k)[qid] =
+            -(ax * grad_qn_x + ay * grad_qn_y + az * grad_qn_z) +
+            qnn(i, j, k)[qid];
+        }
+      }
+    };
+  }
+}
 
 // Pseudo-time step helper
 template<std::size_t D>
@@ -440,9 +995,6 @@ q_stage2(const hard::tasks::util::extp_q<D> & q0,
   return out;
 }
 
-// Arturo e
-
-// Arturo s
 // PREVIOUS RK2, CHANGING IT TO THE CFL DEPENDENT ONE RIGHT BELOW
 // RK2(Heun) advance for constant extrapolation
 // STEP=1: q_stage = q + dt * rhs
@@ -575,8 +1127,6 @@ copy_extp_q(flecsi::exec::accelerator s,
 struct prepare_extp_for_material_task : annotation_task_region {
   inline static const std::string name{"prepare_extp_for_material"};
 };
-
-// Arturo e
 
 // Prepare one material's state for constant extrapolation.
 //
