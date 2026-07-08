@@ -90,10 +90,15 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   set(TEST_DISTRIBUTED_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_distributed.sh")
   set(TEST_CONVERGENCE_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_convergence.sh")
 
+  set(LEGION_GPU_FLAGS "")
+  if(ENABLE_LEGION AND ENABLE_CUDA)
+    set(LEGION_GPU_FLAGS "-ll:gpu 1 -ll:show_rsrv")
+  endif()
+
   # Accuracy tests
   add_test(NAME mmhydro_accuracy_sod_1d
     COMMAND ${MPIEXEC_EXECUTABLE} -n 1 ${CMAKE_BINARY_DIR}/apps/mmhydro/mmhydro
-    ${CMAKE_SOURCE_DIR}/configs/sod_mm.py -d1
+    ${LEGION_GPU_FLAGS} ${CMAKE_SOURCE_DIR}/configs/sod_mm.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   set_tests_properties(mmhydro_accuracy_sod_1d PROPERTIES
