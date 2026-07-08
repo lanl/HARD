@@ -35,11 +35,23 @@ freeze_material(flecsi::exec::accelerator s,
   };
 }
 
-struct rhs_upwind_task : annotation_task_region {
-  inline static const std::string name{"rhs_upwind"};
-};
+FLECSI_INLINE_TARGET double
+material_sign(int neighbor_material, int center_material) noexcept {
+  return neighbor_material == center_material ? 1.0 : -1.0;
+}
 
-// upwind HJ RHS (acts on material-signed psi_m)
+template<class PsiAccessor, class MaterialAccessor, class... Index>
+FLECSI_INLINE_TARGET double
+psi_star_at(const PsiAccessor & psi,
+  const MaterialAccessor & frozen_material,
+  int center_material,
+  Index... index) noexcept {
+  return psi(index...) *
+         material_sign(frozen_material(index...), center_material);
+}
+
+// upwind HJ RHS using material-signed psi* values so that neighbor
+// differences are taken within the center cell's frozen material frame.
 template<std::size_t D>
 void
 rhs_upwind(flecsi::exec::accelerator s,
@@ -60,18 +72,19 @@ rhs_upwind(flecsi::exec::accelerator s,
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const int ip1 = i + 1;
       const int im1 = i - 1;
+      const int center_material = fmat(i);
 
       auto [um, up] = minmax(0.0, vel(i));
 
-      // material-signed neighbor values relative to center frozen material
-      const double pm_ip1 = (fmat(ip1) == fmat(i)) ? psi(ip1) : -psi(ip1);
-      const double pm_im1 = (fmat(im1) == fmat(i)) ? psi(im1) : -psi(im1);
-      const double pm_i = psi(i);
+      // psi*_{i\pm1} = psi_{i\pm1} * (2 delta_{l_{i\pm1}, l_i} - 1)
+      const double psi_star_ip1 = psi_star_at(psi, fmat, center_material, ip1);
+      const double psi_star_im1 = psi_star_at(psi, fmat, center_material, im1);
+      const double psi_star_i = psi(i);
 
-      // adv_x in flux-form upwind; rhs = -adv to match working HJ_upwind_L_2D
-      const double adv_x =
-        (pm_i * (up.x() - um.x()) + pm_ip1 * um.x() - pm_im1 * up.x()) /
-        m.template delta<ax::x>();
+      // First-order split upwind operator applied to psi*.
+      const double adv_x = (psi_star_i * (up.x() - um.x()) +
+                             psi_star_ip1 * um.x() - psi_star_im1 * up.x()) /
+                           m.template delta<ax::x>();
 
       rhs(i) = -adv_x;
     };
@@ -83,27 +96,28 @@ rhs_upwind(flecsi::exec::accelerator s,
 
     s.executor().forall(ji, pol) {
       auto [j, i] = ji;
+      const int center_material = fmat(i, j);
       auto [um, up] = minmax(0.0, vel(i, j));
 
-      // Compute material-signed neighbors
-      std::array<std::tuple<int, int>, 2 * D> neighbor_coords = {
-        {{i - 1, j}, {i + 1, j}, {i, j - 1}, {i, j + 1}}};
+      // psi* neighbors relative to the center cell material l_{i,j}.
+      const double psi_star_im1j =
+        psi_star_at(psi, fmat, center_material, i - 1, j);
+      const double psi_star_ip1j =
+        psi_star_at(psi, fmat, center_material, i + 1, j);
+      const double psi_star_ijm1 =
+        psi_star_at(psi, fmat, center_material, i, j - 1);
+      const double psi_star_ijp1 =
+        psi_star_at(psi, fmat, center_material, i, j + 1);
+      const double psi_star_ij = psi(i, j);
 
-      std::array<double, 2 * D> pm;
-      for(int n = 0; n < 2 * D; ++n) {
-        auto [ni, nj] = neighbor_coords[n];
-        pm[n] = (fmat(ni, nj) == fmat(i, j)) ? psi(ni, nj) : -psi(ni, nj);
-      }
-      const double pm_ij = psi(i, j);
+      // First-order split upwind operator applied to psi*.
+      const double adv_x = (psi_star_ij * (up.x() - um.x()) +
+                             psi_star_ip1j * um.x() - psi_star_im1j * up.x()) /
+                           m.template delta<ax::x>();
 
-      // pm[0]=im1, pm[1]=ip1, pm[2]=jm1, pm[3]=jp1
-      const double adv_x =
-        (pm_ij * (up.x() - um.x()) + pm[1] * um.x() - pm[0] * up.x()) /
-        m.template delta<ax::x>();
-
-      const double adv_y =
-        (pm_ij * (up.y() - um.y()) + pm[3] * um.y() - pm[2] * up.y()) /
-        m.template delta<ax::y>();
+      const double adv_y = (psi_star_ij * (up.y() - um.y()) +
+                             psi_star_ijp1 * um.y() - psi_star_ijm1 * up.y()) /
+                           m.template delta<ax::y>();
 
       rhs(i, j) = -(adv_x + adv_y);
     };
@@ -116,34 +130,36 @@ rhs_upwind(flecsi::exec::accelerator s,
 
     s.executor().forall(kji, pol) {
       auto [k, j, i] = kji;
+      const int center_material = fmat(i, j, k);
       auto [um, up] = minmax(0.0, vel(i, j, k));
 
-      // Compute material-signed neighbors
-      std::array<std::tuple<int, int, int>, 2 * D> neighbor_coords = {
-        {{i - 1, j, k},
-          {i + 1, j, k},
-          {i, j - 1, k},
-          {i, j + 1, k},
-          {i, j, k - 1},
-          {i, j, k + 1}}};
+      // psi* neighbors relative to the center cell material l_{i,j,k}.
+      const double psi_star_im1jk =
+        psi_star_at(psi, fmat, center_material, i - 1, j, k);
+      const double psi_star_ip1jk =
+        psi_star_at(psi, fmat, center_material, i + 1, j, k);
+      const double psi_star_ijm1k =
+        psi_star_at(psi, fmat, center_material, i, j - 1, k);
+      const double psi_star_ijp1k =
+        psi_star_at(psi, fmat, center_material, i, j + 1, k);
+      const double psi_star_ijkm1 =
+        psi_star_at(psi, fmat, center_material, i, j, k - 1);
+      const double psi_star_ijkp1 =
+        psi_star_at(psi, fmat, center_material, i, j, k + 1);
+      const double psi_star_ijk = psi(i, j, k);
 
-      std::array<double, 2 * D> pm;
-      for(int n = 0; n < 2 * D; ++n) {
-        auto [ni, nj, nk] = neighbor_coords[n];
-        pm[n] = (fmat(ni, nj, nk) == fmat(i, j, k)) ? psi(ni, nj, nk)
-                                                    : -psi(ni, nj, nk);
-      }
-      const double pm_ijk = psi(i, j, k);
-
-      // pm[0]=im1, pm[1]=ip1, pm[2]=jm1, pm[3]=jp1, pm[4]=km1, pm[5]=kp1
+      // First-order split upwind operator applied to psi*.
       const double adv_x =
-        (pm_ijk * (up.x() - um.x()) + pm[1] * um.x() - pm[0] * up.x()) /
+        (psi_star_ijk * (up.x() - um.x()) + psi_star_ip1jk * um.x() -
+          psi_star_im1jk * up.x()) /
         m.template delta<ax::x>();
       const double adv_y =
-        (pm_ijk * (up.y() - um.y()) + pm[3] * um.y() - pm[2] * up.y()) /
+        (psi_star_ijk * (up.y() - um.y()) + psi_star_ijp1k * um.y() -
+          psi_star_ijm1k * up.y()) /
         m.template delta<ax::y>();
       const double adv_z =
-        (pm_ijk * (up.z() - um.z()) + pm[5] * um.z() - pm[4] * up.z()) /
+        (psi_star_ijk * (up.z() - um.z()) + psi_star_ijkp1 * um.z() -
+          psi_star_ijkm1 * up.z()) /
         m.template delta<ax::z>();
 
       rhs(i, j, k) = -(adv_x + adv_y + adv_z);
@@ -226,10 +242,13 @@ advance_psi(flecsi::exec::accelerator s,
 
   auto update_one = [=](double psi0, double psip, double k) {
     if constexpr(STEP == 2) {
-      return 0.75 * psi0 + 0.25 * (psip + *dt_a * k);
+      // psi^2 = 3/4 psi^n + 1/4 psi^1 + 1/4 dt L(psi^1, L^n)
+      return 0.75 * psi0 + 0.25 * psip + 0.25 * (*dt_a) * k;
     }
     else {
-      return (1.0 / 3.0) * psi0 + (2.0 / 3.0) * (psip + *dt_a * k);
+      // psi^3 = 1/3 psi^n + 2/3 psi^2 + 2/3 dt L(psi^2, L^n)
+      return (1.0 / 3.0) * psi0 + (2.0 / 3.0) * psip +
+             (2.0 / 3.0) * (*dt_a) * k;
     }
   };
 

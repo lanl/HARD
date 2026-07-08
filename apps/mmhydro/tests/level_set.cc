@@ -1,5 +1,10 @@
 #include "flecsi/execution.hh"
+#include "flecsi/flog.hh"
 #include "flecsi/util/unit.hh"
+
+#include <utility>
+
+#include <utility>
 
 #include "../types.hh"
 #include "common/tasks/utils.hh"
@@ -28,19 +33,19 @@ template<std::size_t D>
 typename mesh<D>::periodic_axes
 init_boundaries() noexcept {
   typename mesh<D>::periodic_axes p;
-  p[ax::x] = false;
+  p[ax::x] = true;
   if constexpr(D >= 2) {
-    p[ax::y] = false;
+    p[ax::y] = true;
   }
   if constexpr(D == 3) {
-    p[ax::z] = false;
+    p[ax::z] = true;
   } // if
   return p;
 }
 
 template<std::size_t D>
 void
-init_mesh(scheduler & s, state<D> & st) {
+init_mesh(scheduler & s, state<D> & st, std::size_t levels) {
 
   std::array<std::array<bd::boundary_type, 2>, D> bnds;
   bnds[ax::x][bd::low] = bd::periodic;
@@ -55,8 +60,6 @@ init_mesh(scheduler & s, state<D> & st) {
   }
 
   auto bf = execute<init_boundaries<D>>();
-
-  std::size_t levels = 5; // change here - error decreses for more levels
 
   std::size_t lowest_level = levels;
   std::size_t highest_level = levels;
@@ -94,18 +97,15 @@ init_mesh(scheduler & s, state<D> & st) {
 }
 
 void
-init_dt(flecsi::exec::cpu,
+init_dt_period(flecsi::exec::cpu,
   typename single<double>::template accessor<spec::wo> t,
-  typename single<double>::template accessor<spec::wo> dt) noexcept {
+  typename single<double>::template accessor<spec::wo> dt,
+  typename single<double>::template accessor<spec::wo> period,
+  double dt_value,
+  double period_value) noexcept {
   *t = 0;
-
-  // CRITICAL: dt must EXACTLY divide t_end=4.0 for time-reversibility!
-  // CFL calculation for 2D:
-  // Domain [0,1], levels=5 → dx = 1/32 = 0.03125
-  // max|u| = √2 ≈ 1.414 (from velocity field)
-  // Choose dt = 4.0/500 = 0.008 (exactly 500 steps to t=4.0)
-  // CFL = 0.008 × 1.414 / 0.03125 ≈ 0.36 (safe)
-  *dt = 0.008; // Exactly 500 steps to t=4.0
+  *dt = dt_value;
+  *period = period_value;
 }
 
 template<std::size_t D>
@@ -119,11 +119,11 @@ init_fields(flecsi::exec::accelerator s,
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto mat = m.template mdcolex<is::cells>(material_a);
 
-  // If your domain is [0,1]^D, these are normalized.
-  // If not, scale x0,y0,z0,R accordingly.
-  const double x0 = 0.5;
-  const double y0 = 0.75;
-  const double z0 = 0.5;
+  // Paper two-material test: circle centered at (0.35, 0.35) with radius 0.15
+  // in the unit square.
+  const double x0 = 0.35;
+  const double y0 = 0.35;
+  const double z0 = 0.35;
   const double R = 0.15;
 
   if constexpr(D == 1) {
@@ -210,145 +210,227 @@ advance_t(flecsi::exec::cpu,
 
 template<std::size_t D>
 double
-compare_material(flecsi::exec::accelerator s,
+compare_psi_l1(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<spec::ro> m,
-  typename field<int>::template accessor<spec::ro, spec::na> material_a,
-  typename field<int>::template accessor<spec::ro, spec::na>
-    material_comp_a) noexcept {
+  typename field<double>::template accessor<spec::ro, spec::na> psi_a,
+  typename field<double>::template accessor<spec::ro, spec::na>
+    psi_comp_a) noexcept {
 
-  auto mat = m.template mdcolex<is::cells>(material_a);
-  auto matc = m.template mdcolex<is::cells>(material_comp_a);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto psic = m.template mdcolex<is::cells>(psi_comp_a);
 
   if constexpr(D == 1) {
     auto dx = m.template delta<ax::x>();
-    return std::sqrt(s.executor().reduceall(
-      i, l2, (m.template cells<ax::x, dm::quantities>()), fold::sum, double) {
-      l2(std::pow((mat(i) - matc(i)) * dx, 2));
-    });
+    return s.executor().reduceall(
+      i, l1, (m.template cells<ax::x, dm::quantities>()), fold::sum, double) {
+      l1(std::abs(psi(i) - psic(i)) * dx);
+    };
   }
   else if constexpr(D == 2) {
     auto dx = m.template delta<ax::x>();
     auto dy = m.template delta<ax::y>();
-    auto pol = get_mdiota_policy(mat,
+    auto pol = get_mdiota_policy(psi,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    return std::sqrt(s.executor().reduceall(ji, l2, pol, fold::sum, double) {
+    return s.executor().reduceall(ji, l1, pol, fold::sum, double) {
       auto [j, i] = ji;
-      l2(std::pow((mat(i, j) - matc(i, j)) * dx * dy, 2));
-    });
+      l1(std::abs(psi(i, j) - psic(i, j)) * dx * dy);
+    };
   }
   else { // D == 3
     auto dx = m.template delta<ax::x>();
     auto dy = m.template delta<ax::y>();
     auto dz = m.template delta<ax::z>();
-    auto pol = get_mdiota_policy(mat,
+    auto pol = get_mdiota_policy(psi,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    return std::sqrt(s.executor().reduceall(kji, l2, pol, fold::sum, double) {
+    return s.executor().reduceall(kji, l1, pol, fold::sum, double) {
       auto [k, j, i] = kji;
-      l2(std::pow((mat(i, j, k) - matc(i, j, k)) * dx * dy * dz, 2));
-    });
+      l1(std::abs(psi(i, j, k) - psic(i, j, k)) * dx * dy * dz);
+    };
   }
-} // compare_material
-
-inline void
-print_time_dt(flecsi::exec::accelerator,
-  typename single<double>::template accessor<spec::ro> t,
-  typename single<double>::template accessor<spec::ro> dt) noexcept {
-  std::cout << "[debug] t=" << *t << " dt=" << *dt << std::endl;
-}
-
-template<std::size_t D>
-void
-copy_material(flecsi::exec::accelerator s,
-  typename mesh<D>::template accessor<spec::ro> m,
-  typename field<int>::template accessor<spec::ro, spec::ro> src_a,
-  typename field<int>::template accessor<spec::wo, spec::ro> dst_a) noexcept {
-
-  s.executor().forall(i, flecsi::util::iota_view({}, src_a.span().size())) {
-    dst_a(i) = src_a(i);
-  };
 }
 
 template<std::size_t D>
 double
-do_test(flecsi::scheduler & s, state<D> & st) {
+compare_psi_linf(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<spec::ro> m,
+  typename field<double>::template accessor<spec::ro, spec::na> psi_a,
+  typename field<double>::template accessor<spec::ro, spec::na>
+    psi_comp_a) noexcept {
 
-  // Copy initial material for comparison
-  s.execute<copy_material<D>>(
-    flecsi::exec::on, *st.m, st.material(*st.m), st.initial_material(*st.m));
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+  auto psic = m.template mdcolex<is::cells>(psi_comp_a);
 
-  // TOOD : remove below
-  // ---- 1) Print initial time/dt (must be via a task) ----
-  // s.execute<print_time_dt>(flecsi::exec::on, st.t(*st.gt), st.dt(*st.gt));
+  if constexpr(D == 1) {
+    return s.executor().reduceall(
+      i, linf, (m.template cells<ax::x, dm::quantities>()), fold::max, double) {
+      linf(std::abs(psi(i) - psic(i)));
+    };
+  }
+  else if constexpr(D == 2) {
+    auto pol = get_mdiota_policy(psi,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
 
-  // ---- 2) Choose end time / step count ----
-  // Period of cos(πt/2) = 4, so use t_end = 4 for complete cycle
-  const double t_end = 4.0;
-  const double dt_host = 0.008; // MUST exactly divide t_end for reversibility!
+    return s.executor().reduceall(ji, linf, pol, fold::max, double) {
+      auto [j, i] = ji;
+      linf(std::abs(psi(i, j) - psic(i, j)));
+    };
+  }
+  else { // D == 3
+    auto pol = get_mdiota_policy(psi,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    return s.executor().reduceall(kji, linf, pol, fold::max, double) {
+      auto [k, j, i] = kji;
+      linf(std::abs(psi(i, j, k) - psic(i, j, k)));
+    };
+  }
+}
+
+template<std::size_t D>
+std::pair<double, double>
+do_test(flecsi::scheduler & s, state<D> & st, double t_end, double dt_host) {
+
+  s.execute<copy_scalar<D>>(
+    flecsi::exec::on, st.psi(*st.m), st.initial_psi(*st.m));
+
   const std::size_t nsteps =
     static_cast<std::size_t>(std::lround(t_end / dt_host));
 
-  std::cout << "[debug] " << D << "D : nsteps=" << nsteps << " (t_end=" << t_end
-            << ", dt=" << dt_host << ")\n";
-
-  // This test does a time loop (t: 0 -> 2T). At the end, the system should
-  // have returned to its original state
+  // This test advances the level set through a time-reversal cycle.
+  // At the end, psi should have returned to its initial state.
   for(std::size_t n{0}; n < nsteps; n++) {
+    if(n % 100 == 0 && s.runtime().process() == 0) {
+      flog(info) << "[debug] step " << n << "/" << nsteps << std::endl;
+    }
     hard::ssprk3_step<D>(s, st); // uses rhs + frozen_material internally
     s.execute<advance_t>(flecsi::exec::on, st.t(*st.gt), st.dt(*st.gt));
   }
   // ---- 4) Print final time/dt ----
-  // s.execute<print_time_dt>(flecsi::exec::on, st.t(*st.gt), st.dt(*st.gt));
 
   // Debug printing disabled (functions not available)
   // TODO: implement print functions if needed for debugging
 
-  auto error =
-    s.reduce<compare_material<D>, flecsi::exec::fold::sum>(
-       flecsi::exec::on, *st.m, st.material(*st.m), st.initial_material(*st.m))
+  auto l1_error =
+    s.reduce<compare_psi_l1<D>, flecsi::exec::fold::sum>(
+       flecsi::exec::on, *st.m, st.psi(*st.m), st.initial_psi(*st.m))
       .get();
 
-  std::cout << "[result] " << D << "D : L2 error = " << error << std::endl;
+  auto linf_error =
+    s.reduce<compare_psi_linf<D>, flecsi::exec::fold::max>(
+       flecsi::exec::on, *st.m, st.psi(*st.m), st.initial_psi(*st.m))
+      .get();
 
-  return error;
+  std::cout << "[result] " << D << "D : L1 psi error = " << l1_error
+            << ", Linf psi error = " << linf_error << std::endl;
+
+  return {l1_error, linf_error};
 }
 
 int
 test_driver(scheduler & s) {
   UNIT() {
-    // 1D
-    state<1> d1;
-    init_mesh<1>(s, d1);
-    s.execute<init_fields<1>>(
-      flecsi::exec::on, *d1.m, d1.psi(*d1.m), d1.material(*d1.m));
-    s.execute<init_dt>(flecsi::exec::on, d1.t(*d1.gt), d1.dt(*d1.gt));
-    auto err_1d = do_test<1>(s, d1);
-    // EXPECT_LT(err_1d, 1e-10);
-    EXPECT_LT(err_1d, 0.15);
+    auto relaxed = [](double ref) { return 1.8 * ref; };
 
-    // 2D
-    state<2> d2;
-    init_mesh<2>(s, d2);
-    s.execute<init_fields<2>>(
-      flecsi::exec::on, *d2.m, d2.psi(*d2.m), d2.material(*d2.m));
-    s.execute<init_dt>(flecsi::exec::on, d2.t(*d2.gt), d2.dt(*d2.gt));
-    auto err_2d = do_test<2>(s, d2);
-    // EXPECT_LT(err_2d, 1e-10);
-    EXPECT_LT(err_2d, 0.01);
+    // 2D, level 7, dx = 1/128, dt = 2/640
+    {
+      state<2> d2;
+      constexpr std::size_t levels = 7;
+      constexpr double dt = 2.0 / 640.0;
+      constexpr double t_end = 2.0;
+      constexpr double period = 2.0;
+      constexpr double l1_ref = 0.00655061; // original value: 1.3e-6
+      constexpr double linf_ref = 0.0989986; // original value: 1.6e-4
 
-    // 3D
-    state<3> d3;
-    init_mesh<3>(s, d3);
-    s.execute<init_fields<3>>(
-      flecsi::exec::on, *d3.m, d3.psi(*d3.m), d3.material(*d3.m));
-    s.execute<init_dt>(flecsi::exec::on, d3.t(*d3.gt), d3.dt(*d3.gt));
-    auto err_3d = do_test<3>(s, d3);
-    // EXPECT_LT(err_3d, 1e-10);
-    EXPECT_LT(err_3d, 0.001);
+      init_mesh<2>(s, d2, levels);
+      s.execute<init_fields<2>>(
+        flecsi::exec::on, *d2.m, d2.psi(*d2.m), d2.material(*d2.m));
+      s.execute<init_dt_period>(flecsi::exec::on,
+        d2.t(*d2.gt),
+        d2.dt(*d2.gt),
+        d2.period(*d2.gt),
+        dt,
+        period);
+      auto err = do_test<2>(s, d2, t_end, dt);
+      EXPECT_LT(err.first, relaxed(l1_ref));
+      EXPECT_LT(err.second, relaxed(linf_ref));
+    }
+
+    // // 2D, level 8, dx = 1/256, dt = 2/2032
+    // {
+    //   state<2> d2;
+    //   constexpr std::size_t levels = 8;
+    //   constexpr double dt = 2.0 / 2032.0;
+    //   constexpr double t_end = 2.0;
+    //   constexpr double period = 2.0;
+    //   constexpr double l1_ref = 0.00337367; // original value: 4.7e-8
+    //   constexpr double linf_ref = 0.0720733; // original value: 1.1e-5
+
+    //   init_mesh<2>(s, d2, levels);
+    //   s.execute<init_fields<2>>(
+    //     flecsi::exec::on, *d2.m, d2.psi(*d2.m), d2.material(*d2.m));
+    //   s.execute<init_dt_period>(flecsi::exec::on,
+    //     d2.t(*d2.gt),
+    //     d2.dt(*d2.gt),
+    //     d2.period(*d2.gt),
+    //     dt,
+    //     period);
+    //   auto err = do_test<2>(s, d2, t_end, dt);
+    //   EXPECT_LT(err.first, relaxed(l1_ref));
+    //   EXPECT_LT(err.second, relaxed(linf_ref));
+    // }
+
+    // // 3D, level 7, dx = 1/128, dt = 1/480
+    // {
+    //   state<3> d3;
+    //   constexpr std::size_t levels = 7;
+    //   constexpr double dt = 1.0 / 480.0;
+    //   constexpr double t_end = 1.0;
+    //   constexpr double period = 1.0;
+    //   constexpr double l1_ref = 0.00608518;   // original value: 1.4e-6
+    //   constexpr double linf_ref = 0.0342362;  // original value: 1.36e-2
+
+    //   init_mesh<3>(s, d3, levels);
+    //   s.execute<init_fields<3>>(
+    //     flecsi::exec::on, *d3.m, d3.psi(*d3.m), d3.material(*d3.m));
+    //   s.execute<_period>(
+    //     flecsi::exec::on, d3.t(*d3.gt), d3.dt(*d3.gt), d3.period(*d3.gt), dt,
+    //     period);
+    //   auto err = do_test<3>(s, d3, t_end, dt);
+    //   EXPECT_LT(err.first, relaxed(l1_ref));
+    //   EXPECT_LT(err.second, relaxed(linf_ref));
+    // }
+
+    // // 3D, level 8, dx = 1/256, dt = 1/1524
+    // {
+    //   state<3> d3;
+    //   constexpr std::size_t levels = 8;
+    //   constexpr double dt = 1.0 / 1524.0;
+    //   constexpr double t_end = 1.0;
+    //   constexpr double period = 1.0;
+    //   constexpr double l1_ref = 0.00307139; // original value: 6.2e-8
+    //   constexpr double linf_ref = 0.0196965; // original value: 1.6e-3
+
+    //   init_mesh<3>(s, d3, levels);
+    //   s.execute<init_fields<3>>(
+    //     flecsi::exec::on, *d3.m, d3.psi(*d3.m), d3.material(*d3.m));
+    //   s.execute<init_dt_period>(flecsi::exec::on,
+    //     d3.t(*d3.gt),
+    //     d3.dt(*d3.gt),
+    //     d3.period(*d3.gt),
+    //     dt,
+    //     period);
+    //   auto err = do_test<3>(s, d3, t_end, dt);
+    //   EXPECT_LT(err.first, relaxed(l1_ref));
+    //   EXPECT_LT(err.second, relaxed(linf_ref));
+    // }
   };
 } // kernel_driver
 

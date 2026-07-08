@@ -35,8 +35,13 @@ ssprk3_step(
 #endif
 
 #ifdef IN_TEST
-  sc.execute<tests::level_set_utils::copy_test_vel<D>>(
-    flecsi::exec::on, *s.m, s.velocity(*s.m), s.t(*s.gt));
+  sc.execute<tests::level_set_utils::copy_test_vel_stage<D, 1>>(
+    flecsi::exec::on,
+    *s.m,
+    s.velocity(*s.m),
+    s.t(*s.gt),
+    s.dt(*s.gt),
+    s.period(*s.gt));
 #endif // IN_TEST
 
   // 0) Freeze material for this entire time step: Lfrozen = L^n
@@ -82,9 +87,13 @@ ssprk3_step(
       s.dt(*s.gt));
 
 #ifdef IN_TEST
-  annotation_rguard<tests::level_set_utils::copy_test_vel_task>(),
-    sc.execute<tests::level_set_utils::copy_test_vel<D>>(
-      flecsi::exec::on, *s.m, s.velocity(*s.m), s.t(*s.gt));
+  sc.execute<tests::level_set_utils::copy_test_vel_stage<D, 2>>(
+    flecsi::exec::on,
+    *s.m,
+    s.velocity(*s.m),
+    s.t(*s.gt),
+    s.dt(*s.gt),
+    s.period(*s.gt));
 #endif // IN_TEST
 
   // Stage 2: k = L(psi1, L^n); psi2 = 0.75*psi^n + 0.25*(psi1 + dt*k)
@@ -120,9 +129,13 @@ ssprk3_step(
       s.dt(*s.gt));
 
 #ifdef IN_TEST
-  annotation_rguard<tests::level_set_utils::copy_test_vel_task>(),
-    sc.execute<tests::level_set_utils::copy_test_vel<D>>(
-      flecsi::exec::on, *s.m, s.velocity(*s.m), s.t(*s.gt));
+  sc.execute<tests::level_set_utils::copy_test_vel_stage<D, 3>>(
+    flecsi::exec::on,
+    *s.m,
+    s.velocity(*s.m),
+    s.t(*s.gt),
+    s.dt(*s.gt),
+    s.period(*s.gt));
 #endif // IN_TEST
 
   // Stage 3: k = L(psi2, L^n); psi3 = 1/3*psi^n + 2/3*(psi2 + dt*k)
