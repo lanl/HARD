@@ -31,6 +31,11 @@ struct state {
     static inline const field<int>::definition<mesh<D>, is::cells> material;
     static inline const field<int>::definition<mesh<D>, is::cells>
       frozen_material;
+
+    // Output helper: material id stored as double so it can go through the
+    // standard scalar I/O path.
+    static inline const field<double>::definition<mesh<D>, is::cells>
+      material_out;
   } ls;
   struct extrapolation {
     // Gradient component and unit normal

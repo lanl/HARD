@@ -6,7 +6,6 @@
 #include "../../spec/labels.hh"
 #include "../../spec/limiter.hh"
 #include "../../spec/mesh.hh"
-#include "../state.hh"
 
 #include <array>
 #include <sstream>
@@ -84,6 +83,48 @@ struct extp_q {
 
 static_assert(std::is_trivially_default_constructible_v<extp_q<1>>);
 static_assert(std::is_trivially_copyable_v<extp_q<1>>);
+
+// ------
+template<std::size_t D>
+void
+material_to_scalar_output(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<int>::template accessor<ro, ro> material_a,
+  typename field<double>::template accessor<wo, na> material_out_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+
+  auto material = m.template mdcolex<is::cells>(material_a);
+  auto material_out = m.template mdcolex<is::cells>(material_out_a);
+
+  if constexpr(D == 1) {
+    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+      material_out(i) = static_cast<double>(material(i));
+    };
+  }
+  else if constexpr(D == 2) {
+    auto pol = get_mdiota_policy(material_out,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(ji, pol) {
+      auto [j, i] = ji;
+      material_out(i, j) = static_cast<double>(material(i, j));
+    };
+  }
+  else {
+    auto pol = get_mdiota_policy(material_out,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    s.executor().forall(kji, pol) {
+      auto [k, j, i] = kji;
+      material_out(i, j, k) = static_cast<double>(material(i, j, k));
+    };
+  }
+}
+// -------
 
 } // namespace hard::tasks::util
 
