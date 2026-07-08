@@ -229,6 +229,7 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
 
   set(CHECK_SCRIPT ${CMAKE_SOURCE_DIR}/tools/exactpack_verify.py)
   set(CONVERGENCE_SCRIPT ${CMAKE_SOURCE_DIR}/tools/convergence_verify.py)
+  set(CONVERGENCE_MM_SCRIPT ${CMAKE_SOURCE_DIR}/tools/convergence_verify_mm.py)
 
   if(CONFIG STREQUAL "")
     set(CONFIG sod.py)
@@ -242,6 +243,12 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
 
   add_custom_target(convergence
     COMMAND ${Python3_EXECUTABLE} ${CONVERGENCE_SCRIPT} \$\(CONFIG\) \$\(DIMENSION\) "--plot"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    VERBATIM
+  )
+
+  add_custom_target(convergence_mm
+    COMMAND ${Python3_EXECUTABLE} ${CONVERGENCE_MM_SCRIPT} \$\(CONFIG\) \$\(DIMENSION\) "--plot"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     VERBATIM
   )

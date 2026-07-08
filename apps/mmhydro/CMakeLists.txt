@@ -46,40 +46,32 @@ set(MMHYDRO_HPX_TEST_ENV
   "HPX_LARGE_STACK_SIZE=0x1000000"
 )
 
-if(ENABLE_UNIT_TESTS)
-
-  set(FLECSI_UNIT_MAIN ${CMAKE_SOURCE_DIR}/apps/mmhydro/tests/main.cc)
+if(ENABLE_UNIT_TESTS AND (Kokkos_ENABLE_CUDA OR Kokkos_ENABLE_HIP))
 
   flecsi_add_test(mmhydro_level_set_test
     SOURCES
-      tests/level_set.cc
-      actions/update_ls.cc
+    tests/level_set.cc
+    actions/update_ls.cc
   )
 
   target_include_directories(mmhydro_level_set_test
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests
       ${CMAKE_SOURCE_DIR}/modules
-      ${CMAKE_SOURCE_DIR}/apps/mmhydro/tests
   )
 
   target_link_libraries(mmhydro_level_set_test
     PRIVATE
       libcommon::libcommon
-      libhydro::libhydro
       libspec::libspec
-      singularity-eos::singularity-eos
-      FleCSI::FleCSI
       libgfm::libgfm
+      FleCSI::FleCSI
   )
 
   target_compile_definitions(mmhydro_level_set_test
     PRIVATE
       IN_TEST
-  )
-
-  set_tests_properties(mmhydro_level_set_test PROPERTIES
-    ENVIRONMENT "${MMHYDRO_HPX_TEST_ENV}"
   )
 
 endif()
@@ -89,6 +81,7 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   set(TEST_VERIFY_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_verify.sh")
   set(TEST_DISTRIBUTED_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_distributed.sh")
   set(TEST_CONVERGENCE_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_convergence.sh")
+  set(TEST_CONVERGENCE_MM_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_convergence_mm.sh")
 
   set(LEGION_GPU_FLAGS "")
   if(ENABLE_LEGION AND ENABLE_CUDA)
@@ -104,6 +97,20 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   set_tests_properties(mmhydro_accuracy_sod_1d PROPERTIES
     ENVIRONMENT "${MMHYDRO_HPX_TEST_ENV}"
   )
+
+  if(ENABLE_UNIT_TESTS AND (Kokkos_ENABLE_CUDA OR Kokkos_ENABLE_HIP))
+
+  add_test(NAME mmhydro_contact_move_convergence_1d
+    COMMAND ${TEST_CONVERGENCE_MM_SCRIPT}
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/mmhydro/mmhydro
+    7 11
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/contact_move_convergence.py -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+  set_tests_properties(mmhydro_contact_move_convergence_1d PROPERTIES
+    ENVIRONMENT "${MMHYDRO_HPX_TEST_ENV}"
+  )
+  endif()
 
 endif()
 
