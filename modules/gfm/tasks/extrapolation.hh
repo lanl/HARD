@@ -33,7 +33,7 @@ namespace hard::tasks::extrapolation {
 //
 
 FLECSI_INLINE_TARGET double
-psi_mm(double r) {
+limiter_minmod(double r) {
   // Original minmod in Aslam's paper limiter in ratio form: max(0, min(1, r))
   if(r <= 0.0)
     return 0.0;
@@ -88,8 +88,8 @@ gradu_1d(const std::array<double, sten_size> & u, double a, double dx) {
       const double du_prev = u[1] - u[0]; // u_{i-1} - u_{i-2}
       const double r = du_prev / (du_curr + ((du_curr >= 0.0) ? eps : -eps));
 
-      const double psi = psi_mm(r);
-      return d1 + psi * (d2 - d1);
+      const double limiter = limiter_minmod(r);
+      return d1 + limiter * (d2 - d1);
     }
     else {
       // a < 0 : upwind is to the right
@@ -115,8 +115,8 @@ gradu_1d(const std::array<double, sten_size> & u, double a, double dx) {
       const double du_next = u[4] - u[3]; // u_{i+2} - u_{i+1}
       const double r = du_next / (du_curr + ((du_curr >= 0.0) ? eps : -eps));
 
-      const double psi = psi_mm(r);
-      return d1 + psi * (d2 - d1);
+      const double limiter = limiter_minmod(r);
+      return d1 + limiter * (d2 - d1);
     }
   }
 }
