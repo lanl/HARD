@@ -84,10 +84,10 @@ struct eos_wrapper {
   /*!
     Return internal energy as a function of density and pressure.
    */
-    FLECSI_INLINE_TARGET double ieRhoPSie(double r, double p, double sie) const {
+  FLECSI_INLINE_TARGET double ieRhoPSie(double r, double p, double sie) const {
     model_.InternalEnergyFromDensityPressure(r, p, sie);
     return sie;
-}
+  }
 
 private:
   friend flecsi::util::serial::traits<eos_wrapper>;
