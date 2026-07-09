@@ -30,13 +30,13 @@ openmpi-legion-openmp-gnu:release:
   variables:
     SPACK_ENV_NAME: legion/ucx/openmp/openmpi-gcc-release
 
-mpich-legion-cuda-ampere-clang:
-  stage: Legion backend
-  extends: [.darwin_regular_job, .build_and_test]
-  variables:
-    SPACK_ENV_NAME: legion/gasnet/cuda/openmpi-ibv-ampere-clang-debug
-    PARTITIONS: shared-gpu-ampere
-    JOB_CONSTRAINTS: "${A100_CONSTRAINT}"
+# mpich-legion-cuda-ampere-clang:
+#   stage: Legion backend
+#   extends: [.darwin_regular_job, .build_and_test]
+#   variables:
+#     SPACK_ENV_NAME: legion/gasnet/cuda/openmpi-ibv-ampere-clang-debug
+#     PARTITIONS: shared-gpu-ampere
+#     JOB_CONSTRAINTS: "${A100_CONSTRAINT}"
 
 #openmpi-legion-ucx-cuda-clang:
 #  stage: Legion backend
