@@ -40,6 +40,21 @@ struct shyue_shock {
   static constexpr int mR = 1;
 }; // struct shyue_shock
 
+struct lee_shock {
+  static constexpr double rL = 0.9525;
+  static constexpr double uL = 0.0;
+  static constexpr double pL = 1.0;
+
+  static constexpr double rR = 3.810;
+  static constexpr double uR = 0.0;
+  static constexpr double pR = 2.0;
+
+  static constexpr double x0 = 0.5;
+
+  static constexpr int mL = 0;
+  static constexpr int mR = 1;
+}; // struct lee_shock
+
 struct CONTACT_stat {
   static constexpr double rL = 1.0;
   static constexpr double uL = 0.0;
@@ -127,8 +142,9 @@ shock_mm(flecsi::exec::cpu s,
   };
 
   vec<D> uL(T::uL), uR(T::uR);
-  const double eL = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
-  const double eR = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
+  double sieR, sieL, sie;
+  const double eL = eos_mm[static_cast<std::size_t>(T::mL)].ieRhoPSie(T::rL, T::pL, sieL);
+  const double eR = eos_mm[static_cast<std::size_t>(T::mR)].ieRhoPSie(T::rR, T::pR, sieR);
 
   if constexpr(D == 1) {
     for(auto i : m.template cells<ax::x, dm::quantities>()) {
@@ -146,7 +162,7 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i) = T::rL;
         momentum_density(i).x() = T::rL * T::uL;
-        const double e = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
+        const double e = eos_mm[static_cast<std::size_t>(T::mL)].ieRhoPSie(T::rL, T::pL, sieL);
         total_energy_density(i) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
 
         pack_q(q_scalar(i), T::rL, uL, T::pL, eL);
@@ -159,7 +175,7 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i) = T::rR;
         momentum_density(i).x() = T::rR * T::uR;
-        const double e = util::find_sie(eos_mm[T::mR], T::rR, T::pR);
+        const double e = eos_mm[static_cast<std::size_t>(T::mR)].ieRhoPSie(T::rR, T::pR, sieR);
         total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
 
         pack_q(q_scalar(i), T::rR, uR, T::pR, eR);
@@ -194,8 +210,7 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i, j) = T::rL;
         momentum_density(i, j) = vec<D>(T::rL * T::uL);
-        const double e =
-          util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
+        const double e = eos_mm[static_cast<std::size_t>(T::mL)].ieRhoPSie(T::rL, T::pL, sieL);
         total_energy_density(i, j) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
 
         pack_q(q_scalar(i, j), T::rL, uL, T::pL, eL);
@@ -208,8 +223,7 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i, j) = T::rR;
         momentum_density(i, j) = vec<D>(T::rR * T::uR);
-        const double e =
-          util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
+        const double e = eos_mm[static_cast<std::size_t>(T::mR)].ieRhoPSie(T::rR, T::pR, sieR);
         total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
 
         pack_q(q_scalar(i, j), T::rR, uR, T::pR, eR);
@@ -243,8 +257,7 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i, j, k) = T::rL;
         momentum_density(i, j, k) = vec<D>(T::rL * T::uL);
-        const double e =
-          util::find_sie(eos_mm[static_cast<std::size_t>(T::mL)], T::rL, T::pL);
+        const double e = eos_mm[static_cast<std::size_t>(T::mL)].ieRhoPSie(T::rL, T::pL, sieL);
         total_energy_density(i, j, k) =
           T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
         pack_q(q_scalar(i, j, k), T::rL, uL, T::pL, eL);
@@ -257,8 +270,7 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i, j, k) = T::rR;
         momentum_density(i, j, k) = vec<D>(T::rR * T::uR);
-        const double e =
-          util::find_sie(eos_mm[static_cast<std::size_t>(T::mR)], T::rR, T::pR);
+        const double e = eos_mm[static_cast<std::size_t>(T::mR)].ieRhoPSie(T::rR, T::pR, sieR);
         total_energy_density(i, j, k) =
           T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
         pack_q(q_scalar(i, j, k), T::rR, uR, T::pR, eR);

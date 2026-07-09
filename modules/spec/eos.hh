@@ -81,6 +81,14 @@ struct eos_wrapper {
     return std::sqrt(singularity::robust::ratio(b, r));
   }
 
+  /*!
+    Return internal energy as a function of density and pressure.
+   */
+    FLECSI_INLINE_TARGET double ieRhoPSie(double r, double p, double sie) const {
+    model_.InternalEnergyFromDensityPressure(r, p, sie);
+    return sie;
+}
+
 private:
   friend flecsi::util::serial::traits<eos_wrapper>;
   template<class Exec>

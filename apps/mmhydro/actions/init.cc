@@ -128,6 +128,42 @@ initialize(control_policy<state, D> & cp) {
         s.extp.q_ext_minus(*s.m),
         s.eos_mm);
   }
+  else if(problem == "shyue_shock") {
+    annotation_rguard<tasks::initial_data::shock_mm_task>(),
+      execute<tasks::initial_data::
+          shock_mm<tasks::initial_data::shock_tubes::shyue_shock, D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.ls.material(*s.m),
+        s.ls.frozen_material(*s.m),
+        s.ls.psi(*s.m),
+        s.extp.q_scalar(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_ext_plus(*s.m),
+        s.extp.q_ext_minus(*s.m),
+        s.eos_mm);
+  }
+  else if(problem == "lee_shock") {
+    annotation_rguard<tasks::initial_data::shock_mm_task>(),
+      execute<tasks::initial_data::
+          shock_mm<tasks::initial_data::shock_tubes::lee_shock, D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.ls.material(*s.m),
+        s.ls.frozen_material(*s.m),
+        s.ls.psi(*s.m),
+        s.extp.q_scalar(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_ext_plus(*s.m),
+        s.extp.q_ext_minus(*s.m),
+        s.eos_mm);
+  }
   else if(problem == "rankine-hugoniot") {
     annotation_rguard<tasks::initial_data::shock_task>(),
       execute<tasks::initial_data::
