@@ -43,19 +43,6 @@ kh_instability_mm(flecsi::exec::cpu s,
   auto q_ext_plus = m.template mdcolex<is::cells>(q_ext_plus_a);
   auto q_ext_minus = m.template mdcolex<is::cells>(q_ext_minus_a);
 
-  // setting parameters of ghost cells
-  auto pack_q = [](auto & qcell,
-                  double rho,
-                  const vec<D> & velocity,
-                  double pressure,
-                  double sie) {
-    qcell.rho() = rho;
-    qcell.u() = velocity;
-    qcell.p() = pressure;
-    qcell.e() = sie;
-    qcell.n_comps() = 0;
-  };
-
   const double wavenumber = 2.0 * M_PI;
   const double N = 4;
 
@@ -101,7 +88,7 @@ kh_instability_mm(flecsi::exec::cpu s,
 
           total_energy_density(i, j) = rL * eL + 0.5 * rL * (vL * vL);
 
-          pack_q(q_scalar(i, j), rL, uL, pL, eL);
+          common::tasks::utils::pack_q(q_scalar(i, j), rL, uL, pL, eL);
           q_scalar_known(i, j) = q_scalar(i, j);
         }
         else {
@@ -115,7 +102,7 @@ kh_instability_mm(flecsi::exec::cpu s,
 
           total_energy_density(i, j) = rH * eH + 0.5 * rH * (vH * vH);
 
-          pack_q(q_scalar(i, j), rH, uH, pH, eH);
+          common::tasks::utils::pack_q(q_scalar(i, j), rH, uH, pH, eH);
           q_scalar_known(i, j) = q_scalar(i, j);
         } // if
 

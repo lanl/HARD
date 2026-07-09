@@ -90,18 +90,6 @@ he_bubble_mm(flecsi::exec::cpu s,
   auto q_ext_plus = m.template mdcolex<is::cells>(q_ext_plus_a);
   auto q_ext_minus = m.template mdcolex<is::cells>(q_ext_minus_a);
 
-  auto pack_q = [](auto & qcell,
-                  double rho,
-                  const vec<D> & velocity,
-                  double pressure,
-                  double sie) {
-    qcell.rho() = rho;
-    qcell.u() = velocity;
-    qcell.p() = pressure;
-    qcell.e() = sie;
-    qcell.n_comps() = 0;
-  }; // pack_q
-
   // initial conditions
   const double eL = util::find_sie(eos_mm[T::mL], T::rL, T::pL);
   const double eM = util::find_sie(eos_mm[T::mM], T::rM, T::pM);
@@ -151,7 +139,7 @@ he_bubble_mm(flecsi::exec::cpu s,
         momentum_density(i, j).y() = 0.0;
         total_energy_density(i, j) = T::rR * eR + 0.5 * T::rR * (T::uR * T::uR);
 
-        pack_q(q_scalar(i, j), T::rR, uR, T::pR, eR);
+        common::tasks::utils::pack_q<D>(q_scalar(i, j), T::rR, uR, T::pR, eR);
         q_scalar_known(i, j) = q_scalar(i, j);
       }
       else if(x < T::x0) {
@@ -164,7 +152,7 @@ he_bubble_mm(flecsi::exec::cpu s,
         momentum_density(i, j).y() = 0.0;
         total_energy_density(i, j) = T::rL * eL + 0.5 * T::rL * (T::uL * T::uL);
 
-        pack_q(q_scalar(i, j), T::rL, uL, T::pL, eL);
+        common::tasks::utils::pack_q<D>(q_scalar(i, j), T::rL, uL, T::pL, eL);
         q_scalar_known(i, j) = q_scalar(i, j);
       }
       else {
@@ -177,13 +165,13 @@ he_bubble_mm(flecsi::exec::cpu s,
         momentum_density(i, j).y() = 0.0;
         total_energy_density(i, j) = T::rM * eM + 0.5 * T::rM * (T::uM * T::uM);
 
-        pack_q(q_scalar(i, j), T::rM, uM, T::pM, eM);
+        common::tasks::utils::pack_q<D>(q_scalar(i, j), T::rM, uM, T::pM, eM);
         q_scalar_known(i, j) = q_scalar(i, j);
       }
 
       // Extrapolated states across the bubble interface
-      pack_q(q_ext_plus(i, j), T::rM, uM, T::pM, eM);
-      pack_q(q_ext_minus(i, j), T::rR, uR, T::pR, eR);
+      common::tasks::utils::pack_q<D>(q_ext_plus(i, j), T::rM, uM, T::pM, eM);
+      common::tasks::utils::pack_q<D>(q_ext_minus(i, j), T::rR, uR, T::pR, eR);
     }
   }
   else if constexpr(D == 3) {
@@ -236,7 +224,8 @@ he_bubble_mm(flecsi::exec::cpu s,
         total_energy_density(i, j, k) =
           T::rR * eR + 0.5 * T::rR * (T::uR * T::uR);
 
-        pack_q(q_scalar(i, j, k), T::rR, uR, T::pR, eR);
+        common::tasks::utils::pack_q<D>(
+          q_scalar(i, j, k), T::rR, uR, T::pR, eR);
         q_scalar_known(i, j, k) = q_scalar(i, j, k);
       }
       else if(x < T::x0) {
@@ -251,7 +240,8 @@ he_bubble_mm(flecsi::exec::cpu s,
         total_energy_density(i, j, k) =
           T::rL * eL + 0.5 * T::rL * (T::uL * T::uL);
 
-        pack_q(q_scalar(i, j, k), T::rL, uL, T::pL, eL);
+        common::tasks::utils::pack_q<D>(
+          q_scalar(i, j, k), T::rL, uL, T::pL, eL);
         q_scalar_known(i, j, k) = q_scalar(i, j, k);
       }
       else {
@@ -266,13 +256,16 @@ he_bubble_mm(flecsi::exec::cpu s,
         total_energy_density(i, j, k) =
           T::rM * eM + 0.5 * T::rM * (T::uM * T::uM);
 
-        pack_q(q_scalar(i, j, k), T::rM, uM, T::pM, eM);
+        common::tasks::utils::pack_q<D>(
+          q_scalar(i, j, k), T::rM, uM, T::pM, eM);
         q_scalar_known(i, j, k) = q_scalar(i, j, k);
       }
 
       // Extrapolated states across the bubble interface
-      pack_q(q_ext_plus(i, j, k), T::rM, uM, T::pM, eM);
-      pack_q(q_ext_minus(i, j, k), T::rR, uR, T::pR, eR);
+      common::tasks::utils::pack_q<D>(
+        q_ext_plus(i, j, k), T::rM, uM, T::pM, eM);
+      common::tasks::utils::pack_q<D>(
+        q_ext_minus(i, j, k), T::rR, uR, T::pR, eR);
     }
   }
 

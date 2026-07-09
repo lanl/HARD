@@ -108,6 +108,20 @@ copy_scalar_v_vector(flecsi::exec::accelerator s,
   }
 }
 
+template<std::size_t D, typename Qvalue>
+FLECSI_INLINE_TARGET void
+pack_q(Qvalue & qcell,
+  double rho,
+  const hard::vec<D> & velocity,
+  double pressure,
+  double sie) {
+  qcell.rho() = rho;
+  qcell.u() = velocity;
+  qcell.p() = pressure;
+  qcell.e() = sie;
+  qcell.n_comps() = 0;
+};
+
 } // namespace common::tasks::utils
 
 #endif // HARD_MODULES_COMMON_TASKS_UTILS_HH
