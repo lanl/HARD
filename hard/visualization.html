@@ -1,0 +1,212 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visualization &mdash; HARD latest documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=9ecc9bae" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="canonical" href="http://www.flecsi.org/hard/visualization.html"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=c6e86fd7"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="AFLD" href="afld.html" />
+    <link rel="prev" title="Test Problems" href="test_problems.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/hard-sp.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="equations.html">Basic Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="method.html">Numerical Schemes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inputfiles.html">HARD PYTHON Input Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="solver.html">HARD Solver Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="solver.html#hard-solver-parameters">HARD Solver Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test_problems.html">Test Problems</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Visualization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#output-formats">Output Formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-vtk-output-with-paraview">Using VTK Output with ParaView</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-xdmf-output-with-paraview">Using XDMF Output with ParaView</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-example">Configuration Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="afld.html">AFLD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HARD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Visualization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/hard/visualization.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="visualization">
+<span id="hard-visualization"></span><h1>Visualization<a class="headerlink" href="#visualization" title="Link to this heading"></a></h1>
+<p>HARD supports three output formats for visualization and analysis.</p>
+<section id="output-formats">
+<h2>Output Formats<a class="headerlink" href="#output-formats" title="Link to this heading"></a></h2>
+<p><strong>CSV Output</strong> (default)</p>
+<p>Text-based output compatible with spreadsheet tools, gnuplot, and custom scripts.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;output_method&quot;</span><span class="p">:</span> <span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+</pre></div>
+</div>
+<p><strong>VTK Output</strong></p>
+<p>Binary output for interactive 3D visualization in ParaView (<a class="reference external" href="https://www.paraview.org/">https://www.paraview.org/</a>).
+Uses parallel VTK ImageData format (.vti/.pvti).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;output_method&quot;</span><span class="p">:</span> <span class="s2">&quot;vti&quot;</span><span class="p">,</span>
+</pre></div>
+</div>
+<p><strong>XDMF Output</strong> (requires HDF5)</p>
+<p>Efficient binary output for large-scale simulations using XDMF+HDF5 format.
+One HDF5 file per timestep with lightweight XDMF metadata.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;output_method&quot;</span><span class="p">:</span> <span class="s2">&quot;xdmf&quot;</span><span class="p">,</span>
+</pre></div>
+</div>
+</section>
+<section id="using-vtk-output-with-paraview">
+<h2>Using VTK Output with ParaView<a class="headerlink" href="#using-vtk-output-with-paraview" title="Link to this heading"></a></h2>
+<p>HARD creates one master file per timestep: <code class="docutils literal notranslate"><span class="pre">output-{D}D-{timestep}.pvti</span></code></p>
+<p>To visualize:</p>
+<ol class="arabic simple">
+<li><p>Open ParaView</p></li>
+<li><p>File → Open → select the <code class="docutils literal notranslate"><span class="pre">.pvti</span></code> file</p></li>
+<li><p>Click “Apply”</p></li>
+</ol>
+<p>The master file automatically loads data from all MPI ranks.</p>
+</section>
+<section id="using-xdmf-output-with-paraview">
+<h2>Using XDMF Output with ParaView<a class="headerlink" href="#using-xdmf-output-with-paraview" title="Link to this heading"></a></h2>
+<p>HARD creates two files per timestep:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">output-{D}D-{timestep}.h5</span></code> - HDF5 binary data (all ranks write collectively)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output-{D}D-{timestep}.xmf</span></code> - XDMF metadata (lightweight XML)</p></li>
+</ul>
+<p>To visualize:</p>
+<ol class="arabic simple">
+<li><p>Open ParaView</p></li>
+<li><p>File → Open → select the <code class="docutils literal notranslate"><span class="pre">.xmf</span></code> file</p></li>
+<li><p>Click “Apply”</p></li>
+</ol>
+<p>ParaView reads metadata from the XDMF file and loads data from HDF5 on-demand.</p>
+<p><strong>Benefits of XDMF:</strong></p>
+<ul class="simple">
+<li><p>Efficient binary storage with HDF5</p></li>
+<li><p>Parallel I/O (one file per timestep for all ranks)</p></li>
+<li><p>Smaller file sizes compared to VTI for large simulations</p></li>
+<li><p>Native ParaView support</p></li>
+</ul>
+</section>
+<section id="configuration-example">
+<h2>Configuration Example<a class="headerlink" href="#configuration-example" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s2">&quot;problem&quot;</span><span class="p">:</span> <span class="s2">&quot;sod&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;output_frequency&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+  <span class="s2">&quot;output_method&quot;</span><span class="p">:</span> <span class="s2">&quot;xdmf&quot;</span><span class="p">,</span>  <span class="c1"># or &quot;vti&quot; or &quot;csv&quot;</span>
+  <span class="o">...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="test_problems.html" class="btn btn-neutral float-left" title="Test Problems" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="afld.html" class="btn btn-neutral float-right" title="AFLD" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023, Triad National Security, LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+  <style>
+    /* Contents caption */
+    .wy-menu-vertical>p.caption {
+      color: #ffffff;
+    }
+
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #e3e2db;
+    }
+    .wy-side-nav-search>div.version, .wy-nav-top>div.version {
+      color: #5f5d5f;
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+      background: #216897;
+      color: #ffffff;
+    }
+  </style>
+
+
+</body>
+</html>

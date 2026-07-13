@@ -1,0 +1,301 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AFLD &mdash; HARD latest documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=9ecc9bae" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="canonical" href="http://www.flecsi.org/hard/afld.html"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=c6e86fd7"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Visualization" href="visualization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/hard-sp.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="equations.html">Basic Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="method.html">Numerical Schemes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inputfiles.html">HARD PYTHON Input Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="solver.html">HARD Solver Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="solver.html#hard-solver-parameters">HARD Solver Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test_problems.html">Test Problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">AFLD</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview-of-variables">Overview of Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#limiter-relations">Limiter Relations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#limiter-id-0"><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">0</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#limiter-id-1"><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">1</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#limiter-id-2"><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">2</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#limiter-id-3"><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">3</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#limiter-id-4"><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">4</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#closure-relations">Closure Relations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#closure-id-0"><code class="docutils literal notranslate"><span class="pre">closure_id</span> <span class="pre">=</span> <span class="pre">0</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#closure-id-1"><code class="docutils literal notranslate"><span class="pre">closure_id</span> <span class="pre">=</span> <span class="pre">1</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#closure-id-2"><code class="docutils literal notranslate"><span class="pre">closure_id</span> <span class="pre">=</span> <span class="pre">2</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#closure-id-3"><code class="docutils literal notranslate"><span class="pre">closure_id</span> <span class="pre">=</span> <span class="pre">3</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#closure-id-4"><code class="docutils literal notranslate"><span class="pre">closure_id</span> <span class="pre">=</span> <span class="pre">4</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HARD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">AFLD</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/hard/afld.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="afld">
+<span id="hard-afld"></span><h1>AFLD<a class="headerlink" href="#afld" title="Link to this heading"></a></h1>
+<p><strong>Author:</strong> Moon Bakaya Hazarika
+<strong>Date:</strong> August 2025</p>
+<section id="overview-of-variables">
+<h2>Overview of Variables<a class="headerlink" href="#overview-of-variables" title="Link to this heading"></a></h2>
+<p>Three user-input variables have been implemented as part of AFLD:</p>
+<ol class="arabic simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">limiter_id</span></code>: Integer varying from 0 to 4. Corresponds to the limiter relation to be used. The default is 1.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">closure_id</span></code>: Integer varying from 0 to 4. Corresponds to the closure relation to be used. The default is 3.</p></li>
+</ol>
+<p>Besides this, the <strong>Eddington Factor</strong> field was implemented to store the values returned by invoking the relation specified in <code class="code docutils literal notranslate"><span class="pre">closure_id</span></code>.</p>
+</section>
+<section id="limiter-relations">
+<h2>Limiter Relations<a class="headerlink" href="#limiter-relations" title="Link to this heading"></a></h2>
+<p>Here <span class="math notranslate nohighlight">\(R\)</span> is the energy gradient ratio given as input to the function, along with the <code class="code docutils literal notranslate"><span class="pre">limiter_id</span></code>.
+<span class="math notranslate nohighlight">\(\lambda\)</span> is the limited flux value returned as output by the function.</p>
+<div class="math notranslate nohighlight">
+\[R = \frac{|\nabla E_r|}{\kappa \rho E_r}\]</div>
+<section id="limiter-id-0">
+<h3><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">0</span></code><a class="headerlink" href="#limiter-id-0" title="Link to this heading"></a></h3>
+<p>Fixed value <span class="math notranslate nohighlight">\(\frac{1}{3}\)</span></p>
+<div class="math notranslate nohighlight">
+\[\lambda = \frac{1}{3}\]</div>
+</section>
+<section id="limiter-id-1">
+<h3><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">1</span></code><a class="headerlink" href="#limiter-id-1" title="Link to this heading"></a></h3>
+<p>Approximate Levermore–Pomraning limiter:</p>
+<div class="math notranslate nohighlight">
+\[\lambda = \frac{2 + R}{6 + 3R + R^2}\]</div>
+</section>
+<section id="limiter-id-2">
+<h3><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">2</span></code><a class="headerlink" href="#limiter-id-2" title="Link to this heading"></a></h3>
+<p>Bruenn limiter:</p>
+<div class="math notranslate nohighlight">
+\[\lambda = \frac{1}{3 + R}\]</div>
+</section>
+<section id="limiter-id-3">
+<h3><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">3</span></code><a class="headerlink" href="#limiter-id-3" title="Link to this heading"></a></h3>
+<p>Larsen’s Square Root limiter:</p>
+<div class="math notranslate nohighlight">
+\[\lambda = \frac{1}{\sqrt{9 + R^2}}\]</div>
+</section>
+<section id="limiter-id-4">
+<h3><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">4</span></code><a class="headerlink" href="#limiter-id-4" title="Link to this heading"></a></h3>
+<p>Minerbo limiter:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\lambda =
+\begin{cases}
+\dfrac{2}{3 + \sqrt{9 + 12R^2}}, &amp; R &lt; 1.5 \\
+\dfrac{1}{1 + R + \sqrt{1 + 2R}}, &amp; \text{otherwise}
+\end{cases}\end{split}\]</div>
+</section>
+</section>
+<section id="closure-relations">
+<h2>Closure Relations<a class="headerlink" href="#closure-relations" title="Link to this heading"></a></h2>
+<p>Here <span class="math notranslate nohighlight">\(\lambda\)</span> is the flux value given as input to the function, along with the <code class="code docutils literal notranslate"><span class="pre">limiter_id</span></code> and <code class="code docutils literal notranslate"><span class="pre">closure_id</span></code>.
+<span class="math notranslate nohighlight">\(E\)</span> is the Eddington Factor returned as output.</p>
+<section id="closure-id-0">
+<h3><code class="docutils literal notranslate"><span class="pre">closure_id</span> <span class="pre">=</span> <span class="pre">0</span></code><a class="headerlink" href="#closure-id-0" title="Link to this heading"></a></h3>
+<div class="math notranslate nohighlight">
+\[E = \lambda\]</div>
+</section>
+<section id="closure-id-1">
+<h3><code class="docutils literal notranslate"><span class="pre">closure_id</span> <span class="pre">=</span> <span class="pre">1</span></code><a class="headerlink" href="#closure-id-1" title="Link to this heading"></a></h3>
+<div class="math notranslate nohighlight">
+\[E = \frac{1}{3}\]</div>
+</section>
+<section id="closure-id-2">
+<h3><code class="docutils literal notranslate"><span class="pre">closure_id</span> <span class="pre">=</span> <span class="pre">2</span></code><a class="headerlink" href="#closure-id-2" title="Link to this heading"></a></h3>
+<div class="math notranslate nohighlight">
+\[E = 1 - 2\lambda\]</div>
+</section>
+<section id="closure-id-3">
+<h3><code class="docutils literal notranslate"><span class="pre">closure_id</span> <span class="pre">=</span> <span class="pre">3</span></code><a class="headerlink" href="#closure-id-3" title="Link to this heading"></a></h3>
+<p>Analogous to Levermore–Pomraning type, i.e. <span class="math notranslate nohighlight">\(E = \lambda + (\lambda R)^2\)</span></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">0</span></code></p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[E = \frac{1}{3}\]</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">1</span></code></p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[t = \frac{1}{2}\max(0, 1-3\lambda) + \sqrt{\max(0, (1-3\lambda)(1+5\lambda))}\]</div>
+<div class="math notranslate nohighlight">
+\[E = \lambda + t^2\]</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">2</span></code></p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[E = 1 - 5\lambda + 9\lambda^2\]</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">3</span></code></p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[E = 1 + \lambda - 9\lambda^2\]</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">4</span></code></p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}E =
+\begin{cases}
+1 + 3\lambda - 2\sqrt{2\lambda}, &amp; E &lt; \frac{2}{9} \\
+\dfrac{1}{3}, &amp; \text{otherwise}
+\end{cases}\end{split}\]</div>
+</section>
+<section id="closure-id-4">
+<h3><code class="docutils literal notranslate"><span class="pre">closure_id</span> <span class="pre">=</span> <span class="pre">4</span></code><a class="headerlink" href="#closure-id-4" title="Link to this heading"></a></h3>
+<p>Modification of Levermore–Pomraning type: <span class="math notranslate nohighlight">\(E = \frac{1}{3} + \frac{2}{3}(\lambda R)^2\)</span></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">0</span></code></p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[E = \frac{1}{3}\]</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">1</span></code></p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[t = \max(0, 1-3\lambda) + \sqrt{\max(0, (1-3\lambda)(1+5\lambda))}\]</div>
+<div class="math notranslate nohighlight">
+\[E = \frac{1}{3} + \frac{t^2}{6}\]</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">2</span></code></p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[E = \frac{1}{3} + \frac{2}{3}(1 - 6\lambda + 9\lambda^2)\]</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">3</span></code></p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[E = \frac{1}{3} + \frac{2}{3}(1 - 9\lambda^2)\]</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">limiter_id</span> <span class="pre">=</span> <span class="pre">4</span></code></p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}E =
+\begin{cases}
+\dfrac{1}{3} + \dfrac{2}{3}\left(1 + 2\lambda - 2\sqrt{2\lambda}\right), &amp; E &lt; \frac{2}{9} \\
+\dfrac{5}{9} - \dfrac{2}{3}\lambda, &amp; \text{otherwise}
+\end{cases}\end{split}\]</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="visualization.html" class="btn btn-neutral float-left" title="Visualization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023, Triad National Security, LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+  <style>
+    /* Contents caption */
+    .wy-menu-vertical>p.caption {
+      color: #ffffff;
+    }
+
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #e3e2db;
+    }
+    .wy-side-nav-search>div.version, .wy-nav-top>div.version {
+      color: #5f5d5f;
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+      background: #216897;
+      color: #ffffff;
+    }
+  </style>
+
+
+</body>
+</html>
