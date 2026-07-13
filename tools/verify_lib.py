@@ -94,6 +94,61 @@ def simple_quad(f: Callable, x0: NDArray, x1: NDArray, deg: int = 10) -> float:
     return np.sum(f(transform(points)) * weights) * 0.5 * (x1 - x0)
 
 
+def simple_quad_2d(
+    f: Callable, x0: float, x1: float, y0: float, y1: float, deg: int = 10
+) -> float:
+    """
+    Use a tensor-product Gauss-Legendre quadrature of degree deg
+    over the rectangle [x0, x1] x [y0, y1]
+    """
+
+    points, weights = np.polynomial.legendre.leggauss(deg)
+
+    xs = ((x1 - x0) * points + x1 + x0) * 0.5
+    ys = ((y1 - y0) * points + y1 + y0) * 0.5
+    xg, yg = np.meshgrid(xs, ys, indexing="ij")
+    wg = np.outer(weights, weights).ravel()
+
+    return (
+        np.sum(f([xg.ravel(), yg.ravel()]) * wg)
+        * 0.25
+        * (x1 - x0)
+        * (y1 - y0)
+    )
+
+
+def simple_quad_3d(
+    f: Callable,
+    x0: float,
+    x1: float,
+    y0: float,
+    y1: float,
+    z0: float,
+    z1: float,
+    deg: int = 10,
+) -> float:
+    """
+    Use a tensor-product Gauss-Legendre quadrature of degree deg
+    over the box [x0, x1] x [y0, y1] x [z0, z1]
+    """
+
+    points, weights = np.polynomial.legendre.leggauss(deg)
+
+    xs = ((x1 - x0) * points + x1 + x0) * 0.5
+    ys = ((y1 - y0) * points + y1 + y0) * 0.5
+    zs = ((z1 - z0) * points + z1 + z0) * 0.5
+    xg, yg, zg = np.meshgrid(xs, ys, zs, indexing="ij")
+    wg = np.outer(np.outer(weights, weights), weights).ravel()
+
+    return (
+        np.sum(f([xg.ravel(), yg.ravel(), zg.ravel()]) * wg)
+        * 0.125
+        * (x1 - x0)
+        * (y1 - y0)
+        * (z1 - z0)
+    )
+
+
 def get_dx(array: NDArray) -> float | None:
     """
     Get the minimum dx from array. Assume that the coordinates are ordered.
@@ -141,13 +196,7 @@ def compute_l1_error_fvm(
 
             error += abs(
                 dx * dy * numerical[i]
-                - simple_quad(
-                    lambda y: simple_quad(
-                        lambda x: analytical([x, y]), x0, x1
-                    ),
-                    y0,
-                    y1,
-                )
+                - simple_quad_2d(analytical, x0, x1, y0, y1)
             )
     else:
         dx = get_dx(x_num[0])
@@ -168,17 +217,7 @@ def compute_l1_error_fvm(
 
             error += abs(
                 dx * dy * dz * numerical[i]
-                - simple_quad(
-                    lambda z: simple_quad(
-                        lambda y: simple_quad(
-                            lambda x: analytical([x, y, z]), x0, x1
-                        ),
-                        y0,
-                        y1,
-                    ),
-                    z0,
-                    z1,
-                )
+                - simple_quad_3d(analytical, x0, x1, y0, y1, z0, z1)
             )
 
     return error
