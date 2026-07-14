@@ -368,4 +368,3 @@ compute_HLLC_fluxes(std::size_t fa,
 } // namespace hard::numerical_algorithms
 
 #endif // HARD_MODULE_HYDRO_RIEMANN_SOLVERS_HH
-

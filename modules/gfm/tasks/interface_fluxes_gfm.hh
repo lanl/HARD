@@ -15,6 +15,10 @@
 #include <cstdio>
 
 namespace hard::tasks::gfm {
+// GFM method toggle: Set to true for original gfm. Set to false for Riemann gfm
+// -----------------------------------------------------------------------------
+
+inline constexpr bool use_original_gfm = true;
 
 // -----------------------------------------------------------------------------
 // Helper structures for flux computation
@@ -92,18 +96,6 @@ normalize_interface_normal(const vec<Dim> & n_left_face,
 }
 
 template<std::size_t Dim>
-FLECSI_INLINE_TARGET double
-dot_vec(const vec<Dim> & a, const vec<Dim> & b) noexcept {
-  double out = 0.0;
-
-  for(std::size_t d = 0; d < Dim; ++d) {
-    out += a[d] * b[d];
-  }
-
-  return out;
-}
-
-template<std::size_t Dim>
 FLECSI_INLINE_TARGET bool
 valid_face_state(double rho,
   const vec<Dim> & u,
@@ -154,7 +146,8 @@ compute_all_HLLC_fluxes(std::size_t face_axis,
   double pR,
   double cR,
   const vec<Dim> & ruR,
-  double reR) noexcept {
+  double reR,
+  numerical_algorithms::wave_speed_est wse) noexcept {
 
   flux_result<Dim> result;
 
@@ -174,17 +167,17 @@ compute_all_HLLC_fluxes(std::size_t face_axis,
   result.r_flux =
     numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
       rhoL, rhoL, uL, reL, pL, cL, f_r_T, rhoR, rhoR, uR, reR,
-      pR, cR, f_r_H, numerical_algorithms::field_tag::rho);
+      pR, cR, f_r_H, numerical_algorithms::field_tag::rho, wse);
 
   result.ru_flux =
     numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis,
       ruL, rhoL, uL, reL, pL, cL, f_ru_T, ruR, rhoR, uR, reR,
-      pR, cR, f_ru_H, numerical_algorithms::field_tag::ru);
+      pR, cR, f_ru_H, numerical_algorithms::field_tag::ru, wse);
 
   result.re_flux =
     numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
       reL, rhoL, uL, reL, pL, cL, f_rE_T, reR, rhoR, uR, reR,
-      pR, cR, f_rE_H, numerical_algorithms::field_tag::re);
+      pR, cR, f_rE_H, numerical_algorithms::field_tag::re, wse);
   // clang-format on
 
   return result;
@@ -206,8 +199,8 @@ make_gfm_ghost_velocity(const vec<Dim> & n_if,
   }
   else {
     if constexpr(gfm_preserve_tangential_jump) {
-      const double un_owner = dot_vec<Dim>(u_owner_extrapolated, n_if);
-      const double un_real = dot_vec<Dim>(u_real_at_ghost_location, n_if);
+      const double un_owner = u_owner_extrapolated.dot(n_if);
+      const double un_real = u_real_at_ghost_location.dot(n_if);
 
       // Owner tangential velocity + real normal velocity.
       return u_owner_extrapolated - un_owner * n_if + un_real * n_if;
@@ -238,6 +231,21 @@ compute_state_from_rho_u_p(const EOS & eos_disp,
 
   ghost.ru = ghost.rho * ghost.u;
   ghost.re = ghost.rho * ghost.e + 0.5 * ghost.rho * ghost.u.norm_squared();
+}
+
+template<std::size_t Dim, typename EOS>
+FLECSI_INLINE_TARGET void
+compute_state_from_rho_ru_re(const EOS & eos_disp,
+  int mat_id,
+  ghost_state<Dim> & ghost) noexcept {
+
+  const auto mat = static_cast<std::size_t>(mat_id);
+  const auto & eos = eos_disp[mat];
+
+  ghost.u = ghost.ru / ghost.rho;
+  ghost.e = ghost.re / ghost.rho - 0.5 * ghost.u.norm_squared();
+  ghost.c = eos.cRhoSie(ghost.rho, ghost.e);
+  ghost.p = eos.pRhoSie(ghost.rho, ghost.e);
 }
 
 template<std::size_t Dim>
@@ -347,6 +355,7 @@ assert_owner_extp_state([[maybe_unused]] const char * label,
 // The ghost pressure and velocity are copied from the real fluid occupying the
 // ghost location, then the state is completed with owner_mat EOS.
 //
+
 template<std::size_t Dim, typename EOS>
 FLECSI_INLINE_TARGET ghost_state<Dim>
 compute_original_gfm_ghost_state(const EOS & eos_disp,
@@ -376,6 +385,89 @@ compute_original_gfm_ghost_state(const EOS & eos_disp,
   compute_state_from_rho_u_p<Dim>(eos_disp, owner_mat, ghost);
 
   return ghost;
+}
+
+// -----------------------------------------------------------------------------
+// Riemann GFM ghost construction w/ entropy-minimum-preserving EoS
+// -----------------------------------------------------------------------------
+//
+//
+template<std::size_t Dim, typename EOS>
+FLECSI_INLINE_TARGET ghost_state<Dim>
+compute_riemann_gfm_ghost_state(const EOS & eos_disp,
+  int owner_mat,
+  int mL,
+  int mR,
+  const std::size_t face_axis,
+  const vec<Dim> & n_if,
+  const hard::tasks::util::extp_q<Dim> & qOwnerExt,
+  double rho_real, // Real states are computed at ghost node location
+  const vec<Dim> & u_real,
+  double re_real,
+  double p_real,
+  double c_real,
+  const char * label) noexcept {
+
+  assert_owner_extp_state<Dim>(label, qOwnerExt);
+
+  ghost_state<Dim> ghost;
+
+  numerical_algorithms::wave_speed_est wse = numerical_algorithms::ClayTovWSE;
+  ghost.rho = qOwnerExt.rho();
+  ghost.p = qOwnerExt.p();
+  ghost.u = qOwnerExt.u();
+  compute_state_from_rho_u_p<Dim>(eos_disp, owner_mat, ghost);
+  ghost_state<Dim> star_ghost;
+  star_ghost.rho = numerical_algorithms::compute_HLLC_states<Dim, double>(n_if,
+    ghost.rho,
+    ghost.u,
+    ghost.re,
+    ghost.p,
+    ghost.c, // Left state
+    rho_real,
+    u_real,
+    re_real,
+    p_real,
+    c_real, // Right state
+    numerical_algorithms::field_tag::rho,
+    wse)
+                     .first;
+
+  star_ghost.ru = numerical_algorithms::compute_HLLC_states<Dim, vec<Dim>>(n_if,
+    ghost.rho,
+    ghost.u,
+    ghost.re,
+    ghost.p,
+    ghost.c, // Left state
+    rho_real,
+    u_real,
+    re_real,
+    p_real,
+    c_real, // Right state
+    numerical_algorithms::field_tag::ru,
+    wse)
+                    .first;
+
+  star_ghost.re = numerical_algorithms::compute_HLLC_states<Dim, double>(n_if,
+    ghost.rho,
+    ghost.u,
+    ghost.re,
+    ghost.p,
+    ghost.c, // Left state
+    rho_real,
+    u_real,
+    re_real,
+    p_real,
+    c_real, // Right state
+    numerical_algorithms::field_tag::re,
+    wse)
+                    .first;
+
+  // clang-format on
+
+  compute_state_from_rho_ru_re<Dim>(eos_disp, owner_mat, star_ghost);
+
+  return star_ghost;
 }
 
 // -----------------------------------------------------------------------------
@@ -411,11 +503,14 @@ process_single_face(std::size_t face_axis,
   flux_result<Dim> & fluxes_R_out,
   bool & is_cut_face) noexcept {
 
+  const numerical_algorithms::wave_speed_est wse =
+    numerical_algorithms::ClayTovWSE;
+
   is_cut_face = (mL != mR);
 
   if(!is_cut_face) {
     const auto fluxes = compute_all_HLLC_fluxes<Dim>(
-      face_axis, rhoL, uL, pL, cL, ruL, reL, rhoR, uR, pR, cR, ruR, reR);
+      face_axis, rhoL, uL, pL, cL, ruL, reL, rhoR, uR, pR, cR, ruR, reR, wse);
 
     fluxes_L_out = fluxes;
     fluxes_R_out = fluxes;
@@ -427,22 +522,56 @@ process_single_face(std::size_t face_axis,
     return;
   }
 
-  const vec<Dim> n_if =
-    normalize_interface_normal(n_left_face, n_right_face, face_axis);
+  ghost_state<Dim> ghostR_L, ghostL_R;
 
-  // Left-owner one-phase problem:
-  //   real left material mL
-  //   ghost right state with material mL EOS
-  //   ghost p/u copied from real right state
-  auto ghostR_L = compute_original_gfm_ghost_state<Dim>(
-    eos_disp, mL, face_axis, n_if, qGhostR_L, uR, pR, "ghostR_L");
+  if constexpr(use_original_gfm) {
 
-  // Right-owner one-phase problem:
-  //   ghost left state with material mR EOS
-  //   real right material mR
-  //   ghost p/u copied from real left state
-  auto ghostL_R = compute_original_gfm_ghost_state<Dim>(
-    eos_disp, mR, face_axis, n_if, qGhostL_R, uL, pL, "ghostL_R");
+    const vec<Dim> n_if =
+      normalize_interface_normal(n_left_face, n_right_face, face_axis);
+
+    // Left-owner one-phase problem:
+    //   real left material mL
+    //   ghost right state with material mL EOS
+    //   ghost p/u copied from real right state
+    ghostR_L = compute_original_gfm_ghost_state<Dim>(
+      eos_disp, mL, face_axis, n_if, qGhostR_L, uR, pR, "ghostR_L");
+
+    // Right-owner one-phase problem:
+    //   ghost left state with material mR EOS
+    //   real right material mR
+    //   ghost p/u copied from real left state
+    ghostL_R = compute_original_gfm_ghost_state<Dim>(
+      eos_disp, mR, face_axis, n_if, qGhostL_R, uL, pL, "ghostL_R");
+  }
+  else {
+    ghostR_L = compute_riemann_gfm_ghost_state<Dim>(eos_disp,
+      mL,
+      mL,
+      mR,
+      face_axis,
+      n_right_face,
+      qGhostR_L,
+      rhoR,
+      uR,
+      reR,
+      pR,
+      cR,
+      "ghostR_L");
+    ghostL_R = compute_riemann_gfm_ghost_state<Dim>(eos_disp,
+      mR,
+      mR,
+      mL,
+      face_axis,
+      -1.0 * n_left_face,
+
+      qGhostL_R,
+      rhoL,
+      uL,
+      reL,
+      pL,
+      cL,
+      "ghostL_R");
+  }
 
   // clang-format off
   fluxes_L_out = compute_all_HLLC_fluxes<Dim>(face_axis,
@@ -457,7 +586,8 @@ process_single_face(std::size_t face_axis,
     ghostR_L.p,
     ghostR_L.c,
     ghostR_L.ru,
-    ghostR_L.re);
+    ghostR_L.re,
+    wse);
 
   fluxes_R_out = compute_all_HLLC_fluxes<Dim>(face_axis,
     ghostL_R.rho,
@@ -471,7 +601,8 @@ process_single_face(std::size_t face_axis,
     pR,
     cR,
     ruR,
-    reR);
+    reR,
+    wse);
   // clang-format on
 
   // Store left-owner flux in the face flux array.  The right/plus cell gets a

@@ -611,4 +611,3 @@ private:
 } // namespace spec
 
 #endif // SPEC_TYPES_HH
-
