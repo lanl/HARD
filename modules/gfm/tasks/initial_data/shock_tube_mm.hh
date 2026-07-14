@@ -143,7 +143,7 @@ shock_mm(flecsi::exec::cpu s,
   };
 
   vec<D> uL(T::uL), uR(T::uR);
-  double sieR, sieL, sie;
+  double sieR = 0., sieL = 0.; // initial guess, required for ieRhoPSie
   const double eL =
     eos_mm[static_cast<std::size_t>(T::mL)].ieRhoPSie(T::rL, T::pL, sieL);
   const double eR =
@@ -165,9 +165,7 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i) = T::rL;
         momentum_density(i).x() = T::rL * T::uL;
-        const double e =
-          eos_mm[static_cast<std::size_t>(T::mL)].ieRhoPSie(T::rL, T::pL, sieL);
-        total_energy_density(i) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
+        total_energy_density(i) = T::rL * eL + 0.5 * T::rL * (T::uL * T::uL);
 
         pack_q(q_scalar(i), T::rL, uL, T::pL, eL);
         q_scalar_known(i) = q_scalar(i);
@@ -179,9 +177,7 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i) = T::rR;
         momentum_density(i).x() = T::rR * T::uR;
-        const double e =
-          eos_mm[static_cast<std::size_t>(T::mR)].ieRhoPSie(T::rR, T::pR, sieR);
-        total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
+        total_energy_density(i) = T::rR * eR + 0.5 * T::rR * (T::uR * T::uR);
 
         pack_q(q_scalar(i), T::rR, uR, T::pR, eR);
         q_scalar_known(i) = q_scalar(i);
@@ -215,8 +211,6 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i, j) = T::rL;
         momentum_density(i, j) = vec<D>(T::rL * T::uL);
-        const double e =
-          eos_mm[static_cast<std::size_t>(T::mL)].ieRhoPSie(T::rL, T::pL, sieL);
         total_energy_density(i, j) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
 
         pack_q(q_scalar(i, j), T::rL, uL, T::pL, eL);
@@ -229,8 +223,6 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i, j) = T::rR;
         momentum_density(i, j) = vec<D>(T::rR * T::uR);
-        const double e =
-          eos_mm[static_cast<std::size_t>(T::mR)].ieRhoPSie(T::rR, T::pR, sieR);
         total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
 
         pack_q(q_scalar(i, j), T::rR, uR, T::pR, eR);
@@ -264,10 +256,9 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i, j, k) = T::rL;
         momentum_density(i, j, k) = vec<D>(T::rL * T::uL);
-        const double e =
-          eos_mm[static_cast<std::size_t>(T::mL)].ieRhoPSie(T::rL, T::pL, sieL);
         total_energy_density(i, j, k) =
           T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
+
         pack_q(q_scalar(i, j, k), T::rL, uL, T::pL, eL);
         q_scalar_known(i, j, k) = q_scalar(i, j, k);
       }
@@ -278,10 +269,9 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i, j, k) = T::rR;
         momentum_density(i, j, k) = vec<D>(T::rR * T::uR);
-        const double e =
-          eos_mm[static_cast<std::size_t>(T::mR)].ieRhoPSie(T::rR, T::pR, sieR);
         total_energy_density(i, j, k) =
           T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
+
         pack_q(q_scalar(i, j, k), T::rR, uR, T::pR, eR);
         q_scalar_known(i, j, k) = q_scalar(i, j, k);
       } // if
