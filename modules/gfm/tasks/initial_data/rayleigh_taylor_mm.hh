@@ -95,7 +95,8 @@ rt_instability_mm(flecsi::exec::cpu s,
         frozen_material(i) = mH;
         psi(i) = -std::abs(x - x0);
 
-        const double eH = eos_mm[static_cast<std::size_t>(mH)].ieRhoPSie(rH, pH, sieH);
+        const double eH = 
+          eos_mm[static_cast<std::size_t>(mH)].ieRhoPSie(rH, pH, sieH);
         total_energy_density(i) = rH * eH + 0.5 * rH * (uH * uH + v * v);
 
         pack_q(q_scalar(i), rH, uH, pH, eH);
@@ -115,7 +116,8 @@ rt_instability_mm(flecsi::exec::cpu s,
         frozen_material(i) = mL;
         psi(i) = -std::abs(x - x0);
 
-        const double eL = eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
+        const double eL = 
+          eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
         total_energy_density(i) = rL * eL + 0.5 * rL * (uL * uL + v * v);
 
         pack_q(q_scalar(i), rL, uL, pL, eL);
@@ -151,7 +153,8 @@ rt_instability_mm(flecsi::exec::cpu s,
           frozen_material(i, j) = mH;
           psi(i, j) = -std::abs(x - y0);
 
-          const double eH = eos_mm[static_cast<std::size_t>(mH)].ieRhoPSie(rH, pH, sieH);
+          const double eH = 
+            eos_mm[static_cast<std::size_t>(mH)].ieRhoPSie(rH, pH, sieH);
           total_energy_density(i, j) = rH * eH + 0.5 * rH * (uH * uH + v * v);
 
           pack_q(q_scalar(i, j), rH, uH, pH, eH);
@@ -173,7 +176,8 @@ rt_instability_mm(flecsi::exec::cpu s,
           frozen_material(i, j) = mL;
           psi(i, j) = -std::abs(x - y0);
 
-          const double eL = eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
+          const double eL = 
+            eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
           total_energy_density(i, j) = rL * eL + 0.5 * rL * (uL * uL + v * v);
 
           pack_q(q_scalar(i, j), rL, uL, pL, eL);
