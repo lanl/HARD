@@ -3,10 +3,13 @@
 
 namespace hard::tasks::initial_data {
 
+struct kh_instability_mm_task : annotation_task_region {
+  inline static const std::string name{"kh_instability_mm"};
+};
+
 /*----------------------------------------------------------------------------*
-  Kelvin-Helmholtz Instability.
+  Kelvin-Helmholtz Instability in MM.
  *----------------------------------------------------------------------------*/
-// !!! NOT INITIALIZED OR LINKED YET !!!
 
 template<std::size_t D>
 auto
@@ -18,13 +21,13 @@ kh_instability_mm(flecsi::exec::cpu s,
   typename field<int>::accessor<wo, na> material_a,
   typename field<int>::accessor<wo, na> frozen_material_a,
   field<double>::accessor<wo, na> psi_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
     q_scalar_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
     q_scalar_known_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
     q_ext_plus_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
     q_ext_minus_a,
   const std::vector<eos::eos_wrapper> & eos_mm) {
 
@@ -70,8 +73,11 @@ kh_instability_mm(flecsi::exec::cpu s,
   const int mH = 1;
 
   // vec<D> uL, uH; // unsure
-  const double eL = util::find_sie(eos_mm[mL], rL, pL);
-  const double eH = util::find_sie(eos_mm[mH], rH, pH);
+  double sieL, sieH;
+  const double eL =
+    eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
+  const double eH =
+    eos_mm[static_cast<std::size_t>(mH)].ieRhoPSie(rH, pH, sieH);
 
   if constexpr(D == 1) {
     flog_fatal(
@@ -93,9 +99,7 @@ kh_instability_mm(flecsi::exec::cpu s,
           frozen_material(i, j) = mL;
           psi(i, j) = std::abs(y - 0.5); // is this right ?
 
-          const double e =
-            util::find_sie(eos_mm[static_cast<std::size_t>(mL)], rL, pL);
-          total_energy_density(i, j) = rL * e + 0.5 * rL * (vL * vL);
+          total_energy_density(i, j) = rL * eL + 0.5 * rL * (vL * vL);
 
           pack_q(q_scalar(i, j), rL, uL, pL, eL);
           q_scalar_known(i, j) = q_scalar(i, j);
@@ -109,9 +113,7 @@ kh_instability_mm(flecsi::exec::cpu s,
           frozen_material(i, j) = mH;
           psi(i, j) = std::abs(y - 0.5); // is this right ?
 
-          const double e =
-            util::find_sie(eos_mm[static_cast<std::size_t>(mH)], rH, pH);
-          total_energy_density(i, j) = rH * e + 0.5 * rH * (vH * vH);
+          total_energy_density(i, j) = rH * eH + 0.5 * rH * (vH * vH);
 
           pack_q(q_scalar(i, j), rH, uH, pH, eH);
           q_scalar_known(i, j) = q_scalar(i, j);
@@ -135,4 +137,4 @@ kh_instability_mm(flecsi::exec::cpu s,
 
 } // namespace hard::tasks::initial_data
 
-#endif // HARD_HYDRO_MODULES_KELVIN_HELM_MM_HH
+#endif // HARD_HYDRO_MODULES_KELVIN_HELM_HH

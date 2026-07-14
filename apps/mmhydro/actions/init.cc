@@ -237,7 +237,22 @@ initialize(control_policy<state, D> & cp) {
         s.cons.hydro.total_energy_density(*s.m),
         s.eos);
   }
-  // Rayleigh-Taylor setup
+  else if(problem == "kh-test_mm") {
+    annotation_rguard<tasks::initial_data::kh_instability_mm_task>(),
+      execute<tasks::initial_data::kh_instability_mm<D>>(flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.ls.material(*s.m),
+        s.ls.frozen_material(*s.m),
+        s.ls.psi(*s.m),
+        s.extp.q_scalar(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_ext_plus(*s.m),
+        s.extp.q_ext_minus(*s.m),
+        s.eos_mm);
+  }
   else if(problem == "rt-test") {
     annotation_rguard<tasks::initial_data::rt_instability_task>(),
       execute<tasks::initial_data::rt_instability<D>>(flecsi::exec::on,
@@ -248,6 +263,24 @@ initialize(control_policy<state, D> & cp) {
         s.icst.gravity_acc(*s.gt),
         s.cons.hydro.total_energy_density(*s.m),
         s.eos);
+  }
+  else if(problem == "rt-test_mm") {
+    annotation_rguard<tasks::initial_data::rt_instability_mm_task>(),
+      execute<tasks::initial_data::rt_instability_mm<D>>(flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.src_t.hydro.gravity_force(*s.m),
+        s.icst.gravity_acc(*s.gt),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.ls.material(*s.m),
+        s.ls.frozen_material(*s.m),
+        s.ls.psi(*s.m),
+        s.extp.q_scalar(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_ext_plus(*s.m),
+        s.extp.q_ext_minus(*s.m),
+        s.eos_mm);
   }
   else if(problem == "sedov") {
     annotation_rguard<tasks::initial_data::sedov_blast_task>(),
