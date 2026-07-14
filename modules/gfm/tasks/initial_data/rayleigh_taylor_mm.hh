@@ -76,11 +76,12 @@ rt_instability_mm(flecsi::exec::cpu s,
   const double uL = 0.0;
   const int mL = 0;
 
+  double sieL = 0., sieH = 0.;
+
   if constexpr(D == 1) {
     for(auto i : m.template cells<ax::x, dm::quantities>()) {
       const auto x = m.template center<ax::x>(i);
 
-      double sieH = 0., sieL = 0.;
       constexpr double x0 = 0.75; // interface of fluids
       const double v = v0 * 1 / 2 * std::exp(-std::pow((x - x0) / 0.05, 2));
 
@@ -95,7 +96,7 @@ rt_instability_mm(flecsi::exec::cpu s,
         frozen_material(i) = mH;
         psi(i) = -std::abs(x - x0);
 
-        const double eH = 
+        const double eH =
           eos_mm[static_cast<std::size_t>(mH)].ieRhoPSie(rH, pH, sieH);
         total_energy_density(i) = rH * eH + 0.5 * rH * (uH * uH + v * v);
 
@@ -116,7 +117,7 @@ rt_instability_mm(flecsi::exec::cpu s,
         frozen_material(i) = mL;
         psi(i) = -std::abs(x - x0);
 
-        const double eL = 
+        const double eL =
           eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
         total_energy_density(i) = rL * eL + 0.5 * rL * (uL * uL + v * v);
 
@@ -151,9 +152,9 @@ rt_instability_mm(flecsi::exec::cpu s,
 
           material(i, j) = mH;
           frozen_material(i, j) = mH;
-          psi(i, j) = -std::abs(x - y0);
+          psi(i, j) = -std::abs(y - y0);
 
-          const double eH = 
+          const double eH =
             eos_mm[static_cast<std::size_t>(mH)].ieRhoPSie(rH, pH, sieH);
           total_energy_density(i, j) = rH * eH + 0.5 * rH * (uH * uH + v * v);
 
@@ -174,9 +175,9 @@ rt_instability_mm(flecsi::exec::cpu s,
 
           material(i, j) = mL;
           frozen_material(i, j) = mL;
-          psi(i, j) = -std::abs(x - y0);
+          psi(i, j) = -std::abs(y - y0);
 
-          const double eL = 
+          const double eL =
             eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
           total_energy_density(i, j) = rL * eL + 0.5 * rL * (uL * uL + v * v);
 
@@ -191,7 +192,7 @@ rt_instability_mm(flecsi::exec::cpu s,
   } // D=2
   else {
       flog_fatal(
-        "Kelvin-Helmholtz instability problem for D == 3 is not implemented")
+        "Rayleigh-Taylor instability problem for D == 3 is not implemented")
   } // D=3
 
 
