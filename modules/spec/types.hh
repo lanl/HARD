@@ -57,6 +57,9 @@ struct vec<1> {
   FLECSI_INLINE_TARGET double norm() const {
     return std::abs(vx);
   }
+  FLECSI_INLINE_TARGET double dot(const vec<1> & w) const {
+    return vx * w[0];
+  }
   FLECSI_INLINE_TARGET double & get([[maybe_unused]] const size_t idx) {
     assert(idx == 0 && "Invalid access for 1d vector");
     return vx;
@@ -114,6 +117,9 @@ struct vec<2> {
   }
   FLECSI_INLINE_TARGET double norm() const {
     return std::sqrt(norm_squared());
+  }
+  FLECSI_INLINE_TARGET double dot(const vec<2> & w) const {
+    return v[0] * w[0] + v[1] * w[1];
   }
   FLECSI_INLINE_TARGET double & get(const size_t idx) {
     assert(idx <= 1 && "Invalid access for 2d vector");
@@ -180,6 +186,11 @@ struct vec<3> {
   FLECSI_INLINE_TARGET double norm() const {
     return std::sqrt(norm_squared());
   }
+
+  FLECSI_INLINE_TARGET double dot(const vec<3> & w) const {
+    return v[0] * w[0] + v[1] * w[1] + v[2] * w[2];
+  }
+
   FLECSI_INLINE_TARGET double & get(const size_t idx) {
     assert(idx <= 2 && "Invalid access for 3d vector");
     return v[idx];
@@ -600,3 +611,4 @@ private:
 } // namespace spec
 
 #endif // SPEC_TYPES_HH
+

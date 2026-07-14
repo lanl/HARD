@@ -4,7 +4,7 @@
 #include <cmath>
 #include <tuple>
 
-#include <../modules/spec/types.hh>
+#include "../modules/spec/types.hh"
 
 namespace hard::numerical_algorithms {
 
@@ -263,7 +263,7 @@ compute_F_star(const T f_l,
 // Compute HLLC star states
 template<std::size_t Dim, typename T>
 FLECSI_INLINE_TARGET std::pair<T, T>
-compute_HLLC_states(std::size_t fa,
+compute_HLLC_states(const vec<Dim> n_if,
   const double rho_l,
   const vec<Dim> u_l,
   const double e_l,
@@ -277,22 +277,8 @@ compute_HLLC_states(std::size_t fa,
   const field_tag & ft,
   const wave_speed_est wse = RoeAvg) {
 
-  double u_l_n = 0.0, u_r_n = 0.0;
-
-  if(fa == 0) {
-    u_l_n = u_l.x();
-    u_r_n = u_r.x();
-  }
-  if constexpr(Dim > 1)
-    if(fa == 1) {
-      u_l_n = u_l.y();
-      u_r_n = u_r.y();
-    }
-  if constexpr(Dim > 2)
-    if(fa == 2) {
-      u_l_n = u_l.z();
-      u_r_n = u_r.z();
-    }
+  const double u_l_n = u_l.dot(n_if);
+  const double u_r_n = u_r.dot(n_if);
 
   auto [s_l, s_r] =
     wse(u_l_n, u_r_n, rho_l, rho_r, e_l, e_r, p_l, p_r, c_l, c_r);
@@ -300,21 +286,8 @@ compute_HLLC_states(std::size_t fa,
   auto s_star =
     compute_S_star(u_l_n, u_r_n, rho_l, rho_r, p_l, p_r, c_l, c_r, s_l, s_r);
 
-  vec<Dim> vel_l_star = u_l, vel_r_star = u_r;
-  if(fa == 0) {
-    vel_l_star.x() = s_star;
-    vel_r_star.x() = s_star;
-  }
-  if constexpr(Dim > 1)
-    if(fa == 1) {
-      vel_l_star.y() = s_star;
-      vel_r_star.y() = s_star;
-    }
-  if constexpr(Dim > 2)
-    if(fa == 2) {
-      vel_l_star.z() = s_star;
-      vel_r_star.z() = s_star;
-    }
+  vec<Dim> vel_l_star = u_l + (s_star - u_l_n) * n_if;
+  vec<Dim> vel_r_star = u_r + (s_star - u_r_n) * n_if;
 
   // clang-format off
   return compute_U_star<Dim, T>(u_l_n, u_r_n,
@@ -341,8 +314,7 @@ compute_HLLC_fluxes(std::size_t fa,
   const double c_r,
   const T f_r,
   const field_tag & ft,
-  const wave_speed_est wse =
-    ClayTovWSE // Optional argument for wave speed estimate
+  const wave_speed_est wse = RoeAvg // Optional argument for wave speed estimate
 ) {
 
   double u_l_n = 0.0, u_r_n = 0.0;
@@ -396,3 +368,4 @@ compute_HLLC_fluxes(std::size_t fa,
 } // namespace hard::numerical_algorithms
 
 #endif // HARD_MODULE_HYDRO_RIEMANN_SOLVERS_HH
+
