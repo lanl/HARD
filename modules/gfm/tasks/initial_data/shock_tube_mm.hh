@@ -199,7 +199,7 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i, j) = T::rL;
         momentum_density(i, j) = vec<D>(T::rL * T::uL);
-        total_energy_density(i, j) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
+        total_energy_density(i, j) = T::rL * eL + 0.5 * T::rL * (T::uL * T::uL);
 
         common::tasks::utils::pack_q<D>(q_scalar(i, j), T::rL, uL, T::pL, eL);
         q_scalar_known(i, j) = q_scalar(i, j);
@@ -211,7 +211,7 @@ shock_mm(flecsi::exec::cpu s,
 
         mass_density(i, j) = T::rR;
         momentum_density(i, j) = vec<D>(T::rR * T::uR);
-        total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
+        total_energy_density(i, j) = T::rR * eR + 0.5 * T::rR * (T::uR * T::uR);
 
         common::tasks::utils::pack_q<D>(q_scalar(i, j), T::rR, uR, T::pR, eR);
         q_scalar_known(i, j) = q_scalar(i, j);
@@ -245,7 +245,7 @@ shock_mm(flecsi::exec::cpu s,
         mass_density(i, j, k) = T::rL;
         momentum_density(i, j, k) = vec<D>(T::rL * T::uL);
         total_energy_density(i, j, k) =
-          T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
+          T::rL * eL + 0.5 * T::rL * (T::uL * T::uL);
         common::tasks::utils::pack_q<D>(
           q_scalar(i, j, k), T::rL, uL, T::pL, eL);
         q_scalar_known(i, j, k) = q_scalar(i, j, k);
@@ -258,7 +258,7 @@ shock_mm(flecsi::exec::cpu s,
         mass_density(i, j, k) = T::rR;
         momentum_density(i, j, k) = vec<D>(T::rR * T::uR);
         total_energy_density(i, j, k) =
-          T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
+          T::rR * eR + 0.5 * T::rR * (T::uR * T::uR);
         common::tasks::utils::pack_q<D>(
           q_scalar(i, j, k), T::rR, uR, T::pR, eR);
         q_scalar_known(i, j, k) = q_scalar(i, j, k);
