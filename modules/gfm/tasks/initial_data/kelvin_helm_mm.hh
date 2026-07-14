@@ -21,13 +21,13 @@ kh_instability_mm(flecsi::exec::cpu s,
   typename field<int>::accessor<wo, na> material_a,
   typename field<int>::accessor<wo, na> frozen_material_a,
   field<double>::accessor<wo, na> psi_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_scalar_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_scalar_known_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_ext_plus_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_ext_minus_a,
   const std::vector<eos::eos_wrapper> & eos_mm) {
 
@@ -60,7 +60,7 @@ kh_instability_mm(flecsi::exec::cpu s,
   const int mH = 1;
 
   // vec<D> uL, uH; // unsure
-  double sieL, sieH;
+  double sieL = 0., sieH = 0.;
   const double eL =
     eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
   const double eH =
@@ -88,7 +88,7 @@ kh_instability_mm(flecsi::exec::cpu s,
 
           total_energy_density(i, j) = rL * eL + 0.5 * rL * (vL * vL);
 
-          common::tasks::utils::pack_q(q_scalar(i, j), rL, uL, pL, eL);
+          common::tasks::utils::pack_q<D>(q_scalar(i, j), rL, uL, pL, eL);
           q_scalar_known(i, j) = q_scalar(i, j);
         }
         else {
@@ -102,7 +102,7 @@ kh_instability_mm(flecsi::exec::cpu s,
 
           total_energy_density(i, j) = rH * eH + 0.5 * rH * (vH * vH);
 
-          common::tasks::utils::pack_q(q_scalar(i, j), rH, uH, pH, eH);
+          common::tasks::utils::pack_q<D>(q_scalar(i, j), rH, uH, pH, eH);
           q_scalar_known(i, j) = q_scalar(i, j);
         } // if
 

@@ -69,7 +69,7 @@ shock(flecsi::exec::cpu s,
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
 
-  double sieR, sieL;
+  double sieR = 0., sieL = 0.;
 
   if constexpr(D == 1) {
     for(auto i : m.template cells<ax::x, dm::quantities>()) {

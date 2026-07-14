@@ -24,13 +24,13 @@ rt_instability_mm(flecsi::exec::cpu s,
   typename field<int>::accessor<wo, na> material_a,
   typename field<int>::accessor<wo, na> frozen_material_a,
   field<double>::accessor<wo, na> psi_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_scalar_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_scalar_known_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_ext_plus_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_ext_minus_a,
   const std::vector<eos::eos_wrapper> & eos_mm) noexcept {
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
@@ -80,7 +80,7 @@ rt_instability_mm(flecsi::exec::cpu s,
     for(auto i : m.template cells<ax::x, dm::quantities>()) {
       const auto x = m.template center<ax::x>(i);
 
-      double sieH, sieL;
+      double sieH = 0., sieL = 0.;
       constexpr double x0 = 0.75; // interface of fluids
       const double v = v0 * 1 / 2 * std::exp(-std::pow((x - x0) / 0.05, 2));
 
