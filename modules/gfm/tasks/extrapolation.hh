@@ -1064,11 +1064,11 @@ template<std::size_t D>
 void
 advance_q_rk2_s1_cfl(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  field<double>::accessor<ro, ro> extp_psi_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+  field<double>::accessor<ro, na> extp_psi_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     q_known_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> q0_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> rhs_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> q0_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> rhs_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na> q1_a,
   double extp_cfl) noexcept {
 
@@ -1088,13 +1088,13 @@ template<std::size_t D>
 void
 advance_q_rk2_s2_cfl(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  field<double>::accessor<ro, ro> extp_psi_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+  field<double>::accessor<ro, na> extp_psi_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     q_known_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> q0_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> q0_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     rhs1_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> q1_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> q1_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     qnew_a,
   double extp_cfl) noexcept {
