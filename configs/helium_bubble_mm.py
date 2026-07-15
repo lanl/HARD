@@ -45,9 +45,8 @@ config = {
         "zhigh": "reflecting",
     },
 
-    "extp_steps": 20, # used for extrapolation
-
     "output_method": "vti",
-
+    "extp_steps": 20, # used for extrapolation
     "debug_extrapolation_t0": False,
+    "use_riemann_gfm": True,
 }

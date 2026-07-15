@@ -1,7 +1,6 @@
 #ifndef HARD_GFM_MODULES_SHOCK_TUBE_MM_HH
 #define HARD_GFM_MODULES_SHOCK_TUBE_MM_HH
 
-#include "../modules/common/tasks/utils.hh"
 #include "../utils.hh"
 #include <cmath>
 #include <cstddef>
@@ -217,7 +216,7 @@ shock_mm(flecsi::exec::cpu s,
         momentum_density(i).x() = T::rL * T::uL;
         total_energy_density(i) = T::rL * eL + 0.5 * T::rL * (T::uL * T::uL);
 
-        common::tasks::utils::pack_q<D>(q_scalar(i), T::rL, uL, T::pL, eL);
+        hard::tasks::util::pack_q<D>(q_scalar(i), T::rL, uL, T::pL, eL);
         q_scalar_known(i) = q_scalar(i);
       }
       else {
@@ -229,17 +228,17 @@ shock_mm(flecsi::exec::cpu s,
         momentum_density(i).x() = T::rR * T::uR;
         total_energy_density(i) = T::rR * eR + 0.5 * T::rR * (T::uR * T::uR);
 
-        common::tasks::utils::pack_q<D>(q_scalar(i), T::rR, uR, T::pR, eR);
+        hard::tasks::util::pack_q<D>(q_scalar(i), T::rR, uR, T::pR, eR);
         q_scalar_known(i) = q_scalar(i);
 
       } // if
 
       // Initial exact constant extrapolation fields.
       // plus: left/minus material extended into plus/right side.
-      common::tasks::utils::pack_q<D>(q_ext_plus(i), T::rL, uL, T::pL, eL);
+      hard::tasks::util::pack_q<D>(q_ext_plus(i), T::rL, uL, T::pL, eL);
 
       // minus: right/plus material extended into minus/left side.
-      common::tasks::utils::pack_q<D>(q_ext_minus(i), T::rR, uR, T::pR, eR);
+      hard::tasks::util::pack_q<D>(q_ext_minus(i), T::rR, uR, T::pR, eR);
 
     } // for
   }
@@ -263,7 +262,7 @@ shock_mm(flecsi::exec::cpu s,
         momentum_density(i, j) = vec<D>(T::rL * T::uL);
         total_energy_density(i, j) = T::rL * eL + 0.5 * T::rL * (T::uL * T::uL);
 
-        common::tasks::utils::pack_q<D>(q_scalar(i, j), T::rL, uL, T::pL, eL);
+        hard::tasks::util::pack_q<D>(q_scalar(i, j), T::rL, uL, T::pL, eL);
         q_scalar_known(i, j) = q_scalar(i, j);
       }
       else {
@@ -275,16 +274,16 @@ shock_mm(flecsi::exec::cpu s,
         momentum_density(i, j) = vec<D>(T::rR * T::uR);
         total_energy_density(i, j) = T::rR * eR + 0.5 * T::rR * (T::uR * T::uR);
 
-        common::tasks::utils::pack_q<D>(q_scalar(i, j), T::rR, uR, T::pR, eR);
+        hard::tasks::util::pack_q<D>(q_scalar(i, j), T::rR, uR, T::pR, eR);
         q_scalar_known(i, j) = q_scalar(i, j);
       } // if
 
       // Initial exact constant extrapolation fields.
       // plus: left/minus material extended into plus/right side.
-      common::tasks::utils::pack_q<D>(q_ext_plus(i, j), T::rL, uL, T::pL, eL);
+      hard::tasks::util::pack_q<D>(q_ext_plus(i, j), T::rL, uL, T::pL, eL);
 
       // minus: right/plus material extended into minus/left side.
-      common::tasks::utils::pack_q<D>(q_ext_minus(i, j), T::rR, uR, T::pR, eR);
+      hard::tasks::util::pack_q<D>(q_ext_minus(i, j), T::rR, uR, T::pR, eR);
     } // for
   }
   else /* D == 3 */ {
@@ -308,8 +307,7 @@ shock_mm(flecsi::exec::cpu s,
         momentum_density(i, j, k) = vec<D>(T::rL * T::uL);
         total_energy_density(i, j, k) =
           T::rL * eL + 0.5 * T::rL * (T::uL * T::uL);
-        common::tasks::utils::pack_q<D>(
-          q_scalar(i, j, k), T::rL, uL, T::pL, eL);
+        hard::tasks::util::pack_q<D>(q_scalar(i, j, k), T::rL, uL, T::pL, eL);
         q_scalar_known(i, j, k) = q_scalar(i, j, k);
       }
       else {
@@ -321,19 +319,16 @@ shock_mm(flecsi::exec::cpu s,
         momentum_density(i, j, k) = vec<D>(T::rR * T::uR);
         total_energy_density(i, j, k) =
           T::rR * eR + 0.5 * T::rR * (T::uR * T::uR);
-        common::tasks::utils::pack_q<D>(
-          q_scalar(i, j, k), T::rR, uR, T::pR, eR);
+        hard::tasks::util::pack_q<D>(q_scalar(i, j, k), T::rR, uR, T::pR, eR);
         q_scalar_known(i, j, k) = q_scalar(i, j, k);
       } // if
 
       // Initial exact constant extrapolation fields.
       // plus: left/minus material extended into plus/right side.
-      common::tasks::utils::pack_q<D>(
-        q_ext_plus(i, j, k), T::rL, uL, T::pL, eL);
+      hard::tasks::util::pack_q<D>(q_ext_plus(i, j, k), T::rL, uL, T::pL, eL);
 
       // minus: right/plus material extended into minus/left side.
-      common::tasks::utils::pack_q<D>(
-        q_ext_minus(i, j, k), T::rR, uR, T::pR, eR);
+      hard::tasks::util::pack_q<D>(q_ext_minus(i, j, k), T::rR, uR, T::pR, eR);
     } // for
   } // if
 } // shock

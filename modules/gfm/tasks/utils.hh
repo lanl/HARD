@@ -12,16 +12,18 @@
 
 namespace hard::tasks::util {
 
-// Define alias extrapolated state. We follow our primitive convention
+// Define alias extrapolated state. We should only extrapolate the minimum
+// number of values to determine a state because otherwise you have an
+// overdetermined system and will need to throw away information. Additionally,
+// tracking the conservative variables makes sense for our extrapolation given
+// that the final result is a convex combination of the real states from which
+// we extrapolate. Therefore, we may demonstrate IDP and conservation results
 // q[0] = rho
-// q[1] = velocity
-// q[2] = pressure
-// q[3] = specific internal energy
-// q[4] = size
-// TODO : do we need more field?
+// q[1] = momentum
+// q[2] = total energy
 template<std::size_t D>
 struct extp_q {
-  static constexpr std::size_t N_q = D + 4;
+  static constexpr std::size_t N_q = D + 2;
 
   std::array<double, N_q> vals;
 
@@ -29,39 +31,26 @@ struct extp_q {
     return vals[0];
   }
 
-  FLECSI_INLINE_TARGET spec::vec_view<D> u() {
+  FLECSI_INLINE_TARGET spec::vec_view<D> ru() {
     return spec::vec_view<D>{vals.data() + 1};
   }
 
-  FLECSI_INLINE_TARGET double & p() {
+  FLECSI_INLINE_TARGET double & re() {
     return vals[1 + D];
   }
-  FLECSI_INLINE_TARGET double & e() {
-    return vals[2 + D];
-  }
-  FLECSI_INLINE_TARGET double & n_comps() {
-    return vals[3 + D];
-  }
-
   FLECSI_INLINE_TARGET double rho() const {
     return vals[0];
   }
 
-  FLECSI_INLINE_TARGET vec<D> u() const {
+  FLECSI_INLINE_TARGET vec<D> ru() const {
     vec<D> out{};
     for(std::size_t d = 0; d < D; ++d)
       out[d] = vals[1 + d];
     return out;
   }
 
-  FLECSI_INLINE_TARGET double p() const {
+  FLECSI_INLINE_TARGET double re() const {
     return vals[1 + D];
-  }
-  FLECSI_INLINE_TARGET double e() const {
-    return vals[2 + D];
-  }
-  FLECSI_INLINE_TARGET double n_comps() const {
-    return vals[3 + D];
   }
 
   FLECSI_INLINE_TARGET double & operator[](std::size_t i) {
@@ -192,6 +181,29 @@ vec_components_to_scalar_output(flecsi::exec::accelerator s,
   }
 }
 // -------
+template<std::size_t D, typename Qvalue>
+FLECSI_INLINE_TARGET void
+pack_q(Qvalue & qcell,
+  double rho,
+  const hard::vec<D> & velocity,
+  double pressure,
+  double sie) {
+  qcell.rho() = rho;
+
+  // Check if Qvalue has conserved interface (ru/re) or primitive (u/p/e)
+  if constexpr(std::is_same_v<extp_q<D>, Qvalue>) {
+    // Conservative version - store (rho, rho*u, rho*E)
+    qcell.ru() = rho * velocity;
+    qcell.re() = rho * (sie + 0.5 * velocity.norm_squared());
+  }
+  else {
+    // Primitive version - store (rho, u, p, e)
+    qcell.u() = velocity;
+    qcell.p() = pressure;
+    qcell.e() = sie;
+    qcell.n_comps() = 0;
+  }
+};
 
 } // namespace hard::tasks::util
 

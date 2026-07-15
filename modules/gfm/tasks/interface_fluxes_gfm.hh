@@ -244,6 +244,7 @@ compute_state_from_rho_ru_re(const EOS & eos_disp,
 
   ghost.u = ghost.ru / ghost.rho;
   ghost.e = ghost.re / ghost.rho - 0.5 * ghost.u.norm_squared();
+
   ghost.c = eos.cRhoSie(ghost.rho, ghost.e);
   ghost.p = eos.pRhoSie(ghost.rho, ghost.e);
 }
@@ -252,8 +253,7 @@ template<std::size_t Dim>
 FLECSI_INLINE_TARGET bool
 valid_extp_q_for_gfm(const hard::tasks::util::extp_q<Dim> & q) noexcept {
   return std::isfinite(q.rho()) && q.rho() > 0.0 &&
-         std::isfinite(q.u().norm()) && std::isfinite(q.p()) && q.p() > 0.0 &&
-         std::isfinite(q.e()) && q.e() > 0.0;
+         std::isfinite(q.ru().norm()) && std::isfinite(q.re());
 }
 
 template<std::size_t Dim>
@@ -338,10 +338,10 @@ assert_owner_extp_state([[maybe_unused]] const char * label,
     assert(false && "assert_owner_extp_state: invalid owner extrapolated rho");
   }
 
-  if(!std::isfinite(q.u().norm())) {
-    std::printf("%s: invalid owner extrapolated velocity\n", label);
+  if(!std::isfinite(q.ru().norm())) {
+    std::printf("%s: invalid owner extrapolated momentum\n", label);
     assert(
-      false && "assert_owner_extp_state: invalid owner extrapolated velocity");
+      false && "assert_owner_extp_state: invalid owner extrapolated momentum");
   }
 #endif
 }
@@ -379,8 +379,8 @@ compute_original_gfm_ghost_state(const EOS & eos_disp,
 
   ghost.rho = qOwnerExt.rho();
   ghost.p = p_real_at_ghost_location;
-  ghost.u =
-    make_gfm_ghost_velocity<Dim>(n_if, qOwnerExt.u(), u_real_at_ghost_location);
+  ghost.u = make_gfm_ghost_velocity<Dim>(
+    n_if, qOwnerExt.ru() / ghost.rho, u_real_at_ghost_location);
 
   compute_state_from_rho_u_p<Dim>(eos_disp, owner_mat, ghost);
 
@@ -414,9 +414,9 @@ compute_riemann_gfm_ghost_state(const EOS & eos_disp,
 
   numerical_algorithms::wave_speed_est wse = numerical_algorithms::ClayTovWSE;
   ghost.rho = qOwnerExt.rho();
-  ghost.p = qOwnerExt.p();
-  ghost.u = qOwnerExt.u();
-  compute_state_from_rho_u_p<Dim>(eos_disp, owner_mat, ghost);
+  ghost.re = qOwnerExt.re();
+  ghost.ru = qOwnerExt.ru();
+  compute_state_from_rho_ru_re<Dim>(eos_disp, owner_mat, ghost);
   ghost_state<Dim> star_ghost;
   star_ghost.rho = numerical_algorithms::compute_HLLC_states<Dim, double>(n_if,
     ghost.rho,
@@ -526,7 +526,7 @@ process_single_face(std::size_t face_axis,
 
   if constexpr(use_original_gfm) {
 
-     // Left-owner one-phase problem:
+    // Left-owner one-phase problem:
     //   real left material mL
     //   ghost right state with material mL EOS
     //   ghost p/u copied from real right state
@@ -567,43 +567,6 @@ process_single_face(std::size_t face_axis,
       pL,
       cL,
       "ghostL_R");
-
-#ifdef DEBUG
-    // Compute original GFM ghost states for comparison
-    ghost_state<Dim> ghostR_L_orig = compute_original_gfm_ghost_state<Dim>(
-      eos_disp, mL, face_axis, n_right_cell, qGhostR_L, uR, pR, "ghostR_L_orig");
-
-    ghost_state<Dim> ghostL_R_orig = compute_original_gfm_ghost_state<Dim>(
-      eos_disp, mR, face_axis, n_left_cell, qGhostL_R, uL, pL, "ghostL_R_orig");
-
-    // Print comparison
-    std::printf("\n=== GFM Ghost State Comparison (face_axis=%zu) ===\n", face_axis);
-    std::printf("n_left_cell  = [%e, %e, %e]\n",
-                n_left_cell[0], Dim > 1 ? n_left_cell[1] : 0.0, Dim > 2 ? n_left_cell[2] : 0.0);
-    std::printf("n_right_cell = [%e, %e, %e]\n",
-                n_right_cell[0], Dim > 1 ? n_right_cell[1] : 0.0, Dim > 2 ? n_right_cell[2] : 0.0);
-    std::printf("Real Left  (mL=%d): rho=%e u=%e p=%e c=%e\n",
-                mL, rhoL, uL[face_axis], pL, cL);
-    std::printf("Real Right (mR=%d): rho=%e u=%e p=%e c=%e\n",
-                mR, rhoR, uR[face_axis], pR, cR);
-
-    std::printf("\nRiemann GFM ghostR_L (left-owner ghost right):\n");
-    std::printf("  rho=%e u=%e p=%e c=%e e=%e\n",
-                ghostR_L.rho, ghostR_L.u[face_axis], ghostR_L.p, ghostR_L.c, ghostR_L.e);
-    std::printf("Original GFM ghostR_L:\n");
-    std::printf("  rho=%e u=%e p=%e c=%e e=%e\n",
-                ghostR_L_orig.rho, ghostR_L_orig.u[face_axis], ghostR_L_orig.p,
-                ghostR_L_orig.c, ghostR_L_orig.e);
-
-    std::printf("\nRiemann GFM ghostL_R (right-owner ghost left):\n");
-    std::printf("  rho=%e u=%e p=%e c=%e e=%e\n",
-                ghostL_R.rho, ghostL_R.u[face_axis], ghostL_R.p, ghostL_R.c, ghostL_R.e);
-    std::printf("Original GFM ghostL_R:\n");
-    std::printf("  rho=%e u=%e p=%e c=%e e=%e\n",
-                ghostL_R_orig.rho, ghostL_R_orig.u[face_axis], ghostL_R_orig.p,
-                ghostL_R_orig.c, ghostL_R_orig.e);
-    std::printf("==========================================\n\n");
-#endif
   }
 
   // clang-format off

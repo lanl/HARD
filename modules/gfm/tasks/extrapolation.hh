@@ -749,16 +749,9 @@ q_stage1(const hard::tasks::util::extp_q<D> & q0,
 
   hard::tasks::util::extp_q<D> out{};
 
-  out.rho() = q0.rho() + dtau * rhs.rho();
-
-  for(std::size_t d = 0; d < D; ++d) {
-    out.u()[d] = q0.u()[d] + dtau * rhs.u()[d];
+  for(std::size_t val_i = 0; val_i < out.size(); val_i++) {
+    out[val_i] = q0[val_i] + dtau * rhs[val_i];
   }
-
-  out.p() = q0.p() + dtau * rhs.p();
-  out.e() = q0.e() + dtau * rhs.e();
-  out.n_comps() = q0.n_comps();
-
   return out;
 }
 
@@ -771,15 +764,9 @@ q_stage2(const hard::tasks::util::extp_q<D> & q0,
 
   hard::tasks::util::extp_q<D> out{};
 
-  out.rho() = 0.5 * (q0.rho() + q1.rho() + dtau * rhs1.rho());
-
-  for(std::size_t d = 0; d < D; ++d) {
-    out.u()[d] = 0.5 * (q0.u()[d] + q1.u()[d] + dtau * rhs1.u()[d]);
+  for(std::size_t val_i = 0; val_i < out.size(); val_i++) {
+    out[val_i] = 0.5 * (q0[val_i] + q1[val_i] + dtau * rhs1[val_i]);
   }
-
-  out.p() = 0.5 * (q0.p() + q1.p() + dtau * rhs1.p());
-  out.e() = 0.5 * (q0.e() + q1.e() + dtau * rhs1.e());
-  out.n_comps() = q0.n_comps();
 
   return out;
 }
@@ -918,9 +905,8 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
   typename field<double>::template accessor<ro, na> ls_psi_a,
   typename field<int>::template accessor<ro, na> material_a,
   typename field<double>::template accessor<ro, na> mass_density_a,
-  typename field<vec<D>>::template accessor<ro, na> velocity_a,
-  typename field<double>::template accessor<ro, na> pressure_a,
-  typename field<double>::template accessor<ro, na> sie_a,
+  typename field<vec<D>>::template accessor<ro, na> momentum_density_a,
+  typename field<double>::template accessor<ro, na> total_energy_density_a,
   typename field<double>::template accessor<wo, na> extp_psi_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na> q_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
@@ -932,9 +918,9 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
   auto ls_psi = m.template mdcolex<is::cells>(ls_psi_a);
   auto material = m.template mdcolex<is::cells>(material_a);
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto velocity = m.template mdcolex<is::cells>(velocity_a);
-  auto pressure = m.template mdcolex<is::cells>(pressure_a);
-  auto sie = m.template mdcolex<is::cells>(sie_a);
+  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
+  auto total_energy_density =
+    m.template mdcolex<is::cells>(total_energy_density_a);
   auto extp_psi = m.template mdcolex<is::cells>(extp_psi_a);
   auto q = m.template mdcolex<is::cells>(q_a);
   auto q_known = m.template mdcolex<is::cells>(q_known_a);
@@ -944,12 +930,9 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
       extp_psi(i) = (material(i) == source_material) ? -std::abs(ls_psi(i))
                                                      : std::abs(ls_psi(i));
 
-      q(i).rho() = mass_density(i);
-      q(i).u() = velocity(i);
-      q(i).p() = pressure(i);
-      q(i).e() = sie(i);
-      q(i).n_comps() = static_cast<double>(hard::tasks::util::extp_q<D>::N_q);
-
+      q_a(i).rho() = mass_density_a(i);
+      q_a(i).ru() = momentum_density_a(i);
+      q_a(i).re() = total_energy_density_a(i);
       q_known(i) = q(i);
     };
   }
@@ -965,11 +948,8 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
                          : std::abs(ls_psi(i, j));
 
       q(i, j).rho() = mass_density(i, j);
-      q(i, j).u() = velocity(i, j);
-      q(i, j).p() = pressure(i, j);
-      q(i, j).e() = sie(i, j);
-      q(i, j).n_comps() =
-        static_cast<double>(hard::tasks::util::extp_q<D>::N_q);
+      q(i, j).ru() = momentum_density(i, j);
+      q(i, j).re() = total_energy_density(i, j);
 
       q_known(i, j) = q(i, j);
     };
@@ -987,11 +967,8 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
                             : std::abs(ls_psi(i, j, k));
 
       q(i, j, k).rho() = mass_density(i, j, k);
-      q(i, j, k).u() = velocity(i, j, k);
-      q(i, j, k).p() = pressure(i, j, k);
-      q(i, j, k).e() = sie(i, j, k);
-      q(i, j, k).n_comps() =
-        static_cast<double>(hard::tasks::util::extp_q<D>::N_q);
+      q(i, j, k).ru() = momentum_density(i, j, k);
+      q(i, j, k).re() = total_energy_density(i, j, k);
 
       q_known(i, j, k) = q(i, j, k);
     };

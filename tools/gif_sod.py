@@ -1,4 +1,5 @@
 from pathlib import Path
+import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -7,10 +8,20 @@ import imageio.v2 as imageio
 from tqdm import tqdm
 
 # ----------------------------
+# Parse command line arguments
+# ----------------------------
+parser = argparse.ArgumentParser(description='Generate GIF animations for Sod shock tube test results.')
+parser.add_argument('--input-dir', type=str, default='.',
+                    help='Input directory containing CSV files (default: current directory)')
+parser.add_argument('--output-dir', type=str, default='.',
+                    help='Output directory for GIF files (default: current directory)')
+args = parser.parse_args()
+
+# ----------------------------
 # Input / output paths
 # ----------------------------
-input_dir = Path(".").expanduser()
-output_dir = Path(".").expanduser()
+input_dir = Path(args.input_dir).expanduser()
+output_dir = Path(args.output_dir).expanduser()
 output_dir.mkdir(parents=True, exist_ok=True)
 
 # Create temporary directory for frames
@@ -182,7 +193,7 @@ plt.rcParams["ytick.labelsize"] = 16
 # 10:velocity_x, 11:momentum_density_x
 
 fields = ["density", "pressure", "velocity_x"]
-fields_j = [3, 4, 10]  # ✅ CORRECTED: velocity_x is at column 10, not 8
+fields_j = [3, 4, 10]  # CORRECTED: velocity_x is at column 10, not 8
 
 units = {
     "density": r" [$kg \ m^{-3}$]",
@@ -297,6 +308,6 @@ for field_idx, field in enumerate(fields):
     else:
         print(f"No frames generated for {field}")
 
-print("\n✅ All GIFs created successfully!")
+print("\nAll GIFs created successfully!")
 print(f"Output directory: {output_dir}")
 print(f"Frames saved in: {frames_dir}")

@@ -100,7 +100,7 @@ kh_instability_mm(flecsi::exec::cpu s,
           total_energy_density(i, j) =
             rL * eL + 0.5 * rL * (vel.x() * vel.x() + vel.y() * vel.y());
 
-          common::tasks::utils::pack_q<D>(q_scalar(i, j), rL, vel, pL, eL);
+          hard::tasks::util::pack_q(q_scalar(i, j), rL, uL, pL, eL);
           q_scalar_known(i, j) = q_scalar(i, j);
         }
         else {
@@ -122,7 +122,7 @@ kh_instability_mm(flecsi::exec::cpu s,
           total_energy_density(i, j) =
             rH * eH + 0.5 * rH * (vel.x() * vel.x() + vel.y() * vel.y());
 
-          common::tasks::utils::pack_q<D>(q_scalar(i, j), rH, vel, pH, eH);
+          hard::tasks::util::pack_q(q_scalar(i, j), rH, uH, pH, eH);
           q_scalar_known(i, j) = q_scalar(i, j);
         } // if
         // Initial exact constant extrapolation fields.
