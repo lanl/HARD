@@ -2,8 +2,8 @@
 #define HARD_APPS_ACTIONS_FLECSOLVE_HYDRO_FLECSOLVE_HH
 
 #include "flecsolve/operators/core.hh"
-#include "flecsolve/vectors/topo_view.hh"
 #include "flecsolve/vectors/multi.hh"
+#include "flecsolve/vectors/topo_view.hh"
 
 #include "hydro/tasks/cons2prim.hh"
 #include "hydro/tasks/external_source.hh"
@@ -13,14 +13,9 @@
 #include "spec/limiter.hh"
 #include "spec/tasks/boundaries/boundary.hh"
 
-
 namespace hard::actions::flecsolve_hydro {
 
-enum class var {
-  mass_density,
-  momentum_density,
-  total_energy_density
-};
+enum class var { mass_density, momentum_density, total_energy_density };
 
 /*
   FleCSolve view of the main HARD hydro conserved state:
@@ -36,15 +31,12 @@ make_state_vector(state<D> & s) {
 
   return flecsolve::vec::make(
     flecsolve::vec::make(
-      flecsolve::variable<var::mass_density>,
-      s.cons.hydro.mass_density(m)),
+      flecsolve::variable<var::mass_density>, s.cons.hydro.mass_density(m)),
 
-    flecsolve::vec::make(
-      flecsolve::variable<var::momentum_density>,
+    flecsolve::vec::make(flecsolve::variable<var::momentum_density>,
       s.cons.hydro.momentum_density(m)),
 
-    flecsolve::vec::make(
-      flecsolve::variable<var::total_energy_density>,
+    flecsolve::vec::make(flecsolve::variable<var::total_energy_density>,
       s.cons.hydro.total_energy_density(m)));
 }
 
@@ -62,15 +54,12 @@ make_rhs_vector(state<D> & s) {
 
   return flecsolve::vec::make(
     flecsolve::vec::make(
-      flecsolve::variable<var::mass_density>,
-      s.rk_dt1.mass_density()(m)),
+      flecsolve::variable<var::mass_density>, s.rk_dt1.mass_density()(m)),
 
-    flecsolve::vec::make(
-      flecsolve::variable<var::momentum_density>,
+    flecsolve::vec::make(flecsolve::variable<var::momentum_density>,
       s.rk_dt1.momentum_energy_density()(m)),
 
-    flecsolve::vec::make(
-      flecsolve::variable<var::total_energy_density>,
+    flecsolve::vec::make(flecsolve::variable<var::total_energy_density>,
       s.rk_dt1.total_energy_density()(m)));
 }
 
@@ -88,15 +77,12 @@ make_rhs2_vector(state<D> & s) {
 
   return flecsolve::vec::make(
     flecsolve::vec::make(
-      flecsolve::variable<var::mass_density>,
-      s.rk_dt2.mass_density()(m)),
+      flecsolve::variable<var::mass_density>, s.rk_dt2.mass_density()(m)),
 
-    flecsolve::vec::make(
-      flecsolve::variable<var::momentum_density>,
+    flecsolve::vec::make(flecsolve::variable<var::momentum_density>,
       s.rk_dt2.momentum_energy_density()(m)),
 
-    flecsolve::vec::make(
-      flecsolve::variable<var::total_energy_density>,
+    flecsolve::vec::make(flecsolve::variable<var::total_energy_density>,
       s.rk_dt2.total_energy_density()(m)));
 }
 
@@ -113,15 +99,12 @@ make_saved_state_vector(state<D> & s) {
 
   return flecsolve::vec::make(
     flecsolve::vec::make(
-      flecsolve::variable<var::mass_density>,
-      s.rk_n.mass_density()(m)),
+      flecsolve::variable<var::mass_density>, s.rk_n.mass_density()(m)),
 
-    flecsolve::vec::make(
-      flecsolve::variable<var::momentum_density>,
+    flecsolve::vec::make(flecsolve::variable<var::momentum_density>,
       s.rk_n.momentum_energy_density()(m)),
 
-    flecsolve::vec::make(
-      flecsolve::variable<var::total_energy_density>,
+    flecsolve::vec::make(flecsolve::variable<var::total_energy_density>,
       s.rk_n.total_energy_density()(m)));
 }
 
@@ -158,6 +141,7 @@ recover_primitives_and_apply_boundaries(state<D> & s, flecsi::scheduler & sc) {
     std::vector{s.cons.hydro.mass_density(*s.m),
       s.prim.pressure(*s.m),
       s.prim.specific_internal_energy(*s.m),
+      s.prim.sound_speed(*s.m),
       s.cons.hydro.total_energy_density(*s.m)},
     std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
 }
@@ -173,37 +157,36 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>> {
   using base = flecsolve::op::base<rhs_params<D>>;
   using base::params;
 
-  explicit rhs_operator(rhs_params<D> p)
-    : base(p) {}
+  explicit rhs_operator(rhs_params<D> p) : base(p) {}
 
   template<class Domain, class Range>
-  void apply(const Domain & x, Range & y) const {
+  void apply(Domain & x, Range & y) const {
     auto & s = *params.s;
     auto & sc = *params.sc;
 
     /*
       Input state x = U.
     */
-    const auto & rho =
-      x.template getvar<var::mass_density>();
+    /*
+      Select the conserved variables from the input state x = U.
+    */
+    auto & rho = x.subset(flecsolve::variable<var::mass_density>);
 
-    const auto & mom =
-      x.template getvar<var::momentum_density>();
+    auto & mom = x.subset(flecsolve::variable<var::momentum_density>);
 
-    const auto & E =
-      x.template getvar<var::total_energy_density>();
+    auto & E = x.subset(flecsolve::variable<var::total_energy_density>);
 
     /*
       Output RHS y = R = dU/dt.
     */
-    auto & drho =
-      y.template getvar<var::mass_density>();
+    /*
+      Select the corresponding variables from the output RHS y = dU/dt.
+    */
+    auto & drho = y.subset(flecsolve::variable<var::mass_density>);
 
-    auto & dmom =
-      y.template getvar<var::momentum_density>();
+    auto & dmom = y.subset(flecsolve::variable<var::momentum_density>);
 
-    auto & dE =
-      y.template getvar<var::total_energy_density>();
+    auto & dE = y.subset(flecsolve::variable<var::total_energy_density>);
 
     /*
       Start from R = 0 before adding source and flux-divergence terms.
@@ -222,7 +205,8 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>> {
       from:
           rho, rho*u, rho*E
     */
-    sc.template execute<tasks::hydro::conserved_to_primitive<D>>(flecsi::exec::on,
+    sc.template execute<tasks::hydro::conserved_to_primitive<D>>(
+      flecsi::exec::on,
       *s.m,
       rho.data.ref(),
       mom.data.ref(),
@@ -232,6 +216,26 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>> {
       s.prim.specific_internal_energy(*s.m),
       s.prim.sound_speed(*s.m),
       s.eos);
+
+    /*
+      Apply boundary conditions to the supplied state x.
+
+      x may be:
+        - the main HARD state U for the first stage, or
+        - an internal FleCSolve work vector for a later stage.
+
+      Therefore, use rho, mom, and E extracted from x rather than always using
+      s.cons.hydro.
+    */
+    sc.template execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
+      *s.m,
+      s.icst.bmap(*s.gt),
+      std::vector{rho.data.ref(),
+        s.prim.pressure(*s.m),
+        s.prim.specific_internal_energy(*s.m),
+        s.prim.sound_speed(*s.m),
+        E.data.ref()},
+      std::vector{s.prim.velocity(*s.m), mom.data.ref()});
 
     /*
       Explicit source contribution.
@@ -275,12 +279,12 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>> {
         Reconstruct primitive variables to faces.
       */
       {
-        auto scalar_v = std::vector{
-          std::make_tuple(rho.data.ref(), s.f.hydro.r_face(s.m)),
-          std::make_tuple(
-            s.prim.specific_internal_energy(*s.m), s.f.hydro.e_face(s.m)),
-          std::make_tuple(s.prim.sound_speed(*s.m), s.f.hydro.c_face(s.m)),
-          std::make_tuple(s.prim.pressure(*s.m), s.f.hydro.p_face(s.m))};
+        auto scalar_v =
+          std::vector{std::make_tuple(rho.data.ref(), s.f.hydro.r_face(s.m)),
+            std::make_tuple(
+              s.prim.specific_internal_energy(*s.m), s.f.hydro.e_face(s.m)),
+            std::make_tuple(s.prim.sound_speed(*s.m), s.f.hydro.c_face(s.m)),
+            std::make_tuple(s.prim.pressure(*s.m), s.f.hydro.p_face(s.m))};
 
         sc.template execute<tasks::hydro::reconstruct_primitives<D, limiter>>(
           flecsi::exec::on,
@@ -288,9 +292,7 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>> {
           *s.m,
           scalar_v,
           std::vector{
-            std::make_tuple(
-              s.prim.velocity(*s.m),
-              s.f.hydro.u_face(s.m))});
+            std::make_tuple(s.prim.velocity(*s.m), s.f.hydro.u_face(s.m))});
       }
 
       /*
@@ -312,7 +314,8 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>> {
         In the current HARD implementation this task accumulates into the
         supplied RK/RHS storage.
       */
-      sc.template execute<tasks::hydro::compute_interface_fluxes<D>>(flecsi::exec::on,
+      sc.template execute<tasks::hydro::compute_interface_fluxes<D>>(
+        flecsi::exec::on,
         axis,
         *s.m,
         s.f.hydro.r_face(s.m),

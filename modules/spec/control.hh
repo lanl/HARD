@@ -189,9 +189,7 @@ enum class cp {
   ///
   rhs,
   ///
-  rk_stage_1,
-  ///
-  rk_stage_2,
+  time_integrator,
   ///
   update_dt,
   ///
@@ -209,10 +207,8 @@ operator*(cp control_point) {
       return "initial_analyze";
     case cp::rhs:
       return "rhs";
-    case cp::rk_stage_1:
-      return "rk_stage_1";
-    case cp::rk_stage_2:
-      return "rk_stage_2";
+    case cp::time_integrator:
+      return "time_integrator";
     case cp::update_dt:
       return "update_dt";
     case cp::analyze:
@@ -248,8 +244,7 @@ struct control_policy : spec::control_base<S, D, control_policy<S, D>> {
     point<cp::initial_analyze>,
     cycle<base_t::cycle_control,
       point<cp::rhs>,
-      point<cp::rk_stage_1>,
-      point<cp::rk_stage_2>,
+      point<cp::time_integrator>,
       point<cp::update_dt>,
       point<cp::analyze>>,
     point<cp::finalize>>;
