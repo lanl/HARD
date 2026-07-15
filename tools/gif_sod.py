@@ -9,8 +9,8 @@ from tqdm import tqdm
 # ----------------------------
 # Input / output paths
 # ----------------------------
-input_dir = Path("/vast/home/mpasquale/hard/build").expanduser()
-output_dir = Path("/vast/home/mpasquale").expanduser()
+input_dir = Path(".").expanduser()
+output_dir = Path(".").expanduser()
 output_dir.mkdir(parents=True, exist_ok=True)
 
 # Create temporary directory for frames
@@ -20,8 +20,8 @@ frames_dir.mkdir(exist_ok=True)
 # ----------------------------
 # Configuration
 # ----------------------------
-start_step = 100
-end_step = 900
+start_step = 0
+end_step = 3001
 step_increment = 100
 
 # Generate list of timesteps
@@ -243,7 +243,7 @@ for field_idx, field in enumerate(fields):
         )
         
         # Create plot
-        fig, ax = plt.subplots(figsize=(12, 9))
+        fig, ax = plt.subplots(figsize=(8, 6))
         
         ax.plot(x_mm, y_mm, 'o', label="Sod (MM)", color='C0', markersize=4)
         ax.plot(xs, v_analytic_current[field_idx], linestyle="-", 
