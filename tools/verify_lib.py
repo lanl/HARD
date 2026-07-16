@@ -219,7 +219,7 @@ def find_last_output(
         with open(new_file, "wb") as fwrite:
             for file in combine:
                 with open(file, "rb") as fread:
-                    shutil.copyfileobj(fread, fwrite)
+                    shutil.copyfileobj(fread, fwrite, length=1024 * 1024)
         return new_file, True
 
 
