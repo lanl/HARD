@@ -8,8 +8,6 @@
 
 #include <flecsi/utilities.hh>
 
-#include "spec/vector_field.hh"
-
 namespace hard {
 
 /*----------------------------------------------------------------------------*
@@ -142,15 +140,15 @@ struct faces {
 template<std::size_t D>
 struct faces_vec {
 
-  std::tuple<vector_field_double<D>, // right
-    vector_field_double<D> // left
+  std::tuple<
+    typename field<vec<D>>::template definition<mesh<D>, is::cells>, // right
+    typename field<vec<D>>::template definition<mesh<D>, is::cells> // left
     >
     f;
 
   template<flecsi::privilege P1, flecsi::privilege P2>
-  using accessor =
-    std::tuple<typename vector_field_double<D>::template accessor<P1, P2>,
-      typename vector_field_double<D>::template accessor<P1, P2>>;
+  using accessor = std::tuple<typename field<vec<D>>::template accessor<P1, P2>,
+    typename field<vec<D>>::template accessor<P1, P2>>;
 
   auto operator()(const mesh<D>::ptr & s) {
     return std::make_tuple(std::get<0>(f)(*s), std::get<1>(f)(*s));
@@ -159,13 +157,8 @@ struct faces_vec {
   template<class MeshAcc, class Tuple>
   static auto mdcolex(MeshAcc && m, Tuple & a) {
     return std::apply(
-      [&](auto & vec_refs_right, auto & vec_refs_left) {
-        auto right_accessor =
-          vector_field_double<D>::mdcolex(m, vec_refs_right);
-        auto left_accessor = vector_field_double<D>::mdcolex(m, vec_refs_left);
-
-        return std::make_tuple(
-          std::move(right_accessor), std::move(left_accessor));
+      [&](auto &... x) {
+        return std::tuple{m.template mdcolex<is::cells>(x)...};
       },
       a);
   }
@@ -175,14 +168,15 @@ template<std::size_t D>
 struct RK {
   std::tuple<field<double>::definition<mesh<D>, is::cells>, // mass_density
     field<double>::definition<mesh<D>, is::cells>, // total_energy_density
-    vector_field_double<D> // momentum_energy_density
+    typename field<vec<D>>::template definition<mesh<D>,
+      is::cells> // momentum_energy_density
     >
     f;
 
   template<flecsi::privilege P1, flecsi::privilege P2>
   using accessor = std::tuple<field<double>::accessor<P1, P2>,
     field<double>::accessor<P1, P2>,
-    typename vector_field_double<D>::template accessor<P1, P2>>;
+    typename field<vec<D>>::template accessor<P1, P2>>;
 
   auto & mass_density() {
     return std::get<0>(f);
@@ -216,13 +210,8 @@ struct RK {
   template<class MeshAcc, class Tuple>
   static auto mdcolex(MeshAcc && m, Tuple & a) {
     return std::apply(
-      [&](auto & mass_ref, auto & energy_ref, auto & momentum_ref) {
-        auto mass_acc = m.template mdcolex<is::cells>(mass_ref);
-        auto energy_acc = m.template mdcolex<is::cells>(energy_ref);
-        auto momentum_acc = vector_field_double<D>::mdcolex(m, momentum_ref);
-
-        return std::make_tuple(
-          std::move(mass_acc), std::move(energy_acc), std::move(momentum_acc));
+      [&](auto &... x) {
+        return std::tuple{m.template mdcolex<is::cells>(x)...};
       },
       a);
   }

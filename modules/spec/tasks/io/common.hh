@@ -12,8 +12,7 @@ namespace hard::tasks::io {
 template<std::size_t D>
 struct field_extractor {
   std::vector<flecsi::util::mdcolex<const double, D>> fields;
-  std::vector<std::vector<flecsi::util::mdcolex<const double, D>>>
-    fields_vectors;
+  std::vector<flecsi::util::mdcolex<const vec<D>, D>> fields_vectors;
   std::vector<std::string> field_name;
   std::vector<std::string> field_vector_name;
 
@@ -21,9 +20,9 @@ struct field_extractor {
     uint32_t i,
     const std::vector<std::tuple<multi<field<double>::accessor<ro, ro>>,
       const std::string &>> & field_ma,
-    const std::vector<std::tuple<
-      typename vector_field_double<D>::template multi_accessor<ro, ro>,
-      const std::string &>> & field_vector_ma) {
+    const std::vector<
+      std::tuple<multi<typename field<vec<D>>::template accessor<ro, ro>>,
+        const std::string &>> & field_vector_ma) {
 
     std::transform(field_ma.begin(),
       field_ma.end(),
@@ -38,16 +37,8 @@ struct field_extractor {
     std::transform(field_vector_ma.begin(),
       field_vector_ma.end(),
       std::back_inserter(fields_vectors),
-      [&m, &i](const auto & tuple)
-        -> std::vector<flecsi::util::mdcolex<const double, D>> {
-        std::vector<flecsi::util::mdcolex<const double, D>> result;
-        const auto & vector_components = std::get<0>(tuple);
-
-        for(std::size_t d = 0; d < D; ++d) {
-          result.push_back(
-            m.template mdcolex<is::cells>(vector_components[d].accessors()[i]));
-        }
-        return result;
+      [&m, &i](const auto & tuple) -> flecsi::util::mdcolex<const vec<D>, D> {
+        return m.template mdcolex<is::cells>(std::get<0>(tuple).accessors()[i]);
       });
     std::transform(field_vector_ma.begin(),
       field_vector_ma.end(),

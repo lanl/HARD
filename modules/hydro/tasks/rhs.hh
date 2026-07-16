@@ -39,7 +39,7 @@ template<std::size_t Dim>
 void
 set_dudt_to_zero(flecsi::exec::accelerator s,
   std::vector<field<double>::accessor<wo, na>> rk_dt_v_a,
-  std::vector<typename vector_field_double<Dim>::template accessor<wo, na>>
+  std::vector<typename field<vec<Dim>>::template accessor<wo, na>>
     rk_dt_vec_v_a) noexcept {
 
   for(auto rk_dt_a : rk_dt_v_a) {
@@ -49,13 +49,9 @@ set_dudt_to_zero(flecsi::exec::accelerator s,
   }
 
   for(auto rk_dt_a : rk_dt_vec_v_a) {
-    auto gpu_rk_dt_a = vector_field_double<Dim>::to_accelerator(rk_dt_a);
-    for(int axis = 0; axis < rk_dt_a.size(); axis++) {
-      s.executor().forall(
-        i, flecsi::util::iota_view({}, gpu_rk_dt_a[axis].span().size())) {
-        gpu_rk_dt_a[axis](i) = 0.0;
-      }; // forall
-    }
+    s.executor().forall(i, flecsi::util::iota_view({}, rk_dt_a.span().size())) {
+      rk_dt_a(i) = vec<Dim>(0.0);
+    }; // forall
   }
 }
 
@@ -72,10 +68,8 @@ update_u(flecsi::exec::accelerator s,
   single<double>::accessor<ro> h_a,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<rw, na>>> v_a,
-  std::vector<
-    std::tuple<typename vector_field_double<Dim>::template accessor<ro, na>,
-      typename vector_field_double<Dim>::template accessor<rw, na>>>
-    vec_v_a) noexcept {
+  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
+    typename field<vec<Dim>>::template accessor<rw, na>>> vec_v_a) noexcept {
 
   // Scalar
   for(auto & [dt_a, a] : v_a) {
@@ -86,14 +80,9 @@ update_u(flecsi::exec::accelerator s,
 
   // Vec<D>
   for(auto & [vec_dt_a, vec_a] : vec_v_a) {
-    auto gpu_vec_dt_a = vector_field_double<Dim>::to_accelerator(vec_dt_a);
-    auto gpu_vec_a = vector_field_double<Dim>::to_accelerator(vec_a);
-    for(int axis = 0; axis < gpu_vec_a.size(); axis++) {
-      s.executor().forall(
-        i, flecsi::util::iota_view({}, gpu_vec_dt_a[axis].span().size())) {
-        gpu_vec_a[axis](i) += *h_a * gpu_vec_dt_a[axis](i);
-      }; // forall
-    }
+    s.executor().forall(i, flecsi::util::iota_view({}, vec_a.span().size())) {
+      vec_a(i) += *h_a * vec_dt_a(i);
+    }; // forall
   }
 }
 
@@ -130,11 +119,9 @@ update_u_stage(flecsi::exec::accelerator s,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<ro, na>,
     field<double>::accessor<wo, na>>> v_a,
-  std::vector<
-    std::tuple<typename vector_field_double<Dim>::template accessor<ro, na>,
-      typename vector_field_double<Dim>::template accessor<ro, na>,
-      typename vector_field_double<Dim>::template accessor<wo, na>>>
-    vec_v_a) noexcept {
+  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
+    typename field<vec<Dim>>::template accessor<ro, na>,
+    typename field<vec<Dim>>::template accessor<wo, na>>> vec_v_a) noexcept {
 
   // Scalar
   for(auto & [n_a, dt_a, new_a] : v_a) {
@@ -145,15 +132,9 @@ update_u_stage(flecsi::exec::accelerator s,
 
   // Vec<D>
   for(auto & [n_a, dt_a, new_a] : vec_v_a) {
-    auto gpu_n_a = vector_field_double<Dim>::to_accelerator(n_a);
-    auto gpu_dt_a = vector_field_double<Dim>::to_accelerator(dt_a);
-    auto gpu_new_a = vector_field_double<Dim>::to_accelerator(new_a);
-    for(int axis = 0; axis < n_a.size(); axis++) {
-      s.executor().forall(
-        i, flecsi::util::iota_view({}, gpu_n_a[axis].span().size())) {
-        gpu_new_a[axis](i) = gpu_n_a[axis](i) + *h_a * gpu_dt_a[axis](i);
-      }; // forall
-    }
+    s.executor().forall(i, flecsi::util::iota_view({}, n_a.span().size())) {
+      new_a(i) = n_a(i) + *h_a * dt_a(i);
+    }; // forall
   }
 }
 
@@ -186,10 +167,8 @@ void
 add_k1_k2(flecsi::exec::accelerator s,
   std::vector<std::tuple<field<double>::accessor<rw, na>,
     field<double>::accessor<ro, na>>> v_a,
-  std::vector<
-    std::tuple<typename vector_field_double<Dim>::template accessor<rw, na>,
-      typename vector_field_double<Dim>::template accessor<ro, na>>>
-    vec_v_a) noexcept {
+  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<rw, na>,
+    typename field<vec<Dim>>::template accessor<ro, na>>> vec_v_a) noexcept {
 
   // Scalar
   for(auto & [rk_1_a, rk_2_a] : v_a) {
@@ -200,14 +179,9 @@ add_k1_k2(flecsi::exec::accelerator s,
 
   // Vec<D>
   for(auto & [rk_1_a, rk_2_a] : vec_v_a) {
-    auto gpu_rk_1_a = vector_field_double<Dim>::to_accelerator(rk_1_a);
-    auto gpu_rk_2_a = vector_field_double<Dim>::to_accelerator(rk_2_a);
-    for(int axis = 0; axis < rk_1_a.size(); axis++) {
-      s.executor().forall(
-        i, flecsi::util::iota_view({}, gpu_rk_1_a[axis].span().size())) {
-        gpu_rk_1_a[axis](i) = (gpu_rk_1_a[axis](i) + gpu_rk_2_a[axis](i)) * 0.5;
-      }; // forall
-    }
+    s.executor().forall(i, flecsi::util::iota_view({}, rk_1_a.span().size())) {
+      rk_1_a(i) = (rk_1_a(i) + rk_2_a(i)) * 0.5;
+    }; // forall
   }
 }
 

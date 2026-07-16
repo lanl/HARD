@@ -37,7 +37,7 @@ inline void
 print_conserved(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, ro> r_a,
-  typename vector_field_double<D>::template accessor<ro, ro> ru_a,
+  typename field<vec<D>>::template accessor<ro, ro> ru_a,
   field<double>::accessor<ro, ro> rE_a,
   flecsi::util::id zslice) {
   {
@@ -54,7 +54,7 @@ print_conserved(flecsi::exec::cpu,
     flog(info) << ss.str() << std::endl;
   }
   {
-    auto ru = vector_field_double<D>::mdcolex(m, ru_a);
+    auto ru = m.template mdcolex<is::cells>(ru_a);
     std::stringstream ss;
     ss << "MOMENTUM:" << std::endl;
     for(auto j : m.template cells<ax::y, DM, true>()) {
@@ -85,18 +85,18 @@ template<dm::domain DM, std::size_t D>
 inline void
 print_vec_field(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
-  typename vector_field_double<D>::template accessor<ro, ro> u_a) {
+  typename field<vec<D>>::template accessor<ro, ro> u_a) {
   std::stringstream ss;
 
   if constexpr(D == 1) {
-    auto u = vector_field_double<D>::mdcolex(m, u_a);
+    auto u = m.template mdcolex<is::cells>(u_a);
     for(auto i : m.template cells<ax::x, DM>()) {
       ss << u(i) << " ";
     } // for
     ss << std::endl;
   }
   else if constexpr(D == 2) {
-    auto u = vector_field_double<D>::mdcolex(m, u_a);
+    auto u = m.template mdcolex<is::cells>(u_a);
     for(auto j : m.template cells<ax::y, DM>()) {
       for(auto i : m.template cells<ax::x, DM>()) {
         ss << u(i, j) << " ";
@@ -139,11 +139,11 @@ template<dm::domain DM, std::size_t D>
 inline void
 print_primitives(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
-  typename vector_field_double<D>::template accessor<ro, ro> u_a,
+  typename field<vec<D>>::template accessor<ro, ro> u_a,
   field<double>::accessor<ro, ro> p_a,
   flecsi::util::id zslice) {
   {
-    auto u = vector_field_double<D>::mdcolex(m, u_a);
+    auto u = m.template mdcolex<is::cells>(u_a);
     std::stringstream ss;
     ss << "VELOCITY:" << std::endl;
     for(auto j : m.template cells<ax::y, DM>()) {

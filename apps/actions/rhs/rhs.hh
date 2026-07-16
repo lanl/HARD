@@ -69,7 +69,7 @@ rhs(state<D> & s,
     // Store the current state of evolved variables (U^n) before performing a
     // time step
     annotation_rguard<common::tasks::utils::copy_scalar_v_vector_task>(),
-      sc.execute<common::tasks::utils::copy_scalar_v_vector<D>>(
+      sc.execute<common::tasks::utils::copy_scalar_v_vector<D, vec<D>>>(
         flecsi::exec::on,
         scalar_v,
         std::vector{std::make_tuple(s.cons.hydro.momentum_density(*s.m),

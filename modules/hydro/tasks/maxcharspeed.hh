@@ -14,13 +14,13 @@ double
 update_max_characteristic_speed(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> r_a,
-  typename vector_field_double<D>::template accessor<ro, na> u_a,
+  typename field<vec<D>>::template accessor<ro, na> u_a,
   field<double>::accessor<ro, na> c_a) noexcept {
   using common::tasks::utils::get_mdiota_policy;
   namespace fold = flecsi::exec::fold;
 
   auto density = m.template mdcolex<is::cells>(r_a);
-  auto velocity = vector_field_double<D>::mdcolex(m, u_a);
+  auto velocity = m.template mdcolex<is::cells>(u_a);
   auto soundspeed = m.template mdcolex<is::cells>(c_a);
 
   if constexpr(D == 1) {

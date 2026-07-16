@@ -43,72 +43,25 @@ template<std::size_t D>
 inline void
 touch(typename mesh<D>::template accessor<ro>, // m,
   field<double>::accessor<wo, wo>, // r_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ru_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ru_a,
   field<double>::accessor<wo, wo>, // rE_a,
 
-  typename vector_field_double<D>::template accessor<wo, wo>, // u_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // u_a,
   field<double>::accessor<wo, wo>, // p_a,
   field<double>::accessor<wo, wo>, // rLeft_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ruLeft_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruLeft_a,
   field<double>::accessor<wo, wo>, // rELeft_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // uLeft_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uLeft_a,
   field<double>::accessor<wo, wo>, // pLeft_a,
 
   field<double>::accessor<wo, wo>, // rRight_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ruRight_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruRight_a,
   field<double>::accessor<wo, wo>, // rERight_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // uRight_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uRight_a,
   field<double>::accessor<wo, wo>, // pRight_a,
 
   field<double>::accessor<wo, wo>, // rF_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ruF_a,
-  field<double>::accessor<wo, wo>, // rEF_a
-  field<double>::accessor<wo, wo>, // Erad_a,
-  field<double>::accessor<wo, wo>, // EradLeft_a,
-  field<double>::accessor<wo, wo>, // EradRight_a,
-  field<double>::accessor<wo, wo>, // EradF_a,
-  field<double>::accessor<wo, wo>, // Esf_a,
-  field<double>::accessor<wo, wo>, // Ef_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // Ew_a,
-  field<double>::accessor<wo, wo>, // Df_a,
-  field<double>::accessor<wo, wo>, // Resf_a,
-  field<double>::accessor<wo, wo>, // Errf_a,
-  //
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // gradient_rad_energy_a,
-  field<double>::accessor<wo, wo>, // magnitude_gradient_rad_energy_a,
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // radiation_force_a,
-  field<double>::accessor<wo, wo>, // R_value_a,
-  field<double>::accessor<wo, wo>, // lambda_bridge_a,
-  field<double>::accessor<wo, wo>, // eddington_factor_a,
-  typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
-    wo> // velocity_gradient_a
-) {} // touch
-
-template<std::size_t D>
-inline void
-touch1(typename mesh<D>::template accessor<ro>, // m,
-  field<double>::accessor<wo, wo>, // r_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ru_a,
-  field<double>::accessor<wo, wo>, // rE_a,
-
-  typename vector_field_double<D>::template accessor<wo, wo>, // u_a,
-  field<double>::accessor<wo, wo>, // p_a,
-  field<double>::accessor<wo, wo>, // rLeft_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ruLeft_a,
-  field<double>::accessor<wo, wo>, // rELeft_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // uLeft_a,
-  field<double>::accessor<wo, wo>, // pLeft_a,
-
-  field<double>::accessor<wo, wo>, // rRight_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ruRight_a,
-  field<double>::accessor<wo, wo>, // rERight_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // uRight_a,
-  field<double>::accessor<wo, wo>, // pRight_a,
-
-  field<double>::accessor<wo, wo>, // rF_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ruF_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruF_a,
   field<double>::accessor<wo, wo>, // rEF_a
   field<double>::accessor<wo, wo>, // Erad_a,
   field<double>::accessor<wo, wo>, // EradLeft_a,
@@ -121,11 +74,54 @@ touch1(typename mesh<D>::template accessor<ro>, // m,
   field<double>::accessor<wo, wo>, // Resf_a,
   field<double>::accessor<wo, wo>, // Errf_a,
   //
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // gradient_rad_energy_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // gradient_rad_energy_a,
   field<double>::accessor<wo, wo>, // magnitude_gradient_rad_energy_a,
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // radiation_force_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // radiation_force_a,
+  field<double>::accessor<wo, wo>, // R_value_a,
+  field<double>::accessor<wo, wo>, // lambda_bridge_a,
+  field<double>::accessor<wo, wo>, // eddington_factor_a,
+  typename field<spec::tensor<D, spec::tensor_rank::Two>>::template accessor<wo,
+    wo> // velocity_gradient_a
+) {} // touch
+
+template<std::size_t D>
+inline void
+touch1(typename mesh<D>::template accessor<ro>, // m,
+  field<double>::accessor<wo, wo>, // r_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ru_a,
+  field<double>::accessor<wo, wo>, // rE_a,
+
+  typename field<vec<D>>::template accessor<wo, wo>, // u_a,
+  field<double>::accessor<wo, wo>, // p_a,
+  field<double>::accessor<wo, wo>, // rLeft_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruLeft_a,
+  field<double>::accessor<wo, wo>, // rELeft_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uLeft_a,
+  field<double>::accessor<wo, wo>, // pLeft_a,
+
+  field<double>::accessor<wo, wo>, // rRight_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruRight_a,
+  field<double>::accessor<wo, wo>, // rERight_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uRight_a,
+  field<double>::accessor<wo, wo>, // pRight_a,
+
+  field<double>::accessor<wo, wo>, // rF_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruF_a,
+  field<double>::accessor<wo, wo>, // rEF_a
+  field<double>::accessor<wo, wo>, // Erad_a,
+  field<double>::accessor<wo, wo>, // EradLeft_a,
+  field<double>::accessor<wo, wo>, // EradRight_a,
+  field<double>::accessor<wo, wo>, // EradF_a,
+  field<double>::accessor<wo, wo>, // Esf_a,
+  field<double>::accessor<wo, wo>, // Ef_a,
+  typename field<stencil<D>>::template accessor<wo, wo>, // Ew_a,
+  field<double>::accessor<wo, wo>, // Df_a,
+  field<double>::accessor<wo, wo>, // Resf_a,
+  field<double>::accessor<wo, wo>, // Errf_a,
+  //
+  typename field<vec<D>>::template accessor<wo, wo>, // gradient_rad_energy_a,
+  field<double>::accessor<wo, wo>, // magnitude_gradient_rad_energy_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // radiation_force_a,
   field<double>::accessor<wo, wo>, // R_value_a,
   field<double>::accessor<wo, wo>, // lambda_bridge_a,
   field<double>::accessor<wo, wo>, // eddington_factor_a,

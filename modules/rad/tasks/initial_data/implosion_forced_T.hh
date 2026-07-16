@@ -25,8 +25,7 @@ auto
 implosion_forced_T(flecsi::exec::cpu s,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
-  typename vector_field_double<Dim>::template accessor<wo, na>
-    momentum_density_a,
+  typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
   field<double>::accessor<wo, na> radiation_energy_density_a,
   field<double>::accessor<ro> temperature_boundary_a,
@@ -34,8 +33,7 @@ implosion_forced_T(flecsi::exec::cpu s,
   const double gamma) {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto momentum_density =
-    vector_field_double<Dim>::mdcolex(m, momentum_density_a);
+  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
   auto radiation_energy_density =

@@ -17,14 +17,12 @@ auto
 acoustic_wave(flecsi::exec::cpu s,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
-  typename vector_field_double<Dim>::template accessor<rw, ro>
-    momentum_density_a,
+  typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
   const eos::eos_wrapper & eos) {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto momentum_density =
-    vector_field_double<Dim>::mdcolex(m, momentum_density_a);
+  auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
 

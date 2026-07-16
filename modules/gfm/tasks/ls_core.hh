@@ -57,14 +57,14 @@ void
 rhs_upwind(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> psi_a,
-  typename vector_field_double<D>::template accessor<ro, ro> velocity_a,
+  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
   typename field<int>::template accessor<ro, ro> frozen_material_a,
   typename field<double>::template accessor<wo, ro> rhs_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
   auto psi = m.template mdcolex<is::cells>(psi_a);
-  auto vel = vector_field_double<D>::mdcolex(m, velocity_a);
+  auto vel = m.template mdcolex<is::cells>(velocity_a);
   auto fmat = m.template mdcolex<is::cells>(frozen_material_a);
   auto rhs = m.template mdcolex<is::cells>(rhs_a);
 
@@ -74,7 +74,7 @@ rhs_upwind(flecsi::exec::accelerator s,
       const int im1 = i - 1;
       const int center_material = fmat(i);
 
-      auto [um, up] = minmax(0.0, static_cast<vec<D>>(vel(i)));
+      auto [um, up] = minmax(0.0, vel(i));
 
       // psi*_{i\pm1} = psi_{i\pm1} * (2 delta_{l_{i\pm1}, l_i} - 1)
       const double psi_star_ip1 = psi_star_at(psi, fmat, center_material, ip1);
@@ -90,14 +90,14 @@ rhs_upwind(flecsi::exec::accelerator s,
     };
   }
   else if constexpr(D == 2) {
-    auto pol = get_mdiota_policy(vel[0],
+    auto pol = get_mdiota_policy(vel,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
     s.executor().forall(ji, pol) {
       auto [j, i] = ji;
       const int center_material = fmat(i, j);
-      auto [um, up] = minmax(0.0, static_cast<vec<D>>(vel(i, j)));
+      auto [um, up] = minmax(0.0, vel(i, j));
 
       // psi* neighbors relative to the center cell material l_{i,j}.
       const double psi_star_im1j =
@@ -123,7 +123,7 @@ rhs_upwind(flecsi::exec::accelerator s,
     };
   }
   else { // D == 3
-    auto pol = get_mdiota_policy(vel[0],
+    auto pol = get_mdiota_policy(vel,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
@@ -131,7 +131,7 @@ rhs_upwind(flecsi::exec::accelerator s,
     s.executor().forall(kji, pol) {
       auto [k, j, i] = kji;
       const int center_material = fmat(i, j, k);
-      auto [um, up] = minmax(0.0, static_cast<vec<D>>(vel(i, j, k)));
+      auto [um, up] = minmax(0.0, vel(i, j, k));
 
       // psi* neighbors relative to the center cell material l_{i,j,k}.
       const double psi_star_im1jk =
@@ -470,9 +470,9 @@ promote_changed_material_cells(flecsi::exec::accelerator s,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
     q_ext_minus_a,
   field<double>::accessor<rw, na> mass_density_a,
-  typename vector_field_double<D>::template accessor<rw, na> momentum_density_a,
+  typename field<vec<D>>::template accessor<rw, na> momentum_density_a,
   field<double>::accessor<rw, na> total_energy_density_a,
-  typename vector_field_double<D>::template accessor<rw, na> velocity_a,
+  typename field<vec<D>>::template accessor<rw, na> velocity_a,
   field<double>::accessor<rw, na> pressure_a,
   field<double>::accessor<rw, na> sie_a,
   field<double>::accessor<rw, na> sound_speed_a,
@@ -489,10 +489,10 @@ promote_changed_material_cells(flecsi::exec::accelerator s,
   auto q_ext_minus = m.template mdcolex<is::cells>(q_ext_minus_a);
 
   auto rho = m.template mdcolex<is::cells>(mass_density_a);
-  auto mom = vector_field_double<D>::mdcolex(m, momentum_density_a);
+  auto mom = m.template mdcolex<is::cells>(momentum_density_a);
   auto rhoE = m.template mdcolex<is::cells>(total_energy_density_a);
 
-  auto velocity = vector_field_double<D>::mdcolex(m, velocity_a);
+  auto velocity = m.template mdcolex<is::cells>(velocity_a);
   auto pressure = m.template mdcolex<is::cells>(pressure_a);
   auto sie = m.template mdcolex<is::cells>(sie_a);
   auto sound_speed = m.template mdcolex<is::cells>(sound_speed_a);
@@ -691,7 +691,7 @@ diagnose_material_changes_1d(flecsi::exec::cpu,
   typename field<int>::template accessor<ro, ro> old_material_a,
   typename field<int>::template accessor<ro, ro> new_material_a,
   field<double>::accessor<ro, ro> mass_density_a,
-  typename vector_field_double<D>::template accessor<ro, ro> momentum_density_a,
+  typename field<vec<D>>::template accessor<ro, ro> momentum_density_a,
   field<double>::accessor<ro, ro> total_energy_density_a,
   const std::vector<eos::eos_wrapper> & eos_mm,
   int max_print) noexcept {
@@ -700,7 +700,7 @@ diagnose_material_changes_1d(flecsi::exec::cpu,
     auto old_material = m.template mdcolex<is::cells>(old_material_a);
     auto new_material = m.template mdcolex<is::cells>(new_material_a);
     auto rho = m.template mdcolex<is::cells>(mass_density_a);
-    auto mom = vector_field_double<D>::mdcolex(m, momentum_density_a);
+    auto mom = m.template mdcolex<is::cells>(momentum_density_a);
     auto rhoE = m.template mdcolex<is::cells>(total_energy_density_a);
 
     int nchanged = 0;
@@ -761,12 +761,12 @@ void
 diagnose_psi_range_1d(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, ro> psi_a,
-  typename vector_field_double<D>::template accessor<ro, ro> velocity_a,
+  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
   const char * label) noexcept {
 
   if constexpr(D == 1) {
     auto psi = m.template mdcolex<is::cells>(psi_a);
-    auto vel = vector_field_double<D>::mdcolex(m, velocity_a);
+    auto vel = m.template mdcolex<is::cells>(velocity_a);
 
     double min_psi = std::numeric_limits<double>::max();
     double max_psi = -std::numeric_limits<double>::max();

@@ -18,7 +18,7 @@ void inline vtk(flecsi::exec::cpu s,
   std::vector<std::tuple<multi<field<double>::accessor<ro, ro>>,
     const std::string &>> field_ma,
   std::vector<
-    std::tuple<typename vector_field_double<D>::template multi_accessor<ro, ro>,
+    std::tuple<multi<typename field<vec<D>>::template accessor<ro, ro>>,
       const std::string &>> field_vector_ma) noexcept {
 
   const auto rank = s.launch().index;
@@ -115,25 +115,25 @@ void inline vtk(flecsi::exec::cpu s,
       piece_file << "          ";
 
       if constexpr(D == 1) {
-        for(auto idx : m.template cells<ax::x, L>()) {
-          piece_file << std::scientific << std::setprecision(16)
-                     << fields[f](idx) << " ";
+        for(auto i : m.template cells<ax::x, L>()) {
+          piece_file << std::scientific << std::setprecision(16) << fields[f](i)
+                     << " ";
         }
       }
       else if constexpr(D == 2) {
-        for(auto idx_j : m.template cells<ax::y, L>()) {
-          for(auto idx_i : m.template cells<ax::x, L>()) {
+        for(auto j : m.template cells<ax::y, L>()) {
+          for(auto i : m.template cells<ax::x, L>()) {
             piece_file << std::scientific << std::setprecision(16)
-                       << fields[f](idx_i, idx_j) << " ";
+                       << fields[f](i, j) << " ";
           }
         }
       }
       else /* D == 3 */ {
-        for(auto idx_k : m.template cells<ax::z, L>()) {
-          for(auto idx_j : m.template cells<ax::y, L>()) {
-            for(auto idx_i : m.template cells<ax::x, L>()) {
+        for(auto k : m.template cells<ax::z, L>()) {
+          for(auto j : m.template cells<ax::y, L>()) {
+            for(auto i : m.template cells<ax::x, L>()) {
               piece_file << std::scientific << std::setprecision(16)
-                         << fields[f](idx_i, idx_j, idx_k) << " ";
+                         << fields[f](i, j, k) << " ";
             }
           }
         }
@@ -150,28 +150,28 @@ void inline vtk(flecsi::exec::cpu s,
       piece_file << "          ";
 
       if constexpr(D == 1) {
-        for(auto idx : m.template cells<ax::x, L>()) {
+        for(auto i : m.template cells<ax::x, L>()) {
           piece_file << std::scientific << std::setprecision(16)
-                     << fields_vectors[f][0](idx) << " 0.0 0.0 ";
+                     << fields_vectors[f](i)[0] << " 0.0 0.0 ";
         }
       }
       else if constexpr(D == 2) {
-        for(auto idx_j : m.template cells<ax::y, L>()) {
-          for(auto idx_i : m.template cells<ax::x, L>()) {
+        for(auto j : m.template cells<ax::y, L>()) {
+          for(auto i : m.template cells<ax::x, L>()) {
             piece_file << std::scientific << std::setprecision(16)
-                       << fields_vectors[f][0](idx_i, idx_j) << " "
-                       << fields_vectors[f][1](idx_i, idx_j) << " 0.0 ";
+                       << fields_vectors[f](i, j)[0] << " "
+                       << fields_vectors[f](i, j)[1] << " 0.0 ";
           }
         }
       }
       else /* D == 3 */ {
-        for(auto idx_k : m.template cells<ax::z, L>()) {
-          for(auto idx_j : m.template cells<ax::y, L>()) {
-            for(auto idx_i : m.template cells<ax::x, L>()) {
+        for(auto k : m.template cells<ax::z, L>()) {
+          for(auto j : m.template cells<ax::y, L>()) {
+            for(auto i : m.template cells<ax::x, L>()) {
               piece_file << std::scientific << std::setprecision(16)
-                         << fields_vectors[f][0](idx_i, idx_j, idx_k) << " "
-                         << fields_vectors[f][1](idx_i, idx_j, idx_k) << " "
-                         << fields_vectors[f][2](idx_i, idx_j, idx_k) << " ";
+                         << fields_vectors[f](i, j, k)[0] << " "
+                         << fields_vectors[f](i, j, k)[1] << " "
+                         << fields_vectors[f](i, j, k)[2] << " ";
             }
           }
         }

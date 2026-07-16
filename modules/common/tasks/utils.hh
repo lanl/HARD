@@ -3,8 +3,6 @@
 
 #include <flecsi/data.hh>
 
-#include "spec/vector_field.hh"
-
 namespace common::tasks::utils {
 
 using namespace flecsi;
@@ -89,15 +87,13 @@ struct copy_scalar_v_vector_task : hard::annotation_task_region {
 
 // Copy a field to another one
 // The tuple contains the <from, to> fields
-template<std::size_t Dim>
+template<std::size_t Dim, class V>
 void
 copy_scalar_v_vector(flecsi::exec::accelerator s,
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     field<double>::accessor<wo, na>>> v_a,
-  std::vector<std::tuple<
-    typename hard::vector_field_double<Dim>::template accessor<ro, na>,
-    typename hard::vector_field_double<Dim>::template accessor<wo, na>>>
-    vec_v_a) noexcept {
+  std::vector<std::tuple<typename field<V>::template accessor<ro, na>,
+    typename field<V>::template accessor<wo, na>>> vec_v_a) noexcept {
 
   for(auto & [from_a, to_a] : v_a) {
     s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
@@ -106,15 +102,9 @@ copy_scalar_v_vector(flecsi::exec::accelerator s,
   }
 
   for(auto & [from_a, to_a] : vec_v_a) {
-    auto gpu_from_a = hard::vector_field_double<Dim>::to_accelerator(from_a);
-    auto gpu_to_a = hard::vector_field_double<Dim>::to_accelerator(to_a);
-
-    for(int axis = 0; axis < from_a.size(); axis++) {
-      s.executor().forall(
-        i, flecsi::util::iota_view({}, gpu_from_a[axis].span().size())) {
-        gpu_to_a[axis](i) = gpu_from_a[axis](i);
-      }; // forall
-    }
+    s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
+      to_a(i) = from_a(i);
+    }; // forall
   }
 }
 

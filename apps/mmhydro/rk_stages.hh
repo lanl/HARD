@@ -118,7 +118,6 @@ extrapolate_ghost(state<D> & s,
   annotation_rguard<tasks::extrapolation::prepare_extp_for_material_task>(),
     sc.execute<tasks::extrapolation::prepare_extp_for_material<D>>(
       flecsi::exec::on,
-      *s.m,
       s.ls.psi(*s.m),
       s.ls.material(*s.m),
       s.cons.hydro.mass_density(*s.m),

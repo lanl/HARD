@@ -44,13 +44,13 @@ auto
 rad_RH(flecsi::exec::cpu s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, ro> r_a,
-  typename vector_field_double<D>::template accessor<wo, ro> ru_a,
+  typename field<vec<D>>::template accessor<wo, ro> ru_a,
   field<double>::accessor<wo, ro> r_e_a,
   field<double>::accessor<wo, ro> Erad_a,
   const double gamma,
   single<double>::accessor<ro> particle_mass_a) {
   auto r = m.template mdcolex<is::cells>(r_a);
-  auto ru = vector_field_double<D>::mdcolex(m, ru_a);
+  auto ru = m.template mdcolex<is::cells>(ru_a);
   auto r_e = m.template mdcolex<is::cells>(r_e_a);
   auto Erad = m.template mdcolex<is::cells>(Erad_a);
   auto const particle_mass = *particle_mass_a;

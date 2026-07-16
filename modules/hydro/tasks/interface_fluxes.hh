@@ -23,7 +23,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
   typename faces<Dim>::template accessor<ro, ro> re_face_a,
   // Riemann fluxes at cell interfaces
   field<double>::accessor<wo, ro> r_f_a,
-  typename vector_field_double<Dim>::template accessor<wo, ro> ru_f_a,
+  typename field<vec<Dim>>::template accessor<wo, ro> ru_f_a,
   field<double>::accessor<wo, ro> re_f_a,
   // time derivative
   typename RK<Dim>::template accessor<rw, na> rk_dt_a,
@@ -36,7 +36,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
   auto [re_right, re_left] = faces<Dim>::mdcolex(m, re_face_a);
 
   auto r_f = m.template mdcolex<is::cells>(r_f_a);
-  auto ru_f = vector_field_double<Dim>::mdcolex(m, ru_f_a);
+  auto ru_f = m.template mdcolex<is::cells>(ru_f_a);
   auto re_f = m.template mdcolex<is::cells>(re_f_a);
 
   auto [dt_mass_density, dt_total_energy_density, dt_momentum_density] =

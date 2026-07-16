@@ -2,7 +2,6 @@
 #define HARD_MODULES_GFM_STATE_HH
 
 #include "../modules/spec/eos.hh"
-#include "spec/vector_field.hh"
 #include "tasks/utils.hh"
 #include "types.hh"
 
@@ -40,9 +39,13 @@ struct state {
   } ls;
   struct extrapolation {
     // Gradient component and unit normal
-    static inline const vector_field_double<D> dp; // dp
+    static inline const typename field<vec<D>>::template definition<mesh<D>,
+      is::cells>
+      dp; // dp
 
-    static inline const vector_field_double<D> normal; // dp
+    static inline const typename field<vec<D>>::template definition<mesh<D>,
+      is::cells>
+      normal; // dp
 
     // Dynamics psi during extrapolation steps
     static inline const field<double>::definition<mesh<D>, is::cells> extp_psi;

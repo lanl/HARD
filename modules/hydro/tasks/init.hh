@@ -15,12 +15,10 @@ struct initialize_gravity_force_task : annotation_task_region {
 
 template<std::size_t D>
 void inline initialize_gravity_force(flecsi::exec::cpu,
-  typename vector_field_double<D>::template accessor<wo, wo>
-    gravity_force_a) noexcept {
+  typename field<vec<D>>::template accessor<wo, wo> gravity_force_a) noexcept {
+  auto gf = gravity_force_a.span();
   // initialize gravity force with zero
-  for(auto & component : gravity_force_a) {
-    std::fill(component.span().begin(), component.span().end(), 0.0);
-  }
+  std::fill(gf.begin(), gf.end(), vec<D>{0.0});
 } // initialize_gravity_force
 
 struct initialize_gravity_acc_task : annotation_task_region {
@@ -121,29 +119,25 @@ template<std::size_t D>
 inline void
 touch(typename mesh<D>::template accessor<ro>, // m,
   field<double>::accessor<wo, wo>, // r_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ru_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ru_a,
   field<double>::accessor<wo, wo>, // rE_a,
 
-  typename vector_field_double<D>::template accessor<wo, wo>, // u_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // u_a,
   field<double>::accessor<wo, wo>, // p_a,
   field<double>::accessor<wo, wo>, // rLeft_a,
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // ruLeft_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruLeft_a,
   field<double>::accessor<wo, wo>, // rELeft_a,
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // uLeft_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uLeft_a,
   field<double>::accessor<wo, wo>, // pLeft_a,
 
   field<double>::accessor<wo, wo>, // rRight_a,
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // ruRight_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruRight_a,
   field<double>::accessor<wo, wo>, // rERight_a,
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // uRight_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uRight_a,
   field<double>::accessor<wo, wo>, // pRight_a,
 
   field<double>::accessor<wo, wo>, // rF_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ruF_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruF_a,
   field<double>::accessor<wo, wo> // rEF_a
   ) noexcept {} // touch
 
@@ -151,29 +145,25 @@ template<std::size_t D>
 inline void
 touch1(typename mesh<D>::template accessor<ro>, // m,
   field<double>::accessor<wo, wo>, // r_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ru_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ru_a,
   field<double>::accessor<wo, wo>, // rE_a,
 
-  typename vector_field_double<D>::template accessor<wo, wo>, // u_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // u_a,
   field<double>::accessor<wo, wo>, // p_a,
   field<double>::accessor<wo, wo>, // rLeft_a,
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // ruLeft_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruLeft_a,
   field<double>::accessor<wo, wo>, // rELeft_a,
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // uLeft_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uLeft_a,
   field<double>::accessor<wo, wo>, // pLeft_a,
 
   field<double>::accessor<wo, wo>, // rRight_a,
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // ruRight_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruRight_a,
   field<double>::accessor<wo, wo>, // rERight_a,
-  typename vector_field_double<D>::template accessor<wo,
-    wo>, // uRight_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // uRight_a,
   field<double>::accessor<wo, wo>, // pRight_a,
 
   field<double>::accessor<wo, wo>, // rF_a,
-  typename vector_field_double<D>::template accessor<wo, wo>, // ruF_a,
+  typename field<vec<D>>::template accessor<wo, wo>, // ruF_a,
   field<double>::accessor<wo, wo> // rEF_a
   ) noexcept {} // touch
 

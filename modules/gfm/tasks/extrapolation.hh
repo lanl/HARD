@@ -132,12 +132,12 @@ void
 gradient_centered(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> psi_a,
-  typename vector_field_double<D>::template accessor<wo, na> dp_a) noexcept {
+  typename field<vec<D>>::template accessor<wo, na> dp_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
   auto psi = m.template mdcolex<is::cells>(psi_a);
-  auto dp = vector_field_double<D>::mdcolex(m, dp_a);
+  auto dp = m.template mdcolex<is::cells>(dp_a);
 
   // Compute deltas for each dimension
   std::array<double, D> div_d;
@@ -188,15 +188,15 @@ template<std::size_t D>
 void
 unit_normals(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename vector_field_double<D>::template accessor<ro, ro> dp_a,
-  typename vector_field_double<D>::template accessor<wo, na> normal_a,
+  typename field<vec<D>>::template accessor<ro, ro> dp_a,
+  typename field<vec<D>>::template accessor<wo, na> normal_a,
   typename faces_vec<D>::template accessor<wo, na> normal_f_a,
   std::size_t face_axis) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
-  auto dp = vector_field_double<D>::mdcolex(m, dp_a);
-  auto normal = vector_field_double<D>::mdcolex(m, normal_a);
+  auto dp = m.template mdcolex<is::cells>(dp_a);
+  auto normal = m.template mdcolex<is::cells>(normal_a);
   auto [n_right, n_left] = faces_vec<D>::mdcolex(m, normal_f_a);
 
   constexpr double eps = 1e-12;
@@ -221,7 +221,7 @@ unit_normals(flecsi::exec::accelerator s,
     };
   }
   else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(dp[0],
+    auto mdpolicy_qq = get_mdiota_policy(dp,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
@@ -242,7 +242,7 @@ unit_normals(flecsi::exec::accelerator s,
     };
   }
   else /* D == 3 */ {
-    auto mdpolicy_qqq = get_mdiota_policy(dp[0],
+    auto mdpolicy_qqq = get_mdiota_policy(dp,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
@@ -566,7 +566,7 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
     q_scalar_a,
   typename field<double>::template accessor<ro, ro> psi_a,
-  typename vector_field_double<D>::template accessor<ro, ro> normal_a,
+  typename field<vec<D>>::template accessor<ro, ro> normal_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     rhs_a) noexcept {
 
@@ -574,7 +574,7 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
 
   auto q = m.template mdcolex<is::cells>(q_scalar_a);
   auto psi = m.template mdcolex<is::cells>(psi_a);
-  auto normal = vector_field_double<D>::mdcolex(m, normal_a);
+  auto normal = m.template mdcolex<is::cells>(normal_a);
   auto rhs = m.template mdcolex<is::cells>(rhs_a);
 
   const double dx = m.template delta<ax::x>();
@@ -1144,11 +1144,10 @@ struct prepare_extp_for_material_task : annotation_task_region {
 template<std::size_t D>
 void
 prepare_extp_for_material(flecsi::exec::accelerator s,
-  typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, na> ls_psi_a,
   typename field<int>::template accessor<ro, na> material_a,
   typename field<double>::template accessor<ro, na> mass_density_a,
-  typename vector_field_double<D>::template accessor<ro, na> velocity_a,
+  typename field<vec<D>>::template accessor<ro, na> velocity_a,
   typename field<double>::template accessor<ro, na> pressure_a,
   typename field<double>::template accessor<ro, na> sie_a,
   typename field<double>::template accessor<wo, na> extp_psi_a,
@@ -1157,73 +1156,19 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
     q_known_a,
   int source_material) noexcept {
 
-  using common::tasks::utils::get_mdiota_policy;
+  s.executor().forall(
+    i, flecsi::util::iota_view({}, extp_psi_a.span().size())) {
+    extp_psi_a(i) =
+      (material_a(i) == source_material) ? ls_psi_a(i) : -ls_psi_a(i);
 
-  auto ls_psi = m.template mdcolex<is::cells>(ls_psi_a);
-  auto material = m.template mdcolex<is::cells>(material_a);
-  auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto velocity = vector_field_double<D>::mdcolex(m, velocity_a);
-  auto pressure = m.template mdcolex<is::cells>(pressure_a);
-  auto sie = m.template mdcolex<is::cells>(sie_a);
-  auto extp_psi = m.template mdcolex<is::cells>(extp_psi_a);
-  auto q = m.template mdcolex<is::cells>(q_a);
-  auto q_known = m.template mdcolex<is::cells>(q_known_a);
+    q_a(i).rho() = mass_density_a(i);
+    q_a(i).u() = velocity_a(i);
+    q_a(i).p() = pressure_a(i);
+    q_a(i).e() = sie_a(i);
+    q_a(i).n_comps() = static_cast<double>(hard::tasks::util::extp_q<D>::N_q);
 
-  if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::all>())) {
-      extp_psi(i) = (material(i) == source_material) ? ls_psi(i) : -ls_psi(i);
-
-      q(i).rho() = mass_density(i);
-      q(i).u() = velocity(i);
-      q(i).p() = pressure(i);
-      q(i).e() = sie(i);
-      q(i).n_comps() = static_cast<double>(hard::tasks::util::extp_q<D>::N_q);
-
-      q_known(i) = q(i);
-    }; // forall
-  }
-  else if constexpr(D == 2) {
-    auto mdpolicy_yx = get_mdiota_policy(mass_density,
-      m.template cells<ax::y, dm::all>(),
-      m.template cells<ax::x, dm::all>());
-
-    s.executor().forall(ji, mdpolicy_yx) {
-      auto [j, i] = ji;
-      extp_psi(i, j) =
-        (material(i, j) == source_material) ? ls_psi(i, j) : -ls_psi(i, j);
-
-      q(i, j).rho() = mass_density(i, j);
-      q(i, j).u() = velocity(i, j);
-      q(i, j).p() = pressure(i, j);
-      q(i, j).e() = sie(i, j);
-      q(i, j).n_comps() =
-        static_cast<double>(hard::tasks::util::extp_q<D>::N_q);
-
-      q_known(i, j) = q(i, j);
-    }; // forall
-  }
-  else /* D == 3 */ {
-    auto mdpolicy_zyx = get_mdiota_policy(mass_density,
-      m.template cells<ax::z, dm::all>(),
-      m.template cells<ax::y, dm::all>(),
-      m.template cells<ax::x, dm::all>());
-
-    s.executor().forall(kji, mdpolicy_zyx) {
-      auto [k, j, i] = kji;
-      extp_psi(i, j, k) = (material(i, j, k) == source_material)
-                            ? ls_psi(i, j, k)
-                            : -ls_psi(i, j, k);
-
-      q(i, j, k).rho() = mass_density(i, j, k);
-      q(i, j, k).u() = velocity(i, j, k);
-      q(i, j, k).p() = pressure(i, j, k);
-      q(i, j, k).e() = sie(i, j, k);
-      q(i, j, k).n_comps() =
-        static_cast<double>(hard::tasks::util::extp_q<D>::N_q);
-
-      q_known(i, j, k) = q(i, j, k);
-    }; // forall
-  } // if constexpr
+    q_known_a(i) = q_a(i);
+  };
 }
 
 } // namespace hard::tasks::extrapolation

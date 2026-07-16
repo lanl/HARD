@@ -19,7 +19,6 @@ set(modules_headers
   mesh.hh
   runtime.hh
   types.hh
-  vector_field.hh
   tasks/boundaries/boundary.hh
   tasks/boundaries/dirichlet.hh
   tasks/boundaries/flow.hh

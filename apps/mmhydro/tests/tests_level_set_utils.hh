@@ -5,7 +5,6 @@
 #include "spec/labels.hh"
 #include "spec/mesh.hh"
 #include "spec/types.hh"
-#include "spec/vector_field.hh"
 
 using namespace spec;
 using namespace common::tasks::utils;
@@ -18,7 +17,8 @@ struct state {
   typename mesh<D>::ptr m;
 
   // Velocity field (u)
-  static inline const vector_field_double<D> velocity;
+  static inline const field<vec<D>>::template definition<mesh<D>, is::cells>
+    velocity;
 
   // Time step, time, and normalization period T
   static inline const single<double>::definition<flecsi::topo::global> dt, t,
@@ -77,15 +77,14 @@ template<std::size_t D, int STAGE>
 void
 copy_test_vel_stage(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<spec::ro> m,
-  typename vector_field_double<D>::template accessor<spec::wo, spec::na>
-    velocity_a,
+  typename field<vec<D>>::template accessor<spec::wo, spec::na> velocity_a,
   typename single<double>::template accessor<spec::ro> t,
   typename single<double>::template accessor<spec::ro> dt,
   typename single<double>::template accessor<spec::ro> period) noexcept {
 
   static_assert(STAGE >= 1 && STAGE <= 3, "STAGE must be 1, 2, or 3");
 
-  auto u = vector_field_double<D>::mdcolex(m, velocity_a);
+  auto u = m.template mdcolex<is::cells>(velocity_a);
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
@@ -97,7 +96,7 @@ copy_test_vel_stage(flecsi::exec::accelerator s,
     }; // forall
   }
   else if constexpr(D == 2) {
-    auto mdpolicy_qq = get_mdiota_policy(u[0],
+    auto mdpolicy_qq = get_mdiota_policy(u,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
@@ -113,7 +112,7 @@ copy_test_vel_stage(flecsi::exec::accelerator s,
     }; // forall
   }
   else /* D == 3 */ {
-    auto mdpolicy_qqq = get_mdiota_policy(u[0],
+    auto mdpolicy_qqq = get_mdiota_policy(u,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
