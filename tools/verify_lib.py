@@ -1,7 +1,7 @@
 import argparse
 import glob
 import os
-import subprocess
+import shutil
 from collections.abc import Callable
 from importlib import util as imputil
 from typing import Any
@@ -255,8 +255,10 @@ def find_last_output(
 
         # Combine the files
         new_file = combine[-1].replace(f"D-{mm}-", f"D-{mm + 1}-")
-        with open(new_file, "w") as fwrite:
-            subprocess.run(["cat"] + combine, stdout=fwrite)
+        with open(new_file, "wb") as fwrite:
+            for file in combine:
+                with open(file, "rb") as fread:
+                    shutil.copyfileobj(fread, fwrite, length=1024 * 1024)
         return new_file, True
 
 
