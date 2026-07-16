@@ -131,11 +131,49 @@ shock_mm(flecsi::exec::cpu s,
   auto q_ext_minus = m.template mdcolex<is::cells>(q_ext_minus_a);
 
   vec<D> uL(T::uL), uR(T::uR);
-  double sieR = 0., sieL = 0.; // initial guess, required for ieRhoPSie
-  const double eL =
-    eos_mm[static_cast<std::size_t>(T::mL)].ieRhoPSie(T::rL, T::pL, sieL);
-  const double eR =
-    eos_mm[static_cast<std::size_t>(T::mR)].ieRhoPSie(T::rR, T::pR, sieR);
+
+  //-----------------------------------------------------------------------------
+  // TODO: singularity eos v 1.11.1 doesn't output correct internal energy for
+  //       some JWL parameters, has been fixed here:
+  //       https://github.com/lanl/singularity-eos/pull/645
+  //       We haven't updated to that yet, so for now we use the analytical
+  //       solution, reference Lee et al. 2013 (Lee Shock test) paper:
+  // https://www.sciencedirect.com/science/article/pii/S0021999113002246
+
+  spec::config_py config(opt::config.value());
+  std::string eos = config["eos_list"][0]["eos"].cast<std::string>();
+  std::string eos_jwl = "jwl";
+
+  double eR, eL; // internal energy
+
+  if(eos == eos_jwl) { // if eos is jwl
+    // manual function
+    spec::config_py config(opt::config.value());
+    // JWL parameters from input file
+    const double A = config["eos_list"][0]["JWL_A"].cast<double>();
+    const double B = config["eos_list"][0]["JWL_B"].cast<double>();
+    const double R1 = config["eos_list"][0]["JWL_R1"].cast<double>();
+    const double R2 = config["eos_list"][0]["JWL_R2"].cast<double>();
+    const double w = config["eos_list"][0]["JWL_w"].cast<double>();
+    const double rho0 = config["eos_list"][0]["JWL_rho0"].cast<double>();
+
+    double pRef_R = A * exp(-R1 * rho0 / T::rR) + B * exp(-R2 * rho0 / T::rR);
+    double eRef_R = A / (rho0 * R1) * exp(-R1 * rho0 / T::rR) +
+                    B / (rho0 * R2) * exp(-R2 * rho0 / T::rR);
+    eR = (T::pR - pRef_R) / (w * T::rR) + eRef_R;
+
+    double pRef_L = A * exp(-R1 * rho0 / T::rL) + B * exp(-R2 * rho0 / T::rL);
+    double eRef_L = A / (rho0 * R1) * exp(-R1 * rho0 / T::rL) +
+                    B / (rho0 * R2) * exp(-R2 * rho0 / T::rL);
+    eL = (T::pL - pRef_L) / (w * T::rL) + eRef_L;
+  }
+  else {
+    // singuarity function
+    double sieR = 0., sieL = 0.; // initial guess, required for ieRhoPSie
+    eL = eos_mm[static_cast<std::size_t>(T::mL)].ieRhoPSie(T::rL, T::pL, sieL);
+    eR = eos_mm[static_cast<std::size_t>(T::mR)].ieRhoPSie(T::rR, T::pR, sieR);
+  }
+  //-----------------------------------------------------------------------------
 
   if constexpr(D == 1) {
     for(auto i : m.template cells<ax::x, dm::quantities>()) {
