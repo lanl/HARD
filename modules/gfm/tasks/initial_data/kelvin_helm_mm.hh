@@ -59,7 +59,8 @@ kh_instability_mm(flecsi::exec::cpu s,
   const double pH = 2.5;
   const int mH = 1;
 
-  // vec<D> uL, uH; // unsure
+  vec<D> vel;
+
   double sieL = 0., sieH = 0.;
   const double eL =
     eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
@@ -76,43 +77,60 @@ kh_instability_mm(flecsi::exec::cpu s,
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);
 
+        // velocity perturbations in the Y-direction
+        const double v_pert = 0.05 * sin(N * wavenumber * x);
+
         // initialize two different density and velocity fluids
         if(std::abs(y - 0.5) > 0.25) {
           mass_density(i, j) = rL;
-          momentum_density(i, j).x() = rL * uL;
-          momentum_density(i, j).y() = rL * vL;
+          vel.x() = uL;
+          momentum_density(i, j).x() = rL * vel.x();
+          if(std::abs(y - 0.25) < 0.1 || std::abs(y - 0.75) < 0.1) {
+            vel.y() = v_pert;
+          }
+          else {
+            vel.y() = vL;
+          }
+          momentum_density(i, j).y() = rL * vel.y();
 
           material(i, j) = mL;
           frozen_material(i, j) = mL;
-          psi(i, j) = std::abs(y - 0.5); // is this right ?
+          psi(i, j) = 0.25 - std::abs(y - 0.5);
 
-          total_energy_density(i, j) = rL * eL + 0.5 * rL * (vL * vL);
+          total_energy_density(i, j) =
+            rL * eL + 0.5 * rL * (vel.x() * vel.x() + vel.y() * vel.y());
 
-          common::tasks::utils::pack_q<D>(q_scalar(i, j), rL, uL, pL, eL);
+          common::tasks::utils::pack_q<D>(q_scalar(i, j), rL, vel, pL, eL);
           q_scalar_known(i, j) = q_scalar(i, j);
         }
         else {
           mass_density(i, j) = rH;
-          momentum_density(i, j).x() = rH * uH;
-          momentum_density(i, j).y() = rH * vH;
+          vel.x() = uH;
+          momentum_density(i, j).x() = rH * vel.x();
+          if(std::abs(y - 0.25) < 0.1 || std::abs(y - 0.75) < 0.1) {
+            vel.y() = v_pert;
+          }
+          else {
+            vel.y() = vH;
+          }
+          momentum_density(i, j).y() = rH * vel.y();
 
           material(i, j) = mH;
           frozen_material(i, j) = mH;
-          psi(i, j) = std::abs(y - 0.5); // is this right ?
+          psi(i, j) = 0.25 - std::abs(y - 0.5);
 
-          total_energy_density(i, j) = rH * eH + 0.5 * rH * (vH * vH);
+          total_energy_density(i, j) =
+            rH * eH + 0.5 * rH * (vel.x() * vel.x() + vel.y() * vel.y());
 
-          common::tasks::utils::pack_q<D>(q_scalar(i, j), rH, uH, pH, eH);
+          common::tasks::utils::pack_q<D>(q_scalar(i, j), rH, vel, pH, eH);
           q_scalar_known(i, j) = q_scalar(i, j);
         } // if
+        // Initial exact constant extrapolation fields.
+        // plus: left/minus material extended into plus/right side.
+        common::tasks::utils::pack_q<D>(q_ext_plus(i, j), rL, vel, pL, eL);
 
-        // velocity perturbations in the Y-direction
-        if(std::abs(y - 0.25) < 0.1) {
-          momentum_density(i, j).y() = 0.05 * sin(N * wavenumber * x);
-        }
-        if(std::abs(y - 0.75) < 0.1) {
-          momentum_density(i, j).y() = 0.05 * sin(N * wavenumber * x);
-        }
+        // minus: right/plus material extended into minus/left side.
+        common::tasks::utils::pack_q<D>(q_ext_minus(i, j), rH, vel, pH, eH);
       } // for
     }; // forall
   }

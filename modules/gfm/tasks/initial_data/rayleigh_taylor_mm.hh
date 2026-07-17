@@ -52,20 +52,20 @@ rt_instability_mm(flecsi::exec::cpu s,
                   const vec<D> & velocity,
                   double pressure,
                   double sie) {
-      qcell.rho() = rho;
-      qcell.u() = velocity;
-      qcell.p() = pressure;
-      qcell.e() = sie;
-      qcell.n_comps() = 0;
+    qcell.rho() = rho;
+    qcell.u() = velocity;
+    qcell.p() = pressure;
+    qcell.e() = sie;
+    qcell.n_comps() = 0;
   }; // pack_q
 
   // initial conditions
   const double p0 = 2.5;
-    // For hydrostatic equilibrium pressure, add g*rho*y to p0
-  const double v0 = 0.05;
-    // For perturbed velocity, multiply by 
-    // ((1 + cos (4*pi*x))/2)*((1 + cos (3*pi*y))/2)
-  
+  // For hydrostatic equilibrium pressure, add g*rho*y to p0
+  const double v0 = 0.1;
+  // For perturbed velocity, multiply by
+  // ((1 + cos (4*pi*x))/2)*((1 + cos (3*pi*y))/2)
+
   // H is the upper fluid
   const double rH = 2.0;
   const double uH = 0.0;
@@ -76,6 +76,8 @@ rt_instability_mm(flecsi::exec::cpu s,
   const double uL = 0.0;
   const int mL = 0;
 
+  vec<D> vel;
+
   double sieL = 0., sieH = 0.;
 
   if constexpr(D == 1) {
@@ -85,11 +87,12 @@ rt_instability_mm(flecsi::exec::cpu s,
       constexpr double x0 = 0.75; // interface of fluids
       const double v = v0 * 1 / 2 * std::exp(-std::pow((x - x0) / 0.05, 2));
 
-      if(x>=x0) {
+      if(x >= x0) {
         // upper fluid
         mass_density(i) = rH;
+        vel.x() = uH;
         gravity_force(i).x() = rH * g.x();
-        momentum_density(i).x() = rH * uH;
+        momentum_density(i).x() = rH * vel.x();
         const double pH = p0 + rL * g.x() * x0 + g.x() * rH * (x - x0);
 
         material(i) = mH;
@@ -98,19 +101,21 @@ rt_instability_mm(flecsi::exec::cpu s,
 
         const double eH =
           eos_mm[static_cast<std::size_t>(mH)].ieRhoPSie(rH, pH, sieH);
-        total_energy_density(i) = rH * eH + 0.5 * rH * (uH * uH + v * v);
+        total_energy_density(i) =
+          rH * eH + 0.5 * rH * (vel.x() * vel.x() + v * v);
 
-        pack_q(q_scalar(i), rH, uH, pH, eH);
+        pack_q(q_scalar(i), rH, vel, pH, eH);
         q_scalar_known(i) = q_scalar(i);
         // Extrapolated states across the interface
         // plus: left/minus material extended into plus/right side.
-        pack_q(q_ext_plus(i), rH, uH, pH, eH);
+        pack_q(q_ext_plus(i), rH, vel, pH, eH);
       }
       else {
         // lower fluid
         mass_density(i) = rL;
+        vel.x() = uL;
         gravity_force(i).x() = rL * g.x();
-        momentum_density(i).x() = rL * uL;
+        momentum_density(i).x() = rL * vel.x();
         const double pL = p0 + rL * g.x() * x;
 
         material(i) = mL;
@@ -119,35 +124,37 @@ rt_instability_mm(flecsi::exec::cpu s,
 
         const double eL =
           eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
-        total_energy_density(i) = rL * eL + 0.5 * rL * (uL * uL + v * v);
+        total_energy_density(i) =
+          rL * eL + 0.5 * rL * (vel.x() * vel.x() + v * v);
 
-        pack_q(q_scalar(i), rL, uL, pL, eL);
+        pack_q(q_scalar(i), rL, vel, pL, eL);
         q_scalar_known(i) = q_scalar(i);
         // Extrapolated states across the interface
         // minus: right/plus material extended into minus/left side.
-        pack_q(q_ext_minus(i), rL, uL, pL, eL);
+        pack_q(q_ext_minus(i), rL, vel, pL, eL);
       } // if
     } // for
-  } // D=1 
+  } // D=1
   else if constexpr(D == 2) {
     for(auto j : m.template cells<ax::y, dm::quantities>()) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);
 
-        double sieH, sieL;
         constexpr double x0 = 0.25; // perturbation x location
         constexpr double y0 = 0.75; // interface of fluids
         const double v = v0 * (1 + cos(4 * M_PI * (x - x0))) / 2 *
-            std::exp(-std::pow((y - y0) / 0.05, 2));
+                         std::exp(-std::pow((y - y0) / 0.05, 2));
 
-        if(y>=y0) {
+        if(y >= y0) {
           // upper fluid
           mass_density(i, j) = rH;
+          vel.x() = uH;
+          vel.y() = v;
           gravity_force(i, j).x() = rH * g.x();
           gravity_force(i, j).y() = rH * g.y();
-          momentum_density(i, j).x() = rH * uH;
-          momentum_density(i, j).y() = rH * v;
+          momentum_density(i, j).x() = rH * vel.x();
+          momentum_density(i, j).y() = rH * vel.y();
           const double pH = p0 + rL * g.y() * y0 + g.y() * rH * (y - y0);
 
           material(i, j) = mH;
@@ -156,21 +163,24 @@ rt_instability_mm(flecsi::exec::cpu s,
 
           const double eH =
             eos_mm[static_cast<std::size_t>(mH)].ieRhoPSie(rH, pH, sieH);
-          total_energy_density(i, j) = rH * eH + 0.5 * rH * (uH * uH + v * v);
+          total_energy_density(i, j) =
+            rH * eH + 0.5 * rH * (vel.x() * vel.x() + vel.y() * vel.y());
 
-          pack_q(q_scalar(i, j), rH, uH, pH, eH);
+          pack_q(q_scalar(i, j), rH, vel, pH, eH);
           q_scalar_known(i, j) = q_scalar(i, j);
           // Extrapolated states across the interface
           // plus: left/minus material extended into plus/right side.
-          pack_q(q_ext_plus(i, j), rH, uH, pH, eH);
+          pack_q(q_ext_plus(i, j), rH, vel, pH, eH);
         }
         else {
           // lower fluid
           mass_density(i, j) = rL;
+          vel.x() = uL;
+          vel.y() = v;
           gravity_force(i, j).x() = rL * g.x();
           gravity_force(i, j).y() = rL * g.y();
-          momentum_density(i, j).x() = rL * uL;
-          momentum_density(i, j).y() = rL * v;
+          momentum_density(i, j).x() = rL * vel.x();
+          momentum_density(i, j).y() = rL * vel.y();
           const double pL = p0 + rL * g.y() * y;
 
           material(i, j) = mL;
@@ -179,22 +189,22 @@ rt_instability_mm(flecsi::exec::cpu s,
 
           const double eL =
             eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
-          total_energy_density(i, j) = rL * eL + 0.5 * rL * (uL * uL + v * v);
+          total_energy_density(i, j) =
+            rL * eL + 0.5 * rL * (vel.x() * vel.x() + vel.y() * vel.y());
 
-          pack_q(q_scalar(i, j), rL, uL, pL, eL);
+          pack_q(q_scalar(i, j), rL, vel, pL, eL);
           q_scalar_known(i, j) = q_scalar(i, j);
           // Extrapolated states across the interface
           // minus: right/plus material extended into minus/left side.
-          pack_q(q_ext_minus(i, j), rL, uL, pL, eL);
+          pack_q(q_ext_minus(i, j), rL, vel, pL, eL);
         } // if
       } // for i
     } // for j
   } // D=2
   else {
-      flog_fatal(
-        "Rayleigh-Taylor instability problem for D == 3 is not implemented")
+    flog_fatal(
+      "Rayleigh-Taylor instability problem for D == 3 is not implemented")
   } // D=3
-
 
 } //  rt_instability_mm
 
