@@ -15,19 +15,19 @@ namespace hard::tasks::initial_data {
 namespace bubbles {
 
 struct he_bubble {
-  static constexpr double rL = 1.337;
-  static constexpr double uL = 1.22; // shocked air
-  static constexpr double pL = 1.19;
+  static constexpr double rL = 1.652; // post-shocked air
+  static constexpr double uL = 113.95;
+  static constexpr double pL = 1.57e5;
 
-  static constexpr double rM = 1.0; // unshocked air
+  static constexpr double rM = 1.200; // pre-shocked air
   static constexpr double uM = 0.0;
-  static constexpr double pM = 1.0;
+  static constexpr double pM = 1.0e5;
 
-  static constexpr double rR = 0.13798; // bubble
+  static constexpr double rR = 0.165; // helium bubble
   static constexpr double uR = 0.0;
-  static constexpr double pR = 1.0;
+  static constexpr double pR = 1.0e5;
 
-  static constexpr double x0 = 0.5; // position of the shock
+  static constexpr double x0 = 100.0; // position of the shock
 
   static constexpr int mL = 0; // air
   static constexpr int mM = 0;
@@ -47,7 +47,7 @@ struct he_bubble_extra {
   static constexpr double uR = 0.0;
   static constexpr double pR = 1.0;
 
-  static constexpr double x0 = 0.5; // position of the shock
+  static constexpr double x0 = 100.0; // position of the shock
 
   static constexpr int mL = 0; // air
   static constexpr int mM = 0;
@@ -111,9 +111,9 @@ he_bubble_mm(flecsi::exec::cpu s,
     uR.x() = T::uR;
     uR.y() = 0.0;
 
-    constexpr double xb = 1.5;
-    constexpr double yb = 1.0;
-    constexpr double rb = 0.5;
+    const double xb = 175;
+    const double yb = 44.5;
+    constexpr double rb = 25.0;
 
     for(auto ji : mdpolicy_yx) {
       auto [j, i] = ji;
@@ -191,10 +191,10 @@ he_bubble_mm(flecsi::exec::cpu s,
     uR.y() = 0.0;
     uR.z() = 0.0;
 
-    constexpr double xb = 1.5;
-    constexpr double yb = 1.0;
-    constexpr double zb = yb;
-    constexpr double rb = 0.5;
+    const double xb = 175;
+    const double yb = 44.5;
+    const double zb = 44.5;
+    constexpr double rb = 25.0;
 
     for(auto kji : mdpolicy_zyx) {
       auto [k, j, i] = kji;

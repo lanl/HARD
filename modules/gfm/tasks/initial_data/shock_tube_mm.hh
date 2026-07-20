@@ -41,13 +41,13 @@ struct shyue_shock {
 }; // struct shyue_shock
 
 struct helium_bubble_mm_init {
-  static constexpr double rL = 1.7;
-  static constexpr double uL = 0.0;
-  static constexpr double pL = 10.0;
+  static constexpr double rL = 1.652; // post-shocked air
+  static constexpr double uL = 113.95;
+  static constexpr double pL = 1.57e5;
 
-  static constexpr double rR = 1.0;
+  static constexpr double rR = 1.200; // pre-shocked air
   static constexpr double uR = 0.0;
-  static constexpr double pR = 0.5;
+  static constexpr double pR = 1.0e5;
 
   static constexpr double x0 = 100.0;
 
