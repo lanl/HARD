@@ -323,6 +323,17 @@ initialize(control_policy<state, D> & cp) {
   } // if
 
   /*--------------------------------------------------------------------------*
+    Extrapolation controls.
+    *--------------------------------------------------------------------------*/
+
+  if(config.contains("extp_steps")) {
+    s.extp_steps = config["extp_steps"].cast<int>();
+    if(s.extp_steps <= 0) {
+      flog_fatal("config 'extp_steps' must be positive, got " << s.extp_steps);
+    }
+  }
+
+  /*--------------------------------------------------------------------------*
     Output method configuration.
     *--------------------------------------------------------------------------*/
 

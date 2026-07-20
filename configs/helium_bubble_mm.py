@@ -11,7 +11,7 @@ config = {
         },
         {
             "eos": "ideal",
-            "gamma": 1.648,
+            "gamma": 1.67,
         },
     ],
 
@@ -19,29 +19,21 @@ config = {
     "mean_molecular_weight": 1.0,
 
     "t0": 0.0,
-    "tf": 2.5,
-    "max_steps": 20000,
+    "tf": 6,
+    "max_steps": 10000,
 
-    "cfl": 0.5,
+    "cfl": 0.8,
     "max_dt": 0.01,
 
-    "log_frequency": 20,
-    "output_frequency": 20,
+    "log_frequency": 100,
+    "output_frequency": 100,
 
-    # Previous large physical domain:
-    # "levels": [8, 6, 4],
-    # "coords": [
-    #     [0.0, -40.0, 0.0],
-    #     [350.0, 40.0, 1.0],
-    # ],
-    #
-    # New simple unit-box problem.
-    "levels": [9, 8, 6],
+    "levels": [9, 9, 7],
     "lowest_level": 6,
 
     "coords": [
         [0.0, 0.0, 0.0],
-        [4.0, 2.0, 2.0],
+        [352.0, 89.0, 89.0],
     ],
 
     "boundaries": {
@@ -52,6 +44,8 @@ config = {
         "zlow": "reflecting",
         "zhigh": "reflecting",
     },
+
+    "extp_steps": 200, # used for extrapolation
 
     "output_method": "vti",
 }

@@ -8,11 +8,20 @@
 #include "../../spec/mesh.hh"
 #include "../state.hh"
 #include "utils.hh"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <iostream>
 
 namespace hard::tasks::extrapolation {
+
+// Default pseudo-time controls for the Aslam (JCP 2003) constant
+// extrapolation routine used to fill ghost states.
+inline constexpr double extp_cfl =
+  1.0; // the problem is linear but the limited derivative is not
+inline constexpr double extp_residual_tol =
+  1.0; // bound on max SciPy-scaled update in band
 
 // Upwind derivative with TVD blend between 1st-order and 2nd-order upwind.
 // Uses minmod limiter.
@@ -952,6 +961,189 @@ min_mesh_spacing(typename mesh<D>::template accessor<ro> m) noexcept {
   }
 }
 
+struct extp_interface_convergence_update_task : annotation_task_region {
+  inline static const std::string name{"extp_interface_convergence_update"};
+};
+
+struct extp_interface_convergence_task : annotation_task_region {
+  inline static const std::string name{"extp_interface_convergence"};
+};
+
+template<std::size_t D>
+double
+extp_interface_convergence_update(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
+    q_old_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
+    q_new_a,
+  typename field<double>::template accessor<ro, ro> psi_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+  namespace fold = flecsi::exec::fold;
+
+  auto q_old = m.template mdcolex<is::cells>(q_old_a);
+  auto q_new = m.template mdcolex<is::cells>(q_new_a);
+  auto psi = m.template mdcolex<is::cells>(psi_a);
+
+  // Number of physical packed quantities used in the convergence check.
+  // Exclude the trailing metadata slot n_comps().
+  constexpr std::size_t N_Q = hard::tasks::util::extp_q<D>::N_q - 1;
+
+  // Tuning constants:
+  //   rtol       : relative tolerance
+  //   atol_frac  : absolute tol based on the max of each components of q
+  //   tiny       : guards against all-zero fields (q_ref == 0)
+  constexpr double rtol = 1e-2;
+  constexpr double atol_frac = 1e-3;
+  constexpr double tiny = 1e-16;
+
+  // SciPy-style scaled update check in the interface band:
+  //   scale_qid = atol[qid] + rtol * |q^{n+1}_qid|
+  //   e_qid     = |q^{n+1}_qid - q^n_qid| / scale_qid
+  //   e_cell    = max_qid(e_qid)
+  // atol[qid] is derived from the band-wide max of |q^{n+1}_qid|.
+  std::array<double, N_Q> q_ref{};
+  std::array<double, N_Q> atol{};
+
+  if constexpr(D == 1) {
+    auto in_band = [=](auto i) {
+      return psi(i) > 0.0 && (psi(i - 1) <= 0.0 || psi(i + 1) <= 0.0);
+    };
+
+    // --- Pass 1: per-variable band-max reference scale ---
+    for(std::size_t qid = 0; qid < N_Q; ++qid) {
+      q_ref[qid] = s.executor().reduceall(
+        i, up, (m.template cells<ax::x, dm::quantities>()), fold::max, double) {
+        up(in_band(i) ? std::abs(q_new(i)[qid]) : 0.0);
+      };
+    }
+    for(std::size_t qid = 0; qid < N_Q; ++qid)
+      atol[qid] = std::max(atol_frac * q_ref[qid], tiny);
+
+    auto scaled_update = [=](const auto & qo, const auto & qn) {
+      double out = 0.0;
+      for(std::size_t qid = 0; qid < N_Q; ++qid) {
+        const double diff = std::abs(qn[qid] - qo[qid]);
+        const double denom = atol[qid] + rtol * std::abs(qn[qid]);
+        out = std::max(out, diff / denom);
+      }
+      return out;
+    };
+
+    // --- Pass 2: scaled-update reduction ---
+    return s.executor().reduceall(
+      i, up, (m.template cells<ax::x, dm::quantities>()), fold::max, double) {
+      up(in_band(i) ? scaled_update(q_old(i), q_new(i)) : 0.0);
+    };
+  }
+  else if constexpr(D == 2) {
+    auto in_band = [=](auto i, auto j) {
+      return psi(i, j) > 0.0 && (psi(i - 1, j) <= 0.0 || psi(i + 1, j) <= 0.0 ||
+                                  psi(i, j - 1) <= 0.0 || psi(i, j + 1) <= 0.0);
+    };
+
+    auto mdpolicy_qq = get_mdiota_policy(q_new,
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    // --- Pass 1: per-variable band-max reference scale ---
+    for(std::size_t qid = 0; qid < N_Q; ++qid) {
+      q_ref[qid] =
+        s.executor().reduceall(ji, up, mdpolicy_qq, fold::max, double) {
+        auto [j, i] = ji;
+        up(in_band(i, j) ? std::abs(q_new(i, j)[qid]) : 0.0);
+      };
+    }
+    for(std::size_t qid = 0; qid < N_Q; ++qid)
+      atol[qid] = std::max(atol_frac * q_ref[qid], tiny);
+
+    auto scaled_update = [=](const auto & qo, const auto & qn) {
+      double out = 0.0;
+      for(std::size_t qid = 0; qid < N_Q; ++qid) {
+        const double diff = std::abs(qn[qid] - qo[qid]);
+        const double denom = atol[qid] + rtol * std::abs(qn[qid]);
+        out = std::max(out, diff / denom);
+      }
+      return out;
+    };
+
+    // --- Pass 2: scaled-update reduction ---
+    return s.executor().reduceall(ji, up, mdpolicy_qq, fold::max, double) {
+      auto [j, i] = ji;
+      up(in_band(i, j) ? scaled_update(q_old(i, j), q_new(i, j)) : 0.0);
+    };
+  }
+  else {
+    auto in_band = [=](auto i, auto j, auto k) {
+      return psi(i, j, k) > 0.0 &&
+             (psi(i - 1, j, k) <= 0.0 || psi(i + 1, j, k) <= 0.0 ||
+               psi(i, j - 1, k) <= 0.0 || psi(i, j + 1, k) <= 0.0 ||
+               psi(i, j, k - 1) <= 0.0 || psi(i, j, k + 1) <= 0.0);
+    };
+
+    auto mdpolicy_qqq = get_mdiota_policy(q_new,
+      m.template cells<ax::z, dm::quantities>(),
+      m.template cells<ax::y, dm::quantities>(),
+      m.template cells<ax::x, dm::quantities>());
+
+    // --- Pass 1: per-variable band-max reference scale ---
+    for(std::size_t qid = 0; qid < N_Q; ++qid) {
+      q_ref[qid] =
+        s.executor().reduceall(kji, up, mdpolicy_qqq, fold::max, double) {
+        auto [k, j, i] = kji;
+        up(in_band(i, j, k) ? std::abs(q_new(i, j, k)[qid]) : 0.0);
+      };
+    }
+    for(std::size_t qid = 0; qid < N_Q; ++qid)
+      atol[qid] = std::max(atol_frac * q_ref[qid], tiny);
+
+    auto scaled_update = [=](const auto & qo, const auto & qn) {
+      double out = 0.0;
+      for(std::size_t qid = 0; qid < N_Q; ++qid) {
+        const double diff = std::abs(qn[qid] - qo[qid]);
+        const double denom = atol[qid] + rtol * std::abs(qn[qid]);
+        out = std::max(out, diff / denom);
+      }
+      return out;
+    };
+
+    // --- Pass 2: scaled-update reduction ---
+    return s.executor().reduceall(kji, up, mdpolicy_qqq, fold::max, double) {
+      auto [k, j, i] = kji;
+      up(
+        in_band(i, j, k) ? scaled_update(q_old(i, j, k), q_new(i, j, k)) : 0.0);
+    };
+  }
+}
+
+template<std::size_t D>
+void
+extp_interface_convergence(flecsi::exec::cpu,
+  typename mesh<D>::template accessor<ro>,
+  flecsi::future<double> max_scaled_update_f,
+  std::size_t axis,
+  int source_material,
+  int steps,
+  double tol) noexcept {
+
+  const double max_scaled_update = max_scaled_update_f.get();
+
+  if(max_scaled_update > 10 * tol) {
+    flog(warn) << "Pseudo-time PDE did not reach steady state "
+                  "within the interface band.\n"
+               << "  - Max_scaled_update = " << max_scaled_update
+               << " , while set tol = " << tol << "\n"
+               << "  - Increase 'extp_steps' (currently " << steps
+               << "). For 1D problems ~ 20+, 2D ~ 50+, 3D ~ 100+.\n";
+  }
+  else if(max_scaled_update > tol) {
+    flog(info)
+      << "Pseudo-time PDE partially converged, increase 'extp_steps' (now = "
+      << steps << ") by a few steps.\n";
+  }
+}
+
 template<std::size_t D>
 FLECSI_INLINE_TARGET hard::tasks::util::extp_q<D>
 q_stage1(const hard::tasks::util::extp_q<D> & q0,
@@ -1134,9 +1326,13 @@ struct prepare_extp_for_material_task : annotation_task_region {
 //   material ID whose primitive state is treated as the known region.
 //
 // extp_psi:
-//   signed extrapolation level set:
+//   signed extrapolation level set built from source-material membership:
 //     extp_psi <= 0 in source_material
 //     extp_psi >  0 outside source_material
+//
+//   This is done without assuming a fixed global relation between material ID
+//   and the sign of ls_psi. The source material is always mapped to the known
+//   side by using +/- abs(ls_psi).
 //
 // q_scalar/q_scalar_known:
 //   packed current primitive state. q_scalar is the extrapolation work field;
@@ -1144,6 +1340,7 @@ struct prepare_extp_for_material_task : annotation_task_region {
 template<std::size_t D>
 void
 prepare_extp_for_material(flecsi::exec::accelerator s,
+  typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, na> ls_psi_a,
   typename field<int>::template accessor<ro, na> material_a,
   typename field<double>::template accessor<ro, na> mass_density_a,
@@ -1156,19 +1353,75 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
     q_known_a,
   int source_material) noexcept {
 
-  s.executor().forall(
-    i, flecsi::util::iota_view({}, extp_psi_a.span().size())) {
-    extp_psi_a(i) =
-      (material_a(i) == source_material) ? ls_psi_a(i) : -ls_psi_a(i);
+  using common::tasks::utils::get_mdiota_policy;
 
-    q_a(i).rho() = mass_density_a(i);
-    q_a(i).u() = velocity_a(i);
-    q_a(i).p() = pressure_a(i);
-    q_a(i).e() = sie_a(i);
-    q_a(i).n_comps() = static_cast<double>(hard::tasks::util::extp_q<D>::N_q);
+  auto ls_psi = m.template mdcolex<is::cells>(ls_psi_a);
+  auto material = m.template mdcolex<is::cells>(material_a);
+  auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
+  auto velocity = m.template mdcolex<is::cells>(velocity_a);
+  auto pressure = m.template mdcolex<is::cells>(pressure_a);
+  auto sie = m.template mdcolex<is::cells>(sie_a);
+  auto extp_psi = m.template mdcolex<is::cells>(extp_psi_a);
+  auto q = m.template mdcolex<is::cells>(q_a);
+  auto q_known = m.template mdcolex<is::cells>(q_known_a);
 
-    q_known_a(i) = q_a(i);
-  };
+  if constexpr(D == 1) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::all>())) {
+      extp_psi(i) = (material(i) == source_material) ? -std::abs(ls_psi(i))
+                                                     : std::abs(ls_psi(i));
+
+      q(i).rho() = mass_density(i);
+      q(i).u() = velocity(i);
+      q(i).p() = pressure(i);
+      q(i).e() = sie(i);
+      q(i).n_comps() = static_cast<double>(hard::tasks::util::extp_q<D>::N_q);
+
+      q_known(i) = q(i);
+    };
+  }
+  else if constexpr(D == 2) {
+    auto mdpolicy_yx = get_mdiota_policy(mass_density,
+      m.template cells<ax::y, dm::all>(),
+      m.template cells<ax::x, dm::all>());
+
+    s.executor().forall(ji, mdpolicy_yx) {
+      auto [j, i] = ji;
+      extp_psi(i, j) = (material(i, j) == source_material)
+                         ? -std::abs(ls_psi(i, j))
+                         : std::abs(ls_psi(i, j));
+
+      q(i, j).rho() = mass_density(i, j);
+      q(i, j).u() = velocity(i, j);
+      q(i, j).p() = pressure(i, j);
+      q(i, j).e() = sie(i, j);
+      q(i, j).n_comps() =
+        static_cast<double>(hard::tasks::util::extp_q<D>::N_q);
+
+      q_known(i, j) = q(i, j);
+    };
+  }
+  else {
+    auto mdpolicy_zyx = get_mdiota_policy(mass_density,
+      m.template cells<ax::z, dm::all>(),
+      m.template cells<ax::y, dm::all>(),
+      m.template cells<ax::x, dm::all>());
+
+    s.executor().forall(kji, mdpolicy_zyx) {
+      auto [k, j, i] = kji;
+      extp_psi(i, j, k) = (material(i, j, k) == source_material)
+                            ? -std::abs(ls_psi(i, j, k))
+                            : std::abs(ls_psi(i, j, k));
+
+      q(i, j, k).rho() = mass_density(i, j, k);
+      q(i, j, k).u() = velocity(i, j, k);
+      q(i, j, k).p() = pressure(i, j, k);
+      q(i, j, k).e() = sie(i, j, k);
+      q(i, j, k).n_comps() =
+        static_cast<double>(hard::tasks::util::extp_q<D>::N_q);
+
+      q_known(i, j, k) = q(i, j, k);
+    };
+  }
 }
 
 } // namespace hard::tasks::extrapolation

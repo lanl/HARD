@@ -15,6 +15,8 @@
 
 #include "gfm/tasks/compute_sound_speed.hh"
 
+#include <algorithm>
+
 namespace hard {
 
 template<std::size_t D>
@@ -22,11 +24,6 @@ using field_double =
   flecsi::field<double>::Reference<spec::mesh<D>, spec::is::cells>;
 template<std::size_t D>
 using face_pair = typename hard::faces<D>::ref_pair;
-
-// Number of pseudo-time steps and CFL used by the Aslam (JCP 2003) constant
-// extrapolation routine that fills the ghost stage.
-constexpr int extp_steps = 20;
-constexpr double extp_cfl = 1.0;
 
 //----------------------------------------------------------------------------//
 // Shared building blocks for the multi-material hydro RK stages.
@@ -105,19 +102,20 @@ recompute_sound_speed(state<D> & s, flecsi::scheduler & sc) {
 }
 
 // Aslam JCP 2003 constant extrapolation routine used to fill the ghost stage
-// for a single direction (0 -> plus, 1 -> minus). The result is written into
-// q_ext_out.
+// for a single source material (0 or 1 in the current two-material setup).
+// The result is written into q_ext_out.
 template<std::size_t D, class QExt>
 inline void
 extrapolate_ghost(state<D> & s,
   flecsi::scheduler & sc,
   std::size_t axis,
-  int direction,
+  int source_material,
   QExt q_ext_out) {
 
   annotation_rguard<tasks::extrapolation::prepare_extp_for_material_task>(),
     sc.execute<tasks::extrapolation::prepare_extp_for_material<D>>(
       flecsi::exec::on,
+      *s.m,
       s.ls.psi(*s.m),
       s.ls.material(*s.m),
       s.cons.hydro.mass_density(*s.m),
@@ -127,7 +125,7 @@ extrapolate_ghost(state<D> & s,
       s.extp.extp_psi(*s.m),
       s.extp.q_scalar(*s.m),
       s.extp.q_scalar_known(*s.m),
-      direction);
+      source_material);
 
   // Compute unit normal of level set gradient
   // dp = grad(psi)
@@ -144,7 +142,7 @@ extrapolate_ghost(state<D> & s,
       s.extp.f.normal_face(s.m),
       axis);
 
-  for(int n = 0; n < extp_steps; ++n) {
+  for(int n = 0; n < s.extp_steps; ++n) {
     // Stage 1: rhs(q^n) -> rhs
     annotation_rguard<
       tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
@@ -166,7 +164,7 @@ extrapolate_ghost(state<D> & s,
         s.extp.q_scalar(*s.m),
         s.extp.q_rhs(*s.m),
         s.extp.q_scalar1(*s.m), // output stage-1
-        extp_cfl); // dtau in the origianl work
+        tasks::extrapolation::extp_cfl); // dtau in the origianl work
 
     // Stage 2: rhs(q1) -> rhs1
     annotation_rguard<
@@ -190,14 +188,38 @@ extrapolate_ghost(state<D> & s,
         s.extp.q_rhs1(*s.m), // rhs(q1)
         s.extp.q_scalar1(*s.m), // q_stage
         q_ext_out, // q_new
-        extp_cfl); // dtau in original work
+        tasks::extrapolation::extp_cfl); // dtau in original work
 
-    if(n + 1 < extp_steps) {
+    if(n + 1 < s.extp_steps) {
       annotation_rguard<tasks::extrapolation::copy_extp_q_task>(),
         sc.execute<tasks::extrapolation::copy_extp_q<D>>(
           flecsi::exec::on, q_ext_out, s.extp.q_scalar(*s.m));
     }
   }
+
+  // Post-check the pseudo-time extrapolation using the active SciPy-style
+  // scaled update metric in the first extrapolated layer next to the
+  // interface.
+  auto max_scaled_update_band_f =
+    (annotation_rguard<
+       tasks::extrapolation::extp_interface_convergence_update_task>(),
+      sc.execute<tasks::extrapolation::extp_interface_convergence_update<D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.extp.q_scalar(*s.m),
+        q_ext_out,
+        s.extp.extp_psi(*s.m)));
+
+  // check here if the extrapolation has converged
+  annotation_rguard<tasks::extrapolation::extp_interface_convergence_task>(),
+    sc.execute<tasks::extrapolation::extp_interface_convergence<D>>(
+      flecsi::exec::on,
+      *s.m,
+      max_scaled_update_band_f,
+      axis,
+      source_material,
+      s.extp_steps,
+      tasks::extrapolation::extp_residual_tol);
 }
 
 // Per-axis loop shared by both RK stages: extrapolation (ghost fill),
@@ -228,10 +250,10 @@ advance_rk_stage_axis_loop(state<D> & s,
       /* Start extrapolation routine to fill ghost stage
        * This is based on Aslam JCP 2003, constant extrapolation */
 
-      // Extrapolation for ghost fill: plus direction
+      // Extrapolation for ghost fill from the ls_psi <= 0 side (material 0).
       extrapolate_ghost(s, sc, axis, 0, s.extp.q_ext_plus(*s.m));
 
-      // Extrapolation for ghost fill: minus direction
+      // Extrapolation for ghost fill from the ls_psi > 0 side (material 1).
       extrapolate_ghost(s, sc, axis, 1, s.extp.q_ext_minus(*s.m));
       /* End of extrapolation*/
 
