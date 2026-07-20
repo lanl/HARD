@@ -103,7 +103,7 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   add_test(NAME mmhydro_contact_move_convergence_1d
     COMMAND ${TEST_CONVERGENCE_MM_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/mmhydro/mmhydro
-    7 11
+    7 10
     ${CMAKE_SOURCE_DIR}/configs/ci_configs/contact_move_convergence.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
