@@ -188,16 +188,14 @@ make_solver(control_policy<state, D> & cp) {
   // Only pass cp instead?
   solver_parameters<D> params{
     std::ref(cp.state()), std::ref(cp.scheduler()), temp};
-  op::core<operator_t<D>> so(params);
-  auto op_handle = op::ref(so);
+  auto op_handle = op::make_shared<operator_t<D>>(params);
 
   precond_parameters<D> pparams{std::ref(s),
     std::ref(cp.scheduler()),
     0,
     s.rad.mgr.jacobi_iterations,
     s.rad.mgr.nr_vcycles};
-  op::core<v_cycle<D>> po(pparams);
-  auto prec_handle = op::ref(po);
+  auto prec_handle = op::make_shared<v_cycle<D>>(pparams);
 
   auto f = flecsolve::vec::make(s.rad.mgr.Ef(*s.m));
 
