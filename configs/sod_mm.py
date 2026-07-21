@@ -18,11 +18,11 @@ config = {
     "mean_molecular_weight": 1.0,
     "t0": 0.0,
     "tf": 0.3,
-    "max_steps": 200,
+    "max_steps": 10000,
     "cfl": 0.3,
     "max_dt": 0.0001,
     "log_frequency": 50,
-    "output_frequency": 500,
+    "output_frequency": 100,
     "levels": [8, 8, 8],
     "coords": [
         [0.0, 0.0, 0.0],
@@ -38,4 +38,5 @@ config = {
     },
     "extp_steps": 30, # used for extrapolation
     "output_method": "csv",
+    "gfm_method": "riemann_gfm",
 }

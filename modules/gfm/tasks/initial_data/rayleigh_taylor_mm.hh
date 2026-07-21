@@ -47,18 +47,6 @@ rt_instability_mm(flecsi::exec::cpu s,
   auto q_ext_plus = m.template mdcolex<is::cells>(q_ext_plus_a);
   auto q_ext_minus = m.template mdcolex<is::cells>(q_ext_minus_a);
 
-  auto pack_q = [](auto & qcell,
-                  double rho,
-                  const vec<D> & velocity,
-                  double pressure,
-                  double sie) {
-    qcell.rho() = rho;
-    qcell.u() = velocity;
-    qcell.p() = pressure;
-    qcell.e() = sie;
-    qcell.n_comps() = 0;
-  }; // pack_q
-
   // initial conditions
   const double p0 = 2.5;
   // For hydrostatic equilibrium pressure, add g*rho*y to p0
@@ -104,11 +92,11 @@ rt_instability_mm(flecsi::exec::cpu s,
         total_energy_density(i) =
           rH * eH + 0.5 * rH * (vel.x() * vel.x() + v * v);
 
-        pack_q(q_scalar(i), rH, vel, pH, eH);
+        hard::tasks::util::pack_q(q_scalar(i), rH, vel, pH, eH);
         q_scalar_known(i) = q_scalar(i);
         // Extrapolated states across the interface
         // plus: left/minus material extended into plus/right side.
-        pack_q(q_ext_plus(i), rH, vel, pH, eH);
+        hard::tasks::util::pack_q(q_ext_plus(i), rH, vel, pH, eH);
       }
       else {
         // lower fluid
@@ -127,11 +115,11 @@ rt_instability_mm(flecsi::exec::cpu s,
         total_energy_density(i) =
           rL * eL + 0.5 * rL * (vel.x() * vel.x() + v * v);
 
-        pack_q(q_scalar(i), rL, vel, pL, eL);
+        hard::tasks::util::pack_q(q_scalar(i), rL, vel, pL, eL);
         q_scalar_known(i) = q_scalar(i);
         // Extrapolated states across the interface
         // minus: right/plus material extended into minus/left side.
-        pack_q(q_ext_minus(i), rL, vel, pL, eL);
+        hard::tasks::util::pack_q(q_ext_minus(i), rL, vel, pL, eL);
       } // if
     } // for
   } // D=1
@@ -166,11 +154,11 @@ rt_instability_mm(flecsi::exec::cpu s,
           total_energy_density(i, j) =
             rH * eH + 0.5 * rH * (vel.x() * vel.x() + vel.y() * vel.y());
 
-          pack_q(q_scalar(i, j), rH, vel, pH, eH);
+          hard::tasks::util::pack_q(q_scalar(i, j), rH, vel, pH, eH);
           q_scalar_known(i, j) = q_scalar(i, j);
           // Extrapolated states across the interface
           // plus: left/minus material extended into plus/right side.
-          pack_q(q_ext_plus(i, j), rH, vel, pH, eH);
+          hard::tasks::util::pack_q(q_ext_plus(i, j), rH, vel, pH, eH);
         }
         else {
           // lower fluid
@@ -192,11 +180,11 @@ rt_instability_mm(flecsi::exec::cpu s,
           total_energy_density(i, j) =
             rL * eL + 0.5 * rL * (vel.x() * vel.x() + vel.y() * vel.y());
 
-          pack_q(q_scalar(i, j), rL, vel, pL, eL);
+          hard::tasks::util::pack_q(q_scalar(i, j), rL, vel, pL, eL);
           q_scalar_known(i, j) = q_scalar(i, j);
           // Extrapolated states across the interface
           // minus: right/plus material extended into minus/left side.
-          pack_q(q_ext_minus(i, j), rL, vel, pL, eL);
+          hard::tasks::util::pack_q(q_ext_minus(i, j), rL, vel, pL, eL);
         } // if
       } // for i
     } // for j

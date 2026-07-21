@@ -283,28 +283,57 @@ advance_rk_stage_axis_loop(state<D> & s,
         s.f.hydro.re_face(s.m));
 
     // Calculate K1 and save it to dt_U
-    annotation_rguard<tasks::gfm::compute_interface_fluxes_gfm_task>(),
-      sc.execute<tasks::gfm::compute_interface_fluxes_gfm<D>>(flecsi::exec::on,
-        axis,
-        *s.m,
-        s.f.hydro.r_face(s.m),
-        s.f.hydro.u_face(s.m),
-        s.f.hydro.p_face(s.m),
-        s.f.hydro.c_face(s.m),
-        s.f.hydro.ru_face(s.m),
-        s.f.hydro.re_face(s.m),
-        // GFM
-        s.ls.material(*s.m),
-        s.extp.normal(*s.m),
-        s.extp.q_ext_plus(*s.m),
-        s.extp.q_ext_minus(*s.m),
-        // Riemann Fluxes
-        s.rf.hydro.r_f(*s.m),
-        s.rf.hydro.ru_f(*s.m),
-        s.rf.hydro.re_f(*s.m),
-        s.rk_dt1(s.m),
-        s.icst.gravity_acc(*s.gt),
-        s.eos_mm);
+    // Runtime dispatch based on GFM method
+    if(s.extp.gfm_method == state<D>::extrapolation::original_gfm) {
+      annotation_rguard<tasks::gfm::compute_interface_fluxes_gfm_task>(),
+        sc.execute<tasks::gfm::compute_interface_fluxes_gfm<D,
+          state<D>::extrapolation::original_gfm>>(flecsi::exec::on,
+          axis,
+          *s.m,
+          s.f.hydro.r_face(s.m),
+          s.f.hydro.u_face(s.m),
+          s.f.hydro.p_face(s.m),
+          s.f.hydro.c_face(s.m),
+          s.f.hydro.ru_face(s.m),
+          s.f.hydro.re_face(s.m),
+          // GFM
+          s.ls.material(*s.m),
+          s.extp.normal(*s.m),
+          s.extp.q_ext_plus(*s.m),
+          s.extp.q_ext_minus(*s.m),
+          // Riemann Fluxes
+          s.rf.hydro.r_f(*s.m),
+          s.rf.hydro.ru_f(*s.m),
+          s.rf.hydro.re_f(*s.m),
+          s.rk_dt1(s.m),
+          s.icst.gravity_acc(*s.gt),
+          s.eos_mm);
+    }
+    else {
+      annotation_rguard<tasks::gfm::compute_interface_fluxes_gfm_task>(),
+        sc.execute<tasks::gfm::compute_interface_fluxes_gfm<D,
+          state<D>::extrapolation::riemann_gfm>>(flecsi::exec::on,
+          axis,
+          *s.m,
+          s.f.hydro.r_face(s.m),
+          s.f.hydro.u_face(s.m),
+          s.f.hydro.p_face(s.m),
+          s.f.hydro.c_face(s.m),
+          s.f.hydro.ru_face(s.m),
+          s.f.hydro.re_face(s.m),
+          // GFM
+          s.ls.material(*s.m),
+          s.extp.normal(*s.m),
+          s.extp.q_ext_plus(*s.m),
+          s.extp.q_ext_minus(*s.m),
+          // Riemann Fluxes
+          s.rf.hydro.r_f(*s.m),
+          s.rf.hydro.ru_f(*s.m),
+          s.rf.hydro.re_f(*s.m),
+          s.rk_dt1(s.m),
+          s.icst.gravity_acc(*s.gt),
+          s.eos_mm);
+    }
 
     // Apply function if present
     if constexpr(!std::is_same_v<F, std::nullptr_t>)

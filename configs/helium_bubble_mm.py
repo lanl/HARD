@@ -46,7 +46,7 @@ config = {
     },
 
     "output_method": "vti",
-    "extp_steps": 20, # used for extrapolation
+    "extp_steps": 30, # used for extrapolation
     "debug_extrapolation_t0": False,
-    "use_riemann_gfm": True,
+    "gfm_method": "riemann_gfm",
 }

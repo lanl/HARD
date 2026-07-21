@@ -15,11 +15,6 @@
 #include <cstdio>
 
 namespace hard::tasks::gfm {
-// GFM method toggle: Set to true for original gfm. Set to false for Riemann gfm
-// -----------------------------------------------------------------------------
-
-inline constexpr bool use_original_gfm = true;
-
 // -----------------------------------------------------------------------------
 // Helper structures for flux computation
 // -----------------------------------------------------------------------------
@@ -74,26 +69,6 @@ diagnose_rk_rhs_1d(flecsi::exec::cpu,
 // -----------------------------------------------------------------------------
 // Geometry / validation helpers (device-callable)
 // -----------------------------------------------------------------------------
-
-template<std::size_t Dim>
-FLECSI_INLINE_TARGET vec<Dim>
-normalize_interface_normal(const vec<Dim> & n_left_face,
-  const vec<Dim> & n_right_face,
-  std::size_t face_axis) noexcept {
-
-  vec<Dim> n_if = 0.5 * (n_left_face + n_right_face);
-  const double nn = std::sqrt(n_if.norm_squared());
-
-  if(nn > 1e-14) {
-    n_if = n_if * (1.0 / nn);
-  }
-  else {
-    n_if = vec<Dim>{};
-    n_if[face_axis] = 1.0;
-  }
-
-  return n_if;
-}
 
 template<std::size_t Dim>
 FLECSI_INLINE_TARGET bool
@@ -183,11 +158,11 @@ compute_all_HLLC_fluxes(std::size_t face_axis,
   return result;
 }
 
-// This is the basic original contact GFM:
-// pressure and velocity are copied from the real fluid at the ghost location.
-// Set this true only if you intentionally want the tangential-slip extension.
+// oGFM only: Set this true only if you intentionally want the tangential-slip
+// extension.
 inline constexpr bool gfm_preserve_tangential_jump = false;
 
+// oGFM method
 template<std::size_t Dim>
 FLECSI_INLINE_TARGET vec<Dim>
 make_gfm_ghost_velocity(const vec<Dim> & n_if,
@@ -216,7 +191,12 @@ make_gfm_ghost_velocity(const vec<Dim> & n_if,
 // EOS-consistent helpers (templated on the device EOS dispatch type)
 // -----------------------------------------------------------------------------
 
-// EOS-consistent ghost state completion.
+template<std::size_t Dim>
+FLECSI_INLINE_TARGET double
+sie_from_cons(double rho, const vec<Dim> & u, double re) noexcept {
+  return re / rho - 0.5 * u.norm_squared();
+}
+// oGFM method: EOS-consistent ghost state completion.
 template<std::size_t Dim, typename EOS>
 FLECSI_INLINE_TARGET void
 compute_state_from_rho_u_p(const EOS & eos_disp,
@@ -243,7 +223,7 @@ compute_state_from_rho_ru_re(const EOS & eos_disp,
   const auto & eos = eos_disp[mat];
 
   ghost.u = ghost.ru / ghost.rho;
-  ghost.e = ghost.re / ghost.rho - 0.5 * ghost.u.norm_squared();
+  ghost.e = sie_from_cons<Dim>(ghost.rho, ghost.u, ghost.re);
 
   ghost.c = eos.cRhoSie(ghost.rho, ghost.e);
   ghost.p = eos.pRhoSie(ghost.rho, ghost.e);
@@ -274,12 +254,6 @@ rel_close(double a,
   double rtol = 1.0e-10,
   double atol = 1.0e-12) noexcept {
   return std::abs(a - b) <= atol + rtol * std::max(std::abs(a), std::abs(b));
-}
-
-template<std::size_t Dim>
-FLECSI_INLINE_TARGET double
-sie_from_cons(double rho, const vec<Dim> & u, double re) noexcept {
-  return (re - 0.5 * rho * u.norm_squared()) / rho;
 }
 
 template<std::size_t Dim, typename EOS>
@@ -346,6 +320,16 @@ assert_owner_extp_state([[maybe_unused]] const char * label,
 #endif
 }
 
+// NOTE: Original GFM is an older method which maintains consistency with a
+// direct copy of the pressure and normal velocity across the interface. The
+// Riemann GFM routine solves a Riemann problem in between two extrapolation
+// steps but can guarantee robustness using an minimum entropy principle
+// provided by ClayTovWSE. This obviates the need for a lot of the validation
+// checks and should improve simulation accuracy. The oGFM only performs a
+// single extrapolation step, whereas the rGFM will perform two or potentially
+// three. Practically speaking, the oGFM is only useful insofar as there is a
+// significant penalty to extrapolation.
+//
 // -----------------------------------------------------------------------------
 // original GFM ghost construction
 // -----------------------------------------------------------------------------
@@ -416,17 +400,19 @@ compute_riemann_gfm_ghost_state(const EOS & eos_disp,
   ghost.rho = qOwnerExt.rho();
   ghost.re = qOwnerExt.re();
   ghost.ru = qOwnerExt.ru();
+
   compute_state_from_rho_ru_re<Dim>(eos_disp, owner_mat, ghost);
+
   ghost_state<Dim> star_ghost;
   star_ghost.rho = numerical_algorithms::compute_HLLC_states<Dim, double>(n_if,
     ghost.rho,
     ghost.u,
-    ghost.re,
+    ghost.re, // total energy density
     ghost.p,
     ghost.c, // Left state
     rho_real,
     u_real,
-    re_real,
+    re_real, // total energy density
     p_real,
     c_real, // Right state
     numerical_algorithms::field_tag::rho,
@@ -436,12 +422,12 @@ compute_riemann_gfm_ghost_state(const EOS & eos_disp,
   star_ghost.ru = numerical_algorithms::compute_HLLC_states<Dim, vec<Dim>>(n_if,
     ghost.rho,
     ghost.u,
-    ghost.re,
+    ghost.re, // total energy density
     ghost.p,
     ghost.c, // Left state
     rho_real,
     u_real,
-    re_real,
+    re_real, // total energy density
     p_real,
     c_real, // Right state
     numerical_algorithms::field_tag::ru,
@@ -451,12 +437,12 @@ compute_riemann_gfm_ghost_state(const EOS & eos_disp,
   star_ghost.re = numerical_algorithms::compute_HLLC_states<Dim, double>(n_if,
     ghost.rho,
     ghost.u,
-    ghost.re,
+    ghost.re, // total energy density
     ghost.p,
     ghost.c, // Left state
     rho_real,
     u_real,
-    re_real,
+    re_real, // total energy density
     p_real,
     c_real, // Right state
     numerical_algorithms::field_tag::re,
@@ -474,7 +460,7 @@ compute_riemann_gfm_ghost_state(const EOS & eos_disp,
 // Process one face (device-callable)
 // -----------------------------------------------------------------------------
 
-template<std::size_t Dim, typename EOS>
+template<std::size_t Dim, int GfmMethod, typename EOS>
 FLECSI_INLINE_TARGET void
 process_single_face(std::size_t face_axis,
   int mL,
@@ -524,29 +510,16 @@ process_single_face(std::size_t face_axis,
 
   ghost_state<Dim> ghostR_L, ghostL_R;
 
-  if constexpr(use_original_gfm) {
+  double material_direction(mL == 0 ? 1.0 : -1.0);
 
-    // Left-owner one-phase problem:
-    //   real left material mL
-    //   ghost right state with material mL EOS
-    //   ghost p/u copied from real right state
-    ghostR_L = compute_original_gfm_ghost_state<Dim>(
-      eos_disp, mL, face_axis, n_right_cell, qGhostR_L, uR, pR, "ghostR_L");
-
-    // Right-owner one-phase problem:
-    //   ghost left state with material mR EOS
-    //   real right material mR
-    //   ghost p/u copied from real left state
-    ghostL_R = compute_original_gfm_ghost_state<Dim>(
-      eos_disp, mR, face_axis, n_left_cell, qGhostL_R, uL, pL, "ghostL_R");
-  }
-  else {
+  if constexpr(GfmMethod == hard::gfm::state<Dim>::extrapolation::riemann_gfm) {
+    // Riemann GFM
     ghostR_L = compute_riemann_gfm_ghost_state<Dim>(eos_disp,
       mL,
       mL,
       mR,
       face_axis,
-      n_right_cell,
+      n_right_cell * (-material_direction),
       qGhostR_L,
       rhoR,
       uR,
@@ -559,13 +532,42 @@ process_single_face(std::size_t face_axis,
       mR,
       mL,
       face_axis,
-      n_left_cell,
+      n_left_cell * material_direction,
       qGhostL_R,
       rhoL,
       uL,
       reL,
       pL,
       cL,
+      "ghostL_R");
+  }
+  else {
+    // Original GFM (GfmMethod ==
+    // hard::gfm::state<Dim>::extrapolation::original_gfm) Left-owner one-phase
+    // problem:
+    //   real left material mL
+    //   ghost right state with material mL EOS
+    //   ghost p/u copied from real right state
+    ghostR_L = compute_original_gfm_ghost_state<Dim>(eos_disp,
+      mL,
+      face_axis,
+      n_right_cell * (-material_direction),
+      qGhostR_L,
+      uR,
+      pR,
+      "ghostR_L");
+
+    // Right-owner one-phase problem:
+    //   ghost left state with material mR EOS
+    //   real right material mR
+    //   ghost p/u copied from real left state
+    ghostL_R = compute_original_gfm_ghost_state<Dim>(eos_disp,
+      mR,
+      face_axis,
+      n_left_cell * material_direction,
+      qGhostL_R,
+      uL,
+      pL,
       "ghostL_R");
   }
 
@@ -616,7 +618,7 @@ struct compute_interface_fluxes_gfm_task : annotation_task_region {
   inline static const std::string name{"compute_interface_fluxes_gfm"};
 };
 
-template<std::size_t Dim>
+template<std::size_t Dim, int GfmMethod>
 void
 compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
   std::size_t face_axis,
@@ -796,7 +798,7 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
       bool is_cut = false;
 
       // clang-format off
-      process_single_face<Dim>(0,
+      process_single_face<Dim, GfmMethod>(0,
         mL_eff,
         mR_eff,
         rhoL,
@@ -919,7 +921,7 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
       bool is_cut = false;
 
       // clang-format off
-      process_single_face<Dim>(face_axis,
+      process_single_face<Dim, GfmMethod>(face_axis,
         mL_eff,
         mR_eff,
         rhoL,
@@ -1059,7 +1061,7 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
       bool is_cut = false;
 
       // clang-format off
-      process_single_face<Dim>(face_axis,
+      process_single_face<Dim, GfmMethod>(face_axis,
         mL_eff,
         mR_eff,
         rhoL,

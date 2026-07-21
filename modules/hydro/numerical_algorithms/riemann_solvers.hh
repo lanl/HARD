@@ -183,8 +183,8 @@ compute_U_star(const double u_l_n,
   const vec<Dim> vel_r_star,
   const double rho_l,
   const double rho_r,
-  const double e_l,
-  const double e_r,
+  const double re_l,
+  const double re_r,
   const double p_l,
   const double p_r,
   const double s_l,
@@ -205,10 +205,10 @@ compute_U_star(const double u_l_n,
     }
     else if(ft == field_tag::re) {
       u_l_star =
-        fac_l * (e_l / rho_l +
+        fac_l * (re_l / rho_l +
                   (s_star - u_l_n) * (s_star + p_l / (rho_l * (s_l - u_l_n))));
       u_r_star =
-        fac_r * (e_r / rho_r +
+        fac_r * (re_r / rho_r +
                   (s_star - u_r_n) * (s_star + p_r / (rho_r * (s_r - u_r_n))));
     }
     else {

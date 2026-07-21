@@ -4,6 +4,7 @@
 #include "common/utils.hh"
 #include "gfm/tasks/cons2prim.hh"
 #include "gfm/tasks/initial_data/all_initial_data.hh"
+#include "gfm/tasks/interface_fluxes_gfm.hh"
 #include "gfm/tasks/ls_core.hh"
 #include "hydro/tasks/cons2prim.hh"
 #include "hydro/tasks/init.hh"
@@ -80,6 +81,16 @@ initialize(control_policy<state, D> & cp) {
 
   actions::init_mesh(s, sc, bf, config);
 
+  /*--------------------------------------------------------------------------*
+   GFM method toggle. Set to oGFM by default
+   *--------------------------------------------------------------------------*/
+  s.extp.gfm_method = state<D>::extrapolation::original_gfm;
+  if(config.contains("gfm_method")) {
+    auto method = config["gfm_method"].cast<std::string>();
+    if(method == "riemann_gfm") {
+      s.extp.gfm_method = state<D>::extrapolation::riemann_gfm;
+    }
+  }
   /*--------------------------------------------------------------------------*
     Equation of State
    *--------------------------------------------------------------------------*/
@@ -352,8 +363,8 @@ initialize(control_policy<state, D> & cp) {
   }
 
   /*--------------------------------------------------------------------------*
-    Output method configuration.
-    *--------------------------------------------------------------------------*/
+   Output method configuration.
+   *--------------------------------------------------------------------------*/
 
   // Default output method is csv (set in state initialization)
   if(config.contains("output_method")) {

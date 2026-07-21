@@ -126,6 +126,9 @@ struct state {
       faces_vec<D> normal_face;
     } f;
 
+    // GFM method configuration (GPU-compatible enum)
+    enum gfm_method_toggle { original_gfm = 0, riemann_gfm = 1 };
+    static inline gfm_method_toggle gfm_method = original_gfm;
   } extp;
 }; // struct state
 } // namespace hard::gfm
