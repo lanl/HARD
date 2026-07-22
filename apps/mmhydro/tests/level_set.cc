@@ -216,6 +216,8 @@ compare_psi_l1(flecsi::exec::accelerator s,
   typename field<double>::template accessor<spec::ro, spec::na>
     psi_comp_a) noexcept {
 
+  constexpr double interface_band = 1.0 / 20.0; // from Aslam JCP '26
+
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto psic = m.template mdcolex<is::cells>(psi_comp_a);
 
@@ -223,7 +225,8 @@ compare_psi_l1(flecsi::exec::accelerator s,
     auto dx = m.template delta<ax::x>();
     return s.executor().reduceall(
       i, l1, (m.template cells<ax::x, dm::quantities>()), fold::sum, double) {
-      l1(std::abs(psi(i) - psic(i)) * dx);
+      const double ref = psic(i);
+      l1((std::abs(ref) < interface_band) ? std::abs(psi(i) - ref) * dx : 0.0);
     };
   }
   else if constexpr(D == 2) {
@@ -235,7 +238,9 @@ compare_psi_l1(flecsi::exec::accelerator s,
 
     return s.executor().reduceall(ji, l1, pol, fold::sum, double) {
       auto [j, i] = ji;
-      l1(std::abs(psi(i, j) - psic(i, j)) * dx * dy);
+      const double ref = psic(i, j);
+      l1((std::abs(ref) < interface_band) ? std::abs(psi(i, j) - ref) * dx * dy
+                                          : 0.0);
     };
   }
   else { // D == 3
@@ -249,7 +254,10 @@ compare_psi_l1(flecsi::exec::accelerator s,
 
     return s.executor().reduceall(kji, l1, pol, fold::sum, double) {
       auto [k, j, i] = kji;
-      l1(std::abs(psi(i, j, k) - psic(i, j, k)) * dx * dy * dz);
+      const double ref = psic(i, j, k);
+      l1((std::abs(ref) < interface_band)
+           ? std::abs(psi(i, j, k) - ref) * dx * dy * dz
+           : 0.0);
     };
   }
 }
@@ -262,13 +270,16 @@ compare_psi_linf(flecsi::exec::accelerator s,
   typename field<double>::template accessor<spec::ro, spec::na>
     psi_comp_a) noexcept {
 
+  constexpr double interface_band = 1.0 / 20.0; // from Aslam JCP '26
+
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto psic = m.template mdcolex<is::cells>(psi_comp_a);
 
   if constexpr(D == 1) {
     return s.executor().reduceall(
       i, linf, (m.template cells<ax::x, dm::quantities>()), fold::max, double) {
-      linf(std::abs(psi(i) - psic(i)));
+      const double ref = psic(i);
+      linf((std::abs(ref) < interface_band) ? std::abs(psi(i) - ref) : 0.0);
     };
   }
   else if constexpr(D == 2) {
@@ -278,7 +289,8 @@ compare_psi_linf(flecsi::exec::accelerator s,
 
     return s.executor().reduceall(ji, linf, pol, fold::max, double) {
       auto [j, i] = ji;
-      linf(std::abs(psi(i, j) - psic(i, j)));
+      const double ref = psic(i, j);
+      linf((std::abs(ref) < interface_band) ? std::abs(psi(i, j) - ref) : 0.0);
     };
   }
   else { // D == 3
@@ -289,7 +301,9 @@ compare_psi_linf(flecsi::exec::accelerator s,
 
     return s.executor().reduceall(kji, linf, pol, fold::max, double) {
       auto [k, j, i] = kji;
-      linf(std::abs(psi(i, j, k) - psic(i, j, k)));
+      const double ref = psic(i, j, k);
+      linf(
+        (std::abs(ref) < interface_band) ? std::abs(psi(i, j, k) - ref) : 0.0);
     };
   }
 }
@@ -315,9 +329,6 @@ do_test(flecsi::scheduler & s, state<D> & st, double t_end, double dt_host) {
   }
   // ---- 4) Print final time/dt ----
 
-  // Debug printing disabled (functions not available)
-  // TODO: implement print functions if needed for debugging
-
   auto l1_error =
     s.reduce<compare_psi_l1<D>, flecsi::exec::fold::sum>(
        flecsi::exec::on, *st.m, st.psi(*st.m), st.initial_psi(*st.m))
@@ -339,6 +350,8 @@ test_driver(scheduler & s) {
   UNIT() {
     auto relaxed = [](double ref) { return 1.8 * ref; };
 
+    // All these tests come from Aslam JCP '26
+
     // 2D, level 7, dx = 1/128, dt = 2/640
     {
       state<2> d2;
@@ -346,8 +359,8 @@ test_driver(scheduler & s) {
       constexpr double dt = 2.0 / 640.0;
       constexpr double t_end = 2.0;
       constexpr double period = 2.0;
-      constexpr double l1_ref = 0.00655061; // original value: 1.3e-6
-      constexpr double linf_ref = 0.0989986; // original value: 1.6e-4
+      constexpr double l1_ref = 2e-6; // original value: 1.3e-6
+      constexpr double linf_ref = 2e-4; // original value: 1.6e-4
 
       init_mesh<2>(s, d2, levels);
       s.execute<init_fields<2>>(
@@ -363,74 +376,81 @@ test_driver(scheduler & s) {
       EXPECT_LT(err.second, relaxed(linf_ref));
     }
 
-    // // 2D, level 8, dx = 1/256, dt = 2/2032
-    // {
-    //   state<2> d2;
-    //   constexpr std::size_t levels = 8;
-    //   constexpr double dt = 2.0 / 2032.0;
-    //   constexpr double t_end = 2.0;
-    //   constexpr double period = 2.0;
-    //   constexpr double l1_ref = 0.00337367; // original value: 4.7e-8
-    //   constexpr double linf_ref = 0.0720733; // original value: 1.1e-5
+    /* Test commented out given possible CI timeouts
+    // 2D, level 8, dx = 1/256, dt = 2/2032
+    {
+      state<2> d2;
+      constexpr std::size_t levels = 8;
+      constexpr double dt = 2.0 / 2032.0;
+      constexpr double t_end = 2.0;
+      constexpr double period = 2.0;
+      constexpr double l1_ref = 5e-8; // original value: 4.7e-8
+      constexpr double linf_ref = 2e-5; // original value: 1.1e-5
 
-    //   init_mesh<2>(s, d2, levels);
-    //   s.execute<init_fields<2>>(
-    //     flecsi::exec::on, *d2.m, d2.psi(*d2.m), d2.material(*d2.m));
-    //   s.execute<init_dt_period>(flecsi::exec::on,
-    //     d2.t(*d2.gt),
-    //     d2.dt(*d2.gt),
-    //     d2.period(*d2.gt),
-    //     dt,
-    //     period);
-    //   auto err = do_test<2>(s, d2, t_end, dt);
-    //   EXPECT_LT(err.first, relaxed(l1_ref));
-    //   EXPECT_LT(err.second, relaxed(linf_ref));
-    // }
+      init_mesh<2>(s, d2, levels);
+      s.execute<init_fields<2>>(
+        flecsi::exec::on, *d2.m, d2.psi(*d2.m), d2.material(*d2.m));
+      s.execute<init_dt_period>(flecsi::exec::on,
+        d2.t(*d2.gt),
+        d2.dt(*d2.gt),
+        d2.period(*d2.gt),
+        dt,
+        period);
+      auto err = do_test<2>(s, d2, t_end, dt);
+      EXPECT_LT(err.first, relaxed(l1_ref));
+      EXPECT_LT(err.second, relaxed(linf_ref));
+    }
+    */
 
-    // // 3D, level 7, dx = 1/128, dt = 1/480
-    // {
-    //   state<3> d3;
-    //   constexpr std::size_t levels = 7;
-    //   constexpr double dt = 1.0 / 480.0;
-    //   constexpr double t_end = 1.0;
-    //   constexpr double period = 1.0;
-    //   constexpr double l1_ref = 0.00608518;   // original value: 1.4e-6
-    //   constexpr double linf_ref = 0.0342362;  // original value: 1.36e-2
+    // 3D, level 7, dx = 1/128, dt = 1/480
+    {
+      state<3> d3;
+      constexpr std::size_t levels = 7;
+      constexpr double dt = 1.0 / 480.0;
+      constexpr double t_end = 1.0;
+      constexpr double period = 1.0;
+      constexpr double l1_ref = 2e-6; // original value: 1.4e-6
+      constexpr double linf_ref = 2e-2; // original value: 1.36e-2
 
-    //   init_mesh<3>(s, d3, levels);
-    //   s.execute<init_fields<3>>(
-    //     flecsi::exec::on, *d3.m, d3.psi(*d3.m), d3.material(*d3.m));
-    //   s.execute<_period>(
-    //     flecsi::exec::on, d3.t(*d3.gt), d3.dt(*d3.gt), d3.period(*d3.gt), dt,
-    //     period);
-    //   auto err = do_test<3>(s, d3, t_end, dt);
-    //   EXPECT_LT(err.first, relaxed(l1_ref));
-    //   EXPECT_LT(err.second, relaxed(linf_ref));
-    // }
+      init_mesh<3>(s, d3, levels);
+      s.execute<init_fields<3>>(
+        flecsi::exec::on, *d3.m, d3.psi(*d3.m), d3.material(*d3.m));
+      s.execute<init_dt_period>(flecsi::exec::on,
+        d3.t(*d3.gt),
+        d3.dt(*d3.gt),
+        d3.period(*d3.gt),
+        dt,
+        period);
+      auto err = do_test<3>(s, d3, t_end, dt);
+      EXPECT_LT(err.first, relaxed(l1_ref));
+      EXPECT_LT(err.second, relaxed(linf_ref));
+    }
 
-    // // 3D, level 8, dx = 1/256, dt = 1/1524
-    // {
-    //   state<3> d3;
-    //   constexpr std::size_t levels = 8;
-    //   constexpr double dt = 1.0 / 1524.0;
-    //   constexpr double t_end = 1.0;
-    //   constexpr double period = 1.0;
-    //   constexpr double l1_ref = 0.00307139; // original value: 6.2e-8
-    //   constexpr double linf_ref = 0.0196965; // original value: 1.6e-3
+    /* Test commented out given possible CI timeouts
+    // 3D, level 8, dx = 1/256, dt = 1/1524
+    {
+      state<3> d3;
+      constexpr std::size_t levels = 8;
+      constexpr double dt = 1.0 / 1524.0;
+      constexpr double t_end = 1.0;
+      constexpr double period = 1.0;
+      constexpr double l1_ref = 7e-8; // original value: 6.2e-8
+      constexpr double linf_ref = 2e-3; // original value: 1.6e-3
 
-    //   init_mesh<3>(s, d3, levels);
-    //   s.execute<init_fields<3>>(
-    //     flecsi::exec::on, *d3.m, d3.psi(*d3.m), d3.material(*d3.m));
-    //   s.execute<init_dt_period>(flecsi::exec::on,
-    //     d3.t(*d3.gt),
-    //     d3.dt(*d3.gt),
-    //     d3.period(*d3.gt),
-    //     dt,
-    //     period);
-    //   auto err = do_test<3>(s, d3, t_end, dt);
-    //   EXPECT_LT(err.first, relaxed(l1_ref));
-    //   EXPECT_LT(err.second, relaxed(linf_ref));
-    // }
+      init_mesh<3>(s, d3, levels);
+      s.execute<init_fields<3>>(
+        flecsi::exec::on, *d3.m, d3.psi(*d3.m), d3.material(*d3.m));
+      s.execute<init_dt_period>(flecsi::exec::on,
+        d3.t(*d3.gt),
+        d3.dt(*d3.gt),
+        d3.period(*d3.gt),
+        dt,
+        period);
+      auto err = do_test<3>(s, d3, t_end, dt);
+      EXPECT_LT(err.first, relaxed(l1_ref));
+      EXPECT_LT(err.second, relaxed(linf_ref));
+    }
+    */
   };
 } // kernel_driver
 

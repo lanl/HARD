@@ -49,8 +49,8 @@ def _parse_mm_config(
 
 def _compute_masked_l1_error(
     x_num: np.ndarray,
-    rho_num: np.ndarray,
-    rho_exact: Callable,
+    values_num: np.ndarray,
+    values_exact: Callable,
     mask: np.ndarray,
 ) -> float:
     """
@@ -58,13 +58,14 @@ def _compute_masked_l1_error(
     """
 
     x_sel = x_num[mask]
-    rho_sel = rho_num[mask]
+    values_sel = values_num[mask]
 
     if x_sel.size == 0:
         raise ValueError("Smooth-region mask selected no cells.")
 
-    err = np.abs(rho_sel - rho_exact(x_sel))
+    err = np.abs(values_sel - values_exact(x_sel))
     return float(np.mean(err))
+
 
 
 def _save_convergence_plot(
@@ -269,7 +270,9 @@ def main() -> None:
         # print(f"   --> velocity full L1 = {current_u_l1_full}")
         # print(f"   --> velocity smooth L1 = {current_u_l1_smooth}")
 
-    l1err = rho_l1err_full if convergence_metric == "full" else rho_l1err_smooth
+    rho_l1err = rho_l1err_full if convergence_metric == "full" else rho_l1err_smooth
+    p_l1err = p_l1err_full if convergence_metric == "full" else p_l1err_smooth
+    u_l1err = u_l1err_full if convergence_metric == "full" else u_l1err_smooth
 
     if make_plot:
 
@@ -280,7 +283,7 @@ def main() -> None:
 
         rho_l1err_full_arr = np.asarray(rho_l1err_full, dtype=float)[sort_idx]
         rho_l1err_smooth_arr = np.asarray(rho_l1err_smooth, dtype=float)[sort_idx]
-        rho_l1err_arr = np.asarray(l1err, dtype=float)[sort_idx]
+        rho_l1err_arr = np.asarray(rho_l1err, dtype=float)[sort_idx]
 
         p_l1err_full_arr = np.asarray(p_l1err_full, dtype=float)[sort_idx]
         p_l1err_smooth_arr = np.asarray(p_l1err_smooth, dtype=float)[sort_idx]
@@ -326,30 +329,59 @@ def main() -> None:
             "velocity",
         )
 
-    logE = np.log(l1err)
-    logDX = np.log(dx)
-    slope = (logE[1:] - logE[:-1]) / (logDX[1:] - logDX[:-1])
+    logDX = np.log(np.asarray(dx, dtype=float))
 
-    min_expected_slope = 0.5
-    mean_slope = abs(float(np.mean(slope)))
+    def mean_abs_slope(errors: list[float]) -> float:
+        logE = np.log(np.asarray(errors, dtype=float))
+        slope = (logE[1:] - logE[:-1]) / (logDX[1:] - logDX[:-1])
+        return abs(float(np.mean(slope)))
 
-    try:
-        print("\n   --> minimum required density slope = ", min_expected_slope)
-        print("\n   --> measured density slope = ", mean_slope)
-        assert mean_slope >= min_expected_slope
-    except AssertionError:
-        s = (
-            f"\n   --> mean slope for CONTACT_move density ({convergence_metric}) is "
-            f"{mean_slope}"
-        )
-        print(s)
-        print(f"\n   --> density full-domain L1 errors: {rho_l1err_full}")
-        print(f"\n   --> density smooth-region L1 errors: {rho_l1err_smooth}")
-        print(f"\n   --> pressure full-domain L1 errors: {p_l1err_full}")
-        print(f"\n   --> pressure smooth-region L1 errors: {p_l1err_smooth}")
-        print(f"\n   --> velocity full-domain L1 errors: {u_l1err_full}")
-        print(f"\n   --> velocity smooth-region L1 errors: {u_l1err_smooth}\n")
-        raise
+    # ---
+
+    # Note 1: theory says it should be > O(x^0.5). Here experimentally it is always larger than O(x^0.7).
+    # We should aim at better convergence, not lower.
+
+    # Note 2: it could happen that for shocks you get lower error values (better) but lower convergence.
+    # In this remote case, it recommened to revisit this test, in case it fails during the CI.
+
+    min_expected_slope = 0.7
+
+    # ---
+
+    l1_groups = {
+        "full": {
+            "density": rho_l1err_full,
+            "pressure": p_l1err_full,
+            "velocity": u_l1err_full,
+        },
+        "smooth": {
+            "density": rho_l1err_smooth,
+            "pressure": p_l1err_smooth,
+            "velocity": u_l1err_smooth,
+        },
+    }
+
+    print(f"\n   --> minimum required L1 slope = {min_expected_slope}")
+    for region_name, fields in l1_groups.items():
+        print(f"\n   --> checking {region_name} L1 slopes")
+        for field_name, errors in fields.items():
+            mean_slope = mean_abs_slope(errors)
+            print(f"\n   --> measured {field_name} {region_name} L1 slope = {mean_slope}")
+            try:
+                assert mean_slope >= min_expected_slope
+            except AssertionError:
+                s = (
+                    f"\n   --> mean slope for CONTACT_move {field_name} {region_name} L1 "
+                    f"is {mean_slope}"
+                )
+                print(s)
+                print(f"\n   --> density full-domain L1 errors: {rho_l1err_full}")
+                print(f"\n   --> density smooth-region L1 errors: {rho_l1err_smooth}")
+                print(f"\n   --> pressure full-domain L1 errors: {p_l1err_full}")
+                print(f"\n   --> pressure smooth-region L1 errors: {p_l1err_smooth}")
+                print(f"\n   --> velocity full-domain L1 errors: {u_l1err_full}")
+                print(f"\n   --> velocity smooth-region L1 errors: {u_l1err_smooth}\n")
+                raise
 
 
 if __name__ == "__main__":

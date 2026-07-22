@@ -24,10 +24,8 @@ template<std::size_t D>
 void
 freeze_material(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<int>::template accessor<ro, ro> material_a,
-  typename field<int>::template accessor<wo, ro> frozen_material_a) noexcept {
-
-  using common::tasks::utils::get_mdiota_policy;
+  typename field<int>::template accessor<ro, na> material_a,
+  typename field<int>::template accessor<wo, na> frozen_material_a) noexcept {
 
   s.executor().forall(
     i, flecsi::util::iota_view({}, frozen_material_a.span().size())) {
@@ -35,20 +33,134 @@ freeze_material(flecsi::exec::accelerator s,
   };
 }
 
-FLECSI_INLINE_TARGET double
-material_sign(int neighbor_material, int center_material) noexcept {
-  return neighbor_material == center_material ? 1.0 : -1.0;
+namespace hj_weno5m_stencil {
+
+// This scheme is used in the level set advection. It was taken from:
+// "Mapped weighted essentially non-oscillatory schemes: Achieving optimal order
+// near critical points" by Andrew K. Henrick, Tariq D. Aslam, Joseph M. Powers,
+// Journal of Computational Physics, 2005.
+
+// This scheme is used in the paper:
+// "An efficient level set method for tracking many materials"
+// by Tariq D. Aslam, Eduardo Lozano, Journal of Computational Physics, 2026.
+
+// This method is needed for better accuracy in the level set advection.
+
+template<typename T>
+FLECSI_INLINE_TARGET constexpr T
+sq(const T x) noexcept {
+  return x * x;
 }
 
-template<class PsiAccessor, class MaterialAccessor, class... Index>
-FLECSI_INLINE_TARGET double
-psi_star_at(const PsiAccessor & psi,
-  const MaterialAccessor & frozen_material,
-  int center_material,
-  Index... index) noexcept {
-  return psi(index...) *
-         material_sign(frozen_material(index...), center_material);
+template<typename T>
+FLECSI_INLINE_TARGET T
+weno5m_map_weight(const T omega, const T d) noexcept {
+  // Henrick-Aslam-Powers mapped WENO5 weight.
+  // Fixed points at omega = 0, d, 1.
+  const T num = omega * (d + d * d - T(3) * d * omega + omega * omega);
+  const T den = d * d + omega * (T(1) - T(2) * d);
+  return num / den;
 }
+
+template<typename T>
+FLECSI_INLINE_TARGET T
+weno5m_left_from_differences(const std::array<T, 5> & v, const T eps) noexcept {
+  // v = {v_{i-2}, v_{i-1}, v_i, v_{i+1}, v_{i+2}}
+  // where v_j = (psi_{j+1} - psi_j) / dx
+
+  constexpr T d0 = T(1) / T(10);
+  constexpr T d1 = T(6) / T(10);
+  constexpr T d2 = T(3) / T(10);
+
+  // Candidate polynomials
+  const T q0 =
+    (T(1) / T(3)) * v[0] - (T(7) / T(6)) * v[1] + (T(11) / T(6)) * v[2];
+  const T q1 =
+    -(T(1) / T(6)) * v[1] + (T(5) / T(6)) * v[2] + (T(1) / T(3)) * v[3];
+  const T q2 =
+    (T(1) / T(3)) * v[2] + (T(5) / T(6)) * v[3] - (T(1) / T(6)) * v[4];
+
+  // Smoothness indicators
+  const T beta0 = (T(13) / T(12)) * sq(v[0] - T(2) * v[1] + v[2]) +
+                  (T(1) / T(4)) * sq(v[0] - T(4) * v[1] + T(3) * v[2]);
+
+  const T beta1 = (T(13) / T(12)) * sq(v[1] - T(2) * v[2] + v[3]) +
+                  (T(1) / T(4)) * sq(v[1] - v[3]);
+
+  const T beta2 = (T(13) / T(12)) * sq(v[2] - T(2) * v[3] + v[4]) +
+                  (T(1) / T(4)) * sq(T(3) * v[2] - T(4) * v[3] + v[4]);
+
+  // Jiang-Shu nonlinear weights
+  const T a0 = d0 / sq(eps + beta0);
+  const T a1 = d1 / sq(eps + beta1);
+  const T a2 = d2 / sq(eps + beta2);
+
+  const T asum = a0 + a1 + a2;
+
+  const T w0 = a0 / asum;
+  const T w1 = a1 / asum;
+  const T w2 = a2 / asum;
+
+  // WENO5-M mapped weights
+  const T wm0 = weno5m_map_weight(w0, d0);
+  const T wm1 = weno5m_map_weight(w1, d1);
+  const T wm2 = weno5m_map_weight(w2, d2);
+
+  const T wmsum = wm0 + wm1 + wm2;
+
+  const T wt0 = wm0 / wmsum;
+  const T wt1 = wm1 / wmsum;
+  const T wt2 = wm2 / wmsum;
+
+  return wt0 * q0 + wt1 * q1 + wt2 * q2;
+}
+
+template<typename T>
+FLECSI_INLINE_TARGET T
+weno5m_right_from_differences(const std::array<T, 5> & v,
+  const T eps) noexcept {
+  // Mirror of left-biased reconstruction.
+  // If v corresponds to {v_{i-3}, v_{i-2}, v_{i-1}, v_i, v_{i+1}},
+  // this returns the right-biased derivative at i.
+  return -weno5m_left_from_differences<T>(
+    {-v[4], -v[3], -v[2], -v[1], -v[0]}, eps);
+}
+
+template<typename T>
+FLECSI_INLINE_TARGET std::pair<T, T>
+weno5m_hj_derivatives_from_points(const std::array<T, 7> & p,
+  const T dx) noexcept {
+  // p = {psi_{i-3}, psi_{i-2}, psi_{i-1}, psi_i,
+  //      psi_{i+1}, psi_{i+2}, psi_{i+3}}
+  // Build consecutive first differences, then reconstruct one-sided
+  // Hamilton-Jacobi derivatives at cell i.
+
+  const std::array<T, 6> d = {
+    (p[1] - p[0]) / dx,
+    (p[2] - p[1]) / dx,
+    (p[3] - p[2]) / dx,
+    (p[4] - p[3]) / dx,
+    (p[5] - p[4]) / dx,
+    (p[6] - p[5]) / dx,
+  };
+
+  const T eps = T(1e-8);
+
+  // Left-biased derivative phi_x^- at i uses differences spanning
+  // {i-5/2, i-3/2, i-1/2, i+1/2, i+3/2} -> d[0]..d[4].
+  const T dminus =
+    weno5m_left_from_differences<T>({d[0], d[1], d[2], d[3], d[4]}, eps);
+
+  // Right-biased derivative phi_x^+ at i uses the mirrored stencil
+  // spanning {i-3/2, i-1/2, i+1/2, i+3/2, i+5/2},
+  // which corresponds to d[1]..d[5].
+  const T dplus =
+    weno5m_right_from_differences<T>({d[1], d[2], d[3], d[4], d[5]}, eps);
+
+  return {dminus, dplus};
+}
+
+} // namespace hj_weno5m_stencil
 
 // upwind HJ RHS using material-signed psi* values so that neighbor
 // differences are taken within the center cell's frozen material frame.
@@ -57,9 +169,9 @@ void
 rhs_upwind(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> psi_a,
-  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
+  typename field<vec<D>>::template accessor<ro, na> velocity_a,
   typename field<int>::template accessor<ro, ro> frozen_material_a,
-  typename field<double>::template accessor<wo, ro> rhs_a) noexcept {
+  typename field<double>::template accessor<wo, na> rhs_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
@@ -69,27 +181,40 @@ rhs_upwind(flecsi::exec::accelerator s,
   auto rhs = m.template mdcolex<is::cells>(rhs_a);
 
   if constexpr(D == 1) {
+    const double dx = m.template delta<ax::x>();
+
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      const int ip1 = i + 1;
-      const int im1 = i - 1;
       const int center_material = fmat(i);
+      const double ux = vel(i).x();
 
-      auto [um, up] = minmax(0.0, vel(i));
+      const auto psi_star = [&](int ii) {
+        const double sign = (fmat(ii) == center_material) ? 1.0 : -1.0;
+        return psi(ii) * sign;
+      };
 
-      // psi*_{i\pm1} = psi_{i\pm1} * (2 delta_{l_{i\pm1}, l_i} - 1)
-      const double psi_star_ip1 = psi_star_at(psi, fmat, center_material, ip1);
-      const double psi_star_im1 = psi_star_at(psi, fmat, center_material, im1);
-      const double psi_star_i = psi(i);
+      // 7-point stencil in the center cell's frozen-material frame:
+      // {psi*_{i-3}, ..., psi*_{i+3}}
+      const std::array<double, 7> p = {
+        psi_star(i - 3),
+        psi_star(i - 2),
+        psi_star(i - 1),
+        psi_star(i),
+        psi_star(i + 1),
+        psi_star(i + 2),
+        psi_star(i + 3),
+      };
 
-      // First-order split upwind operator applied to psi*.
-      const double adv_x = (psi_star_i * (up.x() - um.x()) +
-                             psi_star_ip1 * um.x() - psi_star_im1 * up.x()) /
-                           m.template delta<ax::x>();
+      const auto [psi_x_minus, psi_x_plus] =
+        hj_weno5m_stencil::weno5m_hj_derivatives_from_points(p, dx);
 
-      rhs(i) = -adv_x;
+      const double psi_x_upwind = (ux > 0.0) ? psi_x_minus : psi_x_plus;
+      rhs(i) = -(ux * psi_x_upwind);
     };
   }
   else if constexpr(D == 2) {
+    const double dx = m.template delta<ax::x>();
+    const double dy = m.template delta<ax::y>();
+
     auto pol = get_mdiota_policy(vel,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
@@ -97,32 +222,49 @@ rhs_upwind(flecsi::exec::accelerator s,
     s.executor().forall(ji, pol) {
       auto [j, i] = ji;
       const int center_material = fmat(i, j);
-      auto [um, up] = minmax(0.0, vel(i, j));
+      const auto u = vel(i, j);
 
-      // psi* neighbors relative to the center cell material l_{i,j}.
-      const double psi_star_im1j =
-        psi_star_at(psi, fmat, center_material, i - 1, j);
-      const double psi_star_ip1j =
-        psi_star_at(psi, fmat, center_material, i + 1, j);
-      const double psi_star_ijm1 =
-        psi_star_at(psi, fmat, center_material, i, j - 1);
-      const double psi_star_ijp1 =
-        psi_star_at(psi, fmat, center_material, i, j + 1);
-      const double psi_star_ij = psi(i, j);
+      const auto psi_star = [&](int ii, int jj) {
+        const double sign = (fmat(ii, jj) == center_material) ? 1.0 : -1.0;
+        return psi(ii, jj) * sign;
+      };
 
-      // First-order split upwind operator applied to psi*.
-      const double adv_x = (psi_star_ij * (up.x() - um.x()) +
-                             psi_star_ip1j * um.x() - psi_star_im1j * up.x()) /
-                           m.template delta<ax::x>();
+      const std::array<double, 7> px = {
+        psi_star(i - 3, j),
+        psi_star(i - 2, j),
+        psi_star(i - 1, j),
+        psi_star(i, j),
+        psi_star(i + 1, j),
+        psi_star(i + 2, j),
+        psi_star(i + 3, j),
+      };
 
-      const double adv_y = (psi_star_ij * (up.y() - um.y()) +
-                             psi_star_ijp1 * um.y() - psi_star_ijm1 * up.y()) /
-                           m.template delta<ax::y>();
+      const std::array<double, 7> py = {
+        psi_star(i, j - 3),
+        psi_star(i, j - 2),
+        psi_star(i, j - 1),
+        psi_star(i, j),
+        psi_star(i, j + 1),
+        psi_star(i, j + 2),
+        psi_star(i, j + 3),
+      };
 
-      rhs(i, j) = -(adv_x + adv_y);
+      const auto [psi_x_minus, psi_x_plus] =
+        hj_weno5m_stencil::weno5m_hj_derivatives_from_points(px, dx);
+      const auto [psi_y_minus, psi_y_plus] =
+        hj_weno5m_stencil::weno5m_hj_derivatives_from_points(py, dy);
+
+      const double psi_x_upwind = (u.x() > 0.0) ? psi_x_minus : psi_x_plus;
+      const double psi_y_upwind = (u.y() > 0.0) ? psi_y_minus : psi_y_plus;
+
+      rhs(i, j) = -(u.x() * psi_x_upwind + u.y() * psi_y_upwind);
     };
   }
   else { // D == 3
+    const double dx = m.template delta<ax::x>();
+    const double dy = m.template delta<ax::y>();
+    const double dz = m.template delta<ax::z>();
+
     auto pol = get_mdiota_policy(vel,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
@@ -131,38 +273,56 @@ rhs_upwind(flecsi::exec::accelerator s,
     s.executor().forall(kji, pol) {
       auto [k, j, i] = kji;
       const int center_material = fmat(i, j, k);
-      auto [um, up] = minmax(0.0, vel(i, j, k));
+      const auto u = vel(i, j, k);
 
-      // psi* neighbors relative to the center cell material l_{i,j,k}.
-      const double psi_star_im1jk =
-        psi_star_at(psi, fmat, center_material, i - 1, j, k);
-      const double psi_star_ip1jk =
-        psi_star_at(psi, fmat, center_material, i + 1, j, k);
-      const double psi_star_ijm1k =
-        psi_star_at(psi, fmat, center_material, i, j - 1, k);
-      const double psi_star_ijp1k =
-        psi_star_at(psi, fmat, center_material, i, j + 1, k);
-      const double psi_star_ijkm1 =
-        psi_star_at(psi, fmat, center_material, i, j, k - 1);
-      const double psi_star_ijkp1 =
-        psi_star_at(psi, fmat, center_material, i, j, k + 1);
-      const double psi_star_ijk = psi(i, j, k);
+      const auto psi_star = [&](int ii, int jj, int kk) {
+        const double sign = (fmat(ii, jj, kk) == center_material) ? 1.0 : -1.0;
+        return psi(ii, jj, kk) * sign;
+      };
 
-      // First-order split upwind operator applied to psi*.
-      const double adv_x =
-        (psi_star_ijk * (up.x() - um.x()) + psi_star_ip1jk * um.x() -
-          psi_star_im1jk * up.x()) /
-        m.template delta<ax::x>();
-      const double adv_y =
-        (psi_star_ijk * (up.y() - um.y()) + psi_star_ijp1k * um.y() -
-          psi_star_ijm1k * up.y()) /
-        m.template delta<ax::y>();
-      const double adv_z =
-        (psi_star_ijk * (up.z() - um.z()) + psi_star_ijkp1 * um.z() -
-          psi_star_ijkm1 * up.z()) /
-        m.template delta<ax::z>();
+      const std::array<double, 7> px = {
+        psi_star(i - 3, j, k),
+        psi_star(i - 2, j, k),
+        psi_star(i - 1, j, k),
+        psi_star(i, j, k),
+        psi_star(i + 1, j, k),
+        psi_star(i + 2, j, k),
+        psi_star(i + 3, j, k),
+      };
 
-      rhs(i, j, k) = -(adv_x + adv_y + adv_z);
+      const std::array<double, 7> py = {
+        psi_star(i, j - 3, k),
+        psi_star(i, j - 2, k),
+        psi_star(i, j - 1, k),
+        psi_star(i, j, k),
+        psi_star(i, j + 1, k),
+        psi_star(i, j + 2, k),
+        psi_star(i, j + 3, k),
+      };
+
+      const std::array<double, 7> pz = {
+        psi_star(i, j, k - 3),
+        psi_star(i, j, k - 2),
+        psi_star(i, j, k - 1),
+        psi_star(i, j, k),
+        psi_star(i, j, k + 1),
+        psi_star(i, j, k + 2),
+        psi_star(i, j, k + 3),
+      };
+
+      const auto [psi_x_minus, psi_x_plus] =
+        hj_weno5m_stencil::weno5m_hj_derivatives_from_points(px, dx);
+      const auto [psi_y_minus, psi_y_plus] =
+        hj_weno5m_stencil::weno5m_hj_derivatives_from_points(py, dy);
+      const auto [psi_z_minus, psi_z_plus] =
+        hj_weno5m_stencil::weno5m_hj_derivatives_from_points(pz, dz);
+
+      const double psi_x_upwind = (u.x() > 0.0) ? psi_x_minus : psi_x_plus;
+      const double psi_y_upwind = (u.y() > 0.0) ? psi_y_minus : psi_y_plus;
+      const double psi_z_upwind = (u.z() > 0.0) ? psi_z_minus : psi_z_plus;
+
+      rhs(i, j, k) =
+        -(u.x() * psi_x_upwind + u.y() * psi_y_upwind + u.z() * psi_z_upwind);
     };
   }
 }
@@ -176,9 +336,9 @@ template<std::size_t D, std::size_t STEP>
 void
 advance_psi_s1(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, ro> psi_n0_a,
-  typename field<double>::template accessor<ro, ro> rhs_a,
-  typename field<double>::template accessor<wo, ro> psi_out_a,
+  typename field<double>::template accessor<ro, na> psi_n0_a,
+  typename field<double>::template accessor<ro, na> rhs_a,
+  typename field<double>::template accessor<wo, na> psi_out_a,
   typename single<double>::template accessor<ro> dt_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -223,10 +383,10 @@ template<std::size_t D, std::size_t STEP>
 void
 advance_psi(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<double>::template accessor<ro, ro> psi_n0_a,
-  typename field<double>::template accessor<ro, ro> rhs_a,
-  typename field<double>::template accessor<ro, ro> psi_prev_a,
-  typename field<double>::template accessor<wo, ro> psi_out_a,
+  typename field<double>::template accessor<ro, na> psi_n0_a,
+  typename field<double>::template accessor<ro, na> rhs_a,
+  typename field<double>::template accessor<ro, na> psi_prev_a,
+  typename field<double>::template accessor<wo, na> psi_out_a,
   typename single<double>::template accessor<ro> dt_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -292,9 +452,9 @@ void
 determine_psi(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<double>::template accessor<ro, ro> frozen_psi_a, // psi3
-  typename field<double>::template accessor<wo, ro> psi_a, // psi^{n+1}
+  typename field<double>::template accessor<wo, na> psi_a, // psi^{n+1}
   typename field<int>::template accessor<ro, ro> frozen_material_a, // L^n
-  typename field<int>::template accessor<wo, ro> material_a) noexcept {
+  typename field<int>::template accessor<wo, na> material_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
@@ -400,21 +560,6 @@ determine_psi(flecsi::exec::accelerator s,
   }
 }
 
-template<std::size_t D>
-FLECSI_INLINE_TARGET double
-cell_sie_from_cons(double rho, const vec<D> & mom, double rhoE) noexcept {
-  const vec<D> u = (1.0 / rho) * mom;
-  return (rhoE - 0.5 * rho * u.norm_squared()) / rho;
-}
-
-FLECSI_INLINE_TARGET bool
-rel_close_local(double a,
-  double b,
-  double rtol = 1.0e-10,
-  double atol = 1.0e-12) noexcept {
-  return std::abs(a - b) <= atol + rtol * std::max(std::abs(a), std::abs(b));
-}
-
 template<std::size_t D, typename eosType>
 FLECSI_INLINE_TARGET bool
 eos_pair_equivalent_at_cell(const eosType & eos_disp,
@@ -438,7 +583,8 @@ eos_pair_equivalent_at_cell(const eosType & eos_disp,
     return false;
   }
 
-  const double e = cell_sie_from_cons<D>(rho, mom, rhoE);
+  const vec<D> u = (1.0 / rho) * mom;
+  const double e = (rhoE - 0.5 * rho * u.norm_squared()) / rho;
 
   if(!std::isfinite(e) || e <= 0.0) {
     return false;
@@ -452,7 +598,13 @@ eos_pair_equivalent_at_cell(const eosType & eos_disp,
   const double c_old = eos_old.cRhoSie(rho, e);
   const double c_new = eos_new.cRhoSie(rho, e);
 
-  return rel_close_local(p_old, p_new) && rel_close_local(c_old, c_new);
+  constexpr double rtol = 1.0e-10;
+  constexpr double atol = 1.0e-12;
+
+  return std::abs(p_old - p_new) <=
+           atol + rtol * std::max(std::abs(p_old), std::abs(p_new)) &&
+         std::abs(c_old - c_new) <=
+           atol + rtol * std::max(std::abs(c_old), std::abs(c_new));
 }
 
 struct promote_changed_material_cells_task : annotation_task_region {
@@ -463,11 +615,11 @@ template<std::size_t D>
 void
 promote_changed_material_cells(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<int>::template accessor<ro, ro> old_material_a,
-  typename field<int>::template accessor<ro, ro> new_material_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+  typename field<int>::template accessor<ro, na> old_material_a,
+  typename field<int>::template accessor<ro, na> new_material_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     q_ext_plus_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     q_ext_minus_a,
   field<double>::accessor<rw, na> mass_density_a,
   typename field<vec<D>>::template accessor<rw, na> momentum_density_a,
@@ -688,11 +840,11 @@ template<std::size_t D>
 void
 diagnose_material_changes_1d(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
-  typename field<int>::template accessor<ro, ro> old_material_a,
-  typename field<int>::template accessor<ro, ro> new_material_a,
-  field<double>::accessor<ro, ro> mass_density_a,
-  typename field<vec<D>>::template accessor<ro, ro> momentum_density_a,
-  field<double>::accessor<ro, ro> total_energy_density_a,
+  typename field<int>::template accessor<ro, na> old_material_a,
+  typename field<int>::template accessor<ro, na> new_material_a,
+  field<double>::accessor<ro, na> mass_density_a,
+  typename field<vec<D>>::template accessor<ro, na> momentum_density_a,
+  field<double>::accessor<ro, na> total_energy_density_a,
   const std::vector<eos::eos_wrapper> & eos_mm,
   int max_print) noexcept {
 
@@ -760,8 +912,8 @@ template<std::size_t D>
 void
 diagnose_psi_range_1d(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
-  field<double>::accessor<ro, ro> psi_a,
-  typename field<vec<D>>::template accessor<ro, ro> velocity_a,
+  field<double>::accessor<ro, na> psi_a,
+  typename field<vec<D>>::template accessor<ro, na> velocity_a,
   const char * label) noexcept {
 
   if constexpr(D == 1) {
