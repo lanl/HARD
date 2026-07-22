@@ -574,8 +574,8 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro>
     q_scalar_a,
-  typename field<double>::template accessor<ro, ro> psi_a,
-  typename field<vec<D>>::template accessor<ro, ro> normal_a,
+  typename field<double>::template accessor<ro, na> psi_a,
+  typename field<vec<D>>::template accessor<ro, na> normal_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     rhs_a) noexcept {
 
@@ -682,9 +682,9 @@ void
 rhs_linear_extrapolation_minmod(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> q_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> qn_a,
-  typename field<double>::template accessor<ro, ro> psi_a,
-  typename field<vec<D>>::template accessor<ro, ro> normal_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> qn_a,
+  typename field<double>::template accessor<ro, na> psi_a,
+  typename field<vec<D>>::template accessor<ro, na> normal_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     rhs_a) noexcept {
 
@@ -816,9 +816,9 @@ void
 rhs_quadratic_extrapolation_qn_minmod(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> qn_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> qnn_a,
-  typename field<double>::template accessor<ro, ro> psi_a,
-  typename field<vec<D>>::template accessor<ro, ro> normal_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> qnn_a,
+  typename field<double>::template accessor<ro, na> psi_a,
+  typename field<vec<D>>::template accessor<ro, na> normal_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     rhs_a) noexcept {
 
@@ -1307,7 +1307,7 @@ struct copy_extp_q_task : annotation_task_region {
 template<std::size_t D>
 void
 copy_extp_q(flecsi::exec::accelerator s,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> src_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> src_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     dst_a) noexcept {
 
