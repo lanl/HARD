@@ -126,7 +126,7 @@ extrapolate_all_materials(state<D> & s,
       s.prim.pressure(*s.m),
       s.prim.specific_internal_energy(*s.m),
       s.extp.extp_psi(*s.m),
-      s.extp.q_scalar_tmp(*s.m),
+      q_ext_out,
       s.extp.q_scalar_known(*s.m),
       static_cast<int>(mat));
 
@@ -152,7 +152,7 @@ extrapolate_all_materials(state<D> & s,
         sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
           flecsi::exec::on,
           *s.m,
-          s.extp.q_scalar_tmp(*s.m),
+          q_ext_out,
           s.extp.extp_psi(*s.m),
           s.extp.normal(*s.m),
           s.extp.q_rhs(*s.m));
@@ -165,10 +165,10 @@ extrapolate_all_materials(state<D> & s,
           s.extp.extp_psi(*s.m),
           s.extp.normal(*s.m),
           s.extp.q_scalar_known(*s.m),
-          s.extp.q_scalar_tmp(*s.m),
+          q_ext_out,
           s.extp.q_rhs(*s.m),
-          s.extp.q_scalar1(*s.m), // output stage-1
-          tasks::extrapolation::extp_cfl); // dtau in the origianl work
+          s.extp.q_scalar1(*s.m),
+          tasks::extrapolation::extp_cfl);
 
       // Stage 2: rhs(q1) -> rhs1
       annotation_rguard<
@@ -189,14 +189,13 @@ extrapolate_all_materials(state<D> & s,
           s.extp.extp_psi(*s.m),
           s.extp.normal(*s.m),
           s.extp.q_scalar_known(*s.m),
-          s.extp.q_scalar_tmp(*s.m), // q^n
-          s.extp.q_rhs1(*s.m), // rhs(q1)
-          s.extp.q_scalar1(*s.m), // q_stage
-          q_ext_out, // q_new
+          q_ext_out,
+          s.extp.q_rhs1(*s.m),
+          s.extp.q_scalar1(*s.m),
           tasks::extrapolation::extp_cfl); // dtau in original work
 
-      // Copy q^{n+1} back into the work field for the next pseudo-time step.
-      if(n + 1 < s.extp_steps) {
+      // Copy extrapolated q_ext_out into q_ext_tmp to check convergence
+      if(n == 0 || n == (s.extp_steps - 2)) {
         annotation_rguard<tasks::extrapolation::copy_extp_q_task>(),
           sc.execute<tasks::extrapolation::copy_extp_q<D>>(
             flecsi::exec::on, q_ext_out, s.extp.q_scalar_tmp(*s.m));
