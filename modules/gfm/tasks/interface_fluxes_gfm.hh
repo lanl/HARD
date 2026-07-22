@@ -766,9 +766,17 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
         return;
       }
 
+      const auto mL = static_cast<std::size_t>(mL_raw);
+      const auto mR = static_cast<std::size_t>(mR_raw);
+
+      const hard::tasks::util::extp_q<Dim> & qGhostR_L =
+        (mL == 0) ? q_ext_plus(i) : q_ext_minus(i - 1);
+      const hard::tasks::util::extp_q<Dim> & qGhostL_R =
+        (mR == 0) ? q_ext_plus(i) : q_ext_minus(i - 1);
+
       const bool qext_valid_for_cut =
-        valid_owner_extp_for_gfm<Dim>(q_ext_plus(i)) &&
-        valid_owner_extp_for_gfm<Dim>(q_ext_minus(i - 1));
+        valid_material_pair && valid_owner_extp_for_gfm<Dim>(qGhostR_L) &&
+        valid_owner_extp_for_gfm<Dim>(qGhostL_R);
 
       const bool equivalent_eos_pair =
         valid_material_pair && eos_pair_equivalent_at_face<Dim>(eos_disp,
@@ -809,8 +817,8 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
         reR,
         n_right(i - 1),     // left cell plus/right face
         n_left(i),          // right cell minus/left face
-        q_ext_plus(i),
-        q_ext_minus(i - 1),
+        qGhostR_L,
+        qGhostL_R,
         eos_disp,
         r_f(i),
         ru_f(i),
@@ -892,9 +900,17 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
         cR > 0.0 && std::isfinite(reL) && reL > 0.0 && std::isfinite(reR) &&
         reR > 0.0;
 
+      const auto mL = static_cast<std::size_t>(mL_raw);
+      const auto mR = static_cast<std::size_t>(mR_raw);
+
+      const hard::tasks::util::extp_q<Dim> & qGhostR_L =
+        (mL == 0) ? q_ext_plus(i, j) : q_ext_minus(iL, jL);
+      const hard::tasks::util::extp_q<Dim> & qGhostL_R =
+        (mR == 0) ? q_ext_plus(i, j) : q_ext_minus(iL, jL);
+
       const bool qext_valid_for_cut =
-        valid_owner_extp_for_gfm<Dim>(q_ext_plus(i, j)) &&
-        valid_owner_extp_for_gfm<Dim>(q_ext_minus(iL, jL));
+        valid_material_pair && valid_owner_extp_for_gfm<Dim>(qGhostR_L) &&
+        valid_owner_extp_for_gfm<Dim>(qGhostL_R);
 
       const bool use_gfm_cut = enable_gfm && valid_material_pair &&
                                face_state_valid_for_gfm && (mL_raw != mR_raw) &&
@@ -924,8 +940,8 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
         reR,
         n_right(iL, jL),     // left cell plus face
         n_left(i, j),        // right cell minus face
-        q_ext_plus(i, j),
-        q_ext_minus(iL, jL),
+        qGhostR_L,
+        qGhostL_R,
         eos_disp,
         r_f(i, j),
         ru_f(i, j),
@@ -1024,9 +1040,17 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
         cR > 0.0 && std::isfinite(reL) && reL > 0.0 && std::isfinite(reR) &&
         reR > 0.0;
 
+      const auto mL = static_cast<std::size_t>(mL_raw);
+      const auto mR = static_cast<std::size_t>(mR_raw);
+
+      const hard::tasks::util::extp_q<Dim> & qGhostR_L =
+        (mL == 0) ? q_ext_plus(i, j, k) : q_ext_minus(iL, jL, kL);
+      const hard::tasks::util::extp_q<Dim> & qGhostL_R =
+        (mR == 0) ? q_ext_plus(i, j, k) : q_ext_minus(iL, jL, kL);
+
       const bool qext_valid_for_cut =
-        valid_owner_extp_for_gfm<Dim>(q_ext_plus(i, j, k)) &&
-        valid_owner_extp_for_gfm<Dim>(q_ext_minus(iL, jL, kL));
+        valid_material_pair && valid_owner_extp_for_gfm<Dim>(qGhostR_L) &&
+        valid_owner_extp_for_gfm<Dim>(qGhostL_R);
 
       const bool use_gfm_cut = enable_gfm && valid_material_pair &&
                                face_state_valid_for_gfm && (mL_raw != mR_raw) &&
@@ -1056,8 +1080,8 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
         reR,
         n_right(iL, jL, kL),   // left cell plus face
         n_left(i, j, k),       // right cell minus face
-        q_ext_plus(i, j, k),
-        q_ext_minus(iL, jL, kL),
+        qGhostR_L,
+        qGhostL_R,
         eos_disp,
         r_f(i, j, k),
         ru_f(i, j, k),

@@ -15,7 +15,7 @@ display(std::vector<std::tuple<std::string, field<double>::accessor<ro, ro>>>
   for(auto & vv : v_f) {
     auto [s, v] = vv;
     std::cout << s << ":" << '\n';
-    for(int i = 0; i < v.span().size(); ++i) {
+    for(std::size_t i = 0; i < v.span().size(); ++i) {
       std::cout << v[i] << '\n';
     }
   }

@@ -189,37 +189,6 @@ ssprk3_step(
 // ------ ADDED NEW 1 ------- START
 #ifndef IN_TEST
   {
-    //   auto scalar_v = std::vector{
-    //     s.cons.hydro.mass_density(*s.m),
-    //     s.prim.pressure(*s.m),
-    //     s.prim.specific_internal_energy(*s.m),
-    //     s.cons.hydro.total_energy_density(*s.m),
-    //     s.prim.sound_speed(*s.m)};
-
-    //   sc.execute<tasks::apply_boundaries<D>>(
-    //     flecsi::exec::on,
-    //     *s.m,
-    //     s.icst.bmap(*s.gt),
-    //     scalar_v,
-    //     std::vector{
-    //       s.prim.velocity(*s.m),
-    //       s.cons.hydro.momentum_density(*s.m)});
-    // }
-
-    // // Call site
-    // if constexpr(D == 1) {
-    //   sc.execute<apply_ls_outflow_boundaries_1d<D>>(
-    //     flecsi::exec::on,
-    //     *s.m,           // This will be converted to accessor automatically
-    //     s.ls.psi(*s.m),
-    //     s.ls.material(*s.m));
-    // }
-
-    // #if 1
-
-    // ---------------- EXTREMELY IMPORTANT -----------------------
-    // TODO: forced on cpu since it relies on EOS !!!
-    // Make sure the material is actually being promoted
     annotation_rguard<promote_changed_material_cells_task>(),
       sc.execute<promote_changed_material_cells<D>>(flecsi::exec::on,
         *s.m,
@@ -235,9 +204,6 @@ ssprk3_step(
         s.prim.specific_internal_energy(*s.m),
         s.prim.sound_speed(*s.m),
         s.eos_mm);
-    // ---------------- EXTREMELY IMPORTANT -----------------------
-
-    // #endif
 
     {
       auto scalar_v = std::vector{s.cons.hydro.mass_density(*s.m),
