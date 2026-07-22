@@ -14,6 +14,11 @@ struct state {
   std::vector<eos::eos_wrapper> eos_mm;
 
 
+  // Number of materials
+  std::size_t n_materials() const {
+    return eos_mm.size();
+  }
+
   struct level_set {
     // Level set
     // Signed distance-like scalar and integer material label per cell
@@ -52,7 +57,7 @@ struct state {
 
     static inline const field<
       hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
-      q_scalar; // scratch state being advanced by extrapolation PDE
+      q_scalar_tmp; // scratch state used to check extrapolation convergence
     static inline const field<
       hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
       q_scalar_known; // fixed known-side values used to preserve psi<=0 region

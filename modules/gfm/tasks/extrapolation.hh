@@ -1276,6 +1276,7 @@ struct advance_q_rk2_s2_cfl_task : annotation_task_region {
   inline static const std::string name{"advance_q_rk2_s2_cfl"};
 };
 
+// Evolving solution q^n, updated IN PLACE to q^{n+1}
 template<std::size_t D>
 void
 advance_q_rk2_s2_cfl(flecsi::exec::accelerator s,
@@ -1283,20 +1284,18 @@ advance_q_rk2_s2_cfl(flecsi::exec::accelerator s,
   field<double>::accessor<ro, na> extp_psi_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     q_known_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> q0_a,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na> q0_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     rhs1_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> q1_a,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
-    qnew_a,
   double extp_cfl) noexcept {
 
   const double dtau = extp_cfl * min_mesh_spacing<D>(m);
 
-  s.executor().forall(i, flecsi::util::iota_view({}, q_known_a.span().size())) {
-    qnew_a(i) = (extp_psi_a(i) <= 0.0)
-                  ? q_known_a(i)
-                  : q_stage2<D>(q0_a(i), q1_a(i), rhs1_a(i), dtau);
+  s.executor().forall(i, flecsi::util::iota_view({}, q0_a.span().size())) {
+    q0_a(i) = (extp_psi_a(i) <= 0.0)
+                ? q_known_a(i)
+                : q_stage2<D>(q0_a(i), q1_a(i), rhs1_a(i), dtau);
   };
 }
 

@@ -104,15 +104,18 @@ recompute_sound_speed(state<D> & s, flecsi::scheduler & sc) {
 // Aslam JCP 2003 constant extrapolation routine used to fill the ghost stage
 // for a single source material (0 or 1 in the current two-material setup).
 // The result is written into q_ext_out.
-template<std::size_t D, class QExt>
+template<std::size_t D>
 inline void
-extrapolate_ghost(state<D> & s,
+extrapolate_all_materials(state<D> & s,
   flecsi::scheduler & sc,
-  std::size_t axis,
-  int source_material,
-  QExt q_ext_out) {
+  std::size_t axis) {
 
-  annotation_rguard<tasks::extrapolation::prepare_extp_for_material_task>(),
+  // 1) Extrapolate every material into its own key.
+  for(std::size_t mat = 0; mat < s.n_materials(); ++mat) {
+
+    auto q_ext_out =
+      (mat == 0) ? s.extp.q_ext_plus(*s.m) : s.extp.q_ext_minus(*s.m);
+
     sc.execute<tasks::extrapolation::prepare_extp_for_material<D>>(
       flecsi::exec::on,
       *s.m,
@@ -123,103 +126,103 @@ extrapolate_ghost(state<D> & s,
       s.prim.pressure(*s.m),
       s.prim.specific_internal_energy(*s.m),
       s.extp.extp_psi(*s.m),
-      s.extp.q_scalar(*s.m),
+      q_ext_out,
       s.extp.q_scalar_known(*s.m),
-      source_material);
+      static_cast<int>(mat));
 
-  // Compute unit normal of level set gradient
-  // dp = grad(psi)
-  annotation_rguard<tasks::extrapolation::gradient_centered_task>(),
-    sc.execute<tasks::extrapolation::gradient_centered<D>>(
-      flecsi::exec::on, *s.m, s.extp.extp_psi(*s.m), s.extp.dp(*s.m));
+    // Compute unit normal of level set gradient
+    // dp = grad(psi)
+    annotation_rguard<tasks::extrapolation::gradient_centered_task>(),
+      sc.execute<tasks::extrapolation::gradient_centered<D>>(
+        flecsi::exec::on, *s.m, s.extp.extp_psi(*s.m), s.extp.dp(*s.m));
 
-  // normal = dp/|dp| and normal faces
-  annotation_rguard<tasks::extrapolation::unit_normals_task>(),
-    sc.execute<tasks::extrapolation::unit_normals<D>>(flecsi::exec::on,
-      *s.m,
-      s.extp.dp(*s.m),
-      s.extp.normal(*s.m),
-      s.extp.f.normal_face(s.m),
-      axis);
-
-  for(int n = 0; n < s.extp_steps; ++n) {
-    // Stage 1: rhs(q^n) -> rhs
-    annotation_rguard<
-      tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
-      sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
-        flecsi::exec::on,
+    // normal = dp/|dp| and normal faces
+    annotation_rguard<tasks::extrapolation::unit_normals_task>(),
+      sc.execute<tasks::extrapolation::unit_normals<D>>(flecsi::exec::on,
         *s.m,
-        s.extp.q_scalar(*s.m),
-        s.extp.extp_psi(*s.m),
+        s.extp.dp(*s.m),
         s.extp.normal(*s.m),
-        s.extp.q_rhs(*s.m));
+        s.extp.f.normal_face(s.m),
+        axis);
 
-    // q1 = q^n + dt * rhs(q^n)
-    annotation_rguard<tasks::extrapolation::advance_q_rk2_s1_cfl_task>(),
-      sc.execute<tasks::extrapolation::advance_q_rk2_s1_cfl<D>>(
-        flecsi::exec::on,
-        *s.m,
-        s.extp.extp_psi(*s.m),
-        s.extp.q_scalar_known(*s.m),
-        s.extp.q_scalar(*s.m),
-        s.extp.q_rhs(*s.m),
-        s.extp.q_scalar1(*s.m), // output stage-1
-        tasks::extrapolation::extp_cfl); // dtau in the origianl work
+    for(int n = 0; n < s.extp_steps; ++n) {
+      // Stage 1: rhs(q^n) -> rhs
+      annotation_rguard<
+        tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
+        sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
+          flecsi::exec::on,
+          *s.m,
+          q_ext_out,
+          s.extp.extp_psi(*s.m),
+          s.extp.normal(*s.m),
+          s.extp.q_rhs(*s.m));
 
-    // Stage 2: rhs(q1) -> rhs1
-    annotation_rguard<
-      tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
-      sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
-        flecsi::exec::on,
-        *s.m,
-        s.extp.q_scalar1(*s.m),
-        s.extp.extp_psi(*s.m),
-        s.extp.normal(*s.m),
-        s.extp.q_rhs1(*s.m));
+      // q1 = q^n + dt * rhs(q^n)
+      annotation_rguard<tasks::extrapolation::advance_q_rk2_s1_cfl_task>(),
+        sc.execute<tasks::extrapolation::advance_q_rk2_s1_cfl<D>>(
+          flecsi::exec::on,
+          *s.m,
+          s.extp.extp_psi(*s.m),
+          s.extp.q_scalar_known(*s.m),
+          q_ext_out,
+          s.extp.q_rhs(*s.m),
+          s.extp.q_scalar1(*s.m),
+          tasks::extrapolation::extp_cfl);
 
-    // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
-    annotation_rguard<tasks::extrapolation::advance_q_rk2_s2_cfl_task>(),
-      sc.execute<tasks::extrapolation::advance_q_rk2_s2_cfl<D>>(
-        flecsi::exec::on,
-        *s.m,
-        s.extp.extp_psi(*s.m),
-        s.extp.q_scalar_known(*s.m),
-        s.extp.q_scalar(*s.m), // q^n
-        s.extp.q_rhs1(*s.m), // rhs(q1)
-        s.extp.q_scalar1(*s.m), // q_stage
-        q_ext_out, // q_new
-        tasks::extrapolation::extp_cfl); // dtau in original work
+      // Stage 2: rhs(q1) -> rhs1
+      annotation_rguard<
+        tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
+        sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
+          flecsi::exec::on,
+          *s.m,
+          s.extp.q_scalar1(*s.m),
+          s.extp.extp_psi(*s.m),
+          s.extp.normal(*s.m),
+          s.extp.q_rhs1(*s.m));
 
-    if(n + 1 < s.extp_steps) {
-      annotation_rguard<tasks::extrapolation::copy_extp_q_task>(),
-        sc.execute<tasks::extrapolation::copy_extp_q<D>>(
-          flecsi::exec::on, q_ext_out, s.extp.q_scalar(*s.m));
+      // q^{n+1} = 0.5*( q^n + q1 + dt*rhs(q1) )
+      annotation_rguard<tasks::extrapolation::advance_q_rk2_s2_cfl_task>(),
+        sc.execute<tasks::extrapolation::advance_q_rk2_s2_cfl<D>>(
+          flecsi::exec::on,
+          *s.m,
+          s.extp.extp_psi(*s.m),
+          s.extp.q_scalar_known(*s.m),
+          q_ext_out,
+          s.extp.q_rhs1(*s.m),
+          s.extp.q_scalar1(*s.m),
+          tasks::extrapolation::extp_cfl); // dtau in original work
+
+      // Copy extrapolated q_ext_out into q_ext_tmp to check convergence
+      if(n == 0 || n == (s.extp_steps - 2)) {
+        annotation_rguard<tasks::extrapolation::copy_extp_q_task>(),
+          sc.execute<tasks::extrapolation::copy_extp_q<D>>(
+            flecsi::exec::on, q_ext_out, s.extp.q_scalar_tmp(*s.m));
+      }
     }
-  }
+    // Post-check the pseudo-time extrapolation using the active SciPy-style
+    // scaled update metric in the first extrapolated layer next to the
+    // interface.
+    auto max_scaled_update_band_f =
+      (annotation_rguard<
+         tasks::extrapolation::extp_interface_convergence_update_task>(),
+        sc.execute<tasks::extrapolation::extp_interface_convergence_update<D>>(
+          flecsi::exec::on,
+          *s.m,
+          s.extp.q_scalar_tmp(*s.m),
+          q_ext_out,
+          s.extp.extp_psi(*s.m)));
 
-  // Post-check the pseudo-time extrapolation using the active SciPy-style
-  // scaled update metric in the first extrapolated layer next to the
-  // interface.
-  auto max_scaled_update_band_f =
-    (annotation_rguard<
-       tasks::extrapolation::extp_interface_convergence_update_task>(),
-      sc.execute<tasks::extrapolation::extp_interface_convergence_update<D>>(
+    // check here if the extrapolation has converged
+    annotation_rguard<tasks::extrapolation::extp_interface_convergence_task>(),
+      sc.execute<tasks::extrapolation::extp_interface_convergence<D>>(
         flecsi::exec::on,
         *s.m,
-        s.extp.q_scalar(*s.m),
-        q_ext_out,
-        s.extp.extp_psi(*s.m)));
-
-  // check here if the extrapolation has converged
-  annotation_rguard<tasks::extrapolation::extp_interface_convergence_task>(),
-    sc.execute<tasks::extrapolation::extp_interface_convergence<D>>(
-      flecsi::exec::on,
-      *s.m,
-      max_scaled_update_band_f,
-      axis,
-      source_material,
-      s.extp_steps,
-      tasks::extrapolation::extp_residual_tol);
+        max_scaled_update_band_f,
+        axis,
+        mat,
+        s.extp_steps,
+        tasks::extrapolation::extp_residual_tol);
+  }
 }
 
 // Per-axis loop shared by both RK stages: extrapolation (ghost fill),
@@ -250,11 +253,8 @@ advance_rk_stage_axis_loop(state<D> & s,
       /* Start extrapolation routine to fill ghost stage
        * This is based on Aslam JCP 2003, constant extrapolation */
 
-      // Extrapolation for ghost fill from the ls_psi <= 0 side (material 0).
-      extrapolate_ghost(s, sc, axis, 0, s.extp.q_ext_plus(*s.m));
-
-      // Extrapolation for ghost fill from the ls_psi > 0 side (material 1).
-      extrapolate_ghost(s, sc, axis, 1, s.extp.q_ext_minus(*s.m));
+      // Extrapolation for ghost fill
+      extrapolate_all_materials(s, sc, axis);
       /* End of extrapolation*/
 
       // clang-format off
