@@ -73,7 +73,7 @@ shock(flecsi::exec::cpu s,
 
   if constexpr(D == 1) {
     for(auto i : m.template cells<ax::x, dm::quantities>()) {
-      const auto x = m.template right<ax::x>(i);
+      const auto x = m.template center<ax::x>(i);
 
       if(x < T::x0) {
         mass_density(i) = T::rL;
@@ -96,7 +96,7 @@ shock(flecsi::exec::cpu s,
 
     for(auto ji : mdpolicy_yx) {
       auto [j, i] = ji;
-      const auto x = m.template right<ax::x>(i);
+      const auto x = m.template center<ax::x>(i);
 
       if(x < T::x0) {
         mass_density(i, j) = T::rL;
@@ -120,7 +120,7 @@ shock(flecsi::exec::cpu s,
 
     for(auto kji : mdpolicy_zyx) {
       auto [k, j, i] = kji;
-      const auto x = m.template right<ax::x>(i);
+      const auto x = m.template center<ax::x>(i);
 
       if(x < T::x0) {
         mass_density(i, j, k) = T::rL;
