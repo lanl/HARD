@@ -55,6 +55,16 @@ struct state {
     // Dynamics psi during extrapolation steps
     static inline const field<double>::definition<mesh<D>, is::cells> extp_psi;
 
+    // Debug/output helpers for extrapolated density fields.
+    static inline const field<double>::definition<mesh<D>, is::cells>
+      q_ext_plus_rho_out, q_ext_minus_rho_out;
+
+    // Debug/output helpers for extrapolation geometry diagnostics.
+    static inline const field<double>::definition<mesh<D>, is::cells> dp_x_out,
+      dp_y_out, dp_z_out, dp_mag_out;
+    static inline const field<double>::definition<mesh<D>, is::cells>
+      normal_x_out, normal_y_out, normal_z_out, normal_mag_out;
+
     static inline const field<
       hard::tasks::util::extp_q<D>>::template definition<mesh<D>, is::cells>
       q_scalar_tmp; // scratch state used to check extrapolation convergence

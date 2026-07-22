@@ -20,16 +20,16 @@ config = {
 
     "t0": 0.0,
     "tf": 6,
-    "max_steps": 10000,
+    "max_steps": 30000,
 
     "cfl": 0.8,
     "max_dt": 0.01,
 
-    "log_frequency": 100,
+    "log_frequency": 50,
     "output_frequency": 100,
 
-    "levels": [9, 9, 7],
-    "lowest_level": 6,
+    "levels": [9, 8, 8],
+    "lowest_level": 8,
 
     "coords": [
         [0.0, 0.0, 0.0],
@@ -45,7 +45,9 @@ config = {
         "zhigh": "reflecting",
     },
 
-    "extp_steps": 200, # used for extrapolation
+    "extp_steps": 20, # used for extrapolation
 
     "output_method": "vti",
+
+    "debug_extrapolation_t0": False,
 }

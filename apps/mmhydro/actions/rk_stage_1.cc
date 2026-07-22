@@ -99,6 +99,7 @@ hydro_RK_advance_1(control_policy<state, D> & cp) {
   flecsi::scheduler & sc = cp.scheduler();
 
   advance_rk_stage_1(s, sc);
+  tasks::extrapolation::debug_output_extrapolation_t0<D>(cp);
 }
 
 template<std::size_t D>
