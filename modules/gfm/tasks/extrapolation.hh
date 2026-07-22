@@ -1,11 +1,13 @@
 #ifndef HARD_MODULES_GFM_TASKS_EXTRAPOLATION_HH
 #define HARD_MODULES_GFM_TASKS_EXTRAPOLATION_HH
 
+#include "../../../apps/mmhydro/options.hh"
 #include "../../common/tasks/utils.hh"
 #include "../../hydro/state.hh"
 #include "../../spec/labels.hh"
 #include "../../spec/limiter.hh"
 #include "../../spec/mesh.hh"
+#include "../../spec/tasks/io.hh"
 #include "../state.hh"
 #include "utils.hh"
 #include <algorithm>
@@ -16,10 +18,114 @@
 
 namespace hard::tasks::extrapolation {
 
+template<std::size_t D, typename CP>
+inline void
+debug_output_extrapolation_t0(CP & cp) {
+
+  auto & s = cp.state();
+  flecsi::scheduler & sc = cp.scheduler();
+
+  spec::config_py config(opt::config.value());
+
+  const bool debug_output = config.contains("debug_extrapolation_t0") &&
+                            config["debug_extrapolation_t0"].cast<bool>();
+
+  if(!debug_output) {
+    return;
+  }
+
+  static bool wrote_debug_output = false;
+  if(wrote_debug_output) {
+    return;
+  }
+
+  flog(info) << "Writing debug extrapolation output at initial stage.\n";
+
+  sc.execute<tasks::util::material_to_scalar_output<D>>(
+    flecsi::exec::on, *s.m, s.ls.material(*s.m), s.ls.material_out(*s.m));
+
+  sc.execute<tasks::util::extp_rho_to_scalar_output<D>>(flecsi::exec::on,
+    *s.m,
+    s.extp.q_ext_plus(*s.m),
+    s.extp.q_ext_plus_rho_out(*s.m));
+
+  sc.execute<tasks::util::extp_rho_to_scalar_output<D>>(flecsi::exec::on,
+    *s.m,
+    s.extp.q_ext_minus(*s.m),
+    s.extp.q_ext_minus_rho_out(*s.m));
+
+  sc.execute<tasks::util::vec_components_to_scalar_output<D>>(flecsi::exec::on,
+    *s.m,
+    s.extp.dp(*s.m),
+    s.extp.dp_x_out(*s.m),
+    s.extp.dp_y_out(*s.m),
+    s.extp.dp_z_out(*s.m),
+    s.extp.dp_mag_out(*s.m));
+
+  sc.execute<tasks::util::vec_components_to_scalar_output<D>>(flecsi::exec::on,
+    *s.m,
+    s.extp.normal(*s.m),
+    s.extp.normal_x_out(*s.m),
+    s.extp.normal_y_out(*s.m),
+    s.extp.normal_z_out(*s.m),
+    s.extp.normal_mag_out(*s.m));
+
+  auto lm = flecsi::data::launch::make(sc, *s.m);
+
+  auto scalar_v = std::vector{std::make_tuple(s.cons.hydro.mass_density(lm),
+                                std::string{"density_before_gfm"}),
+    std::make_tuple(
+      s.extp.q_ext_plus_rho_out(lm), std::string{"q_ext_plus_density"}),
+    std::make_tuple(
+      s.extp.q_ext_minus_rho_out(lm), std::string{"q_ext_minus_density"}),
+    std::make_tuple(s.extp.extp_psi(lm), std::string{"extp_psi"}),
+    std::make_tuple(s.ls.psi(lm), std::string{"ls_psi"}),
+    std::make_tuple(s.ls.material_out(lm), std::string{"material_id"}),
+    std::make_tuple(s.extp.dp_x_out(lm), std::string{"extp_dp_x"}),
+    std::make_tuple(s.extp.dp_y_out(lm), std::string{"extp_dp_y"}),
+    std::make_tuple(s.extp.dp_z_out(lm), std::string{"extp_dp_z"}),
+    std::make_tuple(s.extp.dp_mag_out(lm), std::string{"extp_dp_mag"}),
+    std::make_tuple(s.extp.normal_x_out(lm), std::string{"extp_normal_x"}),
+    std::make_tuple(s.extp.normal_y_out(lm), std::string{"extp_normal_y"}),
+    std::make_tuple(s.extp.normal_z_out(lm), std::string{"extp_normal_z"}),
+    std::make_tuple(s.extp.normal_mag_out(lm), std::string{"extp_normal_mag"})};
+
+  if(s.output_method == spec::om::vti) {
+    flecsi::execute<tasks::io::vtk<D>, flecsi::mpi>(flecsi::exec::on,
+      spec::io::name{"debug_extrapolation_t0"},
+      s.t(*s.gt),
+      lm,
+      scalar_v,
+      std::vector{
+        std::make_tuple(s.prim.velocity(lm), std::string{"velocity"})});
+  }
+#ifdef HARD_ENABLE_HDF5
+  else if(s.output_method == spec::om::xdmf) {
+    flecsi::execute<tasks::io::xdmf<D>, flecsi::mpi>(flecsi::exec::on,
+      spec::io::name{"debug_extrapolation_t0"},
+      s.t(*s.gt),
+      lm,
+      scalar_v,
+      std::vector{
+        std::make_tuple(s.prim.velocity(lm), std::string{"velocity"})});
+  }
+#endif
+  else {
+    flecsi::execute<tasks::io::csv<D>, flecsi::mpi>(flecsi::exec::on,
+      spec::io::name{"debug_extrapolation_t0"},
+      s.t(*s.gt),
+      lm,
+      scalar_v,
+      std::vector{
+        std::make_tuple(s.prim.velocity(lm), std::string{"velocity"})});
+  }
+
+  wrote_debug_output = true;
+}
+
 // Default pseudo-time controls for the Aslam (JCP 2003) constant
 // extrapolation routine used to fill ghost states.
-inline constexpr double extp_cfl =
-  1.0; // the problem is linear but the limited derivative is not
+inline constexpr double extp_cfl = 1.0; // we have a linear PDE problem
 inline constexpr double extp_residual_tol =
   1.0; // bound on max SciPy-scaled update in band
 
@@ -49,84 +155,221 @@ limiter_minmod(double r) {
   return (r < 1.0) ? r : 1.0;
 }
 
+FLECSI_INLINE_TARGET double
+minmod_pair(double a, double b) noexcept {
+  if(a * b <= 0.0)
+    return 0.0;
+  return (std::abs(a) < std::abs(b)) ? a : b;
+}
+
+FLECSI_INLINE_TARGET double
+mc_pair(double a, double b) noexcept {
+  if(a * b <= 0.0)
+    return 0.0;
+
+  const double s = (a > 0.0) ? 1.0 : -1.0;
+  const double aa = std::abs(a);
+  const double ab = std::abs(b);
+  const double ac = 0.5 * std::abs(a + b);
+
+  return s * std::min({2.0 * aa, 2.0 * ab, ac});
+}
+
 template<std::size_t sten_size = 5>
 FLECSI_INLINE_TARGET double
 gradu_1d(const std::array<double, sten_size> & u, double a, double dx) {
   static_assert(
     sten_size == 3 || sten_size == 5, "Stencil size must be 3 or 5");
 
-  // TODO : Check limiter in HARD is functional as expected
-  // using limiter = spec::limiters::genminmod;
-
+  // Active implementation: MUSCL/TVD 2nd-order upwind operator with minmod.
+  // For a > 0, use left/upwind reconstructed states at i +/- 1/2.
+  // For a < 0, use right/upwind reconstructed states at i +/- 1/2.
+  // If only a 3-point stencil is available, degrade to 1st-order upwind.
   if constexpr(sten_size == 3) {
-    // Plain 1st order upwind using u = {u_{i-1}, u_i, u_{i+1}}
     if(a >= 0.0)
       return (u[1] - u[0]) / dx;
     else
       return (u[2] - u[1]) / dx;
   }
   else {
-    // 5-point version: u = {u_{i-2}, u_{i-1}, u_i, u_{i+1}, u_{i+2}}
-    constexpr double eps = 1e-14;
-
+    // u = {u_{i-2}, u_{i-1}, u_i, u_{i+1}, u_{i+2}}
     if(a >= 0.0) {
-      // 1st order upwind derivative at i
-      const double d1 = (u[2] - u[1]) / dx;
+      const double slope_i = minmod_pair(u[2] - u[1], u[3] - u[2]);
+      const double slope_im1 = minmod_pair(u[1] - u[0], u[2] - u[1]);
 
-      // 2nd order upwind (biased left) derivative at i
-      const double d2 = (3.0 * u[2] - 4.0 * u[1] + u[0]) / (2.0 * dx);
+      const double u_iphalf_minus = u[2] + 0.5 * slope_i;
+      const double u_imhalf_minus = u[1] + 0.5 * slope_im1;
 
-      // TODO : delete below once confirmed. Old way to get gradient
-      //        that might have indexing issue
-      //  Ratio of consecutive gradients (upwind-side / downwind-side)
-      // const double du_up = (u[2] - u[1]);
-      // const double du_down = (u[3] - u[2]);
-      // const double r = du_down / (du_up + ((du_up >= 0.0) ? eps : -eps));
-
-      // Slopes used by the left-biased stencil:
-      //
-      //   u[i-2] ---- u[i-1] ---- u[i]
-      //     u[0]        u[1]      u[2]
-      //
-      // The second-order correction is proportional to
-      //   (u[i] - u[i-1]) - (u[i-1] - u[i-2]).
-      //
-      // Therefore the limiter ratio should compare the previous upwind
-      // slope to the current upwind slope.
-      const double du_curr = u[2] - u[1]; // u_i     - u_{i-1}
-      const double du_prev = u[1] - u[0]; // u_{i-1} - u_{i-2}
-      const double r = du_prev / (du_curr + ((du_curr >= 0.0) ? eps : -eps));
-
-      const double limiter = limiter_minmod(r);
-      return d1 + limiter * (d2 - d1);
+      return (u_iphalf_minus - u_imhalf_minus) / dx;
     }
     else {
-      // a < 0 : upwind is to the right
-      const double d1 = (u[3] - u[2]) / dx;
+      const double slope_i = minmod_pair(u[3] - u[2], u[2] - u[1]);
+      const double slope_ip1 = minmod_pair(u[4] - u[3], u[3] - u[2]);
 
-      // 2nd order upwind (biased right) derivative at i
-      const double d2 = (-3.0 * u[2] + 4.0 * u[3] - u[4]) / (2.0 * dx);
+      const double u_iphalf_plus = u[3] - 0.5 * slope_ip1;
+      const double u_imhalf_plus = u[2] - 0.5 * slope_i;
 
-      // const double du_up = (u[3] - u[2]);
-      // const double du_down = (u[2] - u[1]);
-      // const double r = du_down / (du_up + ((du_up >= 0.0) ? eps : -eps));
-
-      // Slopes used by the right-biased stencil:
-      //
-      //   u[i] ---- u[i+1] ---- u[i+2]
-      //   u[2]       u[3]        u[4]
-      //
-      // The second-order correction is proportional to
-      //   (u[i+1] - u[i]) - (u[i+2] - u[i+1]).
-      //
-      // Therefore compare the next upwind slope to the current upwind slope.
-      const double du_curr = u[3] - u[2]; // u_{i+1} - u_i
-      const double du_next = u[4] - u[3]; // u_{i+2} - u_{i+1}
-      const double r = du_next / (du_curr + ((du_curr >= 0.0) ? eps : -eps));
-
-      const double limiter = limiter_minmod(r);
-      return d1 + limiter * (d2 - d1);
+      return (u_iphalf_plus - u_imhalf_plus) / dx;
     }
+  }
+}
+
+FLECSI_INLINE_TARGET bool
+same_extp_side(double a, double b) noexcept {
+  return (a <= 0.0 && b <= 0.0) || (a > 0.0 && b > 0.0);
+}
+
+template<typename Fetch>
+FLECSI_INLINE_TARGET double
+side_aware_derivative_1d(Fetch fetch, double center_psi, double dx) noexcept {
+  const double pim2 = fetch(-2);
+  const double pim1 = fetch(-1);
+  const double pi = fetch(0);
+  const double pip1 = fetch(1);
+  const double pip2 = fetch(2);
+
+  const bool left1_ok = same_extp_side(center_psi, pim1);
+  const bool right1_ok = same_extp_side(center_psi, pip1);
+  const bool left2_ok = same_extp_side(center_psi, pim2);
+  const bool right2_ok = same_extp_side(center_psi, pip2);
+
+  if(left1_ok && right1_ok) {
+    return (pip1 - pim1) / (2.0 * dx);
+  }
+  if(left1_ok && left2_ok) {
+    return (3.0 * pi - 4.0 * pim1 + pim2) / (2.0 * dx);
+  }
+  if(right1_ok && right2_ok) {
+    return (-3.0 * pi + 4.0 * pip1 - pip2) / (2.0 * dx);
+  }
+  if(left1_ok) {
+    return (pi - pim1) / dx;
+  }
+  if(right1_ok) {
+    return (pip1 - pi) / dx;
+  }
+  return 0.0;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET double
+normal_step_size(const vec<D> & n,
+  double dx,
+  double dy = 1.0,
+  double dz = 1.0) noexcept {
+  constexpr double eps = 1e-14;
+  double denom = std::abs(n.x()) / dx;
+  if constexpr(D >= 2)
+    denom += std::abs(n.y()) / dy;
+  if constexpr(D >= 3)
+    denom += std::abs(n.z()) / dz;
+  return 1.0 / std::max(denom, eps);
+}
+
+template<typename ScalarAccessor>
+FLECSI_INLINE_TARGET double
+sample_scalar_bilinear(const ScalarAccessor & q,
+  double xi,
+  double yj) noexcept {
+  const int i0 = static_cast<int>(std::floor(xi));
+  const int j0 = static_cast<int>(std::floor(yj));
+  const double tx = xi - static_cast<double>(i0);
+  const double ty = yj - static_cast<double>(j0);
+
+  const double q00 = q(i0, j0);
+  const double q10 = q(i0 + 1, j0);
+  const double q01 = q(i0, j0 + 1);
+  const double q11 = q(i0 + 1, j0 + 1);
+
+  return (1.0 - tx) * (1.0 - ty) * q00 + tx * (1.0 - ty) * q10 +
+         (1.0 - tx) * ty * q01 + tx * ty * q11;
+}
+
+template<typename ScalarAccessor>
+FLECSI_INLINE_TARGET double
+sample_scalar_trilinear(const ScalarAccessor & q,
+  double xi,
+  double yj,
+  double zk) noexcept {
+  const int i0 = static_cast<int>(std::floor(xi));
+  const int j0 = static_cast<int>(std::floor(yj));
+  const int k0 = static_cast<int>(std::floor(zk));
+  const double tx = xi - static_cast<double>(i0);
+  const double ty = yj - static_cast<double>(j0);
+  const double tz = zk - static_cast<double>(k0);
+
+  const double c000 = q(i0, j0, k0);
+  const double c100 = q(i0 + 1, j0, k0);
+  const double c010 = q(i0, j0 + 1, k0);
+  const double c110 = q(i0 + 1, j0 + 1, k0);
+  const double c001 = q(i0, j0, k0 + 1);
+  const double c101 = q(i0 + 1, j0, k0 + 1);
+  const double c011 = q(i0, j0 + 1, k0 + 1);
+  const double c111 = q(i0 + 1, j0 + 1, k0 + 1);
+
+  const double c00 = (1.0 - tx) * c000 + tx * c100;
+  const double c10 = (1.0 - tx) * c010 + tx * c110;
+  const double c01 = (1.0 - tx) * c001 + tx * c101;
+  const double c11 = (1.0 - tx) * c011 + tx * c111;
+
+  const double c0 = (1.0 - ty) * c00 + ty * c10;
+  const double c1 = (1.0 - ty) * c01 + ty * c11;
+
+  return (1.0 - tz) * c0 + tz * c1;
+}
+
+template<std::size_t D, typename QAccessor>
+FLECSI_INLINE_TARGET double
+sample_extp_q_component(const QAccessor & q,
+  std::size_t qid,
+  double xi,
+  double yj,
+  double zk = 0.0) noexcept {
+  if constexpr(D == 1) {
+    const int i0 = static_cast<int>(std::round(xi));
+    return q(i0)[qid];
+  }
+  else if constexpr(D == 2) {
+    return sample_scalar_bilinear(
+      [&](int ii, int jj) { return q(ii, jj)[qid]; }, xi, yj);
+  }
+  else {
+    return sample_scalar_trilinear(
+      [&](int ii, int jj, int kk) { return q(ii, jj, kk)[qid]; }, xi, yj, zk);
+  }
+}
+
+template<std::size_t D, typename QAccessor>
+FLECSI_INLINE_TARGET double
+directional_derivative_normal_1st(const QAccessor & q,
+  std::size_t qid,
+  const vec<D> & n,
+  int i,
+  int j,
+  int k,
+  double dx,
+  double dy = 1.0,
+  double dz = 1.0) noexcept {
+  const double ds = normal_step_size<D>(n, dx, dy, dz);
+  const double xim1 = static_cast<double>(i) - ds * n.x() / dx;
+
+  if constexpr(D == 1) {
+    const double q0 = q(i)[qid];
+    const double qm1 = sample_extp_q_component<D>(q, qid, xim1, 0.0, 0.0);
+    return (q0 - qm1) / ds;
+  }
+  else if constexpr(D == 2) {
+    const double q0 = q(i, j)[qid];
+    const double yjm1 = static_cast<double>(j) - ds * n.y() / dy;
+    const double qm1 = sample_extp_q_component<D>(q, qid, xim1, yjm1, 0.0);
+    return (q0 - qm1) / ds;
+  }
+  else {
+    const double q0 = q(i, j, k)[qid];
+    const double yjm1 = static_cast<double>(j) - ds * n.y() / dy;
+    const double zkm1 = static_cast<double>(k) - ds * n.z() / dz;
+    const double qm1 = sample_extp_q_component<D>(q, qid, xim1, yjm1, zkm1);
+    return (q0 - qm1) / ds;
   }
 }
 
@@ -159,7 +402,11 @@ gradient_centered(flecsi::exec::accelerator s,
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
-      dp(i).x() = (psi(i + 1) - psi(i - 1)) * div_d[0];
+      const double psi_c = psi(i);
+      dp(i).x() =
+        side_aware_derivative_1d([&](int off) { return psi(i + off); },
+          psi_c,
+          m.template delta<ax::x>());
     };
   }
   else if constexpr(D == 2) {
@@ -169,8 +416,15 @@ gradient_centered(flecsi::exec::accelerator s,
 
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
-      dp(i, j).x() = (psi(i + 1, j) - psi(i - 1, j)) * div_d[0];
-      dp(i, j).y() = (psi(i, j + 1) - psi(i, j - 1)) * div_d[1];
+      const double psi_c = psi(i, j);
+      dp(i, j).x() =
+        side_aware_derivative_1d([&](int off) { return psi(i + off, j); },
+          psi_c,
+          m.template delta<ax::x>());
+      dp(i, j).y() =
+        side_aware_derivative_1d([&](int off) { return psi(i, j + off); },
+          psi_c,
+          m.template delta<ax::y>());
     };
   }
   else /* D == 3 */ {
@@ -181,9 +435,19 @@ gradient_centered(flecsi::exec::accelerator s,
 
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
-      dp(i, j, k).x() = (psi(i + 1, j, k) - psi(i - 1, j, k)) * div_d[0];
-      dp(i, j, k).y() = (psi(i, j + 1, k) - psi(i, j - 1, k)) * div_d[1];
-      dp(i, j, k).z() = (psi(i, j, k + 1) - psi(i, j, k - 1)) * div_d[2];
+      const double psi_c = psi(i, j, k);
+      dp(i, j, k).x() =
+        side_aware_derivative_1d([&](int off) { return psi(i + off, j, k); },
+          psi_c,
+          m.template delta<ax::x>());
+      dp(i, j, k).y() =
+        side_aware_derivative_1d([&](int off) { return psi(i, j + off, k); },
+          psi_c,
+          m.template delta<ax::y>());
+      dp(i, j, k).z() =
+        side_aware_derivative_1d([&](int off) { return psi(i, j, k + off); },
+          psi_c,
+          m.template delta<ax::z>());
     };
   }
 }
@@ -276,6 +540,7 @@ unit_normals(flecsi::exec::accelerator s,
   }
 }
 
+// NOTE: not used
 // Compute directional derivative q_n = n · \nabla q, in the known region (psi
 // <= 0) This corresponds to Eq. (4) in Aslam's paper.
 template<std::size_t D>
@@ -365,6 +630,7 @@ compute_directional_derivative(flecsi::exec::accelerator s,
   }
 }
 
+// NOTE: not used
 // Compute second directional derivative q_nn = n̂ · ∇(n̂ · ∇q) in the known
 // region (ψ ≤ 0) This corresponds to Eq. (7) in Aslam's paper: u_nn = n̂ · ∇(n̂ ·
 // ∇u)
@@ -594,12 +860,10 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         rhs(i) = 0.0;
       }
       else {
-        const double ax = normal(i).x();
+        const auto n = normal(i);
         for(std::size_t qid = 0; qid < q(i).size(); ++qid) {
-          // clang-format off
-          rhs(i)[qid] = -ax * gradu_1d<5>({q(i - 2)[qid], q(i - 1)[qid],
-              q(i)[qid], q(i + 1)[qid], q(i + 2)[qid]}, ax, dx);
-          // clang-format on
+          rhs(i)[qid] =
+            -directional_derivative_normal_1st<D>(q, qid, n, i, 0, 0, dx);
         }
       }
     };
@@ -617,17 +881,10 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         rhs(i, j) = 0.0;
       }
       else {
-        const double ax = normal(i, j).x();
-        const double ay = normal(i, j).y();
-
+        const auto n = normal(i, j);
         for(std::size_t qid = 0; qid < q(i, j).size(); ++qid) {
-          // clang-format off
-          rhs(i, j)[qid] = -(
-            ax * gradu_1d<5>({q(i - 2, j)[qid], q(i - 1, j)[qid], q(i, j)[qid],
-                               q(i + 1, j)[qid], q(i + 2, j)[qid]}, ax, dx) +
-            ay * gradu_1d<5>({q(i, j - 2)[qid], q(i, j - 1)[qid], q(i, j)[qid],
-                               q(i, j + 1)[qid], q(i, j + 2)[qid]}, ay, dy));
-          // clang-format on
+          rhs(i, j)[qid] =
+            -directional_derivative_normal_1st<D>(q, qid, n, i, j, 0, dx, dy);
         }
       }
     };
@@ -647,29 +904,17 @@ rhs_constant_extrapolation_minmod(flecsi::exec::accelerator s,
         rhs(i, j, k) = 0.0;
       }
       else {
-        const double ax = normal(i, j, k).x();
-        const double ay = normal(i, j, k).y();
-        const double az = normal(i, j, k).z();
-
+        const auto n = normal(i, j, k);
         for(std::size_t qid = 0; qid < q(i, j, k).size(); ++qid) {
-          // clang-format off
-          rhs(i, j, k)[qid] = -(
-            ax * gradu_1d<5>({q(i - 2, j, k)[qid], q(i - 1, j, k)[qid],
-                               q(i, j, k)[qid], q(i + 1, j, k)[qid],
-                               q(i + 2, j, k)[qid]}, ax, dx) +
-            ay * gradu_1d<5>({q(i, j - 2, k)[qid], q(i, j - 1, k)[qid],
-                               q(i, j, k)[qid], q(i, j + 1, k)[qid],
-                               q(i, j + 2, k)[qid]}, ay, dy) +
-            az * gradu_1d<5>({q(i, j, k - 2)[qid], q(i, j, k - 1)[qid],
-                               q(i, j, k)[qid], q(i, j, k + 1)[qid],
-                               q(i, j, k + 2)[qid]}, az, dz));
-          // clang-format on
+          rhs(i, j, k)[qid] = -directional_derivative_normal_1st<D>(
+            q, qid, n, i, j, k, dx, dy, dz);
         }
       }
     };
   }
 }
 
+// NOTE: not used
 // -------------------------------------------------------------------
 // RHS: R(u_n) = - H(psi + \delta x) * (n · grad(u_n))  in psi>0, else 0.
 // grad(u_n) computed with 2nd-order upwind + MinMod for each component.
@@ -809,6 +1054,7 @@ rhs_linear_extrapolation_minmod(flecsi::exec::accelerator s,
   }
 }
 
+// NOTE: not used
 // RHS for quadratic extrapolation of u_n: ∂u_n/∂t = -H(ψ)(n̂ · ∇u_n - u_nn)
 // Corresponds to Eq. (9) in Aslam's paper
 template<std::size_t D>
@@ -1257,6 +1503,7 @@ void
 advance_q_rk2_s1_cfl(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> extp_psi_a,
+  typename field<vec<D>>::template accessor<ro, na> normal_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     q_known_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> q0_a,
@@ -1264,11 +1511,30 @@ advance_q_rk2_s1_cfl(flecsi::exec::accelerator s,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na> q1_a,
   double extp_cfl) noexcept {
 
-  const double dtau = extp_cfl * min_mesh_spacing<D>(m);
+  const double dx = m.template delta<ax::x>();
+  double dy = 1.0;
+  double dz = 1.0;
+  if constexpr(D >= 2)
+    dy = m.template delta<ax::y>();
+  if constexpr(D >= 3)
+    dz = m.template delta<ax::z>();
+  constexpr double eps = 1e-14;
 
   s.executor().forall(i, flecsi::util::iota_view({}, q_known_a.span().size())) {
-    q1_a(i) = (extp_psi_a(i) <= 0.0) ? q_known_a(i)
-                                     : q_stage1<D>(q0_a(i), rhs_a(i), dtau);
+    if(extp_psi_a(i) <= 0.0) {
+      q1_a(i) = q_known_a(i);
+    }
+    else {
+      const auto n = normal_a(i);
+      double denom = std::abs(n.x()) / dx;
+      if constexpr(D >= 2)
+        denom += std::abs(n.y()) / dy;
+      if constexpr(D >= 3)
+        denom += std::abs(n.z()) / dz;
+
+      const double dtau = extp_cfl / std::max(denom, eps);
+      q1_a(i) = q_stage1<D>(q0_a(i), rhs_a(i), dtau);
+    }
   };
 }
 
@@ -1282,6 +1548,7 @@ void
 advance_q_rk2_s2_cfl(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<ro, na> extp_psi_a,
+  typename field<vec<D>>::template accessor<ro, na> normal_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     q_known_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na> q0_a,
@@ -1290,12 +1557,30 @@ advance_q_rk2_s2_cfl(flecsi::exec::accelerator s,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> q1_a,
   double extp_cfl) noexcept {
 
-  const double dtau = extp_cfl * min_mesh_spacing<D>(m);
+  const double dx = m.template delta<ax::x>();
+  double dy = 1.0;
+  double dz = 1.0;
+  if constexpr(D >= 2)
+    dy = m.template delta<ax::y>();
+  if constexpr(D >= 3)
+    dz = m.template delta<ax::z>();
+  constexpr double eps = 1e-14;
 
-  s.executor().forall(i, flecsi::util::iota_view({}, q0_a.span().size())) {
-    q0_a(i) = (extp_psi_a(i) <= 0.0)
-                ? q_known_a(i)
-                : q_stage2<D>(q0_a(i), q1_a(i), rhs1_a(i), dtau);
+  s.executor().forall(i, flecsi::util::iota_view({}, q_known_a.span().size())) {
+    if(extp_psi_a(i) <= 0.0) {
+      q0_a(i) = q_known_a(i);
+    }
+    else {
+      const auto n = normal_a(i);
+      double denom = std::abs(n.x()) / dx;
+      if constexpr(D >= 2)
+        denom += std::abs(n.y()) / dy;
+      if constexpr(D >= 3)
+        denom += std::abs(n.z()) / dz;
+
+      const double dtau = extp_cfl / std::max(denom, eps);
+      q0_a(i) = q_stage2<D>(q0_a(i), q1_a(i), rhs1_a(i), dtau);
+    }
   };
 }
 

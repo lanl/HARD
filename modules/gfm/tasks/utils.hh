@@ -89,7 +89,7 @@ template<std::size_t D>
 void
 material_to_scalar_output(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<int>::template accessor<ro, ro> material_a,
+  typename field<int>::template accessor<ro, na> material_a,
   typename field<double>::template accessor<wo, na> material_out_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
@@ -128,48 +128,20 @@ material_to_scalar_output(flecsi::exec::accelerator s,
 template<std::size_t D>
 void
 extp_rho_to_scalar_output(flecsi::exec::accelerator s,
-  typename mesh<D>::template accessor<ro> m,
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, ro> q_a,
+  typename mesh<D>::template accessor<ro>,
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> q_a,
   typename field<double>::template accessor<wo, na> rho_out_a) noexcept {
 
-  using common::tasks::utils::get_mdiota_policy;
-
-  auto q = m.template mdcolex<is::cells>(q_a);
-  auto rho_out = m.template mdcolex<is::cells>(rho_out_a);
-
-  if constexpr(D == 1) {
-    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
-      rho_out(i) = q(i).rho();
-    };
-  }
-  else if constexpr(D == 2) {
-    auto pol = get_mdiota_policy(rho_out,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(ji, pol) {
-      auto [j, i] = ji;
-      rho_out(i, j) = q(i, j).rho();
-    };
-  }
-  else {
-    auto pol = get_mdiota_policy(rho_out,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
-
-    s.executor().forall(kji, pol) {
-      auto [k, j, i] = kji;
-      rho_out(i, j, k) = q(i, j, k).rho();
-    };
-  }
+  s.executor().forall(i, flecsi::util::iota_view({}, q_a.span().size())) {
+    rho_out_a(i) = q_a(i).rho();
+  };
 }
 
 template<std::size_t D>
 void
 vec_components_to_scalar_output(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
-  typename field<vec<D>>::template accessor<ro, ro> v_a,
+  typename field<vec<D>>::template accessor<ro, na> v_a,
   typename field<double>::template accessor<wo, na> x_out_a,
   typename field<double>::template accessor<wo, na> y_out_a,
   typename field<double>::template accessor<wo, na> z_out_a,
