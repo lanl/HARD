@@ -128,6 +128,24 @@ initialize(control_policy<state, D> & cp) {
         s.extp.q_ext_minus(*s.m),
         s.eos_mm);
   }
+  else if(problem == "oblique_sod_mm") {
+    annotation_rguard<tasks::initial_data::oblique_shock_mm_task>(),
+      execute<tasks::initial_data::oblique_shock_mm<
+        tasks::initial_data::shock_tubes::oblique_sod_mm,
+        D>>(flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.ls.material(*s.m),
+        s.ls.frozen_material(*s.m),
+        s.ls.psi(*s.m),
+        s.extp.q_scalar_tmp(*s.m),
+        s.extp.q_scalar_known(*s.m),
+        s.extp.q_ext_plus(*s.m),
+        s.extp.q_ext_minus(*s.m),
+        s.eos_mm);
+  }
   else if(problem == "shyue_shock") {
     annotation_rguard<tasks::initial_data::shock_mm_task>(),
       execute<tasks::initial_data::

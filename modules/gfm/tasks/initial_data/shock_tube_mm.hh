@@ -25,6 +25,30 @@ struct sod_mm {
   static constexpr int mR = 1;
 }; // struct sod_mm
 
+struct oblique_sod_mm {
+  static constexpr double rL = 1.0;
+  static constexpr double uL = 0.0;
+  static constexpr double pL = 1.0;
+
+  static constexpr double rR = 0.125;
+  static constexpr double uR = 0.0;
+  static constexpr double pR = 0.1;
+
+  // A point on the initial oblique discontinuity.
+  static constexpr double x0 = 0.5;
+  static constexpr double y0 = 0.5;
+  static constexpr double z0 = 0.5;
+
+  // Initialization angles for the interface normal.
+  // phi   : azimuthal angle in the x-y plane.
+  // theta : elevation angle out of the x-y plane (used in 3D).
+  static constexpr double phi = M_PI / 10.0; // 2D and 3D
+  static constexpr double theta = M_PI / 10.0; // only 3D
+
+  static constexpr int mL = 0;
+  static constexpr int mR = 1;
+}; // struct oblique_sod_mm
+
 struct shyue_shock {
   static constexpr double rL = 1.7;
   static constexpr double uL = 0.0;

@@ -3,6 +3,8 @@
 
 #include "shock_tube_mm.hh"
 
+#include "oblique_sod_mm.hh"
+
 #include "kelvin_helm_mm.hh"
 
 #include "rayleigh_taylor_mm.hh"
