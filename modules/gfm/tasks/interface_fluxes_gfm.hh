@@ -491,8 +491,8 @@ process_single_face(std::size_t face_axis,
   double cR,
   const vec<Dim> & ruR,
   double reR,
-  const vec<Dim> & n_left_face,
-  const vec<Dim> & n_right_face,
+  const vec<Dim> & n_left_cell,
+  const vec<Dim> & n_right_cell,
   const hard::tasks::util::extp_q<Dim> & qGhostR_L,
   const hard::tasks::util::extp_q<Dim> & qGhostL_R,
   const EOS & eos_disp,
@@ -526,22 +526,19 @@ process_single_face(std::size_t face_axis,
 
   if constexpr(use_original_gfm) {
 
-    const vec<Dim> n_if =
-      normalize_interface_normal(n_left_face, n_right_face, face_axis);
-
-    // Left-owner one-phase problem:
+     // Left-owner one-phase problem:
     //   real left material mL
     //   ghost right state with material mL EOS
     //   ghost p/u copied from real right state
     ghostR_L = compute_original_gfm_ghost_state<Dim>(
-      eos_disp, mL, face_axis, n_if, qGhostR_L, uR, pR, "ghostR_L");
+      eos_disp, mL, face_axis, n_right_cell, qGhostR_L, uR, pR, "ghostR_L");
 
     // Right-owner one-phase problem:
     //   ghost left state with material mR EOS
     //   real right material mR
     //   ghost p/u copied from real left state
     ghostL_R = compute_original_gfm_ghost_state<Dim>(
-      eos_disp, mR, face_axis, n_if, qGhostL_R, uL, pL, "ghostL_R");
+      eos_disp, mR, face_axis, n_left_cell, qGhostL_R, uL, pL, "ghostL_R");
   }
   else {
     ghostR_L = compute_riemann_gfm_ghost_state<Dim>(eos_disp,
@@ -549,7 +546,7 @@ process_single_face(std::size_t face_axis,
       mL,
       mR,
       face_axis,
-      n_right_face,
+      n_right_cell,
       qGhostR_L,
       rhoR,
       uR,
@@ -562,8 +559,7 @@ process_single_face(std::size_t face_axis,
       mR,
       mL,
       face_axis,
-      -1.0 * n_left_face,
-
+      n_left_cell,
       qGhostL_R,
       rhoL,
       uL,
@@ -571,6 +567,43 @@ process_single_face(std::size_t face_axis,
       pL,
       cL,
       "ghostL_R");
+
+#ifdef DEBUG
+    // Compute original GFM ghost states for comparison
+    ghost_state<Dim> ghostR_L_orig = compute_original_gfm_ghost_state<Dim>(
+      eos_disp, mL, face_axis, n_right_cell, qGhostR_L, uR, pR, "ghostR_L_orig");
+
+    ghost_state<Dim> ghostL_R_orig = compute_original_gfm_ghost_state<Dim>(
+      eos_disp, mR, face_axis, n_left_cell, qGhostL_R, uL, pL, "ghostL_R_orig");
+
+    // Print comparison
+    std::printf("\n=== GFM Ghost State Comparison (face_axis=%zu) ===\n", face_axis);
+    std::printf("n_left_cell  = [%e, %e, %e]\n",
+                n_left_cell[0], Dim > 1 ? n_left_cell[1] : 0.0, Dim > 2 ? n_left_cell[2] : 0.0);
+    std::printf("n_right_cell = [%e, %e, %e]\n",
+                n_right_cell[0], Dim > 1 ? n_right_cell[1] : 0.0, Dim > 2 ? n_right_cell[2] : 0.0);
+    std::printf("Real Left  (mL=%d): rho=%e u=%e p=%e c=%e\n",
+                mL, rhoL, uL[face_axis], pL, cL);
+    std::printf("Real Right (mR=%d): rho=%e u=%e p=%e c=%e\n",
+                mR, rhoR, uR[face_axis], pR, cR);
+
+    std::printf("\nRiemann GFM ghostR_L (left-owner ghost right):\n");
+    std::printf("  rho=%e u=%e p=%e c=%e e=%e\n",
+                ghostR_L.rho, ghostR_L.u[face_axis], ghostR_L.p, ghostR_L.c, ghostR_L.e);
+    std::printf("Original GFM ghostR_L:\n");
+    std::printf("  rho=%e u=%e p=%e c=%e e=%e\n",
+                ghostR_L_orig.rho, ghostR_L_orig.u[face_axis], ghostR_L_orig.p,
+                ghostR_L_orig.c, ghostR_L_orig.e);
+
+    std::printf("\nRiemann GFM ghostL_R (right-owner ghost left):\n");
+    std::printf("  rho=%e u=%e p=%e c=%e e=%e\n",
+                ghostL_R.rho, ghostL_R.u[face_axis], ghostL_R.p, ghostL_R.c, ghostL_R.e);
+    std::printf("Original GFM ghostL_R:\n");
+    std::printf("  rho=%e u=%e p=%e c=%e e=%e\n",
+                ghostL_R_orig.rho, ghostL_R_orig.u[face_axis], ghostL_R_orig.p,
+                ghostL_R_orig.c, ghostL_R_orig.e);
+    std::printf("==========================================\n\n");
+#endif
   }
 
   // clang-format off
@@ -634,7 +667,7 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
 
   // GFM related
   typename field<int>::accessor<ro, ro> material_a,
-  typename faces_vec<Dim>::template accessor<ro, ro> normal_f_a,
+  typename field<vec<Dim>>::template accessor<ro, ro> normal_cell_a,
   typename field<hard::tasks::util::extp_q<Dim>>::template accessor<ro, ro>
     q_ext_plus_a,
   typename field<hard::tasks::util::extp_q<Dim>>::template accessor<ro, ro>
@@ -660,9 +693,9 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
   auto [c_right, c_left] = faces<Dim>::mdcolex(m, cFace_a);
   auto [ru_right, ru_left] = faces_vec<Dim>::mdcolex(m, ru_face_a);
   auto [re_right, re_left] = faces<Dim>::mdcolex(m, re_face_a);
-  auto [n_right, n_left] = faces_vec<Dim>::mdcolex(m, normal_f_a);
 
   auto mat_id = m.template mdcolex<is::cells>(material_a);
+  auto normal_cell = m.template mdcolex<is::cells>(normal_cell_a);
   auto q_ext_plus = m.template mdcolex<is::cells>(q_ext_plus_a);
   auto q_ext_minus = m.template mdcolex<is::cells>(q_ext_minus_a);
 
@@ -815,8 +848,8 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
         cR,
         ru_right(i),
         reR,
-        n_right(i - 1),     // left cell plus/right face
-        n_left(i),          // right cell minus/left face
+        normal_cell(i - 1),
+        normal_cell(i),      // right cell normal
         qGhostR_L,
         qGhostL_R,
         eos_disp,
@@ -938,8 +971,8 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
         cR,
         ru_right(i, j),
         reR,
-        n_right(iL, jL),     // left cell plus face
-        n_left(i, j),        // right cell minus face
+        normal_cell(iL, jL),
+        normal_cell(i, j),
         qGhostR_L,
         qGhostL_R,
         eos_disp,
@@ -1078,8 +1111,8 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
         cR,
         ru_right(i, j, k),
         reR,
-        n_right(iL, jL, kL),   // left cell plus face
-        n_left(i, j, k),       // right cell minus face
+        normal_cell(iL, jL, kL),
+        normal_cell(i, j, k),     // right cell normal
         qGhostR_L,
         qGhostL_R,
         eos_disp,

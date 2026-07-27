@@ -296,7 +296,7 @@ advance_rk_stage_axis_loop(state<D> & s,
         s.f.hydro.re_face(s.m),
         // GFM
         s.ls.material(*s.m),
-        s.extp.f.normal_face(s.m),
+        s.extp.normal(*s.m),
         s.extp.q_ext_plus(*s.m),
         s.extp.q_ext_minus(*s.m),
         // Riemann Fluxes
