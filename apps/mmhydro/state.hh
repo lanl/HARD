@@ -46,7 +46,7 @@ struct state : hydro::state<D>, gfm::state<D> {
   std::size_t min_highest_level;
   std::size_t max_num_levels;
 
-  int extp_steps = 35;
+  int extp_steps = 20; // default value following literature
 
   spec::om::output_method output_method = spec::om::csv;
 
