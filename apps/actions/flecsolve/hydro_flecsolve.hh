@@ -153,8 +153,20 @@ struct rhs_params {
 };
 
 template<std::size_t D>
-struct rhs_operator : flecsolve::op::base<rhs_params<D>> {
-  using base = flecsolve::op::base<rhs_params<D>>;
+struct rhs_operator : flecsolve::op::base<rhs_params<D>,
+                        flecsolve::multivariable_t<var::mass_density,
+                          var::momentum_density,
+                          var::total_energy_density>,
+                        flecsolve::multivariable_t<var::mass_density,
+                          var::momentum_density,
+                          var::total_energy_density>> {
+  using base = flecsolve::op::base<rhs_params<D>,
+    flecsolve::multivariable_t<var::mass_density,
+      var::momentum_density,
+      var::total_energy_density>,
+    flecsolve::multivariable_t<var::mass_density,
+      var::momentum_density,
+      var::total_energy_density>>;
   using base::params;
 
   explicit rhs_operator(rhs_params<D> p) : base(p) {}

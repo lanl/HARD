@@ -27,11 +27,12 @@ struct hydro_flecsolve_advance {
     }
 
     /*
-      IMPORTANT:
+      NOTE:
 
-      Do not wrap this in flecsolve::op::core. The core wrapper tries to
-      subset anonymous FleCSolve variables, but our hydro multivector uses
-      hard::actions::flecsolve_hydro::var.
+      The rhs_operator now explicitly specifies its input/output variables
+      (mass_density, momentum_density, total_energy_density), so wrapping
+      with flecsolve::op::core should work correctly. However, we use the
+      operator directly here without wrapping.
     */
     actions::flecsolve_hydro::rhs_params<D> params{&s, &sc};
     actions::flecsolve_hydro::rhs_operator<D> F(params);
