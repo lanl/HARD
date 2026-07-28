@@ -569,27 +569,24 @@ eos_pair_equivalent_at_cell(const eosType & eos_disp,
   const vec<D> & mom,
   double rhoE) noexcept {
 
+  const bool valid_old =
+    old_mat >= 0 && static_cast<std::size_t>(old_mat) < eos_disp.size();
+
+  const bool valid_new =
+    new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_disp.size();
+
+  assert(valid_old);
+  assert(valid_new);
+  assert(std::isfinite(rho) && rho > 0.0);
+
   if(old_mat == new_mat) {
     return true;
-  }
-
-  if(old_mat < 0 || new_mat < 0 ||
-     static_cast<std::size_t>(old_mat) >= eos_disp.size() ||
-     static_cast<std::size_t>(new_mat) >= eos_disp.size()) {
-    return false;
-  }
-
-  if(!std::isfinite(rho) || rho <= 0.0) {
-    return false;
   }
 
   const vec<D> u = (1.0 / rho) * mom;
   const double e = (rhoE - 0.5 * rho * u.norm_squared()) / rho;
 
-  if(!std::isfinite(e) || e <= 0.0) {
-    return false;
-  }
-
+  assert(std::isfinite(e) || e <= 0.0);
   const auto & eos_old = eos_disp[static_cast<std::size_t>(old_mat)];
   const auto & eos_new = eos_disp[static_cast<std::size_t>(new_mat)];
 
