@@ -770,9 +770,9 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
       const auto mR = static_cast<std::size_t>(mR_raw);
 
       const hard::tasks::util::extp_q<Dim> & qGhostR_L =
-        (mL == 0) ? q_ext_plus(i) : q_ext_minus(i - 1);
+        (mL == 0) ? q_ext_plus(i) : q_ext_minus(i);
       const hard::tasks::util::extp_q<Dim> & qGhostL_R =
-        (mR == 0) ? q_ext_plus(i) : q_ext_minus(i - 1);
+        (mR == 0) ? q_ext_plus(i - 1) : q_ext_minus(i - 1);
 
       const bool qext_valid_for_cut =
         valid_material_pair && valid_owner_extp_for_gfm<Dim>(qGhostR_L) &&
@@ -904,9 +904,9 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
       const auto mR = static_cast<std::size_t>(mR_raw);
 
       const hard::tasks::util::extp_q<Dim> & qGhostR_L =
-        (mL == 0) ? q_ext_plus(i, j) : q_ext_minus(iL, jL);
+        (mL == 0) ? q_ext_plus(i, j) : q_ext_minus(i, j);
       const hard::tasks::util::extp_q<Dim> & qGhostL_R =
-        (mR == 0) ? q_ext_plus(i, j) : q_ext_minus(iL, jL);
+        (mR == 0) ? q_ext_plus(iL, jL) : q_ext_minus(iL, jL);
 
       const bool qext_valid_for_cut =
         valid_material_pair && valid_owner_extp_for_gfm<Dim>(qGhostR_L) &&
@@ -1044,9 +1044,9 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
       const auto mR = static_cast<std::size_t>(mR_raw);
 
       const hard::tasks::util::extp_q<Dim> & qGhostR_L =
-        (mL == 0) ? q_ext_plus(i, j, k) : q_ext_minus(iL, jL, kL);
+        (mL == 0) ? q_ext_plus(i, j, k) : q_ext_minus(i, j, k);
       const hard::tasks::util::extp_q<Dim> & qGhostL_R =
-        (mR == 0) ? q_ext_plus(i, j, k) : q_ext_minus(iL, jL, kL);
+        (mR == 0) ? q_ext_plus(iL, jL, kL) : q_ext_minus(iL, jL, kL);
 
       const bool qext_valid_for_cut =
         valid_material_pair && valid_owner_extp_for_gfm<Dim>(qGhostR_L) &&
