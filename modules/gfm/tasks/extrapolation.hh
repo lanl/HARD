@@ -1474,7 +1474,7 @@ advance_q_rk2_s2(flecsi::exec::accelerator s,
     q_a, // base q^n
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     rhs_a, // rhs at base or stage
-  typename field<hard::tasks::util::extp_q<D>>::template accessor<rw, na>
+  typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na>
     q_stage_a, // q^(1) (only used in STEP=2)
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_new_a, // q^(1) for STEP=1, q^(n+1) for STEP=2
