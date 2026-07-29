@@ -86,6 +86,15 @@ ssprk3_step(
 #endif
       s.dt(*s.gt));
 
+#ifndef IN_TEST
+  // Update psi1 ghost cells before Stage 2 uses it with 7-point stencil
+  // TODO: Ensure that IN_TEST updates the ghost cells between rhs_upwind and
+  // advance_psi
+  annotation_rguard<tasks::apply_boundaries_scalar_task>(),
+    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(
+      flecsi::exec::on, *s.m, s.icst.bmap(*s.gt), std::vector{s.ls.psi1(*s.m)});
+#endif
+
 #ifdef IN_TEST
   sc.execute<tests::level_set_utils::copy_test_vel_stage<D, 2>>(
     flecsi::exec::on,
@@ -128,6 +137,15 @@ ssprk3_step(
 #endif
       s.dt(*s.gt));
 
+#ifndef IN_TEST
+  // Update psi2 ghost cells before Stage 3 uses it with 7-point stencil
+  // TODO: Ensure that IN_TEST updates the ghost cells between rhs_upwind and
+  // advance_psi
+  annotation_rguard<tasks::apply_boundaries_scalar_task>(),
+    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(
+      flecsi::exec::on, *s.m, s.icst.bmap(*s.gt), std::vector{s.ls.psi2(*s.m)});
+#endif
+
 #ifdef IN_TEST
   sc.execute<tests::level_set_utils::copy_test_vel_stage<D, 3>>(
     flecsi::exec::on,
@@ -169,6 +187,15 @@ ssprk3_step(
       s.ls.psi3(*s.m), // psi3
 #endif
       s.dt(*s.gt));
+
+#ifndef IN_TEST
+  // Update psi3 ghost cells before determine_psi uses it
+  // TODO: Ensure that IN_TEST updates the ghost cells between rhs_upwind and
+  // advance_psi
+  annotation_rguard<tasks::apply_boundaries_scalar_task>(),
+    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(
+      flecsi::exec::on, *s.m, s.icst.bmap(*s.gt), std::vector{s.ls.psi3(*s.m)});
+#endif
 
   // Algorithm 1 post-process: (psi3, L^n) -> (psi^{n+1}, L^{n+1})
   annotation_rguard<determine_psi_task>(),
