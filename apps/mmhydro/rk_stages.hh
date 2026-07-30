@@ -148,8 +148,8 @@ extrapolate_all_materials(state<D> & s,
     for(int n = 0; n < s.extp_steps; ++n) {
       // Stage 1: rhs(q^n) -> rhs
       annotation_rguard<
-        tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
-        sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
+        tasks::extrapolation::rhs_constant_extrapolation_task>(),
+        sc.execute<tasks::extrapolation::rhs_constant_extrapolation<D>>(
           flecsi::exec::on,
           *s.m,
           q_ext_out,
@@ -172,8 +172,8 @@ extrapolate_all_materials(state<D> & s,
 
       // Stage 2: rhs(q1) -> rhs1
       annotation_rguard<
-        tasks::extrapolation::rhs_constant_extrapolation_minmod_task>(),
-        sc.execute<tasks::extrapolation::rhs_constant_extrapolation_minmod<D>>(
+        tasks::extrapolation::rhs_constant_extrapolation_task>(),
+        sc.execute<tasks::extrapolation::rhs_constant_extrapolation<D>>(
           flecsi::exec::on,
           *s.m,
           s.extp.q_scalar1(*s.m),
