@@ -136,122 +136,117 @@ same_extp_side(double a, double b) noexcept {
 
 template<typename Fetch>
 FLECSI_INLINE_TARGET double
-side_aware_derivative_1d(Fetch fetch, double center_psi, double dx) noexcept {
-  const double pim2 = fetch(-2);
+side_aware_derivative_1d(Fetch fetch, double pi, double dx) noexcept {
+  // Always need immediate neighbors to decide what stencil is possible.
   const double pim1 = fetch(-1);
-  const double pi = fetch(0);
   const double pip1 = fetch(1);
-  const double pip2 = fetch(2);
-
-  const bool left1_ok = same_extp_side(center_psi, pim1);
-  const bool right1_ok = same_extp_side(center_psi, pip1);
-  const bool left2_ok = same_extp_side(center_psi, pim2);
-  const bool right2_ok = same_extp_side(center_psi, pip2);
-
+  const bool left1_ok = same_extp_side(pi, pim1);
+  const bool right1_ok = same_extp_side(pi, pip1);
+  // Best case: centered second-order derivative.
+  // Only two neighbor reads.
   if(left1_ok && right1_ok) {
     return (pip1 - pim1) / (2.0 * dx);
   }
-  if(left1_ok && left2_ok) {
-    return (3.0 * pi - 4.0 * pim1 + pim2) / (2.0 * dx);
-  }
-  if(right1_ok && right2_ok) {
-    return (-3.0 * pi + 4.0 * pip1 - pip2) / (2.0 * dx);
-  }
+  // Left-biased derivative.
+  // Only now read i-2.
   if(left1_ok) {
+    const double pim2 = fetch(-2);
+    const bool left2_ok = same_extp_side(pi, pim2);
+    if(left2_ok) {
+      return (3.0 * pi - 4.0 * pim1 + pim2) / (2.0 * dx);
+    }
     return (pi - pim1) / dx;
   }
+  // Right-biased derivative.
+  // Only now read i+2.
   if(right1_ok) {
+    const double pip2 = fetch(2);
+    const bool right2_ok = same_extp_side(pi, pip2);
+    if(right2_ok) {
+      return (-3.0 * pi + 4.0 * pip1 - pip2) / (2.0 * dx);
+    }
     return (pip1 - pi) / dx;
   }
+  // No same-side neighbor available.
   return 0.0;
 }
 
-template<std::size_t D>
-FLECSI_INLINE_TARGET double
-normal_step_size(const vec<D> & n,
-  double dx,
-  double dy = 1.0,
-  double dz = 1.0) noexcept {
-  constexpr double eps = 1e-14;
-  double denom = std::abs(n.x()) / dx;
-  if constexpr(D >= 2)
-    denom += std::abs(n.y()) / dy;
-  if constexpr(D >= 3)
-    denom += std::abs(n.z()) / dz;
-  return 1.0 / std::max(denom, eps);
+struct linear_axis_stencil {
+  double w[2];
+  int idx[2];
+  int n;
+};
+
+FLECSI_INLINE_TARGET linear_axis_stencil
+make_linear_axis_stencil(double x) noexcept {
+  constexpr double eps = 1.0e-14;
+  linear_axis_stencil s{};
+  const int i0 = static_cast<int>(std::floor(x));
+  const double t = x - static_cast<double>(i0);
+  // x is effectively exactly i0.
+  if(t <= eps) {
+    s.idx[0] = i0;
+    s.w[0] = 1.0;
+    s.n = 1;
+    return s;
+  }
+  // x is effectively exactly i0 + 1.
+  if((1.0 - t) <= eps) {
+    s.idx[0] = i0 + 1;
+    s.w[0] = 1.0;
+    s.n = 1;
+    return s;
+  }
+  // General case: two nonzero linear weights.
+  s.idx[0] = i0;
+  s.idx[1] = i0 + 1;
+  s.w[0] = 1.0 - t;
+  s.w[1] = t;
+  s.n = 2;
+  return s;
 }
 
 template<typename ScalarAccessor>
 FLECSI_INLINE_TARGET double
-sample_scalar_bilinear(const ScalarAccessor & q,
+sample_bilinear_nonzero(const ScalarAccessor & q,
   double xi,
   double yj) noexcept {
-  const int i0 = static_cast<int>(std::floor(xi));
-  const int j0 = static_cast<int>(std::floor(yj));
-  const double tx = xi - static_cast<double>(i0);
-  const double ty = yj - static_cast<double>(j0);
-
-  const double q00 = q(i0, j0);
-  const double q10 = q(i0 + 1, j0);
-  const double q01 = q(i0, j0 + 1);
-  const double q11 = q(i0 + 1, j0 + 1);
-
-  return (1.0 - tx) * (1.0 - ty) * q00 + tx * (1.0 - ty) * q10 +
-         (1.0 - tx) * ty * q01 + tx * ty * q11;
+  const auto xs = make_linear_axis_stencil(xi);
+  const auto ys = make_linear_axis_stencil(yj);
+  double value = 0.0;
+#pragma unroll 2
+  for(int b = 0; b < ys.n; ++b) {
+    for(int a = 0; a < xs.n; ++a) {
+      const double w = xs.w[a] * ys.w[b];
+      // w is nonzero by construction.
+      value += w * q(xs.idx[a], ys.idx[b]);
+    }
+  }
+  return value;
 }
 
 template<typename ScalarAccessor>
 FLECSI_INLINE_TARGET double
-sample_scalar_trilinear(const ScalarAccessor & q,
+sample_trilinear_nonzero(const ScalarAccessor & q,
   double xi,
   double yj,
   double zk) noexcept {
-  const int i0 = static_cast<int>(std::floor(xi));
-  const int j0 = static_cast<int>(std::floor(yj));
-  const int k0 = static_cast<int>(std::floor(zk));
-  const double tx = xi - static_cast<double>(i0);
-  const double ty = yj - static_cast<double>(j0);
-  const double tz = zk - static_cast<double>(k0);
-
-  const double c000 = q(i0, j0, k0);
-  const double c100 = q(i0 + 1, j0, k0);
-  const double c010 = q(i0, j0 + 1, k0);
-  const double c110 = q(i0 + 1, j0 + 1, k0);
-  const double c001 = q(i0, j0, k0 + 1);
-  const double c101 = q(i0 + 1, j0, k0 + 1);
-  const double c011 = q(i0, j0 + 1, k0 + 1);
-  const double c111 = q(i0 + 1, j0 + 1, k0 + 1);
-
-  const double c00 = (1.0 - tx) * c000 + tx * c100;
-  const double c10 = (1.0 - tx) * c010 + tx * c110;
-  const double c01 = (1.0 - tx) * c001 + tx * c101;
-  const double c11 = (1.0 - tx) * c011 + tx * c111;
-
-  const double c0 = (1.0 - ty) * c00 + ty * c10;
-  const double c1 = (1.0 - ty) * c01 + ty * c11;
-
-  return (1.0 - tz) * c0 + tz * c1;
-}
-
-template<std::size_t D, typename QAccessor>
-FLECSI_INLINE_TARGET double
-sample_extp_q_component(const QAccessor & q,
-  std::size_t qid,
-  double xi,
-  double yj,
-  double zk = 0.0) noexcept {
-  if constexpr(D == 1) {
-    const int i0 = static_cast<int>(std::round(xi));
-    return q(i0)[qid];
+  const auto xs = make_linear_axis_stencil(xi);
+  const auto ys = make_linear_axis_stencil(yj);
+  const auto zs = make_linear_axis_stencil(zk);
+  double value = 0.0;
+#pragma unroll 2
+  for(int c = 0; c < zs.n; ++c) {
+#pragma unroll 2
+    for(int b = 0; b < ys.n; ++b) {
+      for(int a = 0; a < xs.n; ++a) {
+        const double w = xs.w[a] * ys.w[b] * zs.w[c];
+        // w is nonzero by construction.
+        value += w * q(xs.idx[a], ys.idx[b], zs.idx[c]);
+      }
+    }
   }
-  else if constexpr(D == 2) {
-    return sample_scalar_bilinear(
-      [&](int ii, int jj) { return q(ii, jj)[qid]; }, xi, yj);
-  }
-  else {
-    return sample_scalar_trilinear(
-      [&](int ii, int jj, int kk) { return q(ii, jj, kk)[qid]; }, xi, yj, zk);
-  }
+  return value;
 }
 
 template<std::size_t D, typename QAccessor>
@@ -265,26 +260,55 @@ directional_derivative_normal_1st(const QAccessor & q,
   double dx,
   double dy = 1.0,
   double dz = 1.0) noexcept {
-  const double ds = normal_step_size<D>(n, dx, dy, dz);
-  const double xim1 = static_cast<double>(i) - ds * n.x() / dx;
+  constexpr double eps = 1.0e-14;
+  const double ax = n.x() / dx;
+  double inv_ds = std::abs(ax);
+  double ay = 0.0;
+  double az = 0.0;
+  if constexpr(D >= 2) {
+    ay = n.y() / dy;
+    inv_ds += std::abs(ay);
+  }
+  if constexpr(D >= 3) {
+    az = n.z() / dz;
+    inv_ds += std::abs(az);
+  }
+  if(inv_ds <= eps) {
+    return 0.0;
+  }
+
+  const double ds = 1.0 / inv_ds;
+  const double xi = static_cast<double>(i) - ds * ax;
 
   if constexpr(D == 1) {
     const double q0 = q(i)[qid];
-    const double qm1 = sample_extp_q_component<D>(q, qid, xim1, 0.0, 0.0);
-    return (q0 - qm1) / ds;
+    const auto xs = make_linear_axis_stencil(xi);
+    double qm1 = 0.0;
+    for(int a = 0; a < xs.n; ++a) {
+      const int ii = xs.idx[a];
+      const double val = (ii == i) ? q0 : q(ii)[qid];
+      qm1 += xs.w[a] * val;
+    }
+    return (q0 - qm1) * inv_ds;
   }
   else if constexpr(D == 2) {
     const double q0 = q(i, j)[qid];
-    const double yjm1 = static_cast<double>(j) - ds * n.y() / dy;
-    const double qm1 = sample_extp_q_component<D>(q, qid, xim1, yjm1, 0.0);
-    return (q0 - qm1) / ds;
+    const double yj = static_cast<double>(j) - ds * ay;
+    const auto fetch = [&](int ii, int jj) {
+      return (ii == i && jj == j) ? q0 : q(ii, jj)[qid];
+    };
+    const double qm1 = sample_bilinear_nonzero(fetch, xi, yj);
+    return (q0 - qm1) * inv_ds;
   }
   else {
     const double q0 = q(i, j, k)[qid];
-    const double yjm1 = static_cast<double>(j) - ds * n.y() / dy;
-    const double zkm1 = static_cast<double>(k) - ds * n.z() / dz;
-    const double qm1 = sample_extp_q_component<D>(q, qid, xim1, yjm1, zkm1);
-    return (q0 - qm1) / ds;
+    const double yj = static_cast<double>(j) - ds * ay;
+    const double zk = static_cast<double>(k) - ds * az;
+    const auto fetch = [&](int ii, int jj, int kk) {
+      return (ii == i && jj == j && kk == k) ? q0 : q(ii, jj, kk)[qid];
+    };
+    const double qm1 = sample_trilinear_nonzero(fetch, xi, yj, zk);
+    return (q0 - qm1) * inv_ds;
   }
 }
 
@@ -305,16 +329,6 @@ gradient_centered(flecsi::exec::accelerator s,
 
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto dp = m.template mdcolex<is::cells>(dp_a);
-
-  // Compute deltas for each dimension
-  std::array<double, D> div_d;
-  if constexpr(D >= 1)
-    div_d[0] = 1.0 / (2.0 * m.template delta<ax::x>());
-  if constexpr(D >= 2)
-    div_d[1] = 1.0 / (2.0 * m.template delta<ax::y>());
-  if constexpr(D >= 3)
-    div_d[2] = 1.0 / (2.0 * m.template delta<ax::z>());
-
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const double psi_c = psi(i);
