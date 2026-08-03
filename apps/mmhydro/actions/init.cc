@@ -378,24 +378,6 @@ initialize(control_policy<state, D> & cp) {
     }
 #endif
   }
-
-  /*--------------------------------------------------------------------------*
-    Initialize debug output fields.
-    *--------------------------------------------------------------------------*/
-
-  annotation_rguard<tasks::init::initialize_debug_output_fields_task>(),
-    execute<tasks::init::initialize_debug_output_fields<D>>(flecsi::exec::on,
-      s.extp.q_ext_plus_rho_out(*s.m),
-      s.extp.q_ext_minus_rho_out(*s.m),
-      s.extp.dp_x_out(*s.m),
-      s.extp.dp_y_out(*s.m),
-      s.extp.dp_z_out(*s.m),
-      s.extp.dp_mag_out(*s.m),
-      s.extp.normal_x_out(*s.m),
-      s.extp.normal_y_out(*s.m),
-      s.extp.normal_z_out(*s.m),
-      s.extp.normal_mag_out(*s.m));
-
   /*--------------------------------------------------------------------------*
     Initialize time advance.
     *--------------------------------------------------------------------------*/
