@@ -894,9 +894,9 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
       extp_psi(i) = (material(i) == source_material) ? -std::abs(ls_psi(i))
                                                      : std::abs(ls_psi(i));
 
-      q_a(i).rho() = mass_density_a(i);
-      q_a(i).ru() = momentum_density_a(i);
-      q_a(i).re() = total_energy_density_a(i);
+      q(i).rho() = mass_density(i);
+      q(i).ru() = momentum_density(i);
+      q(i).re() = total_energy_density(i);
       q_known(i) = q(i);
     };
   }
