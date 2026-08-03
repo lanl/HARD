@@ -21,6 +21,40 @@ void inline initialize_gravity_force(flecsi::exec::cpu,
   std::fill(gf.begin(), gf.end(), vec<D>{0.0});
 } // initialize_gravity_force
 
+struct initialize_debug_output_fields_task : annotation_task_region {
+  inline static const std::string name{"initialize_debug_output_fields"};
+};
+
+template<std::size_t D>
+void inline initialize_debug_output_fields(flecsi::exec::cpu,
+  typename field<double>::template accessor<wo, wo> q_ext_plus_rho_out_a,
+  typename field<double>::template accessor<wo, wo> q_ext_minus_rho_out_a,
+  typename field<double>::template accessor<wo, wo> dp_x_out_a,
+  typename field<double>::template accessor<wo, wo> dp_y_out_a,
+  typename field<double>::template accessor<wo, wo> dp_z_out_a,
+  typename field<double>::template accessor<wo, wo> dp_mag_out_a,
+  typename field<double>::template accessor<wo, wo> normal_x_out_a,
+  typename field<double>::template accessor<wo, wo> normal_y_out_a,
+  typename field<double>::template accessor<wo, wo> normal_z_out_a,
+  typename field<double>::template accessor<wo, wo> normal_mag_out_a) noexcept {
+
+  std::fill(q_ext_plus_rho_out_a.span().begin(),
+    q_ext_plus_rho_out_a.span().end(),
+    0.0);
+  std::fill(q_ext_minus_rho_out_a.span().begin(),
+    q_ext_minus_rho_out_a.span().end(),
+    0.0);
+  std::fill(dp_x_out_a.span().begin(), dp_x_out_a.span().end(), 0.0);
+  std::fill(dp_y_out_a.span().begin(), dp_y_out_a.span().end(), 0.0);
+  std::fill(dp_z_out_a.span().begin(), dp_z_out_a.span().end(), 0.0);
+  std::fill(dp_mag_out_a.span().begin(), dp_mag_out_a.span().end(), 0.0);
+  std::fill(normal_x_out_a.span().begin(), normal_x_out_a.span().end(), 0.0);
+  std::fill(normal_y_out_a.span().begin(), normal_y_out_a.span().end(), 0.0);
+  std::fill(normal_z_out_a.span().begin(), normal_z_out_a.span().end(), 0.0);
+  std::fill(
+    normal_mag_out_a.span().begin(), normal_mag_out_a.span().end(), 0.0);
+} // initialize_debug_output_fields
+
 struct initialize_gravity_acc_task : annotation_task_region {
   inline static const std::string name{"initialize_gravity_acc"};
 };

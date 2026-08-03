@@ -380,26 +380,21 @@ gradient_centered(flecsi::exec::accelerator s,
     };
   }
 }
-
-struct unit_normals_task : annotation_task_region {
-  inline static const std::string name{"unit_normals"};
+struct unit_cell_normals_task : annotation_task_region {
+  inline static const std::string name{"unit_cell_normals"};
 };
-
 // Unit normal computation: n = \nabla psi / |\nabla psi|
 template<std::size_t D>
 void
-unit_normals(flecsi::exec::accelerator s,
+unit_cell_normals(flecsi::exec::accelerator s,
   typename mesh<D>::template accessor<ro> m,
   typename field<vec<D>>::template accessor<ro, ro> dp_a,
-  typename field<vec<D>>::template accessor<wo, na> normal_a,
-  typename faces_vec<D>::template accessor<wo, na> normal_f_a,
-  std::size_t face_axis) noexcept {
+  typename field<vec<D>>::template accessor<wo, na> normal_a) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
   auto dp = m.template mdcolex<is::cells>(dp_a);
   auto normal = m.template mdcolex<is::cells>(normal_a);
-  auto [n_right, n_left] = faces_vec<D>::mdcolex(m, normal_f_a);
 
   constexpr double eps = 1e-12;
 
@@ -415,11 +410,6 @@ unit_normals(flecsi::exec::accelerator s,
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
       normal(i) = dp(i) / (dp(i).norm() + eps);
-
-      // Right face of cell i: x_{i+1/2}
-      n_right(i) = normalize(0.5 * (dp(i) + dp(i + 1)));
-      // Left face of cell i: x_{i-1/2}
-      n_left(i) = normalize(0.5 * (dp(i - 1) + dp(i)));
     };
   }
   else if constexpr(D == 2) {
@@ -430,17 +420,6 @@ unit_normals(flecsi::exec::accelerator s,
     s.executor().forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       normal(i, j) = dp(i, j) / (dp(i, j).norm() + eps);
-
-      if(face_axis == 0) {
-        // x faces: i +/- 1/2
-        n_right(i, j) = normalize(0.5 * (dp(i, j) + dp(i + 1, j)));
-        n_left(i, j) = normalize(0.5 * (dp(i - 1, j) + dp(i, j)));
-      }
-      else {
-        // y faces: j +/- 1/2
-        n_right(i, j) = normalize(0.5 * (dp(i, j) + dp(i, j + 1)));
-        n_left(i, j) = normalize(0.5 * (dp(i, j - 1) + dp(i, j)));
-      }
     };
   }
   else /* D == 3 */ {
@@ -452,23 +431,9 @@ unit_normals(flecsi::exec::accelerator s,
     s.executor().forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       normal(i, j, k) = dp(i, j, k) / (dp(i, j, k).norm() + eps);
-
-      if(face_axis == 0) {
-        n_right(i, j, k) = normalize(0.5 * (dp(i, j, k) + dp(i + 1, j, k)));
-        n_left(i, j, k) = normalize(0.5 * (dp(i - 1, j, k) + dp(i, j, k)));
-      }
-      else if(face_axis == 1) {
-        n_right(i, j, k) = normalize(0.5 * (dp(i, j, k) + dp(i, j + 1, k)));
-        n_left(i, j, k) = normalize(0.5 * (dp(i, j - 1, k) + dp(i, j, k)));
-      }
-      else {
-        n_right(i, j, k) = normalize(0.5 * (dp(i, j, k) + dp(i, j, k + 1)));
-        n_left(i, j, k) = normalize(0.5 * (dp(i, j, k - 1) + dp(i, j, k)));
-      }
     };
   }
 }
-
 // -------------------------------------------------------------------
 // RHS: R(u) = - H(psi) * (n · grad(u))  in psi>0, else 0.
 // grad(u) computed with 1st-order upwind for each component.
@@ -719,7 +684,6 @@ void
 extp_interface_convergence(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro>,
   flecsi::future<double> max_scaled_update_f,
-  std::size_t axis,
   int source_material,
   int steps,
   double tol) noexcept {

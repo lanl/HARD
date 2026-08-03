@@ -106,9 +106,7 @@ recompute_sound_speed(state<D> & s, flecsi::scheduler & sc) {
 // The result is written into q_ext_out.
 template<std::size_t D>
 inline void
-extrapolate_all_materials(state<D> & s,
-  flecsi::scheduler & sc,
-  std::size_t axis) {
+extrapolate_all_materials(state<D> & s, flecsi::scheduler & sc) {
 
   // 1) Extrapolate every material into its own key.
   for(std::size_t mat = 0; mat < s.n_materials(); ++mat) {
@@ -136,13 +134,9 @@ extrapolate_all_materials(state<D> & s,
         flecsi::exec::on, *s.m, s.extp.extp_psi(*s.m), s.extp.dp(*s.m));
 
     // normal = dp/|dp| and normal faces
-    annotation_rguard<tasks::extrapolation::unit_normals_task>(),
-      sc.execute<tasks::extrapolation::unit_normals<D>>(flecsi::exec::on,
-        *s.m,
-        s.extp.dp(*s.m),
-        s.extp.normal(*s.m),
-        s.extp.f.normal_face(s.m),
-        axis);
+    annotation_rguard<tasks::extrapolation::unit_cell_normals_task>(),
+      sc.execute<tasks::extrapolation::unit_cell_normals<D>>(
+        flecsi::exec::on, *s.m, s.extp.dp(*s.m), s.extp.normal(*s.m));
 
     for(int n = 0; n < s.extp_steps; ++n) {
       // Stage 1: rhs(q^n) -> rhs
@@ -219,7 +213,6 @@ extrapolate_all_materials(state<D> & s,
         flecsi::exec::on,
         *s.m,
         max_scaled_update_band_f,
-        axis,
         mat,
         s.extp_steps,
         tasks::extrapolation::extp_residual_tol);
@@ -250,13 +243,6 @@ advance_rk_stage_axis_loop(state<D> & s,
       for(auto & v : v_t) {
         scalar_v.push_back(std::make_tuple(std::get<0>(v), std::get<2>(v)));
       }
-
-      /* Start extrapolation routine to fill ghost stage
-       * This is based on Aslam JCP 2003, constant extrapolation */
-
-      // Extrapolation for ghost fill
-      extrapolate_all_materials(s, sc, axis);
-      /* End of extrapolation*/
 
       // clang-format off
       annotation_rguard<tasks::hydro::reconstruct_primitives_task>(),
@@ -406,6 +392,13 @@ advance_rk_stage_common(state<D> & s,
   // Recompute sound speed from EOS in ghost cells (stage 1 only).
   if(do_sound_speed)
     recompute_sound_speed(s, sc);
+
+  /* Start extrapolation routine to fill ghost stage
+   * This is based on Aslam JCP 2003, constant extrapolation */
+
+  // Extrapolation for ghost fill
+  extrapolate_all_materials(s, sc);
+  /* End of extrapolation*/
 
   advance_rk_stage_axis_loop(s, sc, v_t, f);
 }
