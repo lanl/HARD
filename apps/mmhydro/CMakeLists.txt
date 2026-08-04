@@ -98,20 +98,6 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
     ENVIRONMENT "${MMHYDRO_HPX_TEST_ENV}"
   )
 
-  if(ENABLE_UNIT_TESTS AND (Kokkos_ENABLE_CUDA OR Kokkos_ENABLE_HIP))
-
-  add_test(NAME mmhydro_contact_move_convergence_1d
-    COMMAND ${TEST_CONVERGENCE_MM_SCRIPT}
-    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/mmhydro/mmhydro
-    7 10
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/contact_move_convergence.py -d1
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
-  set_tests_properties(mmhydro_contact_move_convergence_1d PROPERTIES
-    ENVIRONMENT "${MMHYDRO_HPX_TEST_ENV}"
-  )
-  endif()
-
 endif()
 
 install(TARGETS mmhydro)

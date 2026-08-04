@@ -349,8 +349,8 @@ advance_rk_stage_common(state<D> & s,
       s.prim.velocity(*s.m),
       s.src_t.hydro.gravity_force(*s.m),
       // time-derivatives
-      s.rk_dt1.momentum_energy_density()(*s.m),
-      s.rk_dt1.total_energy_density()(*s.m));
+      rk_dt.momentum_energy_density()(*s.m),
+      rk_dt.total_energy_density()(*s.m));
 
   {
     auto scalar_v = std::vector{std::make_tuple(rk_dt.mass_density()(*s.m),
@@ -371,7 +371,7 @@ advance_rk_stage_common(state<D> & s,
         scalar_v,
         std::vector{
           std::make_tuple(
-            s.rk_dt1.momentum_energy_density()(*s.m),
+            rk_dt.momentum_energy_density()(*s.m),
             s.cons.hydro.momentum_density(*s.m))});
     // clang-format on
   }
