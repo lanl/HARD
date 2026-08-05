@@ -71,7 +71,7 @@ advance_rk_stage_1(state<D> & s,
     s.prim.sound_speed(*s.m),
     s.eos);
 
-  using limiter = spec::limiters::weno5z;
+  using reconst = spec::reconstructors::weno5z;
 
   for(std::size_t axis = 0; axis < D; axis++) {
     {
@@ -86,17 +86,13 @@ advance_rk_stage_1(state<D> & s,
         scalar_v.push_back(std::make_tuple(std::get<0>(v), std::get<2>(v)));
       }
 
-      // clang-format off
-    sc.execute<tasks::hydro::reconstruct_primitives<D, limiter>>(
-      flecsi::exec::on,
-      axis,
-      *s.m,
-      scalar_v,
-      std::vector{
-        std::make_tuple(
-          s.prim.velocity(*s.m),
-          s.f.hydro.u_face(s.m))});
-      // clang-format on
+      sc.execute<tasks::hydro::reconstruct_primitives<D, reconst>>(
+        flecsi::exec::on,
+        axis,
+        *s.m,
+        scalar_v,
+        std::vector{
+          std::make_tuple(s.prim.velocity(*s.m), s.f.hydro.u_face(s.m))});
     }
 
     sc.execute<tasks::hydro::get_conserved<D>>(flecsi::exec::on,

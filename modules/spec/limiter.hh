@@ -4,34 +4,172 @@
 #include "utils.hh"
 #include <cmath>
 
-namespace spec::limiters {
+namespace spec::reconstructors {
 
 struct genminmod {
-  FLECSI_INLINE_TARGET static double limit(double qL, double qC, double qR) {
-    const double GMMLTheta{1.5};
-    const double sC{0.5 * (qR - qL)};
-    const double sL{GMMLTheta * (qC - qL)};
-    const double sR{GMMLTheta * (qR - qC)};
-    return (sL * sR < 0.0
+
+  template<typename A, typename T>
+  FLECSI_INLINE_TARGET static auto reconstruct(const T & i, const A & acc) {
+    return reconstruct(acc(i - 1), acc(i), acc(i + 1));
+  }
+
+  template<typename A, typename T>
+  FLECSI_INLINE_TARGET static auto
+  reconstruct(const int & x, const T & i, const T & j, const A & acc) {
+    if(x == 0)
+      return reconstruct(acc(i - 1, j), acc(i, j), acc(i + 1, j));
+    return reconstruct(acc(i, j - 1), acc(i, j), acc(i, j + 1));
+  }
+
+  template<typename A, typename T>
+  FLECSI_INLINE_TARGET static auto reconstruct(const int & x,
+    const T & i,
+    const T & j,
+    const T & k,
+    const A & acc) {
+    if(x == 0)
+      return reconstruct(acc(i - 1, j, k), acc(i, j, k), acc(i + 1, j, k));
+    if(x == 1)
+      return reconstruct(acc(i, j - 1, k), acc(i, j, k), acc(i, j + 1, k));
+    return reconstruct(acc(i, j, k - 1), acc(i, j, k), acc(i, j, k + 1));
+  }
+
+private:
+  template<typename T>
+  FLECSI_INLINE_TARGET static auto reconstruct(T u_minus, T u_0, T u_plus) {
+    const double theta{1.5};
+    const T s_0{0.5 * (u_plus - u_minus)};
+    const T s_m{theta * (u_0 - u_minus)};
+    const T s_p{theta * (u_plus - u_0)};
+    T head, tail;
+
+    if constexpr(std::is_same_v<T, double>) {
+      const double slope =
+        (s_m * s_p < 0.0 ? 0.0
+                         : (s_0 > 0.0 ? 1.0 : -1.0) *
+                             std::min(std::abs(s_0),
+                               std::min(std::abs(s_m), std::abs(s_p))));
+
+      head = u_0 - 0.5 * slope;
+      tail = u_0 + 0.5 * slope;
+    }
+    else {
+      for(int i = 0; i < T::Dim; ++i) {
+        const double slope =
+          (s_m[i] * s_p[i] < 0.0
               ? 0.0
-              : (sC > 0.0 ? 1.0 : -1.0) *
-                  std::min(std::abs(sC), std::min(std::abs(sL), std::abs(sR))));
-  } // operator()
+              : (s_0[i] > 0.0 ? 1.0 : -1.0) *
+                  std::min(std::abs(s_0[i]),
+                    std::min(std::abs(s_m[i]), std::abs(s_p[i]))));
+
+        head[i] = u_0[i] - 0.5 * slope;
+        tail[i] = u_0[i] + 0.5 * slope;
+      }
+    }
+
+    return std::make_tuple(head, tail);
+  }
 }; // genminmod
 
 struct minmod {
+
+  template<typename A, typename T>
+  FLECSI_INLINE_TARGET static auto reconstruct(const T & i, const A & acc) {
+    return reconstruct(acc(i - 1), acc(i), acc(i + 1));
+  }
+
+  template<typename A, typename T>
   FLECSI_INLINE_TARGET static auto
-  reconstruct(double u_minus, double u_0, double u_plus) {
-    const double a = u_plus - u_0;
-    const double b = u_0 - u_minus;
-    const double slope = 0.5 * (std::copysign(1.0, a) + std::copysign(1.0, b)) *
-                         std::min(std::abs(a), std::abs(b));
-    return std::make_tuple(u_0 - 0.5 * slope, u_0 + 0.5 * slope);
+  reconstruct(const int & x, const T & i, const T & j, const A & acc) {
+    if(x == 0)
+      return reconstruct(acc(i - 1, j), acc(i, j), acc(i + 1, j));
+    return reconstruct(acc(i, j - 1), acc(i, j), acc(i, j + 1));
+  }
+
+  template<typename A, typename T>
+  FLECSI_INLINE_TARGET static auto reconstruct(const int & x,
+    const T & i,
+    const T & j,
+    const T & k,
+    const A & acc) {
+    if(x == 0)
+      return reconstruct(acc(i - 1, j, k), acc(i, j, k), acc(i + 1, j, k));
+    if(x == 1)
+      return reconstruct(acc(i, j - 1, k), acc(i, j, k), acc(i, j + 1, k));
+    return reconstruct(acc(i, j, k - 1), acc(i, j, k), acc(i, j, k + 1));
+  }
+
+private:
+  template<typename T>
+  FLECSI_INLINE_TARGET static auto reconstruct(T u_minus, T u_0, T u_plus) {
+    const T s_m = u_0 - u_minus;
+    const T s_p = u_plus - u_0;
+    T head, tail;
+
+    if constexpr(std::is_same_v<T, double>) {
+      const double slope = 0.5 *
+                           (std::copysign(1.0, s_p) + std::copysign(1.0, s_m)) *
+                           std::min(std::abs(s_p), std::abs(s_m));
+      head = u_0 - 0.5 * slope;
+      tail = u_0 + 0.5 * slope;
+    }
+    else {
+      for(int i = 0; i < T::Dim; ++i) {
+        const double slope =
+          0.5 * (std::copysign(1.0, s_p[i]) + std::copysign(1.0, s_m[i])) *
+          std::min(std::abs(s_p[i]), std::abs(s_m[i]));
+        head[i] = u_0[i] - 0.5 * slope;
+        tail[i] = u_0[i] + 0.5 * slope;
+      }
+    }
+
+    return std::make_tuple(head, tail);
   }
 };
 
 struct ppm4 {
 
+  template<typename A, typename T>
+  FLECSI_INLINE_TARGET static auto reconstruct(const T & i, const A & acc) {
+    return reconstruct(acc(i - 2), acc(i - 1), acc(i), acc(i + 1), acc(i + 2));
+  }
+
+  template<typename A, typename T>
+  FLECSI_INLINE_TARGET static auto
+  reconstruct(const int & x, const T & i, const T & j, const A & acc) {
+    if(x == 0)
+      return reconstruct(
+        acc(i - 2, j), acc(i - 1, j), acc(i, j), acc(i + 1, j), acc(i + 2, j));
+    return reconstruct(
+      acc(i, j - 2), acc(i, j - 1), acc(i, j), acc(i, j + 1), acc(i, j + 2));
+  }
+
+  template<typename A, typename T>
+  FLECSI_INLINE_TARGET static auto reconstruct(const int & x,
+    const T & i,
+    const T & j,
+    const T & k,
+    const A & acc) {
+    if(x == 0)
+      return reconstruct(acc(i - 2, j, k),
+        acc(i - 1, j, k),
+        acc(i, j, k),
+        acc(i + 1, j, k),
+        acc(i + 2, j, k));
+    if(x == 1)
+      return reconstruct(acc(i, j - 2, k),
+        acc(i, j - 1, k),
+        acc(i, j, k),
+        acc(i, j + 1, k),
+        acc(i, j + 2, k));
+    return reconstruct(acc(i, j, k - 2),
+      acc(i, j, k - 1),
+      acc(i, j, k),
+      acc(i, j, k + 1),
+      acc(i, j, k + 2));
+  }
+
+private:
   template<typename T>
   FLECSI_INLINE_TARGET static auto
   reconstruct(T u_minus_2, T u_minus, T u_0, T u_plus, T u_plus_2) {
@@ -107,6 +245,47 @@ struct ppm4 {
 
 struct weno5z {
 
+  template<typename A, typename T>
+  FLECSI_INLINE_TARGET static auto reconstruct(const T & i, const A & acc) {
+    return reconstruct(acc(i - 2), acc(i - 1), acc(i), acc(i + 1), acc(i + 2));
+  }
+
+  template<typename A, typename T>
+  FLECSI_INLINE_TARGET static auto
+  reconstruct(const int & x, const T & i, const T & j, const A & acc) {
+    if(x == 0)
+      return reconstruct(
+        acc(i - 2, j), acc(i - 1, j), acc(i, j), acc(i + 1, j), acc(i + 2, j));
+    return reconstruct(
+      acc(i, j - 2), acc(i, j - 1), acc(i, j), acc(i, j + 1), acc(i, j + 2));
+  }
+
+  template<typename A, typename T>
+  FLECSI_INLINE_TARGET static auto reconstruct(const int & x,
+    const T & i,
+    const T & j,
+    const T & k,
+    const A & acc) {
+    if(x == 0)
+      return reconstruct(acc(i - 2, j, k),
+        acc(i - 1, j, k),
+        acc(i, j, k),
+        acc(i + 1, j, k),
+        acc(i + 2, j, k));
+    if(x == 1)
+      return reconstruct(acc(i, j - 2, k),
+        acc(i, j - 1, k),
+        acc(i, j, k),
+        acc(i, j + 1, k),
+        acc(i, j + 2, k));
+    return reconstruct(acc(i, j, k - 2),
+      acc(i, j, k - 1),
+      acc(i, j, k),
+      acc(i, j, k + 1),
+      acc(i, j, k + 2));
+  }
+
+private:
   template<typename T>
   FLECSI_INLINE_TARGET static auto
   reconstruct(T u_minus_2, T u_minus, T u_0, T u_plus, T u_plus_2) {
@@ -164,6 +343,6 @@ struct weno5z {
   }
 };
 
-} // namespace spec::limiters
+} // namespace spec::reconstructors
 
 #endif // SPEC_LIMITER_HH

@@ -2,52 +2,9 @@
 #define HARD_MODULE_HYDRO_RECONSTRUCT_HH
 
 #include "../modules/common/tasks/utils.hh"
+#include "types.hh"
 
 namespace hard::tasks::hydro {
-
-template<typename Limiter>
-struct stencil {
-  template<typename A, typename T>
-  FLECSI_INLINE_TARGET auto operator()(const T & i, const A & acc) {
-    return Limiter::reconstruct(
-      acc(i - 2), acc(i - 1), acc(i), acc(i + 1), acc(i + 2));
-  }
-
-  template<typename A, typename T>
-  FLECSI_INLINE_TARGET auto
-  operator()(const int & x, const T & i, const T & j, const A & acc) {
-    if(x == 0)
-      return Limiter::reconstruct(
-        acc(i - 2, j), acc(i - 1, j), acc(i, j), acc(i + 1, j), acc(i + 2, j));
-    return Limiter::reconstruct(
-      acc(i, j - 2), acc(i, j - 1), acc(i, j), acc(i, j + 1), acc(i, j + 2));
-  }
-
-  template<typename A, typename T>
-  FLECSI_INLINE_TARGET auto operator()(const int & x,
-    const T & i,
-    const T & j,
-    const T & k,
-    const A & acc) {
-    if(x == 0)
-      return Limiter::reconstruct(acc(i - 2, j, k),
-        acc(i - 1, j, k),
-        acc(i, j, k),
-        acc(i + 1, j, k),
-        acc(i + 2, j, k));
-    if(x == 1)
-      return Limiter::reconstruct(acc(i, j - 2, k),
-        acc(i, j - 1, k),
-        acc(i, j, k),
-        acc(i, j + 1, k),
-        acc(i, j + 2, k));
-    return Limiter::reconstruct(acc(i, j, k - 2),
-      acc(i, j, k - 1),
-      acc(i, j, k),
-      acc(i, j, k + 1),
-      acc(i, j, k + 2));
-  }
-};
 
 namespace utils {
 
@@ -73,7 +30,7 @@ tie(const std::tuple<T, T> & tup, T & a, T & b) noexcept {
 //   ^left(i-1)       ^right(i+1)
 //
 //
-template<std::size_t Dim, typename Limiter>
+template<std::size_t Dim, typename Reconstructor>
 void
 reconstruct_primitives_f(flecsi::exec::accelerator s,
   std::size_t reconstruction_axis,
@@ -97,7 +54,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto [h, t] = faces<Dim>::mdcolex(m, face_a);
       auto cons = m.template mdcolex<is::cells>(cons_a);
       s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
-        utils::tie(stencil<Limiter>()(i, cons), h(i), t(i));
+        utils::tie(Reconstructor::reconstruct(i, cons), h(i), t(i));
       };
     }
 
@@ -106,7 +63,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto [h, t] = faces<Dim>::mdcolex(m, face_a);
       auto cons = m.template mdcolex<is::cells>(cons_a);
       s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
-        utils::tie(stencil<Limiter>()(i, cons), h(i), t(i));
+        utils::tie(Reconstructor::reconstruct(i, cons), h(i), t(i));
       };
     }
   }
@@ -123,7 +80,8 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto cons = m.template mdcolex<is::cells>(cons_a);
       s.executor().forall(ji, mdpolicy_pp) {
         auto [j, i] = ji;
-        utils::tie(stencil<Limiter>()(ra, i, j, cons), h(i, j), t(i, j));
+        utils::tie(
+          Reconstructor::reconstruct(ra, i, j, cons), h(i, j), t(i, j));
       };
     };
     for(auto cf : cons_faces_vec_a) {
@@ -132,7 +90,8 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto cons = m.template mdcolex<is::cells>(cons_a);
       s.executor().forall(ji, mdpolicy_pp) {
         auto [j, i] = ji;
-        utils::tie(stencil<Limiter>()(ra, i, j, cons), h(i, j), t(i, j));
+        utils::tie(
+          Reconstructor::reconstruct(ra, i, j, cons), h(i, j), t(i, j));
       };
     };
   }
@@ -150,8 +109,9 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto cons = m.template mdcolex<is::cells>(cons_a);
       s.executor().forall(kji, mdpolicy_ppp) {
         auto [k, j, i] = kji;
-        utils::tie(
-          stencil<Limiter>()(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
+        utils::tie(Reconstructor::reconstruct(ra, i, j, k, cons),
+          h(i, j, k),
+          t(i, j, k));
       };
     }
 
@@ -161,14 +121,15 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto cons = m.template mdcolex<is::cells>(cons_a);
       s.executor().forall(kji, mdpolicy_ppp) {
         auto [k, j, i] = kji;
-        utils::tie(
-          stencil<Limiter>()(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
+        utils::tie(Reconstructor::reconstruct(ra, i, j, k, cons),
+          h(i, j, k),
+          t(i, j, k));
       };
     }
   }
 }
 
-template<std::size_t Dim, typename Limiter>
+template<std::size_t Dim, typename Reconstructor>
 void
 reconstruct_primitives(flecsi::exec::accelerator s,
   std::size_t reconstruction_axis,
@@ -179,11 +140,11 @@ reconstruct_primitives(flecsi::exec::accelerator s,
   std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
     typename faces_vec<Dim>::template accessor<wo, na>>>
     cons_faces_vec_a) noexcept {
-  reconstruct_primitives_f<Dim, Limiter>(
+  reconstruct_primitives_f<Dim, Reconstructor>(
     s, reconstruction_axis, m, cons_faces_a, cons_faces_vec_a);
 }
 
-template<std::size_t Dim, typename Limiter>
+template<std::size_t Dim, typename Reconstructor>
 void
 reconstruct_primitives_scalar(flecsi::exec::accelerator s,
   std::size_t reconstruction_axis,
@@ -191,7 +152,7 @@ reconstruct_primitives_scalar(flecsi::exec::accelerator s,
   // cell-centered primitive varibles
   std::vector<std::tuple<field<double>::accessor<ro, na>,
     typename faces<Dim>::template accessor<wo, na>>> cons_faces_a) noexcept {
-  reconstruct_primitives_f<Dim, Limiter>(
+  reconstruct_primitives_f<Dim, Reconstructor>(
     s, reconstruction_axis, m, cons_faces_a, {});
 }
 
