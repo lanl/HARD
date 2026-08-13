@@ -98,6 +98,11 @@ enum output_method {
 }; // enum output_method
 } // namespace om
 
+namespace rc {
+/// Reconstruction scheme selection.
+enum reconstructor { weno5z, ppm4, minmod, genminmod };
+} // namespace rc
+
 } // namespace spec
 
 #endif // SPEC_ENUM_HH

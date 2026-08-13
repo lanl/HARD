@@ -25,4 +25,6 @@ config = {
         "zhigh": "flow",
     },
     "output_method": "csv",
+    # Reconstruction scheme: weno5z (default), ppm4, minmod, genminmod
+    "reconstructor": "weno5z",
 }
