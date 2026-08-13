@@ -7,6 +7,34 @@ namespace hard::actions {
 
 template<std::size_t D>
 void
+init_reconstructor(state<D> & s, spec::config_py & config) {
+  /*--------------------------------------------------------------------------*
+    Reconstruction scheme configuration.
+    *--------------------------------------------------------------------------*/
+
+  // Default reconstructor is weno5z (set in state initialization)
+  if(config.contains("reconstructor")) {
+    auto scheme = config["reconstructor"].cast<std::string>();
+    if(scheme == "weno5z") {
+      s.reconstructor = spec::rc::weno5z;
+    }
+    else if(scheme == "ppm4") {
+      s.reconstructor = spec::rc::ppm4;
+    }
+    else if(scheme == "minmod") {
+      s.reconstructor = spec::rc::minmod;
+    }
+    else if(scheme == "genminmod") {
+      s.reconstructor = spec::rc::genminmod;
+    }
+    else {
+      flog_fatal("unsupported reconstructor(" << scheme << ")");
+    }
+  }
+}
+
+template<std::size_t D>
+void
 init_eos(state<D> & s, spec::config_py & config) {
   /*--------------------------------------------------------------------------*
      Equation of State

@@ -6,7 +6,8 @@
 #include "hydro/tasks/interface_fluxes.hh"
 #include "hydro/tasks/reconstruct.hh"
 #include "hydro/tasks/rhs.hh"
-#include "spec/limiter.hh"
+#include "reconstruct_dispatch.hh"
+#include "spec/reconstruct.hh"
 #include "spec/tasks/boundaries/boundary.hh"
 
 namespace hard::actions {
@@ -67,8 +68,6 @@ advance_rk_stage_2(state<D> & s,
     s.prim.sound_speed(*s.m),
     s.eos);
 
-  using reconst = spec::reconstructors::weno5z;
-
   for(std::size_t axis = 0; axis < D; axis++) {
     {
       auto scalar_v = std::vector{
@@ -82,8 +81,8 @@ advance_rk_stage_2(state<D> & s,
         scalar_v.push_back(std::make_tuple(std::get<0>(v), std::get<2>(v)));
       }
 
-      sc.execute<tasks::hydro::reconstruct_primitives<D, reconst>>(
-        flecsi::exec::on,
+      dispatch_reconstruct<D>(s.reconstructor,
+        sc,
         axis,
         *s.m,
         scalar_v,

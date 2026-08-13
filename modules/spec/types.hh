@@ -363,6 +363,54 @@ abs(const vec<D> & a) {
   return result;
 }
 
+template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D>
+min(const vec<D> & a, const vec<D> & b) {
+  vec<D> result;
+  result[0] = std::min(a[0], b[0]);
+  if constexpr(D > 1)
+    result[1] = std::min(a[1], b[1]);
+  if constexpr(D > 2)
+    result[2] = std::min(a[2], b[2]);
+  return result;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D>
+max(const vec<D> & a, const vec<D> & b) {
+  vec<D> result;
+  result[0] = std::max(a[0], b[0]);
+  if constexpr(D > 1)
+    result[1] = std::max(a[1], b[1]);
+  if constexpr(D > 2)
+    result[2] = std::max(a[2], b[2]);
+  return result;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D>
+copysign(const vec<D> & mag, const vec<D> & sgn) {
+  vec<D> result;
+  result[0] = std::copysign(mag[0], sgn[0]);
+  if constexpr(D > 1)
+    result[1] = std::copysign(mag[1], sgn[1]);
+  if constexpr(D > 2)
+    result[2] = std::copysign(mag[2], sgn[2]);
+  return result;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D>
+copysign(double mag, const vec<D> & sgn) {
+  vec<D> result;
+  result[0] = std::copysign(mag, sgn[0]);
+  if constexpr(D > 1)
+    result[1] = std::copysign(mag, sgn[1]);
+  if constexpr(D > 2)
+    result[2] = std::copysign(mag, sgn[2]);
+  return result;
+}
+
 // ----------------------------------------------------------------------------
 //  Tensor types definitions
 // ----------------------------------------------------------------------------
