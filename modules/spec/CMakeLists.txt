@@ -15,7 +15,7 @@ set(modules_headers
   eos.hh
   io.hh
   labels.hh
-  limiter.hh
+  reconstruct.hh
   mesh.hh
   runtime.hh
   types.hh

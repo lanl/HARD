@@ -118,6 +118,8 @@ struct state {
   RK<D> rk_dt2;
   RK<D> rk_n;
 
+  spec::rc::reconstructor reconstructor = spec::rc::weno5z;
+
 }; // struct state
 
 } // namespace hard::hydro
