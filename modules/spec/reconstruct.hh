@@ -96,6 +96,14 @@ private:
 
 } // namespace detail
 
+struct noop : detail::stencil<noop, 3> {
+
+  template<typename T>
+  FLECSI_INLINE_TARGET static auto stencil_op(T u_minus, T u_0, T u_plus) {
+    return std::make_tuple(u_minus, u_plus);
+  }
+}; // noop
+
 struct genminmod : detail::stencil<genminmod, 3> {
 
   template<typename T>

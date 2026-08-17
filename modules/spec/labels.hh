@@ -100,7 +100,7 @@ enum output_method {
 
 namespace rc {
 /// Reconstruction scheme selection.
-enum reconstructor { weno5z, ppm4, minmod, genminmod };
+enum reconstructor { weno5z, ppm4, minmod, genminmod, noop };
 } // namespace rc
 
 } // namespace spec
