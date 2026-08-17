@@ -124,6 +124,14 @@ struct initialize {
         s.cons.hydro.total_energy_density(*s.m),
         s.eos);
     }
+    else if(problem == "four_shock_jet") {
+      execute<tasks::initial_data::four_shock_jet<D>>(flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.cons.hydro.momentum_density(*s.m),
+        s.cons.hydro.total_energy_density(*s.m),
+        s.eos);
+    }
     else if(problem == "kh-test") {
       execute<tasks::initial_data::kh_instability<D>>(flecsi::exec::on,
         *s.m,

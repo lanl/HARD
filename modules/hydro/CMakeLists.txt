@@ -25,6 +25,7 @@ set(modules_headers
   tasks/maxcharspeed.hh
   tasks/utils.hh
   tasks/initial_data/acoustic_wave.hh
+  tasks/initial_data/four_shock_jet.hh
   tasks/initial_data/kelvin_helm.hh
   tasks/initial_data/lw_implosion.hh
   tasks/initial_data/rayleigh_taylor.hh

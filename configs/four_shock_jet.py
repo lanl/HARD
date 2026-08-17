@@ -1,0 +1,38 @@
+config = {
+    "problem": "four_shock_jet",
+    "gamma": 1.4,
+    "kappa": 1.0,
+    "mean_molecular_weight": 1.0,
+    "problem_parameters": {
+        "regions": {
+            "bot_left": {"r": 0.132, "ux": 1.206, "uy": 1.206, "p": 0.029},
+            "top_left": {"r": 0.5323, "ux": 1.206, "uy": 0, "p": 0.03},
+            "top_right": {"r": 1.5, "ux": 0, "uy": 0, "p": 1.5},
+            "bot_right": {"r": 0.5323, "ux": 0, "uy": 1.206, "p": 0.03},
+        },
+        "xc": 0.8,
+        "yc": 0.8,
+    },
+    "eos": "ideal",
+    "t0": 0.0,
+    "tf": 0.8,
+    "max_steps": 100,
+    "cfl": 0.9,
+    "max_dt": 1.0,
+    "log_frequency": 10,
+    "output_frequency": 10,
+    "levels": [9, 9, 5],
+    "coords": [
+        [0.0, 0.0, 0.0],
+        [1.0, 1.0, 1.0],
+    ],
+    "boundaries": {
+        "xlow": "flow",
+        "xhigh": "flow",
+        "ylow": "flow",
+        "yhigh": "flow",
+        "zlow": "flow",
+        "zhigh": "flow",
+    },
+    "output_method": "csv",
+}
