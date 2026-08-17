@@ -9,7 +9,7 @@
 add_library(libhydro INTERFACE)
 add_library(libhydro::libhydro ALIAS libhydro)
 
-# You asked for an explicit list pattern; keep it as a set() so it is deterministic.
+# Keep the explicit list as a set() so it is deterministic.
 set(modules_headers
   constants.hh
   state.hh
