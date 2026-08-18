@@ -32,6 +32,10 @@ dispatch_reconstruct(spec::rc::reconstructor scheme,
       sc.execute<tasks::hydro::reconstruct_primitives<D, genminmod>>(
         flecsi::exec::on, std::forward<Args>(args)...);
       break;
+    case spec::rc::noop:
+      sc.execute<tasks::hydro::reconstruct_primitives<D, noop>>(
+        flecsi::exec::on, std::forward<Args>(args)...);
+      break;
   }
 }
 

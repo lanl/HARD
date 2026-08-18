@@ -27,6 +27,9 @@ init_reconstructor(state<D> & s, spec::config_py & config) {
     else if(scheme == "genminmod") {
       s.reconstructor = spec::rc::genminmod;
     }
+    else if(scheme == "noop") {
+      s.reconstructor = spec::rc::noop;
+    }
     else {
       flog_fatal("unsupported reconstructor(" << scheme << ")");
     }

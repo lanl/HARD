@@ -49,7 +49,7 @@ acoustic_wave(flecsi::exec::cpu s,
 
     // sine_quad is the volume average of the sine per cell, for sine wave
     // fvm initialization
-    auto sine_quad = [k](double x0, double x1) {
+    auto sine_quad = [k](const double x0, const double x1) {
       return (cos(k * x0) - cos(k * x1)) / (k * (x1 - x0));
     };
 
@@ -60,9 +60,11 @@ acoustic_wave(flecsi::exec::cpu s,
       mass_density(i) = r0 * (1 + rA * sine_quad(x0, x1));
 
       momentum_density(i).x() = mass_density(i) * ux;
-      const double e = util::find_sie(eos, mass_density(i), p0);
+
       total_energy_density(i) =
-        mass_density(i) * e + 0.5 * mass_density(i) * utils::sqr(ux);
+        mass_density(i) *
+        (util::find_sie(eos, mass_density(i), p0) + 0.5 * utils::sqr(ux));
+
     }; // forall
   }
   else if constexpr(Dim == 2) {
@@ -75,7 +77,10 @@ acoustic_wave(flecsi::exec::cpu s,
 
     // sine_quad is the volume average of the sine per cell, for sine wave
     // fvm initialization
-    auto sine_quad = [kx, ky](double x0, double x1, double y0, double y1) {
+    auto sine_quad = [kx, ky](const double x0,
+                       const double x1,
+                       const double y0,
+                       const double y1) {
       return -((cos(kx * x1) - cos(kx * x0)) * (sin(ky * y1) - sin(ky * y0)) +
                (sin(kx * x1) - sin(kx * x0)) * (cos(ky * y1) - cos(ky * y0))) /
              (kx * ky * (x1 - x0) * (y1 - y0));
@@ -94,10 +99,11 @@ acoustic_wave(flecsi::exec::cpu s,
 
         momentum_density(i, j).x() = mass_density(i, j) * ux;
         momentum_density(i, j).y() = mass_density(i, j) * uy;
-        const double e = util::find_sie(eos, mass_density(i, j), p0);
+
         total_energy_density(i, j) =
-          mass_density(i, j) * e +
-          0.5 * mass_density(i, j) * (utils::sqr(ux) + utils::sqr(uy));
+          mass_density(i, j) * (util::find_sie(eos, mass_density(i, j), p0) +
+                                 0.5 * (utils::sqr(ux) + utils::sqr(uy)));
+
       } // for
     }; // forall
   }
@@ -114,19 +120,22 @@ acoustic_wave(flecsi::exec::cpu s,
 
     // sine_quad is the volume average of the sine per cell, for sine wave
     // fvm initialization
-    auto sine_quad =
-      [kx, ky, kz](
-        double x0, double x1, double y0, double y1, double z0, double z1) {
-        return ((cos(kx * x1) - cos(kx * x0)) * (cos(ky * y1) - cos(ky * y0)) *
-                   (cos(kz * z1) - cos(kz * z0)) -
-                 (cos(kx * x1) - cos(kx * x0)) * (sin(ky * y1) - sin(ky * y0)) *
-                   (sin(kz * z1) - sin(kz * z0)) -
-                 (sin(kx * x1) - sin(kx * x0)) * (cos(ky * y1) - cos(ky * y0)) *
-                   (sin(kz * z1) - sin(kz * z0)) -
-                 (sin(kx * x1) - sin(kx * x0)) * (sin(ky * y1) - sin(ky * y0)) *
-                   (cos(kz * z1) - cos(kz * z0))) /
-               (kx * ky * kz * (x1 - x0) * (y1 - y0) * (z1 - z0));
-      };
+    auto sine_quad = [kx, ky, kz](const double x0,
+                       const double x1,
+                       const double y0,
+                       const double y1,
+                       const double z0,
+                       const double z1) {
+      return ((cos(kx * x1) - cos(kx * x0)) * (cos(ky * y1) - cos(ky * y0)) *
+                 (cos(kz * z1) - cos(kz * z0)) -
+               (cos(kx * x1) - cos(kx * x0)) * (sin(ky * y1) - sin(ky * y0)) *
+                 (sin(kz * z1) - sin(kz * z0)) -
+               (sin(kx * x1) - sin(kx * x0)) * (cos(ky * y1) - cos(ky * y0)) *
+                 (sin(kz * z1) - sin(kz * z0)) -
+               (sin(kx * x1) - sin(kx * x0)) * (sin(ky * y1) - sin(ky * y0)) *
+                 (cos(kz * z1) - cos(kz * z0))) /
+             (kx * ky * kz * (x1 - x0) * (y1 - y0) * (z1 - z0));
+    };
 
     for(auto l : m.template cells<ax::z, dm::quantities>()) {
       for(auto j : m.template cells<ax::y, dm::quantities>()) {
@@ -147,11 +156,12 @@ acoustic_wave(flecsi::exec::cpu s,
           momentum_density(i, j, l).x() = mass_density(i, j, l) * ux;
           momentum_density(i, j, l).y() = mass_density(i, j, l) * uy;
           momentum_density(i, j, l).z() = mass_density(i, j, l) * uz;
-          const double e = util::find_sie(eos, mass_density(i, j, l), p0);
+
           total_energy_density(i, j, l) =
-            mass_density(i, j, l) * e +
-            0.5 * mass_density(i, j, l) *
-              (utils::sqr(ux) + utils::sqr(uy) + utils::sqr(uz));
+            mass_density(i, j, l) *
+            (util::find_sie(eos, mass_density(i, j, l), p0) +
+              0.5 * (utils::sqr(ux) + utils::sqr(uy) + utils::sqr(uz)));
+
         } // for
       } // for
     }; // forall
