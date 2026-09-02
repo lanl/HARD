@@ -63,7 +63,6 @@ class Hard(CMakePackage, CudaPackage):
             self.define_from_variant("ENABLE_VERIFICATION", "verification"),
             self.define_from_variant("ENABLE_HDF5", "hdf5"),
             self.define_from_variant("ENABLE_FORMAT", "format"),
-            self.define_from_variant("ENABLE_CALIPER", "caliper"),
         ]
 
         return options
