@@ -63,6 +63,21 @@ struct shyue_shock {
   static constexpr int mR = 1;
 }; // struct shyue_shock
 
+struct lee_shock {
+  static constexpr double rL = 0.9525;
+  static constexpr double uL = 0.0;
+  static constexpr double pL = 1.0;
+
+  static constexpr double rR = 3.810;
+  static constexpr double uR = 0.0;
+  static constexpr double pR = 2.0;
+
+  static constexpr double x0 = 0.5;
+
+  static constexpr int mL = 0;
+  static constexpr int mR = 1;
+}; // struct lee_shock
+
 struct helium_bubble_mm_init {
   static constexpr double rL = 1.652; // post-shocked air
   static constexpr double uL = 113.95;

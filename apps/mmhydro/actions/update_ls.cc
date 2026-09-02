@@ -1,7 +1,6 @@
 #include "state.hh"
 
 #include "gfm/tasks/ls_core.hh"
-#include "spec/limiter.hh"
 #include "spec/tasks/boundaries/boundary.hh"
 
 #ifdef IN_TEST

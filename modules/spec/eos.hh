@@ -5,8 +5,8 @@
 
 #include <flecsi/util/serialize.hh>
 
-#include <singularity-eos/base/robust_utils.hpp>
 #include <singularity-eos/eos/eos.hpp>
+#include <singularity-utils/robust_utils.hpp>
 
 #include <array>
 #include <cmath>

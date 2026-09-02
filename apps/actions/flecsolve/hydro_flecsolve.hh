@@ -5,12 +5,13 @@
 #include "flecsolve/vectors/multi.hh"
 #include "flecsolve/vectors/topo_view.hh"
 
+#include "../rk_stages/reconstruct_dispatch.hh"
 #include "hydro/tasks/cons2prim.hh"
 #include "hydro/tasks/external_source.hh"
 #include "hydro/tasks/interface_fluxes.hh"
 #include "hydro/tasks/reconstruct.hh"
 #include "hydro/tasks/rhs.hh"
-#include "spec/limiter.hh"
+#include "spec/reconstruct.hh"
 #include "spec/tasks/boundaries/boundary.hh"
 
 namespace hard::actions::flecsolve_hydro {
@@ -266,8 +267,6 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
       dmom.data.ref(),
       dE.data.ref());
 
-    using limiter = spec::limiters::weno5z;
-
     /*
       compute_interface_fluxes expects the RK storage order:
 
@@ -298,8 +297,8 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
             std::make_tuple(s.prim.sound_speed(*s.m), s.f.hydro.c_face(s.m)),
             std::make_tuple(s.prim.pressure(*s.m), s.f.hydro.p_face(s.m))};
 
-        sc.template execute<tasks::hydro::reconstruct_primitives<D, limiter>>(
-          flecsi::exec::on,
+        dispatch_reconstruct<D>(s.reconstructor,
+          sc,
           axis,
           *s.m,
           scalar_v,

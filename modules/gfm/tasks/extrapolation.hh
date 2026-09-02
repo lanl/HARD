@@ -5,7 +5,6 @@
 #include "../../common/tasks/utils.hh"
 #include "../../hydro/state.hh"
 #include "../../spec/labels.hh"
-#include "../../spec/limiter.hh"
 #include "../../spec/mesh.hh"
 #include "../../spec/tasks/io.hh"
 #include "../state.hh"

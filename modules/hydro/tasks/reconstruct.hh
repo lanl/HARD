@@ -90,7 +90,8 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto cons = m.template mdcolex<is::cells>(cons_a);
       s.executor().forall(ji, mdpolicy_pp) {
         auto [j, i] = ji;
-        utils::tie(Reconstructor::reconstruct(ra, i, j, cons), h(i, j), t(i, j));
+        utils::tie(
+          Reconstructor::reconstruct(ra, i, j, cons), h(i, j), t(i, j));
       };
     };
   }
@@ -120,8 +121,9 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto cons = m.template mdcolex<is::cells>(cons_a);
       s.executor().forall(kji, mdpolicy_ppp) {
         auto [k, j, i] = kji;
-        utils::tie(
-          Reconstructor::reconstruct(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
+        utils::tie(Reconstructor::reconstruct(ra, i, j, k, cons),
+          h(i, j, k),
+          t(i, j, k));
       };
     }
   }

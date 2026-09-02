@@ -7,50 +7,6 @@
 
 namespace hard::tasks::hydro {
 
-template<typename Limiter>
-struct stencil {
-  template<typename A, typename T>
-  FLECSI_INLINE_TARGET auto operator()(const T & i, const A & acc) {
-    return Limiter::reconstruct(
-      acc(i - 2), acc(i - 1), acc(i), acc(i + 1), acc(i + 2));
-  }
-
-  template<typename A, typename T>
-  FLECSI_INLINE_TARGET auto
-  operator()(const int & x, const T & i, const T & j, const A & acc) {
-    if(x == 0)
-      return Limiter::reconstruct(
-        acc(i - 2, j), acc(i - 1, j), acc(i, j), acc(i + 1, j), acc(i + 2, j));
-    return Limiter::reconstruct(
-      acc(i, j - 2), acc(i, j - 1), acc(i, j), acc(i, j + 1), acc(i, j + 2));
-  }
-
-  template<typename A, typename T>
-  FLECSI_INLINE_TARGET auto operator()(const int & x,
-    const T & i,
-    const T & j,
-    const T & k,
-    const A & acc) {
-    if(x == 0)
-      return Limiter::reconstruct(acc(i - 2, j, k),
-        acc(i - 1, j, k),
-        acc(i, j, k),
-        acc(i + 1, j, k),
-        acc(i + 2, j, k));
-    if(x == 1)
-      return Limiter::reconstruct(acc(i, j - 2, k),
-        acc(i, j - 1, k),
-        acc(i, j, k),
-        acc(i, j + 1, k),
-        acc(i, j + 2, k));
-    return Limiter::reconstruct(acc(i, j, k - 2),
-      acc(i, j, k - 1),
-      acc(i, j, k),
-      acc(i, j, k + 1),
-      acc(i, j, k + 2));
-  }
-};
-
 namespace utils {
 
 template<typename T>
@@ -111,7 +67,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
           (material(i + 1) == m0) && (material(i + 2) == m0);
 
         if(same_material_stencil) {
-          utils::tie(stencil<Limiter>()(i, cons), h(i), t(i));
+          utils::tie(Limiter::reconstruct(i, cons), h(i), t(i));
         }
         else {
           // first-order fallback near interface
@@ -133,7 +89,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
           (material(i + 1) == m0) && (material(i + 2) == m0);
 
         if(same_material_stencil) {
-          utils::tie(stencil<Limiter>()(i, cons), h(i), t(i));
+          utils::tie(Limiter::reconstruct(i, cons), h(i), t(i));
         }
         else {
           h(i) = cons(i);
@@ -172,7 +128,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
         }
 
         if(same_material_stencil) {
-          utils::tie(stencil<Limiter>()(ra, i, j, cons), h(i, j), t(i, j));
+          utils::tie(Limiter::reconstruct(ra, i, j, cons), h(i, j), t(i, j));
         }
         else {
           // first-order fallback near material interface
@@ -204,7 +160,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
         }
 
         if(same_material_stencil) {
-          utils::tie(stencil<Limiter>()(ra, i, j, cons), h(i, j), t(i, j));
+          utils::tie(Limiter::reconstruct(ra, i, j, cons), h(i, j), t(i, j));
         }
         else {
           h(i, j) = cons(i, j);
@@ -250,7 +206,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
 
         if(same_material_stencil) {
           utils::tie(
-            stencil<Limiter>()(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
+            Limiter::reconstruct(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
         }
         else {
           h(i, j, k) = cons(i, j, k);
@@ -287,7 +243,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
 
         if(same_material_stencil) {
           utils::tie(
-            stencil<Limiter>()(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
+            Limiter::reconstruct(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
         }
         else {
           h(i, j, k) = cons(i, j, k);
