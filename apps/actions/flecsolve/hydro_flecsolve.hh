@@ -18,6 +18,10 @@ namespace hard::actions::flecsolve_hydro {
 
 enum class var { mass_density, momentum_density, total_energy_density };
 
+struct make_state_vector_task : annotation_action_region {
+  inline static const std::string name{"make state vector"};
+};
+
 /*
   FleCSolve view of the main HARD hydro conserved state:
 
@@ -30,6 +34,8 @@ auto
 make_state_vector(state<D> & s) {
   auto & m = *s.m;
 
+  annotation_rguard<make_state_vector_task> guard;
+
   return flecsolve::vec::make(
     flecsolve::vec::make(
       flecsolve::variable<var::mass_density>, s.cons.hydro.mass_density(m)),
@@ -40,6 +46,10 @@ make_state_vector(state<D> & s) {
     flecsolve::vec::make(flecsolve::variable<var::total_energy_density>,
       s.cons.hydro.total_energy_density(m)));
 }
+
+struct make_rhs_vector_task : annotation_action_region {
+  inline static const std::string name{"make rhs vector"};
+};
 
 /*
   Temporary RHS vector.
@@ -53,6 +63,8 @@ auto
 make_rhs_vector(state<D> & s) {
   auto & m = *s.m;
 
+  annotation_rguard<make_rhs_vector_task> guard;
+
   return flecsolve::vec::make(
     flecsolve::vec::make(
       flecsolve::variable<var::mass_density>, s.rk_dt1.mass_density()(m)),
@@ -63,6 +75,10 @@ make_rhs_vector(state<D> & s) {
     flecsolve::vec::make(flecsolve::variable<var::total_energy_density>,
       s.rk_dt1.total_energy_density()(m)));
 }
+
+struct make_rhs2_vector_task : annotation_action_region {
+  inline static const std::string name{"make rhs2 vector"};
+};
 
 /*
   Temporary second-stage RHS vector.
@@ -76,6 +92,8 @@ auto
 make_rhs2_vector(state<D> & s) {
   auto & m = *s.m;
 
+  annotation_rguard<make_rhs2_vector_task> guard;
+
   return flecsolve::vec::make(
     flecsolve::vec::make(
       flecsolve::variable<var::mass_density>, s.rk_dt2.mass_density()(m)),
@@ -87,6 +105,10 @@ make_rhs2_vector(state<D> & s) {
       s.rk_dt2.total_energy_density()(m)));
 }
 
+struct make_saved_vector_task : annotation_action_region {
+  inline static const std::string name{"make saved vector"};
+};
+
 /*
   FleCSolve view of the saved old state U^n.
 
@@ -97,6 +119,8 @@ template<std::size_t D>
 auto
 make_saved_state_vector(state<D> & s) {
   auto & m = *s.m;
+
+  annotation_rguard<make_saved_vector_task> guard;
 
   return flecsolve::vec::make(
     flecsolve::vec::make(
@@ -125,26 +149,29 @@ read_dt_task(flecsi::exec::cpu,
 template<std::size_t D>
 void
 recover_primitives_and_apply_boundaries(state<D> & s, flecsi::scheduler & sc) {
-  sc.template execute<tasks::hydro::conserved_to_primitive<D>>(flecsi::exec::on,
-    *s.m,
-    s.cons.hydro.mass_density(*s.m),
-    s.cons.hydro.momentum_density(*s.m),
-    s.cons.hydro.total_energy_density(*s.m),
-    s.prim.velocity(*s.m),
-    s.prim.pressure(*s.m),
-    s.prim.specific_internal_energy(*s.m),
-    s.prim.sound_speed(*s.m),
-    s.eos);
-
-  sc.template execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-    *s.m,
-    s.icst.bmap(*s.gt),
-    std::vector{s.cons.hydro.mass_density(*s.m),
+  annotation_rguard<tasks::hydro::conserved_to_primitive_task>(),
+    sc.template execute<tasks::hydro::conserved_to_primitive<D>>(
+      flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.prim.velocity(*s.m),
       s.prim.pressure(*s.m),
       s.prim.specific_internal_energy(*s.m),
       s.prim.sound_speed(*s.m),
-      s.cons.hydro.total_energy_density(*s.m)},
-    std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
+      s.eos);
+
+  annotation_rguard<tasks::apply_boundaries_task>(),
+    sc.template execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
+      *s.m,
+      s.icst.bmap(*s.gt),
+      std::vector{s.cons.hydro.mass_density(*s.m),
+        s.prim.pressure(*s.m),
+        s.prim.specific_internal_energy(*s.m),
+        s.prim.sound_speed(*s.m),
+        s.cons.hydro.total_energy_density(*s.m)},
+      std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
 }
 
 template<std::size_t D>
@@ -218,17 +245,18 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
       from:
           rho, rho*u, rho*E
     */
-    sc.template execute<tasks::hydro::conserved_to_primitive<D>>(
-      flecsi::exec::on,
-      *s.m,
-      rho.data.ref(),
-      mom.data.ref(),
-      E.data.ref(),
-      s.prim.velocity(*s.m),
-      s.prim.pressure(*s.m),
-      s.prim.specific_internal_energy(*s.m),
-      s.prim.sound_speed(*s.m),
-      s.eos);
+    annotation_rguard<tasks::hydro::conserved_to_primitive_task>(),
+      sc.template execute<tasks::hydro::conserved_to_primitive<D>>(
+        flecsi::exec::on,
+        *s.m,
+        rho.data.ref(),
+        mom.data.ref(),
+        E.data.ref(),
+        s.prim.velocity(*s.m),
+        s.prim.pressure(*s.m),
+        s.prim.specific_internal_energy(*s.m),
+        s.prim.sound_speed(*s.m),
+        s.eos);
 
     /*
       Apply boundary conditions to the supplied state x.
@@ -240,15 +268,16 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
       Therefore, use rho, mom, and E extracted from x rather than always using
       s.cons.hydro.
     */
-    sc.template execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-      *s.m,
-      s.icst.bmap(*s.gt),
-      std::vector{rho.data.ref(),
-        s.prim.pressure(*s.m),
-        s.prim.specific_internal_energy(*s.m),
-        s.prim.sound_speed(*s.m),
-        E.data.ref()},
-      std::vector{s.prim.velocity(*s.m), mom.data.ref()});
+    annotation_rguard<tasks::apply_boundaries_task>(),
+      sc.template execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
+        *s.m,
+        s.icst.bmap(*s.gt),
+        std::vector{rho.data.ref(),
+          s.prim.pressure(*s.m),
+          s.prim.specific_internal_energy(*s.m),
+          s.prim.sound_speed(*s.m),
+          E.data.ref()},
+        std::vector{s.prim.velocity(*s.m), mom.data.ref()});
 
     /*
       Explicit source contribution.
@@ -260,12 +289,13 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
       For Sod this should be zero, but keeping it here makes the RHS closer
       to the existing HARD hydro RHS path.
     */
-    sc.template execute<tasks::external_source<D>>(flecsi::exec::on,
-      *s.m,
-      s.prim.velocity(*s.m),
-      s.src_t.hydro.gravity_force(*s.m),
-      dmom.data.ref(),
-      dE.data.ref());
+    annotation_rguard<tasks::external_source_task>(),
+      sc.template execute<tasks::external_source<D>>(flecsi::exec::on,
+        *s.m,
+        s.prim.velocity(*s.m),
+        s.src_t.hydro.gravity_force(*s.m),
+        dmom.data.ref(),
+        dE.data.ref());
 
     /*
       compute_interface_fluxes expects the RK storage order:
@@ -309,13 +339,14 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
       /*
         Convert reconstructed primitive face states to conserved face states.
       */
-      sc.template execute<tasks::hydro::get_conserved<D>>(flecsi::exec::on,
-        *s.m,
-        s.f.hydro.r_face(s.m),
-        s.f.hydro.u_face(s.m),
-        s.f.hydro.e_face(s.m),
-        s.f.hydro.ru_face(s.m),
-        s.f.hydro.re_face(s.m));
+      annotation_rguard<tasks::hydro::get_conserved_task>(),
+        sc.template execute<tasks::hydro::get_conserved<D>>(flecsi::exec::on,
+          *s.m,
+          s.f.hydro.r_face(s.m),
+          s.f.hydro.u_face(s.m),
+          s.f.hydro.e_face(s.m),
+          s.f.hydro.ru_face(s.m),
+          s.f.hydro.re_face(s.m));
 
       /*
         Compute numerical fluxes and add flux divergence to RHS:
@@ -325,21 +356,22 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
         In the current HARD implementation this task accumulates into the
         supplied RK/RHS storage.
       */
-      sc.template execute<tasks::hydro::compute_interface_fluxes<D>>(
-        flecsi::exec::on,
-        axis,
-        *s.m,
-        s.f.hydro.r_face(s.m),
-        s.f.hydro.u_face(s.m),
-        s.f.hydro.p_face(s.m),
-        s.f.hydro.c_face(s.m),
-        s.f.hydro.ru_face(s.m),
-        s.f.hydro.re_face(s.m),
-        s.rf.hydro.r_f(*s.m),
-        s.rf.hydro.ru_f(*s.m),
-        s.rf.hydro.re_f(*s.m),
-        rhs_tuple,
-        s.icst.gravity_acc(*s.gt));
+      annotation_rguard<tasks::hydro::compute_interface_fluxes_task>(),
+        sc.template execute<tasks::hydro::compute_interface_fluxes<D>>(
+          flecsi::exec::on,
+          axis,
+          *s.m,
+          s.f.hydro.r_face(s.m),
+          s.f.hydro.u_face(s.m),
+          s.f.hydro.p_face(s.m),
+          s.f.hydro.c_face(s.m),
+          s.f.hydro.ru_face(s.m),
+          s.f.hydro.re_face(s.m),
+          s.rf.hydro.r_f(*s.m),
+          s.rf.hydro.ru_f(*s.m),
+          s.rf.hydro.re_f(*s.m),
+          rhs_tuple,
+          s.icst.gravity_acc(*s.gt));
     }
   }
 };

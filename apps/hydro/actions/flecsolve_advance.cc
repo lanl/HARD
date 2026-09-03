@@ -10,11 +10,18 @@
 
 namespace hard {
 
+struct hydro_flecsolve_advance_region : annotation_action_region {
+  inline static const std::string name{"hydro_flecsolve_advance"};
+};
+
 namespace heun = time_integrator::heun;
 
 template<std::size_t D>
 struct hydro_flecsolve_advance {
   static void action(control_policy<state, D> & cp) {
+
+    annotation_rguard<hydro_flecsolve_advance_region> guard;
+
     auto & s = cp.state();
     flecsi::scheduler & sc = cp.scheduler();
 
