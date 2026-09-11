@@ -111,7 +111,7 @@ advance_rk_stage_2(state<D> & s,
         s.f.hydro.ru_face(s.m),
         s.f.hydro.re_face(s.m));
 
-    // Calculate K1 and save it to dt_U
+    // Calculate K2 and save it to dt_U
     annotation_rguard<tasks::hydro::compute_interface_fluxes_task>(),
       sc.execute<tasks::hydro::compute_interface_fluxes<D>>(flecsi::exec::on,
         axis,
@@ -126,7 +126,7 @@ advance_rk_stage_2(state<D> & s,
         s.rf.hydro.r_f(*s.m),
         s.rf.hydro.ru_f(*s.m),
         s.rf.hydro.re_f(*s.m),
-        s.rk_dt1(s.m),
+        s.rk_dt2(s.m),
         s.icst.gravity_acc(*s.gt));
 
     // Apply function if present

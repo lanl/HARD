@@ -118,6 +118,37 @@ init_timestep(state<D> & s,
 }
 
 template<std::size_t D>
+void
+init_solver(state<D> & s, spec::config_py & config) {
+  /*--------------------------------------------------------------------------*
+    ODE solver scheme configuration.
+    *--------------------------------------------------------------------------*/
+
+  // Default reconstructor is rk4 (set in state initialization)
+  if(config.contains("ode_solver")) {
+    auto scheme = config["ode_solver"].cast<std::string>();
+    if(scheme == "rk4") {
+      s.use_solver = spec::slv::rk4;
+    }
+    else if(scheme == "heun") {
+      s.use_solver = spec::slv::heun;
+    }
+    else if(scheme == "euler") {
+      s.use_solver = spec::slv::euler;
+    }
+    else if(scheme == "rk23") {
+      s.use_solver = spec::slv::rk23;
+    }
+    else if(scheme == "rk45") {
+      s.use_solver = spec::slv::rk45;
+    }
+    else {
+      flog_fatal("unsupported solver(" << scheme << ")");
+    }
+  }
+}
+
+template<std::size_t D>
 flecsi::future<typename mesh<D>::periodic_axes>
 init_boundaries(state<D> & s,
   flecsi::scheduler & sc,

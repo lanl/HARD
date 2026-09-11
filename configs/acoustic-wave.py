@@ -30,5 +30,6 @@ config = {
         "zlow": "periodic",
         "zhigh": "periodic",
     },
+    "ode_solver": "euler", # rk4, euler, heun, rk23
     "output_method": "csv",
 }

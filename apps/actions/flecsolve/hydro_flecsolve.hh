@@ -16,7 +16,7 @@
 
 namespace hard::actions::flecsolve_hydro {
 
-enum class var { mass_density, momentum_density, total_energy_density };
+enum class var { mass_density, total_energy_density, momentum_density };
 
 struct make_state_vector_task : annotation_action_region {
   inline static const std::string name{"make state vector"};
@@ -136,6 +136,7 @@ make_saved_state_vector(state<D> & s) {
 /*
   Small task to read the timestep from HARD's single<double> dt field.
 */
+// FIXME: Maybe we do not need this helper.
 inline double
 read_dt_task(flecsi::exec::cpu,
   single<double>::accessor<flecsi::ro> dt) noexcept {
@@ -182,19 +183,21 @@ struct rhs_params {
 
 template<std::size_t D>
 struct rhs_operator : flecsolve::op::base<rhs_params<D>,
+                        // Domain: x = U
                         flecsolve::multivariable_t<var::mass_density,
-                          var::momentum_density,
-                          var::total_energy_density>,
+                          var::total_energy_density,
+                          var::momentum_density>,
+                        // Range: y = dU/dt
                         flecsolve::multivariable_t<var::mass_density,
-                          var::momentum_density,
-                          var::total_energy_density>> {
+                          var::total_energy_density,
+                          var::momentum_density>> {
   using base = flecsolve::op::base<rhs_params<D>,
     flecsolve::multivariable_t<var::mass_density,
-      var::momentum_density,
-      var::total_energy_density>,
+      var::total_energy_density,
+      var::momentum_density>,
     flecsolve::multivariable_t<var::mass_density,
-      var::momentum_density,
-      var::total_energy_density>>;
+      var::total_energy_density,
+      var::momentum_density>>;
   using base::params;
 
   explicit rhs_operator(rhs_params<D> p) : base(p) {}
@@ -211,9 +214,7 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
       Select the conserved variables from the input state x = U.
     */
     auto & rho = x.subset(flecsolve::variable<var::mass_density>);
-
     auto & mom = x.subset(flecsolve::variable<var::momentum_density>);
-
     auto & E = x.subset(flecsolve::variable<var::total_energy_density>);
 
     /*
@@ -223,9 +224,7 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
       Select the corresponding variables from the output RHS y = dU/dt.
     */
     auto & drho = y.subset(flecsolve::variable<var::mass_density>);
-
     auto & dmom = y.subset(flecsolve::variable<var::momentum_density>);
-
     auto & dE = y.subset(flecsolve::variable<var::total_energy_density>);
 
     /*
@@ -260,13 +259,6 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
 
     /*
       Apply boundary conditions to the supplied state x.
-
-      x may be:
-        - the main HARD state U for the first stage, or
-        - an internal FleCSolve work vector for a later stage.
-
-      Therefore, use rho, mom, and E extracted from x rather than always using
-      s.cons.hydro.
     */
     annotation_rguard<tasks::apply_boundaries_task>(),
       sc.template execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
@@ -285,9 +277,6 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
       This adds source terms to:
           d(rho*u)/dt
           d(rho*E)/dt
-
-      For Sod this should be zero, but keeping it here makes the RHS closer
-      to the existing HARD hydro RHS path.
     */
     annotation_rguard<tasks::external_source_task>(),
       sc.template execute<tasks::external_source<D>>(flecsi::exec::on,
@@ -296,24 +285,6 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
         s.src_t.hydro.gravity_force(*s.m),
         dmom.data.ref(),
         dE.data.ref());
-
-    /*
-      compute_interface_fluxes expects the RK storage order:
-
-          mass_density,
-          total_energy_density,
-          momentum_density
-
-      but our FleCSolve variable order is:
-
-          mass_density,
-          momentum_density,
-          total_energy_density
-
-      So we explicitly build the tuple in the RK order expected by HARD.
-    */
-    auto rhs_tuple =
-      std::make_tuple(drho.data.ref(), dE.data.ref(), dmom.data.ref());
 
     for(std::size_t axis = 0; axis < D; axis++) {
       /*
@@ -370,7 +341,7 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
           s.rf.hydro.r_f(*s.m),
           s.rf.hydro.ru_f(*s.m),
           s.rf.hydro.re_f(*s.m),
-          rhs_tuple,
+          std::make_tuple(drho.data.ref(), dE.data.ref(), dmom.data.ref()),
           s.icst.gravity_acc(*s.gt));
     }
   }

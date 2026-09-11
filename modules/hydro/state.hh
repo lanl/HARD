@@ -114,11 +114,13 @@ struct state {
     velocity_gradient;
 
   // Storing dU/dt
+  // FIXME: We will not need this anymore
   RK<D> rk_dt1;
   RK<D> rk_dt2;
   RK<D> rk_n;
 
   spec::rc::reconstructor reconstructor = spec::rc::weno5z;
+  spec::slv::solver use_solver = spec::slv::rk4;
 
 }; // struct state
 

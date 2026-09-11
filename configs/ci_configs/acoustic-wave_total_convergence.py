@@ -31,5 +31,6 @@ config = {
         "zlow": "flow",
         "zhigh": "flow",
     },
+    "ode_solver": "heun", # rk4, euler, heun, rk23, rk45
     "output_method": "csv",
 }

@@ -3,12 +3,11 @@
 # Hydro application (executable).
 #------------------------------------------------------------------------------#
 
-# in flecsolve_advance define which cp you want to use: pure RK23(flecsolve_advance_rk23.cc) or Heun (flecsolve_advance.cc)
 add_executable(hydro
   hydro.cc
   actions/init.cc
   actions/rhs.cc
-  actions/flecsolve_advance.cc
+  actions/advance.cc
   actions/update_dt.cc
   actions/finalize.cc
   actions/analyze.cc
