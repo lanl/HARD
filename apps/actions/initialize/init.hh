@@ -124,7 +124,7 @@ init_solver(state<D> & s, spec::config_py & config) {
     ODE solver scheme configuration.
     *--------------------------------------------------------------------------*/
 
-  // Default reconstructor is rk4 (set in state initialization)
+  // Default reconstructor is heun (set in state initialization)
   if(config.contains("ode_solver")) {
     auto scheme = config["ode_solver"].cast<std::string>();
     if(scheme == "rk4") {

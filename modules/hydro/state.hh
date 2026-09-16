@@ -120,7 +120,7 @@ struct state {
   RK<D> rk_n;
 
   spec::rc::reconstructor reconstructor = spec::rc::weno5z;
-  spec::slv::solver use_solver = spec::slv::rk4;
+  spec::slv::solver use_solver = spec::slv::heun;
 
 }; // struct state
 
