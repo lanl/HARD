@@ -28,9 +28,8 @@ You can automate your spack setup by adding something like this to your
 
 export SPACK_EDITOR=vi
 ```
-Notice that this also sets the *SPACK_EDITOR* environment variable. This
-is useful for selecting the editor program spack will use for various
-interface operations (used below).
+This also sets *SPACK_EDITOR*, the editor spack uses for interactive
+operations.
 
 Next, create a spack *environment* for HARD and activate it:
 ```
@@ -52,7 +51,9 @@ $ spack info hard
 ```
 
 Available variants include:
-- `+cuda` - Enable CUDA support for GPU acceleration
+- `+cuda` - Enable CUDA support for GPU acceleration (FleCSI only supports Clang
+  for CUDA, so expect a Clang compiler for HARD too — `%clang@17:`)
+- `+hdf5` - Enable HDF5-based I/O for XDMF output (default: on)
 - `+radiation` - Enable radiation physics (default: on)
 - `+tests` - Enable unit tests
 - `+verification` - Enable physics verification tests
@@ -62,26 +63,18 @@ Add *hard* to the environment:
 ```
 $ spack add hard
 ```
-The next step is to *concretize* the
-new environment. Concretization solves an optimization problem that
-takes all of the package dependencies in an environment and reconciles
-version and subdependency compatibility:
+The next step is to *concretize* the new environment, which reconciles
+the versions and dependencies of all packages in the environment:
 ```
 $ spack concretize -f
 ```
-The `-f` operation forces spack to re-concretize, which is not necessary
-for a new, unconcretized environment. However, it doesn't hurt, and it
-is useful in most invocations to insure that spack is using the most
-up-to-date config information.
+The `-f` flag forces re-concretization; it is not needed for a fresh
+environment but ensures spack is using the most up-to-date config.
 
-To finish up the spack portion of the build, we just need to *install*
-the packages:
+Finally, install the dependencies (this will take some time):
 ```
 $ spack install --only dependencies
 ```
-This will fetch all of the *hard* dependencies and build them in your
-local spack tree (under *$HOME/.spack/opt* to be precise). This step
-will take some time.
 
 # Build
 
@@ -134,32 +127,9 @@ $ ./apps/hydro/hydro-{backend} -i configs/sod.py
 
 Configuration files define initial conditions, boundary conditions, equation of state parameters, and output settings using Python syntax (replacing the previous YAML format).
 
-# Code Formatting and Style
+# Contributing
 
-HARD enforces consistent code formatting and naming conventions to maintain code quality and readability.
-
-## Formatting Requirements
-
-All code must be formatted using `clang-format` before submitting a merge request. This is **mandatory** for any MR to be merged.
-
-To format your code, run:
-```
-$ make format
-```
-
-This command will automatically format all source files according to the project's style guidelines.
-
-## Naming Conventions
-
-HARD uses **snake_case** for all variable, function, and file names. This convention must be followed consistently throughout the codebase.
-
-Examples:
-- Variables: `mass_density`, `velocity_field`, `time_step`
-- Functions: `compute_flux()`, `update_state()`, `initialize_mesh()`
-- Files: `riemann_solvers.hh`, `interface_fluxes.cc`
-
-**Note:** Before submitting any merge request, ensure that:
-1. Your code is properly formatted with `make format`
-2. All naming follows the snake_case convention
+If you want to contribute to HARD, please read [CONTRIBUTING.md](CONTRIBUTING.md)
+for the workflow, project structure, code style, and formatting requirements.
 
 <!-- vim: set tabstop=2 shiftwidth=2 expandtab fo=cqt tw=72 : -->
