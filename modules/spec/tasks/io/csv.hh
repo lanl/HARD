@@ -14,11 +14,11 @@ void inline csv(flecsi::exec::cpu s,
   spec::io::name const & base,
   single<double>::accessor<ro> time,
   multi<typename mesh<D>::template accessor<ro>> mm,
-  std::vector<std::tuple<multi<field<double>::accessor<ro, ro>>, std::string>>
-    field_ma,
+  std::vector<std::tuple<multi<field<double>::accessor<ro, ro>>,
+    const std::string &>> field_ma,
   std::vector<
     std::tuple<multi<typename field<vec<D>>::template accessor<ro, ro>>,
-      std::string>> field_vector_ma) {
+      const std::string &>> field_vector_ma) {
 
   for(uint32_t i{0}; i < mm.depth(); ++i) {
     const auto m = mm.accessors()[i];
