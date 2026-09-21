@@ -10,8 +10,6 @@
 #include "hydro/tasks/external_source.hh"
 #include "hydro/tasks/interface_fluxes.hh"
 #include "hydro/tasks/reconstruct.hh"
-#include "hydro/tasks/rhs.hh"
-#include "spec/reconstruct.hh"
 #include "spec/tasks/boundaries/boundary.hh"
 
 namespace hard::actions::flecsolve_hydro {
@@ -21,6 +19,15 @@ enum class var { mass_density, total_energy_density, momentum_density };
 struct make_state_vector_task : annotation_action_region {
   inline static const std::string name{"make state vector"};
 };
+
+// Helper function to make the repeated conserved vector below
+FLECSI_INLINE_TARGET auto
+make_conserved_vector(auto rho, auto e, auto mom) {
+  return flecsolve::vec::make(
+    flecsolve::vec::make(flecsolve::variable<var::mass_density>, rho),
+    flecsolve::vec::make(flecsolve::variable<var::total_energy_density>, e),
+    flecsolve::vec::make(flecsolve::variable<var::momentum_density>, mom));
+}
 
 /*
   FleCSolve view of the main HARD hydro conserved state:
@@ -36,15 +43,9 @@ make_state_vector(state<D> & s) {
 
   annotation_rguard<make_state_vector_task> guard;
 
-  return flecsolve::vec::make(
-    flecsolve::vec::make(
-      flecsolve::variable<var::mass_density>, s.cons.hydro.mass_density(m)),
-
-    flecsolve::vec::make(flecsolve::variable<var::momentum_density>,
-      s.cons.hydro.momentum_density(m)),
-
-    flecsolve::vec::make(flecsolve::variable<var::total_energy_density>,
-      s.cons.hydro.total_energy_density(m)));
+  return make_conserved_vector(s.cons.hydro.mass_density(m),
+    s.cons.hydro.total_energy_density(m),
+    s.cons.hydro.momentum_density(m));
 }
 
 struct make_rhs_vector_task : annotation_action_region {
@@ -65,15 +66,9 @@ make_rhs_vector(state<D> & s) {
 
   annotation_rguard<make_rhs_vector_task> guard;
 
-  return flecsolve::vec::make(
-    flecsolve::vec::make(
-      flecsolve::variable<var::mass_density>, s.rk_dt1.mass_density()(m)),
-
-    flecsolve::vec::make(flecsolve::variable<var::momentum_density>,
-      s.rk_dt1.momentum_energy_density()(m)),
-
-    flecsolve::vec::make(flecsolve::variable<var::total_energy_density>,
-      s.rk_dt1.total_energy_density()(m)));
+  return make_conserved_vector(s.rk_dt1.mass_density()(m),
+    s.rk_dt1.total_energy_density()(m),
+    s.rk_dt1.momentum_energy_density()(m));
 }
 
 struct make_rhs2_vector_task : annotation_action_region {
@@ -94,15 +89,9 @@ make_rhs2_vector(state<D> & s) {
 
   annotation_rguard<make_rhs2_vector_task> guard;
 
-  return flecsolve::vec::make(
-    flecsolve::vec::make(
-      flecsolve::variable<var::mass_density>, s.rk_dt2.mass_density()(m)),
-
-    flecsolve::vec::make(flecsolve::variable<var::momentum_density>,
-      s.rk_dt2.momentum_energy_density()(m)),
-
-    flecsolve::vec::make(flecsolve::variable<var::total_energy_density>,
-      s.rk_dt2.total_energy_density()(m)));
+  return make_conserved_vector(s.rk_dt2.mass_density()(m),
+    s.rk_dt2.total_energy_density()(m),
+    s.rk_dt2.momentum_energy_density()(m));
 }
 
 struct make_saved_vector_task : annotation_action_region {
@@ -122,21 +111,12 @@ make_saved_state_vector(state<D> & s) {
 
   annotation_rguard<make_saved_vector_task> guard;
 
-  return flecsolve::vec::make(
-    flecsolve::vec::make(
-      flecsolve::variable<var::mass_density>, s.rk_n.mass_density()(m)),
-
-    flecsolve::vec::make(flecsolve::variable<var::momentum_density>,
-      s.rk_n.momentum_energy_density()(m)),
-
-    flecsolve::vec::make(flecsolve::variable<var::total_energy_density>,
-      s.rk_n.total_energy_density()(m)));
+  return make_conserved_vector(s.rk_n.mass_density()(m),
+    s.rk_n.total_energy_density()(m),
+    s.rk_n.momentum_energy_density()(m));
 }
 
-/*
-  Small task to read the timestep from HARD's single<double> dt field.
-*/
-// FIXME: Maybe we do not need this helper.
+// Return the dt future
 inline double
 read_dt_task(flecsi::exec::cpu,
   single<double>::accessor<flecsi::ro> dt) noexcept {
@@ -207,43 +187,18 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
     auto & s = *params.s;
     auto & sc = *params.sc;
 
-    /*
-      Input state x = U.
-    */
-    /*
-      Select the conserved variables from the input state x = U.
-    */
-    auto & rho = x.subset(flecsolve::variable<var::mass_density>);
-    auto & mom = x.subset(flecsolve::variable<var::momentum_density>);
-    auto & E = x.subset(flecsolve::variable<var::total_energy_density>);
+    // Select the conserved variables from the input state x = U.
+    auto & [rho, E, mom] = x;
 
-    /*
-      Output RHS y = R = dU/dt.
-    */
-    /*
-      Select the corresponding variables from the output RHS y = dU/dt.
-    */
-    auto & drho = y.subset(flecsolve::variable<var::mass_density>);
-    auto & dmom = y.subset(flecsolve::variable<var::momentum_density>);
-    auto & dE = y.subset(flecsolve::variable<var::total_energy_density>);
+    // Select the corresponding variables from the output RHS y = dU/dt.
+    auto & [drho, dE, dmom] = y;
 
     /*
       Start from R = 0 before adding source and flux-divergence terms.
     */
     y.zero();
 
-    /*
-      Primitive recovery from the input state U.
-
-      This computes:
-          velocity
-          pressure
-          specific internal energy
-          sound speed
-
-      from:
-          rho, rho*u, rho*E
-    */
+    // Primitive recovery
     annotation_rguard<tasks::hydro::conserved_to_primitive_task>(),
       sc.template execute<tasks::hydro::conserved_to_primitive<D>>(
         flecsi::exec::on,
@@ -257,9 +212,7 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
         s.prim.sound_speed(*s.m),
         s.eos);
 
-    /*
-      Apply boundary conditions to the supplied state x.
-    */
+    // Apply boundary conditions.
     annotation_rguard<tasks::apply_boundaries_task>(),
       sc.template execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
         *s.m,
@@ -287,9 +240,7 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
         dE.data.ref());
 
     for(std::size_t axis = 0; axis < D; axis++) {
-      /*
-        Reconstruct primitive variables to faces.
-      */
+      // Reconstruct primitive variables to faces.
       {
         auto scalar_v =
           std::vector{std::make_tuple(rho.data.ref(), s.f.hydro.r_face(s.m)),
@@ -307,9 +258,7 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
             std::make_tuple(s.prim.velocity(*s.m), s.f.hydro.u_face(s.m))});
       }
 
-      /*
-        Convert reconstructed primitive face states to conserved face states.
-      */
+      // Convert reconstructed primitive face states to conserved face states.
       annotation_rguard<tasks::hydro::get_conserved_task>(),
         sc.template execute<tasks::hydro::get_conserved<D>>(flecsi::exec::on,
           *s.m,

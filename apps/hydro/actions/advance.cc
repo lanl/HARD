@@ -30,14 +30,9 @@ struct hydro_advance {
     /*
     Read the time-step selected by HARD.
     */
-    const double dt =
+    const flecsi::future<double> dt =
       sc.template execute<actions::flecsolve_hydro::read_dt_task>(
-          flecsi::exec::on, s.dt(*s.gt))
-        .get();
-
-    if(dt <= 0.0) {
-      return;
-    }
+        flecsi::exec::on, s.dt(*s.gt));
 
     /*
       HARD hydro RHS wrapped as a FleCSolve operator.
@@ -67,78 +62,35 @@ struct hydro_advance {
     // Solver (time integrator)
     if(flecsolve_solver) {
       if(s.use_solver == spec::slv::rk23) {
-        rk23::settings settings{};
-
-        settings.initial_time = 0.0;
-        settings.final_time = dt;
-        settings.max_steps = 1;
-
-        settings.initial_dt = dt;
-        settings.min_dt = dt;
-        settings.max_dt = dt;
-        settings.use_fixed_dt = true;
-
-        settings.safety_factor = 0.9f;
-        settings.atol = 1.0e-12f;
-
-        rk23::integrator ti(rk23::parameters(
-          settings, flecsolve::op::ref(F), rk23::make_work(U)));
+        rk23::stepper ti(
+          rk23::parameters(flecsolve::op::ref(F), rk23::make_work(U)));
 
         ti.advance(dt, U, Uout);
       }
       else if(s.use_solver == spec::slv::rk45) {
-        rk45::settings settings{};
-
-        settings.initial_time = 0.0;
-        settings.final_time = dt;
-        settings.max_steps = 1;
-
-        settings.initial_dt = dt;
-        settings.min_dt = dt;
-        settings.max_dt = dt;
-        settings.use_fixed_dt = true;
-
-        settings.safety_factor = 0.9f;
-        settings.atol = 1.0e-12f;
-
-        rk45::integrator ti(rk45::parameters(
-          settings, flecsolve::op::ref(F), rk45::make_work(U)));
+        rk45::stepper ti(
+          rk45::parameters(flecsolve::op::ref(F), rk45::make_work(U)));
 
         ti.advance(dt, U, Uout);
       }
     }
     else {
 
-      solver::settings settings{};
-      settings.initial_time = 0.0;
-      settings.final_time = dt;
-      settings.max_steps = 1;
-
-      settings.initial_dt = dt;
-      settings.min_dt = dt;
-      settings.max_dt = dt;
-
       if(s.use_solver == spec::slv::euler) {
-        auto ti =
-          solver::make_integrator<spec::slv::euler>(solver::parameters(settings,
-            flecsolve::op::ref(F),
-            solver::make_work<spec::slv::euler_vecs>(U)));
+        auto ti = solver::make_stepper<spec::slv::euler>(solver::parameters(
+          flecsolve::op::ref(F), solver::make_work<spec::slv::euler_vecs>(U)));
 
         ti.advance(dt, U, Uout);
       }
       else if(s.use_solver == spec::slv::heun) {
-        auto ti =
-          solver::make_integrator<spec::slv::heun>(solver::parameters(settings,
-            flecsolve::op::ref(F),
-            solver::make_work<spec::slv::heun_vecs>(U)));
+        auto ti = solver::make_stepper<spec::slv::heun>(solver::parameters(
+          flecsolve::op::ref(F), solver::make_work<spec::slv::heun_vecs>(U)));
 
         ti.advance(dt, U, Uout);
       }
       else if(s.use_solver == spec::slv::rk4) {
-        auto ti =
-          solver::make_integrator<spec::slv::rk4>(solver::parameters(settings,
-            flecsolve::op::ref(F),
-            solver::make_work<spec::slv::rk4_vecs>(U)));
+        auto ti = solver::make_stepper<spec::slv::rk4>(solver::parameters(
+          flecsolve::op::ref(F), solver::make_work<spec::slv::rk4_vecs>(U)));
 
         ti.advance(dt, U, Uout);
       }
