@@ -25,6 +25,10 @@ struct init_reconstructor_region : annotation_action_region {
   inline static const std::string name{"init_reconstructor"};
 };
 
+struct init_solver_region : annotation_action_region {
+  inline static const std::string name{"init_solver"};
+};
+
 template<std::size_t D>
 void
 init_reconstructor(state<D> & s, spec::config_py & config) {
@@ -123,6 +127,7 @@ init_solver(state<D> & s, spec::config_py & config) {
   /*--------------------------------------------------------------------------*
     ODE solver scheme configuration.
     *--------------------------------------------------------------------------*/
+  annotation_rguard<init_solver_region> guard;
 
   // Default reconstructor is heun (set in state initialization)
   if(config.contains("ode_solver")) {

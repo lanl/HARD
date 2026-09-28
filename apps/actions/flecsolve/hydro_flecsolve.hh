@@ -16,18 +16,25 @@ namespace hard::actions::flecsolve_hydro {
 
 enum class var { mass_density, total_energy_density, momentum_density };
 
-struct make_state_vector_task : annotation_action_region {
-  inline static const std::string name{"make state vector"};
+struct make_conserved_vector_task : annotation_action_region {
+  inline static const std::string name{"make conserved vector"};
 };
 
 // Helper function to make the repeated conserved vector below
 FLECSI_INLINE_TARGET auto
 make_conserved_vector(auto rho, auto e, auto mom) {
+
+  annotation_rguard<make_conserved_vector_task> guard;
+
   return flecsolve::vec::make(
     flecsolve::vec::make(flecsolve::variable<var::mass_density>, rho),
     flecsolve::vec::make(flecsolve::variable<var::total_energy_density>, e),
     flecsolve::vec::make(flecsolve::variable<var::momentum_density>, mom));
 }
+
+struct make_state_vector_task : annotation_action_region {
+  inline static const std::string name{"make_state_vector"};
+};
 
 /*
   FleCSolve view of the main HARD hydro conserved state:
@@ -49,7 +56,7 @@ make_state_vector(state<D> & s) {
 }
 
 struct make_rhs_vector_task : annotation_action_region {
-  inline static const std::string name{"make rhs vector"};
+  inline static const std::string name{"make_rhs_vector"};
 };
 
 /*
@@ -72,7 +79,7 @@ make_rhs_vector(state<D> & s) {
 }
 
 struct make_rhs2_vector_task : annotation_action_region {
-  inline static const std::string name{"make rhs2 vector"};
+  inline static const std::string name{"make_rhs2_vector"};
 };
 
 /*
@@ -95,7 +102,7 @@ make_rhs2_vector(state<D> & s) {
 }
 
 struct make_saved_vector_task : annotation_action_region {
-  inline static const std::string name{"make saved vector"};
+  inline static const std::string name{"make_saved_vector"};
 };
 
 /*

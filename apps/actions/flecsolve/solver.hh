@@ -24,6 +24,10 @@ flecsolve::work_factory<nvecs> make_work;
 template<class O, class W>
 using P = rk23::parameters<O, W, rk23::stepper_settings>;
 
+struct advance_method : annotation_action_region {
+  inline static const std::string name{"advance_method"};
+};
+
 template<spec::slv::solver S, class P>
 struct stepper {
   stepper(P p) : params(std::move(p)) {}
@@ -31,6 +35,8 @@ struct stepper {
   // Time integrator.
   template<class Current, class Output>
   void advance(flecsi::future<double> dt, Current & current, Output & output) {
+
+    annotation_rguard<advance_method> guard;
 
     auto & rhs = params.get_operator();
 
