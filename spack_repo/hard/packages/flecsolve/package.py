@@ -13,7 +13,7 @@ class Flecsolve(CMakePackage, CudaPackage, ROCmPackage):
     homepage = "https://github.com/lanl/flecsolve.git"
     git = "https://github.com/lanl/flecsolve.git"
 
-    version("main", commit="661877df93b594e2447790fc313cca4446837fad")
+    version("main", commit="307e7c6438514205d39e9eaa677b32075030e486")
 
     variant("tests", default=False, description="Enable unit tests")
     variant("standard", default=False, description="Standard setup for flecsolve")
