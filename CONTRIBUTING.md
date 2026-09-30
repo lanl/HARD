@@ -48,3 +48,13 @@ make format
 
 Commit formatting together with the related work, not as a separate commit —
 this keeps the history readable and makes reviewing easier.
+
+## Citing papers
+
+When using papers for code development (e.g., adapting a recent algorithm) you
+can cite them in the code directly, adding a link to the `doi` database or to
+the preprint itself if not yet published. Please, also cite the paper in place
+so that other people can find the work even if the link breaks.
+
+Optionally, the paper can be added to the code documentation if it does not
+apply to only an easily identifiable part of the code.

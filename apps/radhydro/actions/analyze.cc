@@ -2,8 +2,6 @@
 
 #include <flecsi/flog.hh>
 #include <spec/tasks/io.hh>
-#include <string>
-#include <vector>
 
 #include "../../actions/analyze/analyze.hh"
 

@@ -78,17 +78,22 @@ ClayTovWSE(const double u_l,
   const double p_l,
   const double p_r,
   const double c_l,
-  const double
-    c_r) { // Adapted from Bennett Clayton and Eric Tovar's preprint
-           // "Preserving the minimum principle...with General EoS" (2026)
+  const double c_r) {
+
+  // This routine is adapted from
+
+  // Clayton, B., Tovar, E.J. Preserving the Minimum Principle on the Entropy
+  // for the Compressible Euler Equations with General Equations of State. J
+  // Sci Comput 108, 70 (2026). https://doi.org/10.1007/s10915-026-03362-0
+
   const double K_l = rho_l * c_l * c_l;
   const double K_r = rho_r * c_r * c_r;
 
   const double p_min = std::min(p_l, p_r);
   const double p_max = std::max(p_l, p_r);
 
-  const double pInf_min = std::min(K_l - p_l, K_r - p_r);
-  const double pInf_max = std::max(K_l - p_l, K_r - p_r);
+  const double p_inf_min = std::min(K_l - p_l, K_r - p_r);
+  const double p_inf_max = std::max(K_l - p_l, K_r - p_r);
 
   double f_l;
   double f_r;
@@ -113,27 +118,27 @@ ClayTovWSE(const double u_l,
   double p_star; // p_star computed below is an approximation of the root
                  // phi(p) = 0
   if(phi(p_min) >= 0) {
-    p_star = -pInf_min;
+    p_star = -p_inf_min;
   }
   else if(phi(p_max) >= 0) {
     const double p_rr =
       std::exp(
         (c_l * std::log(K_l) + c_r * log(K_r) - (u_r - u_l)) / (c_l + c_r)) -
-      pInf_min;
+      p_inf_min;
     p_star = std::min(p_max, p_rr);
   }
   else {
     const double p_rr =
       std::exp(
         (c_l * std::log(K_l) + c_r * log(K_r) - (u_r - u_l)) / (c_l + c_r)) -
-      pInf_min;
+      p_inf_min;
     const double a = std::sqrt(rho_l) + std::sqrt(rho_r);
     const double b = std::sqrt(rho_l * rho_r) * (u_r - u_l);
-    const double c = -std::sqrt(rho_r) * (p_l + pInf_max) -
-                     std::sqrt(rho_l) * (p_r + pInf_max);
+    const double c = -std::sqrt(rho_r) * (p_l + p_inf_max) -
+                     std::sqrt(rho_l) * (p_r + p_inf_max);
     const double p_ss =
       (b * b - 2 * a * c - b * std::sqrt(b * b - 4 * a * c)) / (2 * a * a) -
-      pInf_max; // Quadratic formula here
+      p_inf_max; // Quadratic formula here
     p_star = std::min(p_rr, p_ss);
   }
 
