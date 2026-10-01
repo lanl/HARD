@@ -96,7 +96,8 @@ debug_output_extrapolation_t0(CP & cp) {
     std::make_tuple(s.extp.normal_mag_out(lm), std::string{"extp_normal_mag"})};
 
   if(s.output_method == spec::om::vti) {
-    flecsi::execute<tasks::io::vtk<D>, flecsi::mpi>(flecsi::exec::on,
+    sc.template execute<tasks::io::vtk<D>>(flecsi::exec::on,
+      flecsi::exec::group::world(),
       spec::io::name{"debug_extrapolation_t0"},
       s.t(*s.gt),
       lm,
@@ -106,7 +107,8 @@ debug_output_extrapolation_t0(CP & cp) {
   }
 #ifdef HARD_ENABLE_HDF5
   else if(s.output_method == spec::om::xdmf) {
-    flecsi::execute<tasks::io::xdmf<D>, flecsi::mpi>(flecsi::exec::on,
+    sc.template execute<tasks::io::xdmf<D>>(flecsi::exec::on,
+      flecsi::comm::world(),
       spec::io::name{"debug_extrapolation_t0"},
       s.t(*s.gt),
       lm,
@@ -116,7 +118,8 @@ debug_output_extrapolation_t0(CP & cp) {
   }
 #endif
   else {
-    flecsi::execute<tasks::io::csv<D>, flecsi::mpi>(flecsi::exec::on,
+    sc.template execute<tasks::io::csv<D>>(flecsi::exec::on,
+      flecsi::exec::group::world(),
       spec::io::name{"debug_extrapolation_t0"},
       s.t(*s.gt),
       lm,

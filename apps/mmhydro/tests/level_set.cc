@@ -59,7 +59,7 @@ init_mesh(scheduler & s, state<D> & st, std::size_t levels) {
     bnds[ax::z][bd::high] = bd::periodic;
   }
 
-  auto bf = execute<init_boundaries<D>>();
+  auto bf = s.execute<init_boundaries<D>>();
 
   std::size_t lowest_level = levels;
   std::size_t highest_level = levels;

@@ -12,6 +12,7 @@ namespace hard::tasks::io {
 
 template<std::size_t D, dm::domain L = dm::quantities>
 void inline vtk(flecsi::exec::cpu s,
+  flecsi::exec::group::match,
   spec::io::name const & base,
   single<double>::accessor<ro> time,
   multi<typename mesh<D>::template accessor<ro>> mm,

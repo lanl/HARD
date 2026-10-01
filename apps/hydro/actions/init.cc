@@ -57,13 +57,13 @@ struct initialize {
       if constexpr(D > 2)
         g[2] = config["gravity_acc"][2].cast<double>();
     }
-    execute<tasks::init::initialize_gravity_acc<D>>(
+    sc.execute<tasks::init::initialize_gravity_acc<D>>(
       s.icst.gravity_acc(*s.gt), g);
 
     /*--------------------------------------------------------------------------*
       Particle mass
      *--------------------------------------------------------------------------*/
-    execute<tasks::init::particle_mass>(s.icst.particle_mass(*s.gt),
+    sc.execute<tasks::init::particle_mass>(s.icst.particle_mass(*s.gt),
       config["mean_molecular_weight"].cast<double>());
 
     /*--------------------------------------------------------------------------*
@@ -96,11 +96,11 @@ struct initialize {
 
     const std::string problem{config["problem"].cast<std::string>()};
 
-    execute<tasks::init::initialize_gravity_force<D>>(
+    sc.execute<tasks::init::initialize_gravity_force<D>>(
       flecsi::exec::on, s.src_t.hydro.gravity_force(*s.m));
 
     if(problem == "sod") {
-      execute<
+      sc.execute<
         tasks::initial_data::shock<tasks::initial_data::shock_tubes::sod, D>>(
         flecsi::exec::on,
         *s.m,
@@ -110,7 +110,7 @@ struct initialize {
         s.eos);
     }
     else if(problem == "rankine-hugoniot") {
-      execute<tasks::initial_data::
+      sc.execute<tasks::initial_data::
           shock<tasks::initial_data::shock_tubes::rankine_hugoniot, D>>(
         flecsi::exec::on,
         *s.m,
@@ -120,7 +120,7 @@ struct initialize {
         s.eos);
     }
     else if(problem == "leblanc") {
-      execute<tasks::initial_data::
+      sc.execute<tasks::initial_data::
           shock<tasks::initial_data::shock_tubes::leblanc, D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
@@ -129,7 +129,7 @@ struct initialize {
         s.eos);
     }
     else if(problem == "acoustic-wave") {
-      execute<tasks::initial_data::acoustic_wave<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::acoustic_wave<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -137,7 +137,7 @@ struct initialize {
         s.eos);
     }
     else if(problem == "four_shock_jet") {
-      execute<tasks::initial_data::four_shock_jet<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::four_shock_jet<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -145,7 +145,7 @@ struct initialize {
         s.eos);
     }
     else if(problem == "kh-test") {
-      execute<tasks::initial_data::kh_instability<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::kh_instability<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -154,7 +154,7 @@ struct initialize {
     }
     // Rayleigh-Taylor setup
     else if(problem == "rt-test") {
-      execute<tasks::initial_data::rt_instability<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::rt_instability<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -164,14 +164,14 @@ struct initialize {
         s.eos);
     }
     else if(problem == "sedov") {
-      execute<tasks::initial_data::sedov_blast<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::sedov_blast<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
         s.cons.hydro.total_energy_density(*s.m));
     }
     else if(problem == "lw-implosion") {
-      execute<tasks::initial_data::lw_implosion<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::lw_implosion<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),

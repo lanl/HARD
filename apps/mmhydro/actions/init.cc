@@ -65,14 +65,14 @@ initialize(control_policy<state, D> & cp) {
       g[2] = config["gravity_acc"][2].cast<double>();
   }
   annotation_rguard<tasks::init::initialize_gravity_acc_task>(),
-    execute<tasks::init::initialize_gravity_acc<D>>(
+    sc.execute<tasks::init::initialize_gravity_acc<D>>(
       s.icst.gravity_acc(*s.gt), g);
 
   /*--------------------------------------------------------------------------*
     Particle mass
    *--------------------------------------------------------------------------*/
   annotation_rguard<tasks::init::particle_mass_task>(),
-    execute<tasks::init::particle_mass>(s.icst.particle_mass(*s.gt),
+    sc.execute<tasks::init::particle_mass>(s.icst.particle_mass(*s.gt),
       config["mean_molecular_weight"].cast<double>());
 
   /*--------------------------------------------------------------------------*
@@ -111,14 +111,14 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
 
   annotation_rguard<tasks::init::initialize_gravity_force_task>(),
-    execute<tasks::init::initialize_gravity_force<D>>(
+    sc.execute<tasks::init::initialize_gravity_force<D>>(
       flecsi::exec::on, s.src_t.hydro.gravity_force(*s.m));
 
   auto problem = config["problem"].cast<std::string>();
 
   if(problem == "sod") {
     annotation_rguard<tasks::initial_data::shock_task>(),
-      execute<
+      sc.execute<
         tasks::initial_data::shock<tasks::initial_data::shock_tubes::sod, D>>(
         flecsi::exec::on,
         *s.m,
@@ -129,7 +129,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "sod_mm") {
     annotation_rguard<tasks::initial_data::shock_mm_task>(),
-      execute<tasks::initial_data::
+      sc.execute<tasks::initial_data::
           shock_mm<tasks::initial_data::shock_tubes::sod_mm, D>>(
         flecsi::exec::on,
         *s.m,
@@ -147,7 +147,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "oblique_sod_mm") {
     annotation_rguard<tasks::initial_data::oblique_shock_mm_task>(),
-      execute<tasks::initial_data::oblique_shock_mm<
+      sc.execute<tasks::initial_data::oblique_shock_mm<
         tasks::initial_data::shock_tubes::oblique_sod_mm,
         D>>(flecsi::exec::on,
         *s.m,
@@ -165,7 +165,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "shyue_shock") {
     annotation_rguard<tasks::initial_data::shock_mm_task>(),
-      execute<tasks::initial_data::
+      sc.execute<tasks::initial_data::
           shock_mm<tasks::initial_data::shock_tubes::shyue_shock, D>>(
         flecsi::exec::on,
         *s.m,
@@ -183,7 +183,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "lee_shock") {
     annotation_rguard<tasks::initial_data::shock_mm_task>(),
-      execute<tasks::initial_data::
+      sc.execute<tasks::initial_data::
           shock_mm<tasks::initial_data::shock_tubes::lee_shock, D>>(
         flecsi::exec::on,
         *s.m,
@@ -200,7 +200,7 @@ initialize(control_policy<state, D> & cp) {
         s.eos_mm);
   }
   else if(problem == "helium_bubble_mm") {
-    execute<tasks::initial_data::
+    sc.execute<tasks::initial_data::
         he_bubble_mm<tasks::initial_data::bubbles::he_bubble, D>>(
       flecsi::exec::on,
       *s.m,
@@ -218,7 +218,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "rankine-hugoniot") {
     annotation_rguard<tasks::initial_data::shock_task>(),
-      execute<tasks::initial_data::
+      sc.execute<tasks::initial_data::
           shock<tasks::initial_data::shock_tubes::rankine_hugoniot, D>>(
         flecsi::exec::on,
         *s.m,
@@ -229,7 +229,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "leblanc") {
     annotation_rguard<tasks::initial_data::shock_task>(),
-      execute<tasks::initial_data::
+      sc.execute<tasks::initial_data::
           shock<tasks::initial_data::shock_tubes::leblanc, D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
@@ -239,7 +239,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "acoustic-wave") {
     annotation_rguard<tasks::initial_data::acoustic_wave_task>(),
-      execute<tasks::initial_data::acoustic_wave<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::acoustic_wave<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -248,7 +248,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "kh-test") {
     annotation_rguard<tasks::initial_data::kh_instability_task>(),
-      execute<tasks::initial_data::kh_instability<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::kh_instability<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -257,7 +257,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "kh-test_mm") {
     annotation_rguard<tasks::initial_data::kh_instability_mm_task>(),
-      execute<tasks::initial_data::kh_instability_mm<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::kh_instability_mm<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -273,7 +273,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "rt-test") {
     annotation_rguard<tasks::initial_data::rt_instability_task>(),
-      execute<tasks::initial_data::rt_instability<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::rt_instability<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -284,7 +284,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "rt-test_mm") {
     annotation_rguard<tasks::initial_data::rt_instability_mm_task>(),
-      execute<tasks::initial_data::rt_instability_mm<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::rt_instability_mm<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -302,7 +302,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "sedov") {
     annotation_rguard<tasks::initial_data::sedov_blast_task>(),
-      execute<tasks::initial_data::sedov_blast<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::sedov_blast<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -310,7 +310,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "lw-implosion") {
     annotation_rguard<tasks::initial_data::lw_implosion_task>(),
-      execute<tasks::initial_data::lw_implosion<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::lw_implosion<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -319,7 +319,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "CONTACT_stat") {
     annotation_rguard<tasks::initial_data::shock_mm_task>(),
-      execute<tasks::initial_data::
+      sc.execute<tasks::initial_data::
           shock_mm<tasks::initial_data::shock_tubes::CONTACT_stat, D>>(
         flecsi::exec::on,
         *s.m,
@@ -337,7 +337,7 @@ initialize(control_policy<state, D> & cp) {
   }
   else if(problem == "CONTACT_move") {
     annotation_rguard<tasks::initial_data::shock_mm_task>(),
-      execute<tasks::initial_data::
+      sc.execute<tasks::initial_data::
           shock_mm<tasks::initial_data::shock_tubes::CONTACT_move, D>>(
         flecsi::exec::on,
         *s.m,

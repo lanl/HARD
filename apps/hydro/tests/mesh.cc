@@ -54,7 +54,7 @@ init_mesh(scheduler & s, typename mesh<D>::ptr & m) {
     bnds[ax::z][bd::high] = bd::periodic;
   }
 
-  auto bf = execute<init_boundaries<D>>();
+  auto bf = s.execute<init_boundaries<D>>();
 
   std::size_t levels = 5;
 

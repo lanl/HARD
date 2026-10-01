@@ -70,7 +70,7 @@ struct control_base : flecsi::run::control_base {
     flecsi::future<double> dtmin,
     double tf,
     double max_dt,
-    double cfl) {
+    double cfl) noexcept {
     dt = cfl * dtmin.get();
     dt = t + dt > tf ? tf - t : dt;
     dt = std::min(*dt, max_dt);
@@ -83,7 +83,7 @@ struct control_base : flecsi::run::control_base {
     flecsi::future<double> dtmin,
     double tf,
     double max_dt,
-    double cfl) {
+    double cfl) noexcept {
     dt = cfl * dtmin.get();
     dt = t + dt > tf ? tf - t : dt;
     dt = std::min(*dt, max_dt);
@@ -129,7 +129,7 @@ struct control_base : flecsi::run::control_base {
     auto & s = cp.state();
 
 #if FLECSI_BACKEND == FLECSI_BACKEND_legion
-    flecsi::execute<compute_dt>(
+    cp.scheduler().template execute<compute_dt>(
       s.t(*s.gt), s.dt(*s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_);
 
     if((cp.step_ % cp.log_frequency_) == 0 || cp.step_ == cp.max_steps_) {
@@ -138,9 +138,11 @@ struct control_base : flecsi::run::control_base {
     } // if
 
 #else
-    auto [t, dt] = flecsi::execute<compute_dt_mpi>(
-      s.t(*s.gt), s.dt(*s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_)
-                     .get();
+    auto [t, dt] =
+      cp.scheduler()
+        .template execute<compute_dt_mpi>(
+          s.t(*s.gt), s.dt(*s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_)
+        .get();
     cp.t_ = t;
 
     if((cp.step_ % cp.log_frequency_) == 0 || cp.step_ == cp.max_steps_ ||
@@ -459,7 +461,7 @@ struct control_policy : flecsi::run::control_base {
     flecsi::future<double> dtmin,
     double tf,
     double max_dt,
-    double cfl) {
+    double cfl) noexcept {
     dt = cfl * dtmin.get();
     dt = t + dt > tf ? tf - t : dt;
     dt = std::min(*dt, max_dt);
@@ -472,7 +474,7 @@ struct control_policy : flecsi::run::control_base {
     flecsi::future<double> dtmin,
     double tf,
     double max_dt,
-    double cfl) {
+    double cfl) noexcept {
     dt = cfl * dtmin.get();
     dt = t + dt > tf ? tf - t : dt;
     dt = std::min(*dt, max_dt);
@@ -518,7 +520,7 @@ struct control_policy : flecsi::run::control_base {
     auto & s = cp.state();
 
 #if FLECSI_BACKEND == FLECSI_BACKEND_legion
-    flecsi::execute<compute_dt>(
+    cp.scheduler().template execute<compute_dt>(
       s.t(*s.gt), s.dt(*s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_);
 
     if((cp.step_ % cp.log_frequency_) == 0 || cp.step_ == cp.max_steps_) {
@@ -527,9 +529,11 @@ struct control_policy : flecsi::run::control_base {
     } // if
 
 #else
-    auto [t, dt] = flecsi::execute<compute_dt_mpi>(
-      s.t(*s.gt), s.dt(*s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_)
-                     .get();
+    auto [t, dt] =
+      cp.scheduler()
+        .template execute<compute_dt_mpi>(
+          s.t(*s.gt), s.dt(*s.gt), s.dtmin_, cp.tf_, cp.max_dt_, cp.cfl_)
+        .get();
     cp.t_ = t;
 
     if((cp.step_ % cp.log_frequency_) == 0 || cp.step_ == cp.max_steps_ ||

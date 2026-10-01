@@ -9,6 +9,10 @@ struct name {
   name(std::string const & base) {
     ss_ << base;
   }
+  // std::stringstream is not copyable, but task arguments must be.
+  name(name const & n) {
+    ss_ << n.str();
+  }
   template<typename T>
   name & operator<<(T const & value) {
     ss_ << value;

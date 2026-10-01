@@ -31,7 +31,7 @@ void inline limiter_id(single<std::size_t>::accessor<wo> limiter_id_a,
  *----------------------------------------------------------------------------*/
 
 // Simple opacity that is used across all
-void inline kappa(single<double>::accessor<wo> kappa_a, double k) {
+void inline kappa(single<double>::accessor<wo> kappa_a, double k) noexcept {
   (*kappa_a) = k;
 } // kappa
 

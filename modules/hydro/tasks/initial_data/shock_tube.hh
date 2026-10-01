@@ -60,7 +60,7 @@ shock(flecsi::exec::cpu s,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
-  const eos::eos_wrapper & eos) {
+  const eos::eos_wrapper & eos) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 

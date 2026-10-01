@@ -79,7 +79,7 @@ struct initialize {
     /*--------------------------------------------------------------------------*
       Kappa.
       *--------------------------------------------------------------------------*/
-    execute<tasks::init::kappa>(
+    sc.execute<tasks::init::kappa>(
       s.rad.icst.kappa(*s.gt), config["kappa"].cast<double>());
 
     /*--------------------------------------------------------------------------*
@@ -108,13 +108,13 @@ struct initialize {
       if constexpr(D > 2)
         g[2] = config["gravity_acc"][2].cast<double>();
     }
-    execute<tasks::init::initialize_gravity_acc<D>>(
+    sc.execute<tasks::init::initialize_gravity_acc<D>>(
       s.icst.gravity_acc(*s.gt), g);
 
     /*--------------------------------------------------------------------------*
       Particle mass
      *--------------------------------------------------------------------------*/
-    execute<tasks::init::particle_mass>(s.icst.particle_mass(*s.gt),
+    sc.execute<tasks::init::particle_mass>(s.icst.particle_mass(*s.gt),
       config["mean_molecular_weight"].cast<double>());
 
     /*--------------------------------------------------------------------------*
@@ -139,13 +139,13 @@ struct initialize {
       Initialize problem state.
      *--------------------------------------------------------------------------*/
 
-    execute<tasks::init::initialize_gravity_force<D>>(
+    sc.execute<tasks::init::initialize_gravity_force<D>>(
       flecsi::exec::on, s.src_t.hydro.gravity_force(*s.m));
 
     // Ritchmyer-Meshkov works with both radiation on and off
     // FIXME: This problem does not converge (negative radiation energy)
     if(config["problem"].cast<std::string>() == "richtmyer-meshkov") {
-      execute<tasks::initial_data::richtmyer_meshkov<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::richtmyer_meshkov<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -156,7 +156,7 @@ struct initialize {
     else if(config["problem"].cast<std::string>() == "heating_and_cooling") {
       if(config["eos"].cast<std::string>() != "ideal")
         flog_fatal("Heating and cooling test only supports Ideal Gas eos");
-      execute<tasks::initial_data::heating_and_cooling<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::heating_and_cooling<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -181,7 +181,7 @@ struct initialize {
     }
     // FIXME: This problem does not converge (negative radiation energy)
     else if(config["problem"].cast<std::string>() == "implosion") {
-      execute<tasks::initial_data::implosion_forced_T<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::implosion_forced_T<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
@@ -194,7 +194,7 @@ struct initialize {
     // FIXME: This problem has not been tested for correctness
     // also, there is no configuration for this problem
     else if(config["problem"].cast<std::string>() == "rad-rh") {
-      execute<tasks::initial_data::
+      sc.execute<tasks::initial_data::
           rad_RH<tasks::initial_data::rad_shock::rad_rankine_hugoniot, D>>(
         flecsi::exec::on,
         *s.m,
@@ -208,7 +208,7 @@ struct initialize {
     // Kelvin Helmholtz with radiation setup
     else if(config["problem"].cast<std::string>() == "kh-rad-test") {
 
-      execute<tasks::initial_data::kh_instability_rad<D>>(flecsi::exec::on,
+      sc.execute<tasks::initial_data::kh_instability_rad<D>>(flecsi::exec::on,
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),

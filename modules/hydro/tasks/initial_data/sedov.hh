@@ -22,7 +22,7 @@ sedov_blast(flecsi::exec::cpu s,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,
-  field<double>::accessor<wo, na> total_energy_density_a) {
+  field<double>::accessor<wo, na> total_energy_density_a) noexcept {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);

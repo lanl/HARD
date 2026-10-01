@@ -27,7 +27,7 @@ heating_and_cooling(flecsi::exec::cpu s,
   field<double>::accessor<wo, na> total_energy_density_a,
   field<double>::accessor<wo, na> radiation_energy_density_a,
   single<double>::accessor<ro> particle_mass_a,
-  const double gamma) {
+  const double gamma) noexcept {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
