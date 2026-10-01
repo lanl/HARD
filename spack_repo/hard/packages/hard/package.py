@@ -20,9 +20,14 @@ class Hard(CMakePackage, CudaPackage):
     variant("tests", default=False, description="Enable unit tests")
     variant("verification", default=False, description="Enable physics verification tests")
     variant("format", default=False, description="Enable format target")
+    variant("caliper_detail", default="none", values=("none", "low", "medium", "high"),
+        multi=False, description="Caliper instrumentation detail level")
 
-    depends_on("flecsi@2.4: +flog")
+    depends_on("flecsi@2.4.2: +flog")
     depends_on("flecsi +cuda", when="+cuda")
+    depends_on("flecsi caliper_detail=low", when="caliper_detail=low")
+    depends_on("flecsi caliper_detail=medium", when="caliper_detail=medium")
+    depends_on("flecsi caliper_detail=high", when="caliper_detail=high")
     depends_on("flecsolve")
     depends_on("flecsolve+cuda", when="+cuda")
     depends_on("hdf5@1.10: +mpi", when="+hdf5")
@@ -30,9 +35,9 @@ class Hard(CMakePackage, CudaPackage):
     depends_on("c", type="build")
     depends_on("cxx", type="build")
 
-    depends_on("singularity-eos@1.11.0: ~closure~fortran+hdf5 +spiner build_extra=sesame")
+    depends_on("singularity-eos@1.12.1: ~closure~fortran+hdf5 +spiner build_extra=sesame")
     depends_on("singularity-eos~closure~fortran~eospac+kokkos+kokkos-kernels+cuda", when="+cuda")
-    depends_on("ports-of-call@2.0.1:")
+    depends_on("ports-of-call@3.0.0:")
 
     depends_on("cmake@3.27:")
     depends_on("llvm@20:20", type="build", when="+format")

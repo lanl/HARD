@@ -1,5 +1,8 @@
 build*/
 *.pyc
+bld*/
+*.dot
+Testing/
 
 /app/tasks/.nfs*
 

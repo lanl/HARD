@@ -6,6 +6,10 @@
 
 namespace hard::tasks::hydro {
 
+struct compute_interface_fluxes_task : annotation_task_region {
+  inline static const std::string name{"compute_interface_fluxes"};
+};
+
 template<std::size_t Dim>
 void
 compute_interface_fluxes(flecsi::exec::accelerator s,
@@ -56,11 +60,8 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
   }();
 
   if constexpr(Dim == 1) {
-#ifdef DEBUG
-    if(face_axis != 0) {
-      flog_fatal("1D executable can only compute fluxes along X axis");
-    }
-#endif
+    assert(
+      (face_axis == 0) && "1D executable can only compute fluxes along X axis");
     s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
       const auto dx = m.template delta<ax::x>();
       auto g = g_acc.get();
@@ -101,11 +102,8 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
     }; // forall
   }
   else if constexpr(Dim == 2) {
-#ifdef DEBUG
-    if(face_axis > 1) {
-      flog_fatal("2D executable cannot compute fluxes along Z axis");
-    }
-#endif
+    assert(
+      (face_axis < 2) && "2D executable cannot compute fluxes along Z axis");
     if(face_axis == 0) {
       auto mdpolicy_qc = get_mdiota_policy(r_f,
         m.template cells<ax::y, dm::quantities>(),

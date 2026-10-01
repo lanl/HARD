@@ -3,6 +3,10 @@
 
 namespace hard::tasks::initial_data {
 
+struct kh_instability_task : annotation_task_region {
+  inline static const std::string name{"kh_instability"};
+};
+
 /*----------------------------------------------------------------------------*
   Kelvin-Helmholtz Instability.
  *----------------------------------------------------------------------------*/
@@ -33,6 +37,12 @@ kh_instability(flecsi::exec::cpu s,
   const double vH = 0.0;
   const double pH = 2.5;
 
+  vec<D> vel;
+
+  double sieL = 0., sieH = 0.;
+  const double eL = eos.ieRhoPSie(rL, pL, sieL);
+  const double eH = eos.ieRhoPSie(rH, pH, sieH);
+
   if constexpr(D == 1) {
     flog_fatal(
       "Kelvin-Helmholtz instability problem for D == 1 is not implemented")
@@ -43,29 +53,41 @@ kh_instability(flecsi::exec::cpu s,
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);
 
+        double v, v_pert;
+        // velocity perturbations in the Y-direction
+        v_pert = 0.05 * sin(N * wavenumber * x);
+
         // initialize two different density and velocity fluids
         if(std::abs(y - 0.5) > 0.25) {
           mass_density(i, j) = rL;
-          momentum_density(i, j).x() = rL * uL;
-          momentum_density(i, j).y() = rL * vL;
-          const double e = util::find_sie(eos, rL, pL);
-          total_energy_density(i, j) = rL * e + 0.5 * rL * (vL * vL);
+          vel.x() = uL;
+          momentum_density(i, j).x() = rL * vel.x();
+          if(std::abs(y - 0.25) < 0.1 || std::abs(y - 0.75) < 0.1) {
+            vel.y() = v_pert;
+          }
+          else {
+            vel.y() = vL;
+          }
+          momentum_density(i, j).y() = rL * vel.y();
+
+          total_energy_density(i, j) =
+            rL * eL + 0.5 * rL * (vel.x() * vel.x() + vel.y() * vel.y());
         }
         else {
           mass_density(i, j) = rH;
-          momentum_density(i, j).x() = rH * uH;
-          momentum_density(i, j).y() = rH * vH;
-          const double e = util::find_sie(eos, rH, pH);
-          total_energy_density(i, j) = rH * e + 0.5 * rH * (vH * vH);
-        } // if
+          vel.x() = uH;
+          momentum_density(i, j).x() = rH * vel.x();
+          if(std::abs(y - 0.25) < 0.1 || std::abs(y - 0.75) < 0.1) {
+            vel.y() = v_pert;
+          }
+          else {
+            vel.y() = vH;
+          }
+          momentum_density(i, j).y() = rH * vel.y();
 
-        // velocity perturbations in the Y-direction
-        if(std::abs(y - 0.25) < 0.1) {
-          momentum_density(i, j).y() = 0.05 * sin(N * wavenumber * x);
-        }
-        if(std::abs(y - 0.75) < 0.1) {
-          momentum_density(i, j).y() = 0.05 * sin(N * wavenumber * x);
-        }
+          total_energy_density(i, j) =
+            rH * eH + 0.5 * rH * (vel.x() * vel.x() + vel.y() * vel.y());
+        } // if
       } // for
     }; // forall
   }

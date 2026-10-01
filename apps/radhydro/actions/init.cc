@@ -127,7 +127,7 @@ struct initialize {
       Equation of State
      *--------------------------------------------------------------------------*/
 
-    actions::init_eos(s, config);
+    s.eos = eos::init_eos(config);
 
     /*--------------------------------------------------------------------------*
       Reconstruction scheme configuration.

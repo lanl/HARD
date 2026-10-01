@@ -3,7 +3,7 @@
 
 #include "../constants.hh"
 #include "../types.hh"
-#include <singularity-eos/base/root-finding-1d/root_finding.hpp>
+#include <singularity-utils/root-finding-1d/root_finding.hpp>
 
 #include <sstream>
 
@@ -141,11 +141,11 @@ print_vec_field(flecsi::exec::cpu,
   flog(info) << ss.str() << std::endl;
 } // print_vec_field
 
-template<dm::domain DM, std::size_t D>
+template<dm::domain DM, std::size_t D, typename T>
 inline void
 print_scal_field(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
-  field<double>::accessor<ro, ro> u_a) {
+  typename field<T>::template accessor<ro, ro> u_a) noexcept {
   std::stringstream ss;
 
   if constexpr(D == 1) {
@@ -167,7 +167,6 @@ print_scal_field(flecsi::exec::cpu,
 
   flog(info) << ss.str() << std::endl;
 } // print_scal_field
-
 template<dm::domain DM, std::size_t D>
 inline void
 print_primitives(flecsi::exec::cpu,

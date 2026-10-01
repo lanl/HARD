@@ -15,7 +15,7 @@ display(std::vector<std::tuple<std::string, field<double>::accessor<ro, ro>>>
   for(auto & vv : v_f) {
     auto [s, v] = vv;
     std::cout << s << ":" << '\n';
-    for(int i = 0; i < v.span().size(); ++i) {
+    for(std::size_t i = 0; i < v.span().size(); ++i) {
       std::cout << v[i] << '\n';
     }
   }
@@ -80,6 +80,10 @@ copy_scalar(flecsi::exec::accelerator s,
     to_a(i) = from_a(i);
   };
 }
+
+struct copy_scalar_v_vector_task : hard::annotation_task_region {
+  inline static const std::string name{"copy_scalar_v_vector"};
+};
 
 // Copy a field to another one
 // The tuple contains the <from, to> fields

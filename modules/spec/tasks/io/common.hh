@@ -19,10 +19,10 @@ struct field_extractor {
   field_extractor(const auto & m,
     uint32_t i,
     const std::vector<std::tuple<multi<field<double>::accessor<ro, ro>>,
-      std::string>> & field_ma,
+      const std::string &>> & field_ma,
     const std::vector<
       std::tuple<multi<typename field<vec<D>>::template accessor<ro, ro>>,
-        std::string>> & field_vector_ma) {
+        const std::string &>> & field_vector_ma) {
 
     std::transform(field_ma.begin(),
       field_ma.end(),

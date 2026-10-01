@@ -9,6 +9,10 @@ namespace hard {
 
 namespace tasks::init {
 
+struct initialize_gravity_force_task : annotation_task_region {
+  inline static const std::string name{"initialize_gravity_force"};
+};
+
 template<std::size_t D>
 void inline initialize_gravity_force(flecsi::exec::cpu,
   typename field<vec<D>>::template accessor<wo, wo> gravity_force_a) noexcept {
@@ -17,6 +21,10 @@ void inline initialize_gravity_force(flecsi::exec::cpu,
   std::fill(gf.begin(), gf.end(), vec<D>{0.0});
 } // initialize_gravity_force
 
+struct initialize_gravity_acc_task : annotation_task_region {
+  inline static const std::string name{"initialize_gravity_acc"};
+};
+
 template<std::size_t D>
 void inline initialize_gravity_acc(
   typename single<vec<D>>::template accessor<wo> gravity_acc_a,
@@ -24,12 +32,20 @@ void inline initialize_gravity_acc(
   (*gravity_acc_a) = k;
 } // initialize_gravity_acc
 
+struct compute_dt_weighted_task : hard::annotation_task_region {
+  inline static const std::string name{"compute_dt_weighted"};
+};
+
 void inline compute_dt_weighted(flecsi::exec::cpu,
   single<double>::accessor<ro> dt,
   single<double>::accessor<wo> dt_w,
   double tsg) noexcept {
   dt_w = *dt * tsg;
 }
+
+struct init_time_task : annotation_task_region {
+  inline static const std::string name{"init_time"};
+};
 
 inline void
 init_time(flecsi::exec::cpu,
@@ -41,6 +57,10 @@ init_time(flecsi::exec::cpu,
 /*----------------------------------------------------------------------------*
   Temperature boundaries.
  *----------------------------------------------------------------------------*/
+
+struct set_t_boundary_task : annotation_task_region {
+  inline static const std::string name{"set_t_boundary"};
+};
 
 void inline set_t_boundary(flecsi::exec::cpu,
   field<double>::accessor<wo> t_boundary,
@@ -54,6 +74,10 @@ void inline set_t_boundary(flecsi::exec::cpu,
 /*----------------------------------------------------------------------------*
   Temperature unit conversion from eV (or other) to Kelvin
  *----------------------------------------------------------------------------*/
+
+struct convert_temperature_task : annotation_task_region {
+  inline static const std::string name{"convert_temperature"};
+};
 
 void inline convert_temperature(flecsi::exec::cpu,
   field<double>::accessor<rw> temperature,
@@ -77,6 +101,10 @@ void inline convert_temperature(flecsi::exec::cpu,
 /*----------------------------------------------------------------------------*
   Set the average particle mass with a given mean molecular weight
  *----------------------------------------------------------------------------*/
+
+struct particle_mass_task : annotation_task_region {
+  inline static const std::string name{"particle_mass"};
+};
 
 void inline particle_mass(single<double>::accessor<wo> particle_mass_a,
   double mean_molecular_weight) noexcept {

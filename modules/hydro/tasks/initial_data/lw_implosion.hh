@@ -3,6 +3,10 @@
 
 namespace hard::tasks::initial_data {
 
+struct lw_implosion_task : annotation_task_region {
+  inline static const std::string name{"lw_implosion"};
+};
+
 //
 // The Liska-Wendroff implosion test
 // (http://www-troja.fjfi.cvut.cz/~liska/CompareEuler/compare8/)

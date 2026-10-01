@@ -103,6 +103,12 @@ namespace rc {
 enum reconstructor { weno5z, ppm4, minmod, genminmod, noop };
 } // namespace rc
 
+namespace slv {
+/// Solver scheme selection.
+enum solver { euler, heun, rk23, rk4, rk45 };
+enum nvecs { euler_vecs = 1, heun_vecs = 3, rk4_vecs = 5 };
+} // namespace slv
+
 } // namespace spec
 
 #endif // SPEC_ENUM_HH

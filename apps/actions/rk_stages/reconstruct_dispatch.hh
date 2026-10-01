@@ -17,24 +17,29 @@ dispatch_reconstruct(spec::rc::reconstructor scheme,
   using namespace spec::reconstructors;
   switch(scheme) {
     case spec::rc::weno5z:
-      sc.execute<tasks::hydro::reconstruct_primitives<D, weno5z>>(
-        flecsi::exec::on, std::forward<Args>(args)...);
+      annotation_rguard<tasks::hydro::reconstruct_primitives_task>(),
+        sc.execute<tasks::hydro::reconstruct_primitives<D, weno5z>>(
+          flecsi::exec::on, std::forward<Args>(args)...);
       break;
     case spec::rc::ppm4:
-      sc.execute<tasks::hydro::reconstruct_primitives<D, ppm4>>(
-        flecsi::exec::on, std::forward<Args>(args)...);
+      annotation_rguard<tasks::hydro::reconstruct_primitives_task>(),
+        sc.execute<tasks::hydro::reconstruct_primitives<D, ppm4>>(
+          flecsi::exec::on, std::forward<Args>(args)...);
       break;
     case spec::rc::minmod:
-      sc.execute<tasks::hydro::reconstruct_primitives<D, minmod>>(
-        flecsi::exec::on, std::forward<Args>(args)...);
+      annotation_rguard<tasks::hydro::reconstruct_primitives_task>(),
+        sc.execute<tasks::hydro::reconstruct_primitives<D, minmod>>(
+          flecsi::exec::on, std::forward<Args>(args)...);
       break;
     case spec::rc::genminmod:
-      sc.execute<tasks::hydro::reconstruct_primitives<D, genminmod>>(
-        flecsi::exec::on, std::forward<Args>(args)...);
+      annotation_rguard<tasks::hydro::reconstruct_primitives_task>(),
+        sc.execute<tasks::hydro::reconstruct_primitives<D, genminmod>>(
+          flecsi::exec::on, std::forward<Args>(args)...);
       break;
     case spec::rc::noop:
-      sc.execute<tasks::hydro::reconstruct_primitives<D, noop>>(
-        flecsi::exec::on, std::forward<Args>(args)...);
+      annotation_rguard<tasks::hydro::reconstruct_primitives_task>(),
+        sc.execute<tasks::hydro::reconstruct_primitives<D, noop>>(
+          flecsi::exec::on, std::forward<Args>(args)...);
       break;
   }
 }

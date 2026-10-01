@@ -3,6 +3,10 @@
 
 namespace hard::actions {
 
+struct analyze_region : annotation_action_region {
+  inline static const std::string name{"analyze"};
+};
+
 template<std::size_t D>
 using field_multi_double = flecsi::data::
   multi_reference<double, flecsi::data::dense, spec::mesh<D>, spec::is::cells>;
@@ -10,8 +14,10 @@ using field_multi_double = flecsi::data::
 template<std::size_t D>
 void
 analyze([[maybe_unused]] control_policy<state, D> & cp,
-  [[maybe_unused]] std::vector<std::tuple<field_multi_double<D>, const char *>>
+  [[maybe_unused]] std::vector<std::tuple<field_multi_double<D>, std::string>>
     v_t = {}) {
+
+  annotation_rguard<analyze_region> guard;
 
 #ifndef HARD_BENCHMARK_MODE
 
@@ -28,14 +34,14 @@ analyze([[maybe_unused]] control_policy<state, D> & cp,
     auto & sc = cp.scheduler();
     auto lm = data::launch::make(sc, *s.m);
 
-    auto scalar_v =
-      std::vector{std::make_tuple(s.cons.hydro.mass_density(lm), "density"),
-        std::make_tuple(s.prim.pressure(lm), "pressure"),
-        std::make_tuple(s.prim.sound_speed(lm), "sound_speed"),
-        std::make_tuple(
-          s.prim.specific_internal_energy(lm), "specific_internal_energy"),
-        std::make_tuple(
-          s.cons.hydro.total_energy_density(lm), "total_energy_density")};
+    auto scalar_v = std::vector{
+      std::make_tuple(s.cons.hydro.mass_density(lm), std::string{"density"}),
+      std::make_tuple(s.prim.pressure(lm), std::string{"pressure"}),
+      std::make_tuple(s.prim.sound_speed(lm), std::string{"sound_speed"}),
+      std::make_tuple(s.prim.specific_internal_energy(lm),
+        std::string{"specific_internal_energy"}),
+      std::make_tuple(s.cons.hydro.total_energy_density(lm),
+        std::string{"total_energy_density"})};
 
     scalar_v.insert(scalar_v.end(), v_t.begin(), v_t.end());
 
@@ -45,9 +51,10 @@ analyze([[maybe_unused]] control_policy<state, D> & cp,
         s.t(*s.gt),
         lm,
         scalar_v,
-        std::vector{std::make_tuple(s.prim.velocity(lm), "velocity"),
-          std::make_tuple(
-            s.cons.hydro.momentum_density(lm), "momentum_density")});
+        std::vector{
+          std::make_tuple(s.prim.velocity(lm), std::string{"velocity"}),
+          std::make_tuple(s.cons.hydro.momentum_density(lm),
+            std::string{"momentum_density"})});
     }
 #ifdef HARD_ENABLE_HDF5
     else if(s.output_method == spec::om::xdmf) {
@@ -56,9 +63,10 @@ analyze([[maybe_unused]] control_policy<state, D> & cp,
         s.t(*s.gt),
         lm,
         scalar_v,
-        std::vector{std::make_tuple(s.prim.velocity(lm), "velocity"),
-          std::make_tuple(
-            s.cons.hydro.momentum_density(lm), "momentum_density")});
+        std::vector{
+          std::make_tuple(s.prim.velocity(lm), std::string{"velocity"}),
+          std::make_tuple(s.cons.hydro.momentum_density(lm),
+            std::string{"momentum_density"})});
     }
 #endif
     else {
@@ -67,9 +75,10 @@ analyze([[maybe_unused]] control_policy<state, D> & cp,
         s.t(*s.gt),
         lm,
         scalar_v,
-        std::vector{std::make_tuple(s.prim.velocity(lm), "velocity"),
-          std::make_tuple(
-            s.cons.hydro.momentum_density(lm), "momentum_density")});
+        std::vector{
+          std::make_tuple(s.prim.velocity(lm), std::string{"velocity"}),
+          std::make_tuple(s.cons.hydro.momentum_density(lm),
+            std::string{"momentum_density"})});
     }
   } // if
 

@@ -16,7 +16,7 @@ for INDX in $(seq $start $stop)
 do
     mkdir output_$INDX
     cd output_$INDX
-    $mpi_executable -np 1 $hard_executable $config_file $additional_args -r $INDX
+    $mpi_executable -n 1 $hard_executable $config_file $additional_args -r $INDX
     cd ..
 done
 make convergence CONFIG=$config_file DIMENSION=$dimension

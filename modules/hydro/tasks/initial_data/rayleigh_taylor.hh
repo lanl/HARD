@@ -3,6 +3,10 @@
 
 namespace hard::tasks::initial_data {
 
+struct rt_instability_task : annotation_task_region {
+  inline static const std::string name{"rt_instability"};
+};
+
 /*
 Rayleigh-Taylor Instability
 Reference: https://www.astro.princeton.edu/~jstone/Athena/tests/rt/rt.html

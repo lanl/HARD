@@ -57,6 +57,9 @@ struct vec<1> {
   FLECSI_INLINE_TARGET double norm() const {
     return std::abs(vx);
   }
+  FLECSI_INLINE_TARGET double dot(const vec<1> & w) const {
+    return vx * w[0];
+  }
   FLECSI_INLINE_TARGET double & get([[maybe_unused]] const size_t idx) {
     assert(idx == 0 && "Invalid access for 1d vector");
     return vx;
@@ -114,6 +117,9 @@ struct vec<2> {
   }
   FLECSI_INLINE_TARGET double norm() const {
     return std::sqrt(norm_squared());
+  }
+  FLECSI_INLINE_TARGET double dot(const vec<2> & w) const {
+    return v[0] * w[0] + v[1] * w[1];
   }
   FLECSI_INLINE_TARGET double & get(const size_t idx) {
     assert(idx <= 1 && "Invalid access for 2d vector");
@@ -180,6 +186,11 @@ struct vec<3> {
   FLECSI_INLINE_TARGET double norm() const {
     return std::sqrt(norm_squared());
   }
+
+  FLECSI_INLINE_TARGET double dot(const vec<3> & w) const {
+    return v[0] * w[0] + v[1] * w[1] + v[2] * w[2];
+  }
+
   FLECSI_INLINE_TARGET double & get(const size_t idx) {
     assert(idx <= 2 && "Invalid access for 3d vector");
     return v[idx];
@@ -328,6 +339,30 @@ operator*(const vec<D> & a, const vec<D> & b) {
 }
 
 template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D> &
+operator*=(vec<D> & a, double s) {
+  a[0] *= s;
+  if constexpr(D > 1)
+    a[1] *= s;
+  if constexpr(D > 2)
+    a[2] *= s;
+
+  return a;
+}
+
+template<std::size_t D>
+FLECSI_INLINE_TARGET vec<D> &
+operator*=(vec<D> & a, const vec<D> & b) {
+  a[0] *= b[0];
+  if constexpr(D > 1)
+    a[1] *= b[1];
+  if constexpr(D > 2)
+    a[2] *= b[2];
+
+  return a;
+}
+
+template<std::size_t D>
 FLECSI_INLINE_TARGET vec<D>
 operator/(const vec<D> & a, double s) {
   vec<D> result;
@@ -410,6 +445,55 @@ copysign(double mag, const vec<D> & sgn) {
     result[2] = std::copysign(mag, sgn[2]);
   return result;
 }
+
+// Component-wise minmax with scalar
+// Returns pair of (min, max) for each component between scalar and vector
+template<std::size_t D>
+FLECSI_INLINE_TARGET std::tuple<vec<D>, vec<D>>
+minmax(double scalar, const vec<D> & v) {
+  vec<D> vmin, vmax;
+  vmin[0] = std::min(scalar, v[0]);
+  vmax[0] = std::max(scalar, v[0]);
+  if constexpr(D > 1) {
+    vmin[1] = std::min(scalar, v[1]);
+    vmax[1] = std::max(scalar, v[1]);
+  }
+  if constexpr(D > 2) {
+    vmin[2] = std::min(scalar, v[2]);
+    vmax[2] = std::max(scalar, v[2]);
+  }
+  return {vmin, vmax};
+}
+
+// ----------------------------------------------------------------------------
+//  vec<D> view type
+// ----------------------------------------------------------------------------
+
+template<std::size_t D>
+struct vec_view {
+  double * data;
+
+  FLECSI_INLINE_TARGET double & operator[](std::size_t i) {
+    return data[i];
+  }
+
+  FLECSI_INLINE_TARGET const double & operator[](std::size_t i) const {
+    return data[i];
+  }
+
+  FLECSI_INLINE_TARGET vec_view & operator=(const vec<D> & v) {
+    for(std::size_t d = 0; d < D; ++d)
+      data[d] = v[d];
+    return *this;
+  }
+
+  FLECSI_INLINE_TARGET operator vec<D>() const {
+    vec<D> v{};
+    for(std::size_t d = 0; d < D; ++d)
+      v[d] = data[d];
+    return v;
+  }
+};
 
 // ----------------------------------------------------------------------------
 //  Tensor types definitions
@@ -517,6 +601,20 @@ struct __attribute__((visibility("default"))) config_py {
   config_py operator[](const int & key) const {
     py::gil_scoped_acquire _;
     return config_py((*config_)[py::int_(key)]);
+  }
+
+  bool is_sequence() const {
+    py::gil_scoped_acquire _;
+    return py::isinstance<py::sequence>(*config_);
+  }
+
+  std::size_t size() const {
+    py::gil_scoped_acquire _;
+    return py::len(*config_);
+  }
+
+  bool empty() const {
+    return size() == 0;
   }
 
   template<typename T>

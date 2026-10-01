@@ -49,6 +49,10 @@ struct leblanc {
   Shock Tube.
  *----------------------------------------------------------------------------*/
 
+struct shock_task : annotation_task_region {
+  inline static const std::string name{"shock"};
+};
+
 template<typename T, std::size_t D>
 auto
 shock(flecsi::exec::cpu s,
@@ -65,20 +69,22 @@ shock(flecsi::exec::cpu s,
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
 
+  double sieR = 0., sieL = 0.;
+
   if constexpr(D == 1) {
     for(auto i : m.template cells<ax::x, dm::quantities>()) {
-      const auto x = m.template right<ax::x>(i);
+      const auto x = m.template center<ax::x>(i);
 
       if(x < T::x0) {
         mass_density(i) = T::rL;
         momentum_density(i).x() = T::rL * T::uL;
-        const double e = util::find_sie(eos, T::rL, T::pL);
+        const double e = eos.ieRhoPSie(T::rL, T::pL, sieL);
         total_energy_density(i) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
         mass_density(i) = T::rR;
         momentum_density(i).x() = T::rR * T::uR;
-        const double e = util::find_sie(eos, T::rR, T::pR);
+        const double e = eos.ieRhoPSie(T::rR, T::pR, sieR);
         total_energy_density(i) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
     }; // forall
@@ -90,18 +96,18 @@ shock(flecsi::exec::cpu s,
 
     for(auto ji : mdpolicy_yx) {
       auto [j, i] = ji;
-      const auto x = m.template right<ax::x>(i);
+      const auto x = m.template center<ax::x>(i);
 
       if(x < T::x0) {
         mass_density(i, j) = T::rL;
         momentum_density(i, j) = vec<D>(T::rL * T::uL);
-        const double e = util::find_sie(eos, T::rL, T::pL);
+        const double e = eos.ieRhoPSie(T::rL, T::pL, sieL);
         total_energy_density(i, j) = T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
         mass_density(i, j) = T::rR;
         momentum_density(i, j) = vec<D>(T::rR * T::uR);
-        const double e = util::find_sie(eos, T::rR, T::pR);
+        const double e = eos.ieRhoPSie(T::rR, T::pR, sieR);
         total_energy_density(i, j) = T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if
     }; // forall
@@ -114,19 +120,19 @@ shock(flecsi::exec::cpu s,
 
     for(auto kji : mdpolicy_zyx) {
       auto [k, j, i] = kji;
-      const auto x = m.template right<ax::x>(i);
+      const auto x = m.template center<ax::x>(i);
 
       if(x < T::x0) {
         mass_density(i, j, k) = T::rL;
         momentum_density(i, j, k) = vec<D>(T::rL * T::uL);
-        const double e = util::find_sie(eos, T::rL, T::pL);
+        const double e = eos.ieRhoPSie(T::rL, T::pL, sieL);
         total_energy_density(i, j, k) =
           T::rL * e + 0.5 * T::rL * (T::uL * T::uL);
       }
       else {
         mass_density(i, j, k) = T::rR;
         momentum_density(i, j, k) = vec<D>(T::rR * T::uR);
-        const double e = util::find_sie(eos, T::rR, T::pR);
+        const double e = eos.ieRhoPSie(T::rR, T::pR, sieR);
         total_energy_density(i, j, k) =
           T::rR * e + 0.5 * T::rR * (T::uR * T::uR);
       } // if

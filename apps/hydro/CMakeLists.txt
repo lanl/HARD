@@ -7,12 +7,12 @@ add_executable(hydro
   hydro.cc
   actions/init.cc
   actions/rhs.cc
-  actions/rk_stage_1.cc
-  actions/rk_stage_2.cc
+  actions/advance.cc
   actions/update_dt.cc
   actions/finalize.cc
   actions/analyze.cc
 )
+
 
 target_include_directories(hydro
   PRIVATE
@@ -54,6 +54,11 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   set(TEST_DISTRIBUTED_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_distributed.sh")
   set(TEST_CONVERGENCE_SCRIPT "${CMAKE_SOURCE_DIR}/tools/test_convergence.sh")
 
+  set(LEGION_GPU_FLAGS "")
+  if(ENABLE_LEGION AND ENABLE_CUDA)
+    set(LEGION_GPU_FLAGS "-ll:gpu 1 -ll:show_rsrv")
+  endif()
+
   file(MAKE_DIRECTORY
     ${CMAKE_BINARY_DIR}/tests/rk_3d
     ${CMAKE_BINARY_DIR}/tests/sod_3d
@@ -63,37 +68,37 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
   add_test(NAME accuracy_rk_1d
     COMMAND ${TEST_VERIFY_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/rk.py -d1
+    ${LEGION_GPU_FLAGS} ${CMAKE_SOURCE_DIR}/configs/ci_configs/rk.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   add_test(NAME accuracy_sod_1d
     COMMAND ${TEST_VERIFY_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod.py -d1
+    ${LEGION_GPU_FLAGS} ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   add_test(NAME accuracy_leblanc_1d
     COMMAND ${TEST_VERIFY_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/leblanc.py -d1
+    ${LEGION_GPU_FLAGS} ${CMAKE_SOURCE_DIR}/configs/ci_configs/leblanc.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   # add_test(NAME accuracy_sedov_1d
   #   COMMAND ${TEST_VERIFY_SCRIPT}
   #   ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-  #   ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.py -d1
+  #   ${LEGION_GPU_FLAGS} ${CMAKE_SOURCE_DIR}/configs/ci_configs/sedov.py -d1
   #   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   # )
   add_test(NAME accuracy_acoustic_1d
     COMMAND ${TEST_VERIFY_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.py -d1
+    ${LEGION_GPU_FLAGS} ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   add_test(NAME accuracy_acoustic_2d
     COMMAND ${TEST_VERIFY_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.py -d2
+    ${LEGION_GPU_FLAGS} ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave.py -d2
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
 
@@ -103,21 +108,21 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
     add_test(NAME hard-distributed
       COMMAND ${TEST_DISTRIBUTED_SCRIPT}
       ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-      ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.py -d1)
+      ${LEGION_GPU_FLAGS} ${CMAKE_SOURCE_DIR}/configs/ci_configs/distr-rk.py -d1)
   endif()
 
   # Convergence tests
   add_test(NAME total_convergence_testing
     COMMAND ${TEST_CONVERGENCE_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    6 10
+    ${LEGION_GPU_FLAGS} 6 10
     ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_total_convergence.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   add_test(NAME spatial_convergence_testing
     COMMAND ${TEST_CONVERGENCE_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
-    4 8
+    ${LEGION_GPU_FLAGS} 4 8
     ${CMAKE_SOURCE_DIR}/configs/ci_configs/acoustic-wave_spatial_convergence.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )

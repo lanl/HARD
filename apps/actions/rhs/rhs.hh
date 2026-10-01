@@ -7,6 +7,10 @@
 
 namespace hard::actions {
 
+struct rhs_region : annotation_action_region {
+  inline static const std::string name{"rhs"};
+};
+
 template<std::size_t D>
 using field_double =
   flecsi::field<double>::Reference<spec::mesh<D>, spec::is::cells>;
@@ -20,10 +24,13 @@ rhs(state<D> & s,
       tuple<field_double<D>, field_double<D>, field_double<D>, field_double<D>>>
     v_f = {}) {
 
-  sc.execute<tasks::init::compute_dt_weighted>(flecsi::exec::on,
-    s.dt(*s.gt),
-    s.dt_weighted(*s.gt),
-    hard::time_stepper::time_stepper_gamma);
+  annotation_rguard<rhs_region> guard;
+
+  annotation_rguard<tasks::init::compute_dt_weighted_task>(),
+    sc.execute<tasks::init::compute_dt_weighted>(flecsi::exec::on,
+      s.dt(*s.gt),
+      s.dt_weighted(*s.gt),
+      hard::time_stepper::time_stepper_gamma);
 
   {
 
@@ -40,12 +47,13 @@ rhs(state<D> & s,
     }
 
     // Set all dU_dt temporaries to zero before adding time derivative terms
-    sc.execute<tasks::hydro::set_dudt_to_zero<D>>(flecsi::exec::on,
-      scalar_v,
-      std::vector{// dt1
-        s.rk_dt1.momentum_energy_density()(*s.m),
-        // dt2
-        s.rk_dt2.momentum_energy_density()(*s.m)});
+    annotation_rguard<tasks::hydro::set_dudt_to_zero_task>(),
+      sc.execute<tasks::hydro::set_dudt_to_zero<D>>(flecsi::exec::on,
+        scalar_v,
+        std::vector{// dt1
+          s.rk_dt1.momentum_energy_density()(*s.m),
+          // dt2
+          s.rk_dt2.momentum_energy_density()(*s.m)});
   }
 
   {
@@ -60,11 +68,12 @@ rhs(state<D> & s,
 
     // Store the current state of evolved variables (U^n) before performing a
     // time step
-    sc.execute<common::tasks::utils::copy_scalar_v_vector<D, vec<D>>>(
-      flecsi::exec::on,
-      scalar_v,
-      std::vector{std::make_tuple(s.cons.hydro.momentum_density(*s.m),
-        s.rk_n.momentum_energy_density()(*s.m))});
+    annotation_rguard<common::tasks::utils::copy_scalar_v_vector_task>(),
+      sc.execute<common::tasks::utils::copy_scalar_v_vector<D, vec<D>>>(
+        flecsi::exec::on,
+        scalar_v,
+        std::vector{std::make_tuple(s.cons.hydro.momentum_density(*s.m),
+          s.rk_n.momentum_energy_density()(*s.m))});
   }
 }
 

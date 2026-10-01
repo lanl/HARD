@@ -5,12 +5,37 @@
 
 namespace hard::actions {
 
+struct init_timestep_region : annotation_action_region {
+  inline static const std::string name{"init_timestep"};
+};
+
+struct init_boundaries_region : annotation_action_region {
+  inline static const std::string name{"init_boundaries"};
+};
+
+struct init_topologies_region : annotation_action_region {
+  inline static const std::string name{"init_topologies"};
+};
+
+struct init_mesh_region : annotation_action_region {
+  inline static const std::string name{"init_mesh"};
+};
+
+struct init_reconstructor_region : annotation_action_region {
+  inline static const std::string name{"init_reconstructor"};
+};
+
+struct init_solver_region : annotation_action_region {
+  inline static const std::string name{"init_solver"};
+};
+
 template<std::size_t D>
 void
 init_reconstructor(state<D> & s, spec::config_py & config) {
   /*--------------------------------------------------------------------------*
     Reconstruction scheme configuration.
     *--------------------------------------------------------------------------*/
+  annotation_rguard<init_reconstructor_region> guard;
 
   // Default reconstructor is weno5z (set in state initialization)
   if(config.contains("reconstructor")) {
@@ -38,71 +63,42 @@ init_reconstructor(state<D> & s, spec::config_py & config) {
 
 template<std::size_t D>
 void
-init_eos(state<D> & s, spec::config_py & config) {
-  /*--------------------------------------------------------------------------*
-     Equation of State
-    *--------------------------------------------------------------------------*/
-
-  if(config["eos"].cast<std::string>() == "ideal") {
-    s.eos = singularity::IdealGas(
-      config["gamma"].cast<double>() - 1, 2.0 /* FIXME */);
-  }
-  else if(config["eos"].cast<std::string>() == "spiner") {
-    s.eos = singularity::SpinerEOSDependsRhoSie(
-      config["spiner_file"].cast<std::string>(),
-      config["spiner_matid"].cast<std::string>());
-  }
-  else if(config["eos"].cast<std::string>() == "gruneisen") {
-    s.eos = singularity::Gruneisen(config["gruneisen_c0"].cast<double>(),
-      config["gruneisen_s1"].cast<double>(),
-      0., // s2
-      0., // s3
-      config["gruneisen_G0"].cast<double>(),
-      0., // b
-      0., // rho0
-      config["gruneisen_T0"].cast<double>(),
-      0., // P0
-      config["gruneisen_Cv"].cast<double>(),
-      0. // rho_max
-
-    );
-  }
-  else {
-    flog_fatal("unsupported EOS");
-  }
-}
-
-template<std::size_t D>
-void
 init_timestep(state<D> & s,
   flecsi::scheduler & sc,
   spec::config_py & config,
   std::vector<flecsi::field<double>::Reference<spec::mesh<D>, spec::is::cells>>
     fr = {}) {
 
+  annotation_rguard<init_timestep_region> guard;
+
   /*--------------------------------------------------------------------------*
      Initialize time advance.
     *--------------------------------------------------------------------------*/
 
-  sc.execute<tasks::hydro::conserved_to_primitive<D>>(flecsi::exec::on,
-    *s.m,
-    s.cons.hydro.mass_density(*s.m),
-    s.cons.hydro.momentum_density(*s.m),
-    s.cons.hydro.total_energy_density(*s.m),
-    s.prim.velocity(*s.m),
-    s.prim.pressure(*s.m),
-    s.prim.specific_internal_energy(*s.m),
-    s.prim.sound_speed(*s.m),
-    s.eos);
+  annotation_rguard<tasks::hydro::conserved_to_primitive_task>(),
+    sc.execute<tasks::hydro::conserved_to_primitive<D>>(flecsi::exec::on,
+      *s.m,
+      s.cons.hydro.mass_density(*s.m),
+      s.cons.hydro.momentum_density(*s.m),
+      s.cons.hydro.total_energy_density(*s.m),
+      s.prim.velocity(*s.m),
+      s.prim.pressure(*s.m),
+      s.prim.specific_internal_energy(*s.m),
+      s.prim.sound_speed(*s.m),
+      s.eos);
 
-  auto lmax_f = sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
-    flecsi::exec::on,
-    *s.m,
-    s.cons.hydro.mass_density(*s.m),
-    s.prim.velocity(*s.m),
-    s.prim.sound_speed(*s.m));
-  s.dtmin_ = sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
-    flecsi::exec::on, *s.m, lmax_f);
+  auto lmax_f =
+    (annotation_rguard<tasks::hydro::update_max_characteristic_speed_task>(),
+      sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.prim.velocity(*s.m),
+        s.prim.sound_speed(*s.m)));
+
+  s.dtmin_ = (annotation_rguard<tasks::hydro::update_dtmin_task>(),
+    sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
+      flecsi::exec::on, *s.m, lmax_f));
 
   auto scalar_v = std::vector{s.cons.hydro.mass_density(*s.m),
     s.prim.pressure(*s.m),
@@ -110,17 +106,51 @@ init_timestep(state<D> & s,
     s.cons.hydro.total_energy_density(*s.m)};
   scalar_v.insert(scalar_v.end(), fr.begin(), fr.end());
 
-  sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-    *s.m,
-    s.icst.bmap(*s.gt),
-    scalar_v,
-    std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
+  annotation_rguard<tasks::apply_boundaries_task>(),
+    sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
+      *s.m,
+      s.icst.bmap(*s.gt),
+      scalar_v,
+      std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
 
   /*--------------------------------------------------------------------------*
     Initialize time to 0
    *--------------------------------------------------------------------------*/
-  sc.execute<tasks::init::init_time>(
-    flecsi::exec::on, s.t(*s.gt), config["t0"].cast<double>());
+  annotation_rguard<tasks::init::init_time_task>(),
+    sc.execute<tasks::init::init_time>(
+      flecsi::exec::on, s.t(*s.gt), config["t0"].cast<double>());
+}
+
+template<std::size_t D>
+void
+init_solver(state<D> & s, spec::config_py & config) {
+  /*--------------------------------------------------------------------------*
+    ODE solver scheme configuration.
+    *--------------------------------------------------------------------------*/
+  annotation_rguard<init_solver_region> guard;
+
+  // Default reconstructor is heun (set in state initialization)
+  if(config.contains("ode_solver")) {
+    auto scheme = config["ode_solver"].cast<std::string>();
+    if(scheme == "rk4") {
+      s.use_solver = spec::slv::rk4;
+    }
+    else if(scheme == "heun") {
+      s.use_solver = spec::slv::heun;
+    }
+    else if(scheme == "euler") {
+      s.use_solver = spec::slv::euler;
+    }
+    else if(scheme == "rk23") {
+      s.use_solver = spec::slv::rk23;
+    }
+    else if(scheme == "rk45") {
+      s.use_solver = spec::slv::rk45;
+    }
+    else {
+      flog_fatal("unsupported solver(" << scheme << ")");
+    }
+  }
 }
 
 template<std::size_t D>
@@ -130,6 +160,8 @@ init_boundaries(state<D> & s,
   std::vector<double> & time,
   std::vector<double> & temperature,
   spec::config_py & config) {
+
+  annotation_rguard<init_boundaries_region> guard;
 
   std::array<std::array<bd::boundary_type, 2>, D> bnds;
   bnds[ax::x][bd::low] =
@@ -149,22 +181,28 @@ init_boundaries(state<D> & s,
       config["boundaries"]["zhigh"].cast<std::string>());
   } // if
 
-  auto bf = sc.execute<tasks::init_boundaries<D>>(
-    flecsi::exec::on, s.icst.bmap(*s.gt), bnds);
+  auto bf = [&] {
+    annotation_rguard<tasks::init_boundaries_task> init_boundaries_task_guard;
+    return sc.execute<tasks::init_boundaries<D>>(
+      flecsi::exec::on, s.icst.bmap(*s.gt), bnds);
+  }();
 
   /*--------------------------------------------------------------------------*
     T boundary.
    *--------------------------------------------------------------------------*/
 
-  sc.execute<tasks::init::set_t_boundary>(
-    flecsi::exec::on, s.icst.time_boundary(*s.dense_topology), time);
-  sc.execute<tasks::init::set_t_boundary>(flecsi::exec::on,
-    s.icst.temperature_boundary(*s.dense_topology),
-    temperature);
-  if(config["problem"].cast<std::string>() == "implosion")
-    sc.execute<tasks::init::convert_temperature>(flecsi::exec::on,
+  annotation_rguard<tasks::init::set_t_boundary_task>(),
+    sc.execute<tasks::init::set_t_boundary>(
+      flecsi::exec::on, s.icst.time_boundary(*s.dense_topology), time);
+  annotation_rguard<tasks::init::set_t_boundary_task>(),
+    sc.execute<tasks::init::set_t_boundary>(flecsi::exec::on,
       s.icst.temperature_boundary(*s.dense_topology),
-      config["temperature_units"].cast<std::string>());
+      temperature);
+  if(config["problem"].cast<std::string>() == "implosion")
+    annotation_rguard<tasks::init::convert_temperature_task>(),
+      sc.execute<tasks::init::convert_temperature>(flecsi::exec::on,
+        s.icst.temperature_boundary(*s.dense_topology),
+        config["temperature_units"].cast<std::string>());
 
   return bf;
 }
@@ -175,6 +213,8 @@ init_topologies(state<D> & s,
   flecsi::scheduler & sc,
   std::vector<double> & time,
   std::vector<double> & temperature) {
+
+  annotation_rguard<init_topologies_region> guard;
 
   /*--------------------------------------------------------------------------*
     Global and color topology allocations.
@@ -220,6 +260,8 @@ init_mesh(state<D> & s,
   flecsi::future<typename mesh<D>::periodic_axes> & bf,
   spec::config_py & config) {
   using namespace common::utils;
+
+  annotation_rguard<init_mesh_region> guard;
 
   /*--------------------------------------------------------------------------*
     Mesh topology allocation.

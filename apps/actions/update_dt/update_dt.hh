@@ -6,19 +6,28 @@
 
 namespace hard::actions {
 
+struct update_dt_region : annotation_action_region {
+  inline static const std::string name{"update_dt"};
+};
+
 template<std::size_t D>
 void
 update_dt(state<D> & s, flecsi::scheduler & sc) {
 
-  auto lmax_f = sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
-    flecsi::exec::on,
-    *s.m,
-    s.cons.hydro.mass_density(*s.m),
-    s.prim.velocity(*s.m),
-    s.prim.sound_speed(*s.m));
+  annotation_rguard<update_dt_region> guard;
 
-  s.dtmin_ = sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
-    flecsi::exec::on, *s.m, lmax_f);
+  auto lmax_f =
+    (annotation_rguard<tasks::hydro::update_max_characteristic_speed_task>(),
+      sc.execute<tasks::hydro::update_max_characteristic_speed<D>>(
+        flecsi::exec::on,
+        *s.m,
+        s.cons.hydro.mass_density(*s.m),
+        s.prim.velocity(*s.m),
+        s.prim.sound_speed(*s.m)));
+
+  s.dtmin_ = (annotation_rguard<tasks::hydro::update_dtmin_task>(),
+    sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
+      flecsi::exec::on, *s.m, lmax_f));
 }
 
 } // namespace hard::actions

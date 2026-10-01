@@ -6,6 +6,10 @@
 
 namespace hard::tasks::hydro {
 
+struct update_dtmin_task : annotation_task_region {
+  inline static const std::string name{"update_dtmin"};
+};
+
 template<std::size_t D>
 double
 update_dtmin(flecsi::exec::cpu,
@@ -27,6 +31,10 @@ update_dtmin(flecsi::exec::cpu,
   } // if
 } // update_dtmin
 
+struct set_dudt_to_zero_task : annotation_task_region {
+  inline static const std::string name{"set_dudt_to_zero"};
+};
+
 template<std::size_t Dim>
 void
 set_dudt_to_zero(flecsi::exec::accelerator s,
@@ -46,6 +54,10 @@ set_dudt_to_zero(flecsi::exec::accelerator s,
     }; // forall
   }
 }
+
+struct update_u_task : annotation_task_region {
+  inline static const std::string name{"update_u"};
+};
 
 //
 // Used for the RK substeps
@@ -74,6 +86,10 @@ update_u(flecsi::exec::accelerator s,
   }
 }
 
+struct update_u_scalar_task : annotation_task_region {
+  inline static const std::string name{"update_u_scalar"};
+};
+
 template<std::size_t Dim>
 void
 update_u_scalar(flecsi::exec::accelerator s,
@@ -88,6 +104,10 @@ update_u_scalar(flecsi::exec::accelerator s,
     }; // forall
   }
 }
+
+struct update_u_stage_task : annotation_task_region {
+  inline static const std::string name{"update_u_stage"};
+};
 
 //
 // Used for the RK stage updates
@@ -118,6 +138,10 @@ update_u_stage(flecsi::exec::accelerator s,
   }
 }
 
+struct update_u_stage_scalar_task : annotation_task_region {
+  inline static const std::string name{"update_u_stage_scalar"};
+};
+
 template<std::size_t Dim>
 void
 update_u_stage_scalar(flecsi::exec::accelerator s,
@@ -133,6 +157,10 @@ update_u_stage_scalar(flecsi::exec::accelerator s,
     }; // forall
   }
 }
+
+struct add_k1_k2_task : annotation_task_region {
+  inline static const std::string name{"add_k1_k2"};
+};
 
 template<std::size_t Dim>
 void

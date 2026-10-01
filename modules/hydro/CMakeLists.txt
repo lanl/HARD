@@ -61,3 +61,5 @@ target_compile_definitions(libhydro
     $<$<BOOL:${HARD_ENABLE_LEGION_TRACING}>:HARD_ENABLE_LEGION_TRACING>
     $<$<BOOL:${HARD_WRITE_CONTROL_INFO}>:HARD_WRITE_CONTROL_INFO>
 )
+
+target_link_libraries(libhydro INTERFACE flecsolve::flecsolve)

@@ -1,0 +1,370 @@
+#ifndef HARD_MODULE_GFM_RECONSTRUCT_HH
+#define HARD_MODULE_GFM_RECONSTRUCT_HH
+
+#include "../modules/common/tasks/utils.hh"
+#include "../state.hh"
+#include <cstddef>
+
+namespace hard::tasks::hydro {
+
+namespace utils {
+
+template<typename T>
+FLECSI_INLINE_TARGET void
+tie(const std::tuple<T, T> & tup, T & a, T & b) noexcept {
+  a = std::get<0>(tup);
+  b = std::get<1>(tup);
+}
+
+} // namespace utils
+
+//
+// Perform reconstruction of primitive variables on cell interfaces, calculate
+// corresponding conservative variables on faces, and store them into `*right`
+// and `*left` variables.
+//
+//
+//    |      U_i     |
+//    |       *      |
+//     ^right(i)     ^left(i)
+//    |              |
+//   ^left(i-1)       ^right(i+1)
+//
+//
+template<std::size_t Dim, typename Limiter>
+void
+reconstruct_primitives_f(flecsi::exec::accelerator s,
+  std::size_t reconstruction_axis,
+  typename mesh<Dim>::template accessor<ro> m,
+  typename field<int>::template accessor<ro, na> material_a,
+  // cell-centered primitive varibles
+  std::vector<std::tuple<field<double>::accessor<ro, na>,
+    typename faces<Dim>::template accessor<wo, na>>> cons_faces_a,
+  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
+    typename faces_vec<Dim>::template accessor<wo, na>>>
+    cons_faces_vec_a) noexcept {
+
+  using common::tasks::utils::get_mdiota_policy;
+  using spec::utils::sqr;
+
+  auto ra = reconstruction_axis;
+  auto material = m.template mdcolex<is::cells>(material_a);
+
+  if constexpr(Dim == 1) {
+
+    for(auto cf : cons_faces_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
+
+        const int m0 = material(i);
+
+        // same-material stencil check for a 5 point stencil
+        // TODO : generalize this? it assumes WENO5z
+        const bool same_material_stencil =
+          (material(i - 2) == m0) && (material(i - 1) == m0) &&
+          (material(i + 1) == m0) && (material(i + 2) == m0);
+
+        if(same_material_stencil) {
+          utils::tie(Limiter::reconstruct(i, cons), h(i), t(i));
+        }
+        else {
+          // first-order fallback near interface
+          h(i) = cons(i);
+          t(i) = cons(i);
+        }
+      };
+    }
+
+    for(auto cf : cons_faces_vec_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
+        const int m0 = material(i);
+
+        const bool same_material_stencil =
+          (material(i - 2) == m0) && (material(i - 1) == m0) &&
+          (material(i + 1) == m0) && (material(i + 2) == m0);
+
+        if(same_material_stencil) {
+          utils::tie(Limiter::reconstruct(i, cons), h(i), t(i));
+        }
+        else {
+          h(i) = cons(i);
+          t(i) = cons(i);
+        }
+      };
+    }
+  }
+  else if constexpr(Dim == 2) {
+
+    auto mdpolicy_pp = get_mdiota_policy(
+      m.template mdcolex<is::cells>(std::get<0>(cons_faces_a.front())),
+      m.template cells<ax::y, dm::predictor>(),
+      m.template cells<ax::x, dm::predictor>());
+
+    for(auto cf : cons_faces_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(ji, mdpolicy_pp) {
+        auto [j, i] = ji;
+
+        const int m0 = material(i, j);
+
+        bool same_material_stencil = false;
+
+        if(ra == 0) {
+          same_material_stencil =
+            (material(i - 2, j) == m0) && (material(i - 1, j) == m0) &&
+            (material(i + 1, j) == m0) && (material(i + 2, j) == m0);
+        }
+        else if(ra == 1) {
+          same_material_stencil =
+            (material(i, j - 2) == m0) && (material(i, j - 1) == m0) &&
+            (material(i, j + 1) == m0) && (material(i, j + 2) == m0);
+        }
+
+        if(same_material_stencil) {
+          utils::tie(Limiter::reconstruct(ra, i, j, cons), h(i, j), t(i, j));
+        }
+        else {
+          // first-order fallback near material interface
+          h(i, j) = cons(i, j);
+          t(i, j) = cons(i, j);
+        }
+      };
+    }
+    for(auto cf : cons_faces_vec_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(ji, mdpolicy_pp) {
+        auto [j, i] = ji;
+
+        const int m0 = material(i, j);
+
+        bool same_material_stencil = false;
+
+        if(ra == 0) {
+          same_material_stencil =
+            (material(i - 2, j) == m0) && (material(i - 1, j) == m0) &&
+            (material(i + 1, j) == m0) && (material(i + 2, j) == m0);
+        }
+        else if(ra == 1) {
+          same_material_stencil =
+            (material(i, j - 2) == m0) && (material(i, j - 1) == m0) &&
+            (material(i, j + 1) == m0) && (material(i, j + 2) == m0);
+        }
+
+        if(same_material_stencil) {
+          utils::tie(Limiter::reconstruct(ra, i, j, cons), h(i, j), t(i, j));
+        }
+        else {
+          h(i, j) = cons(i, j);
+          t(i, j) = cons(i, j);
+        }
+      };
+    }
+  }
+  else { // Dim == 3
+
+    auto mdpolicy_ppp = get_mdiota_policy(
+      m.template mdcolex<is::cells>(std::get<0>(cons_faces_a.front())),
+      m.template cells<ax::z, dm::predictor>(),
+      m.template cells<ax::y, dm::predictor>(),
+      m.template cells<ax::x, dm::predictor>());
+
+    for(auto cf : cons_faces_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(kji, mdpolicy_ppp) {
+        auto [k, j, i] = kji;
+
+        const int m0 = material(i, j, k);
+
+        bool same_material_stencil = false;
+
+        if(ra == 0) {
+          same_material_stencil =
+            (material(i - 2, j, k) == m0) && (material(i - 1, j, k) == m0) &&
+            (material(i + 1, j, k) == m0) && (material(i + 2, j, k) == m0);
+        }
+        else if(ra == 1) {
+          same_material_stencil =
+            (material(i, j - 2, k) == m0) && (material(i, j - 1, k) == m0) &&
+            (material(i, j + 1, k) == m0) && (material(i, j + 2, k) == m0);
+        }
+        else {
+          same_material_stencil =
+            (material(i, j, k - 2) == m0) && (material(i, j, k - 1) == m0) &&
+            (material(i, j, k + 1) == m0) && (material(i, j, k + 2) == m0);
+        }
+
+        if(same_material_stencil) {
+          utils::tie(
+            Limiter::reconstruct(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
+        }
+        else {
+          h(i, j, k) = cons(i, j, k);
+          t(i, j, k) = cons(i, j, k);
+        }
+      };
+    }
+
+    for(auto cf : cons_faces_vec_a) {
+      auto [cons_a, face_a] = cf;
+      auto [h, t] = faces<Dim>::mdcolex(m, face_a);
+      auto cons = m.template mdcolex<is::cells>(cons_a);
+      s.executor().forall(kji, mdpolicy_ppp) {
+        auto [k, j, i] = kji;
+        const int m0 = material(i, j, k);
+
+        bool same_material_stencil = false;
+
+        if(ra == 0) {
+          same_material_stencil =
+            (material(i - 2, j, k) == m0) && (material(i - 1, j, k) == m0) &&
+            (material(i + 1, j, k) == m0) && (material(i + 2, j, k) == m0);
+        }
+        else if(ra == 1) {
+          same_material_stencil =
+            (material(i, j - 2, k) == m0) && (material(i, j - 1, k) == m0) &&
+            (material(i, j + 1, k) == m0) && (material(i, j + 2, k) == m0);
+        }
+        else {
+          same_material_stencil =
+            (material(i, j, k - 2) == m0) && (material(i, j, k - 1) == m0) &&
+            (material(i, j, k + 1) == m0) && (material(i, j, k + 2) == m0);
+        }
+
+        if(same_material_stencil) {
+          utils::tie(
+            Limiter::reconstruct(ra, i, j, k, cons), h(i, j, k), t(i, j, k));
+        }
+        else {
+          h(i, j, k) = cons(i, j, k);
+          t(i, j, k) = cons(i, j, k);
+        }
+      };
+    }
+  }
+}
+
+struct reconstruct_primitives_task : annotation_task_region {
+  inline static const std::string name{"reconstruct_primitives"};
+};
+
+template<std::size_t Dim, typename Limiter>
+void
+reconstruct_primitives(flecsi::exec::accelerator s,
+  std::size_t reconstruction_axis,
+  typename mesh<Dim>::template accessor<ro> m,
+  typename field<int>::template accessor<ro, na> material_a,
+  // cell-centered primitive varibles
+  std::vector<std::tuple<field<double>::accessor<ro, na>,
+    typename faces<Dim>::template accessor<wo, na>>> cons_faces_a,
+  std::vector<std::tuple<typename field<vec<Dim>>::template accessor<ro, na>,
+    typename faces_vec<Dim>::template accessor<wo, na>>>
+    cons_faces_vec_a) noexcept {
+  reconstruct_primitives_f<Dim, Limiter>(
+    s, reconstruction_axis, m, material_a, cons_faces_a, cons_faces_vec_a);
+}
+
+template<std::size_t Dim, typename Limiter>
+void
+reconstruct_primitives_scalar(flecsi::exec::accelerator s,
+  std::size_t reconstruction_axis,
+  typename mesh<Dim>::template accessor<ro> m,
+  typename field<int>::template accessor<ro, na> material_a,
+  // cell-centered primitive varibles
+  std::vector<std::tuple<field<double>::accessor<ro, na>,
+    typename faces<Dim>::template accessor<wo, na>>> cons_faces_a) noexcept {
+  reconstruct_primitives_f<Dim, Limiter>(
+    s, reconstruction_axis, m, material_a, cons_faces_a, {});
+}
+
+struct reconstruct_conserved_task : annotation_task_region {
+  inline static const std::string name{"reconstruct_conserved"};
+};
+
+template<std::size_t Dim>
+void
+reconstruct_conserved(flecsi::exec::accelerator s,
+  typename mesh<Dim>::template accessor<ro> m,
+  typename faces<Dim>::template accessor<ro, na> rFace_a,
+  typename faces_vec<Dim>::template accessor<ro, na> uFace_a,
+  typename faces<Dim>::template accessor<ro, na> eFace_a,
+  // reconstructed conservatives on faces
+  typename faces_vec<Dim>::template accessor<wo, na> ruFace_a,
+  typename faces<Dim>::template accessor<wo, na> rEFace_a) noexcept {
+
+  auto [r_right, r_left] = faces<Dim>::mdcolex(m, rFace_a);
+  auto [u_right, u_left] = faces_vec<Dim>::mdcolex(m, uFace_a);
+  auto [e_right, e_left] = faces<Dim>::mdcolex(m, eFace_a);
+  auto [ru_right, ru_left] = faces_vec<Dim>::mdcolex(m, ruFace_a);
+  auto [re_right, re_left] = faces<Dim>::mdcolex(m, rEFace_a);
+
+  using common::tasks::utils::get_mdiota_policy;
+  using spec::utils::sqr;
+
+  if constexpr(Dim == 1) {
+
+    s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
+
+      // Compute conservative variables
+      ru_right(i) = r_right(i) * u_right(i);
+      ru_left(i) = r_left(i) * u_left(i);
+      re_right(i) =
+        r_right(i) * e_right(i) + 0.5 * r_right(i) * u_right(i).norm_squared();
+      re_left(i) =
+        r_left(i) * e_left(i) + 0.5 * r_left(i) * u_left(i).norm_squared();
+
+    }; // forall
+  }
+  else if constexpr(Dim == 2) {
+
+    auto mdpolicy_pp = get_mdiota_policy(r_right,
+      m.template cells<ax::y, dm::predictor>(),
+      m.template cells<ax::x, dm::predictor>());
+
+    s.executor().forall(ji, mdpolicy_pp) {
+      auto [j, i] = ji;
+
+      // Compute conservative variables
+      ru_right(i, j) = r_right(i, j) * u_right(i, j);
+      ru_left(i, j) = r_left(i, j) * u_left(i, j);
+      re_right(i, j) = r_right(i, j) * e_right(i, j) +
+                       0.5 * r_right(i, j) * u_right(i, j).norm_squared();
+      re_left(i, j) = r_left(i, j) * e_left(i, j) +
+                      0.5 * r_left(i, j) * u_left(i, j).norm_squared();
+    }; // forall
+  }
+  else { // Dim == 3
+
+    auto mdpolicy_ppp = get_mdiota_policy(r_right,
+      m.template cells<ax::z, dm::predictor>(),
+      m.template cells<ax::y, dm::predictor>(),
+      m.template cells<ax::x, dm::predictor>());
+
+    s.executor().forall(kji, mdpolicy_ppp) {
+      auto [k, j, i] = kji;
+
+      // Compute conservative variables on faces
+      ru_right(i, j, k) = r_right(i, j, k) * u_right(i, j, k);
+      ru_left(i, j, k) = r_left(i, j, k) * u_left(i, j, k);
+      re_right(i, j, k) =
+        r_right(i, j, k) * e_right(i, j, k) +
+        0.5 * r_right(i, j, k) * u_right(i, j, k).norm_squared();
+      re_left(i, j, k) = r_left(i, j, k) * e_left(i, j, k) +
+                         0.5 * r_left(i, j, k) * u_left(i, j, k).norm_squared();
+    }; // forall
+  }
+}
+
+} // namespace hard::tasks::hydro
+
+#endif // HARD_MODULE_HYDRO_RECONSTRUCT_HH

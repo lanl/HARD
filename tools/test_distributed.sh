@@ -14,12 +14,12 @@ export HPX_COMMANDLINE_OPTIONS="--hpx:threads=2"
 rm -f *.csv
 ls
 echo "Starting.."
-OMP_NUM_THREADS=1 "$mpi_executable" -np 1 "$hard_executable" "$config_file" $additional_args
+OMP_NUM_THREADS=1 "$mpi_executable" -n 1 "$hard_executable" "$config_file" $additional_args
 echo "Mid..."
 # rename before getting overwritten by next command
 mv output-*-0-00002.csv r1.csv
 ls
-OMP_NUM_THREADS=1 "$mpi_executable" -np 16 "$hard_executable" "$config_file" $additional_args
+OMP_NUM_THREADS=1 "$mpi_executable" -n 16 "$hard_executable" "$config_file" $additional_args
 ls
 
 

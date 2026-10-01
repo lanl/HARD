@@ -43,6 +43,14 @@ mpich-mpi-cuda-clang:
     PARTITIONS: volta-x86
     JOB_CONSTRAINTS: "${V100_CONSTRAINT}"
 
+mpich-mpi-cuda-ampere-clang:
+  stage: MPI backend
+  extends: [.darwin_regular_job, .build_and_test]
+  variables:
+    SPACK_ENV_NAME: mpi/cuda/mpich-ampere-clang-debug
+    PARTITIONS: shared-gpu-ampere
+    JOB_CONSTRAINTS: "${A100_CONSTRAINT}"
+
 #openmpi-mpi-cuda-clang:
 #  stage: MPI backend
 #  extends: [.darwin_regular_job, .build_and_test]
