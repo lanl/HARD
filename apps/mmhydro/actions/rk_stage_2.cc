@@ -109,19 +109,7 @@ update_rk_stage_2(state<D> & s,
   // Perform primitive recovery
   perform_cons2prim(s, sc);
 
-  {
-    auto scalar_v = std::vector{s.cons.hydro.mass_density(*s.m),
-      s.prim.pressure(*s.m),
-      s.prim.specific_internal_energy(*s.m),
-      s.cons.hydro.total_energy_density(*s.m)};
-
-    for(auto & v : v_t) {
-      scalar_v.push_back(std::get<0>(v));
-    }
-
-    // Update material/psi ghost cells and then boundary cells.
-    apply_scalar_boundaries(s, sc, scalar_v);
-  }
+  apply_boundaries(s, sc);
 }
 
 template<std::size_t D>

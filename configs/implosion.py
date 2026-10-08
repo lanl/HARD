@@ -11,7 +11,6 @@ config = {
     "gamma": 1.666666,
     "mean_molecular_weight": 1.0,
     "eos": "ideal",
-    "temperature_units": "eV",  # Change eV to Kelvin
     "t0": 0.0,
     "tf": 10,  # 9.5e-9
     "max_steps": 200,

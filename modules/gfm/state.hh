@@ -13,7 +13,6 @@ struct state {
   // Multi-material EOS
   std::vector<eos::eos_wrapper> eos_mm;
 
-
   // Number of materials
   std::size_t n_materials() const {
     return eos_mm.size();

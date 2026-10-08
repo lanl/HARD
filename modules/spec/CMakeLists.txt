@@ -11,6 +11,7 @@ add_library(libspec::libspec ALIAS libspec)
 
 # Explicit list (and example of how to keep it readable).
 set(modules_headers
+  boundaries.hh
   control.hh
   eos.hh
   io.hh
@@ -24,7 +25,6 @@ set(modules_headers
   tasks/boundaries/flow.hh
   tasks/boundaries/reflective.hh
   tasks/io.hh
-
 )
 
 # Add headers explicitly so IDEs show them and installs/exports can reference them.

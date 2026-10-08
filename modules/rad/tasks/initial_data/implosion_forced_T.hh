@@ -8,8 +8,9 @@
 
 namespace hard::tasks::initial_data {
 
-// A test problem that implodes inward with external temperature source
-// from FDS input.
+// A test problem that implodes inward. The external temperature source
+// (FDS table) is as a time-dependent dirichlet boundary on the radiation energy
+// density field.
 //
 // This is only 1D problem for ICP-mockup type
 

@@ -1,8 +1,10 @@
 #ifndef HARD_MODULE_HYDRO_STATE_HH
 #define HARD_MODULE_HYDRO_STATE_HH
 
+#include "../modules/spec/boundaries.hh"
 #include "../modules/spec/eos.hh"
 #include "types.hh"
+#include <tuple>
 
 namespace hard::hydro {
 
@@ -25,12 +27,7 @@ struct state {
 
   struct initial_constants {
 
-    static inline const typename single<
-      typename mesh<D>::bmap>::template definition<global>
-      bmap;
     static inline const single<double>::definition<global> particle_mass;
-    static inline const field<double>::definition<global> time_boundary;
-    static inline const field<double>::definition<global> temperature_boundary;
 
     static inline const typename single<vec<D>>::template definition<global>
       gravity_acc;
@@ -46,13 +43,14 @@ struct state {
 
     struct hydrodynamics {
       // Conserved quantities.
-      static inline const field<double>::definition<mesh<D>, is::cells>
-        mass_density;
-      static inline const typename field<vec<D>>::template definition<mesh<D>,
-        is::cells>
-        momentum_density;
-      static inline const field<double>::definition<mesh<D>, is::cells>
-        total_energy_density;
+      static inline const tfield<double, mesh<D>> mass_density{"mass_density",
+        tag::boundary};
+      static inline const tfield<vec<D>, mesh<D>> momentum_density{
+        "momentum_density",
+        tag::boundary};
+      static inline const tfield<double, mesh<D>> total_energy_density{
+        "total_energy_density",
+        tag::boundary};
     } hydro;
 
   } cons;
@@ -60,17 +58,15 @@ struct state {
   // used in action, analyse, init
   struct primitives {
     // Primitives.
-    static inline const typename field<vec<D>>::template definition<mesh<D>,
-      is::cells>
-      velocity; // u
-    static inline const field<double>::definition<mesh<D>, is::cells>
-      pressure; // p
-    static inline const field<double>::definition<mesh<D>, is::cells>
-      specific_internal_energy; // e
-    static inline const field<double>::definition<mesh<D>, is::cells>
-      sound_speed; // c
-    static inline const field<double>::definition<mesh<D>, is::cells>
-      temperature; // t
+    static inline const tfield<vec<D>, mesh<D>> velocity{"velocity",
+      tag::boundary}; // u
+    static inline const tfield<double, mesh<D>> pressure{"pressure",
+      tag::boundary}; // p
+    static inline const tfield<double, mesh<D>> specific_internal_energy{
+      "specific_internal_energy",
+      tag::boundary}; // e
+    static inline const tfield<double, mesh<D>> sound_speed{"sound_speed"}; // c
+    static inline const tfield<double, mesh<D>> temperature{"temperature"}; // t
   } prim;
 
   // action
@@ -112,6 +108,23 @@ struct state {
   static inline const typename field<spec::tensor<D,
     spec::tensor_rank::Two>>::template definition<mesh<D>, is::cells>
     velocity_gradient;
+
+  /*--------------------------------------------------------------------------*
+    Tagged fields and boundary conditions.
+    *--------------------------------------------------------------------------*/
+
+  auto fields() const {
+    return std::tie(cons.hydro.mass_density,
+      cons.hydro.momentum_density,
+      cons.hydro.total_energy_density,
+      prim.velocity,
+      prim.pressure,
+      prim.specific_internal_energy,
+      prim.sound_speed,
+      prim.temperature);
+  }
+
+  spec::boundaries<D> bcs;
 
   // Storing dU/dt
   // FIXME: We will not need this anymore

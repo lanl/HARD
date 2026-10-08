@@ -14,6 +14,7 @@
 #include "spec/eos.hh"
 #include "spec/tasks/boundaries/boundary.hh"
 #include "spec/tasks/io.hh"
+#include "spec/types.hh"
 
 #include "../../actions/initialize/init.hh"
 
@@ -42,15 +43,13 @@ initialize(control_policy<state, D> & cp) {
     Global and color topology allocations.
    *--------------------------------------------------------------------------*/
 
-  std::vector<double> time;
-  std::vector<double> temperature;
-  actions::init_topologies(s, sc, time, temperature);
+  actions::init_topologies(s, sc);
 
   /*--------------------------------------------------------------------------*
     Set boundaries.
    *--------------------------------------------------------------------------*/
 
-  auto bf = actions::init_boundaries(s, sc, time, temperature, config);
+  auto bf = actions::init_boundaries(s, config);
 
   /*--------------------------------------------------------------------------*
     Gravity Acceleration
@@ -96,9 +95,6 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
 
   eos::init_eos_mm(s.eos_mm, config);
-
-  
-
 
   /*--------------------------------------------------------------------------*
     Reconstruction scheme configuration.

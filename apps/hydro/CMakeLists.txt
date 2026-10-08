@@ -46,6 +46,15 @@ if(ENABLE_UNIT_TESTS)
     tests/mesh.cc
   )
 
+  flecsi_add_test(boundaries
+    SOURCES
+    tests/boundaries.cc
+    LIBRARIES
+    libspec::libspec
+    pybind11::pybind11
+    Python::Python
+  )
+
 endif()
 
 if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
@@ -75,6 +84,12 @@ if(ENABLE_VERIFICATION AND ENABLE_UNIT_TESTS)
     COMMAND ${TEST_VERIFY_SCRIPT}
     ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
     ${LEGION_GPU_FLAGS} ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod.py -d1
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+  add_test(NAME accuracy_sod_boundaries_1d
+    COMMAND ${TEST_VERIFY_SCRIPT}
+    ${MPIEXEC_EXECUTABLE} ${CMAKE_BINARY_DIR}/apps/hydro/hydro
+    ${CMAKE_SOURCE_DIR}/configs/ci_configs/sod_boundaries.py -d1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   add_test(NAME accuracy_leblanc_1d

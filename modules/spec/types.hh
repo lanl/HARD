@@ -6,6 +6,16 @@
 #include <pybind11/embed.h>
 #include <pybind11/stl.h>
 
+namespace tag {
+
+using field_tags = unsigned;
+enum field_tags_mask_t : field_tags {
+  none = 0,
+  boundary = 0x1 // receives boundary conditions
+};
+
+} // namespace tag
+
 namespace spec {
 inline constexpr flecsi::privilege na = flecsi::na, ro = flecsi::ro,
                                    wo = flecsi::wo, rw = flecsi::rw;
@@ -18,6 +28,45 @@ using flecsi::field;
 template<typename T>
 using single = field<T, flecsi::data::single>;
 using flecsi::data::multi;
+
+// Wrapper arround FleCSI fields to attach a name to the fields
+template<typename T, typename Topo>
+struct tfield {
+  using value_type = T;
+
+  static constexpr std::size_t components = [] {
+    if constexpr(std::is_same_v<T, double>)
+      return std::size_t{1};
+    else
+      return T::Dim;
+  }();
+
+  explicit tfield(std::string n, tag::field_tags t = tag::none)
+    : name(std::move(n)), tags(t) {}
+
+  bool has(tag::field_tags t) const {
+    return (tags & t) == t;
+  }
+
+  std::string name;
+  tag::field_tags tags;
+  typename field<T>::template definition<Topo, is::cells> def;
+
+  template<typename... Args>
+  auto operator()(Args &&... args) const
+    -> decltype(def(std::forward<Args>(args)...)) {
+    return def(std::forward<Args>(args)...);
+  }
+};
+
+// Call f on every field of the tuple that carries all bits of tg.
+template<typename Tuple, typename F>
+void
+for_each_field(Tuple const & t, tag::field_tags tg, F && f) {
+  std::apply(
+    [&](auto const &... fld) { ((fld.has(tg) ? (void)f(fld) : void()), ...); },
+    t);
+}
 
 // ----------------------------------------------------------------------------
 //  vec<D> type definitions
@@ -608,11 +657,6 @@ struct __attribute__((visibility("default"))) config_py {
     return py::isinstance<py::sequence>(*config_);
   }
 
-  std::size_t size() const {
-    py::gil_scoped_acquire _;
-    return py::len(*config_);
-  }
-
   bool empty() const {
     return size() == 0;
   }
@@ -621,6 +665,17 @@ struct __attribute__((visibility("default"))) config_py {
   T cast() const {
     py::gil_scoped_acquire _;
     return (*config_).cast<T>();
+  }
+
+  template<typename T>
+  bool is() const {
+    py::gil_scoped_acquire _;
+    return py::isinstance<T>(*config_);
+  }
+
+  std::size_t size() const {
+    py::gil_scoped_acquire _;
+    return py::len(*config_);
   }
 
   // Destroy the unique_ptr in case of race condition

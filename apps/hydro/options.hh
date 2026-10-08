@@ -24,11 +24,6 @@ inline flecsi::program_option<unsigned int> resolution("Hard Options",
   "Specify the lowest level resolution for the grid.",
   {{flecsi::option_default, 0}});
 
-inline flecsi::program_option<std::string> source_fds("Hard Options",
-  "fds_file",
-  "Specify where the file lives (default: source_fds.txt)",
-  {{flecsi::option_default, "source_fds.txt"}});
-
 inline flecsi::program_option<unsigned int> colors("Hard Options",
   "colors,c",
   "Specify the number of colors (default: num processes).",

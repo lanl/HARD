@@ -55,50 +55,6 @@ init_time(flecsi::exec::cpu,
 }
 
 /*----------------------------------------------------------------------------*
-  Temperature boundaries.
- *----------------------------------------------------------------------------*/
-
-struct set_t_boundary_task : annotation_task_region {
-  inline static const std::string name{"set_t_boundary"};
-};
-
-void inline set_t_boundary(flecsi::exec::cpu,
-  field<double>::accessor<wo> t_boundary,
-  std::vector<double> copy_values) noexcept {
-
-  for(std::size_t i{0}; i < t_boundary.span().size(); i++) {
-    t_boundary[i] = copy_values[i];
-  }
-} // t_boundary
-
-/*----------------------------------------------------------------------------*
-  Temperature unit conversion from eV (or other) to Kelvin
- *----------------------------------------------------------------------------*/
-
-struct convert_temperature_task : annotation_task_region {
-  inline static const std::string name{"convert_temperature"};
-};
-
-void inline convert_temperature(flecsi::exec::cpu,
-  field<double>::accessor<rw> temperature,
-  std::string const & unit) noexcept {
-
-  assert((unit == "Kelvin" || unit == "eV") && "Unsupported temperature unit");
-
-  double conversion_factor{};
-  if(unit == "Kelvin") {
-    return;
-  }
-  else if(unit == "eV") {
-    conversion_factor = hard::constants::cgs::eV_to_K;
-  }
-
-  for(std::size_t i{0}; i < temperature.span().size(); i++) {
-    temperature[i] *= conversion_factor;
-  }
-} // t_boundary
-
-/*----------------------------------------------------------------------------*
   Set the average particle mass with a given mean molecular weight
  *----------------------------------------------------------------------------*/
 

@@ -201,13 +201,7 @@ update_rk_stage_1(state<D> & s,
     }
 
     // Update boundary cells
-    annotation_rguard<tasks::apply_boundaries_task>(),
-      sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-        *s.m,
-        s.icst.bmap(*s.gt),
-        scalar_v,
-        std::vector{
-          s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
+    apply_tagged_boundaries<D>(sc, s, tag::boundary);
   }
 }
 

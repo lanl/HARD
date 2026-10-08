@@ -67,11 +67,38 @@ logging and output
   - [1.0, 1.0, 1.0]
 
 `boundaries`
-  The boundaries are defined per dimensions `xlow`, `xhigh`, `ylow`, `yhigh`, `zlow`, and `zhigh` For each several options are possible:
-    * `periodic`
-    * `flow`
-    * `reflecting`
-    * `dirichlet`
+    One entry per domain side: `xlow`, `xhigh`, `ylow`, `yhigh`, `zlow` and `zhigh` (only the sides of the dimensions in use are read).
+    An entry is a type name, a `(type, value)` tuple, or a list whose first element is one of those, the default for every field on that side, followed by per-field overrides written `(field, type)` or `(field, type, value)`:
+
+    .. code-block:: python
+
+       "boundaries": {
+           "xlow": "reflecting",
+           "xhigh": ["flow",
+                     ("pressure", "dirichlet", 0.1),
+                     ("velocity", "dirichlet", [0.0, 0.0, 0.0]),
+                     ("momentum_density", "reflecting")],
+           "ylow": "periodic",
+           "yhigh": "periodic",
+           "zlow": "dirichlet",
+           "zhigh": ("dirichlet", 10.0),
+       }
+
+    Available types:
+
+    * `flow`: zero derivative boundary condition.
+    * `reflecting`: mirror of the interior solution, with the normal component of vector fields negated.
+    * `dirichlet`: fixed value at the boundary, defaulted to 0.
+      Per field: a number for a scalar field, a list with at least as many numbers as the field has components for a vector field (extra entries are ignored, so a three-entry list is valid in every dimension).
+      As a side default, `("dirichlet")`: `0` is applied to every component of every field.
+    * `periodic`: only as a side default, and both sides of an axis must agree.
+      It is a property of the mesh (halo exchange) and cannot differ per field.
+
+    Field names are the state members.
+    For the hydro application:
+    `mass_density`, `momentum_density`, `total_energy_density`, `velocity`, `pressure`, `specific_internal_energy` and `sound_speed`.
+    The radhydro application adds `radiation_energy_density` and `lambda_bridge`.
+    An unknown name is a fatal error whose message lists the valid names.
 
 `output_method`
   Specifies the output format for visualization. See :ref:`hard_visualization` for details.
