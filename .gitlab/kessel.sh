@@ -1,4 +1,4 @@
-DEPLOYMENT_VERSION="2026-06-10"
+DEPLOYMENT_VERSION="2026-10-07"
 SCRIPT_PATH=${BASH_SOURCE[0]:-${(%):-%x}}
 PARENT_DIR=$( cd "$( dirname "${SCRIPT_PATH}" )" &>/dev/null && pwd )
 
@@ -18,7 +18,7 @@ _KESSEL_WORKFLOW_DEPLOYMENT="$KESSEL_WORKFLOW_DEPLOYMENT"
 export KESSEL_WORKFLOW_DEPLOYMENT=${KESSEL_WORKFLOW_DEPLOYMENT:-${TMPDIR:-/tmp}/$USER-ci-envs}
 
 if [ "$SYSTEM_NAME" = "darwin" ]; then
-  export KESSEL_DEPLOYMENT=${KESSEL_DEPLOYMENT:-/usr/projects/cdss2024/shared/kessel/hard/$DEPLOYMENT_VERSION}
+  export KESSEL_DEPLOYMENT=${KESSEL_DEPLOYMENT:-/usr/projects/tpp/apps/deployments/hard/$DEPLOYMENT_VERSION}
 else
   echo "ERROR: Unknown system!" >&2
   return 1
