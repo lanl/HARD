@@ -29,7 +29,7 @@ kh_instability_mm(flecsi::exec::cpu s,
     q_ext_plus_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_ext_minus_a,
-  const std::vector<eos::eos_wrapper> & eos_mm) {
+  const std::vector<eos::eos_wrapper> & eos_mm) noexcept {
 
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);

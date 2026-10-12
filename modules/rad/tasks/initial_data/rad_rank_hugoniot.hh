@@ -48,7 +48,7 @@ rad_RH(flecsi::exec::cpu s,
   field<double>::accessor<wo, ro> r_e_a,
   field<double>::accessor<wo, ro> Erad_a,
   const double gamma,
-  single<double>::accessor<ro> particle_mass_a) {
+  single<double>::accessor<ro> particle_mass_a) noexcept {
   auto r = m.template mdcolex<is::cells>(r_a);
   auto ru = m.template mdcolex<is::cells>(ru_a);
   auto r_e = m.template mdcolex<is::cells>(r_e_a);

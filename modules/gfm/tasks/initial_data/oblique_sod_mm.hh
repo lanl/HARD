@@ -34,7 +34,7 @@ oblique_shock_mm(flecsi::exec::cpu s,
     q_ext_plus_a,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     q_ext_minus_a,
-  const std::vector<eos::eos_wrapper> & eos_mm) {
+  const std::vector<eos::eos_wrapper> & eos_mm) noexcept {
 
   using common::tasks::utils::get_mdiota_policy;
 
@@ -88,8 +88,8 @@ oblique_shock_mm(flecsi::exec::cpu s,
   const double nz = std::sin(T::theta);
 
   if constexpr(D == 1) {
-    throw std::runtime_error("oblique_sod_mm only runs in 2D and 3D; for the "
-                             "1D case use normal sod_mm");
+    flog_fatal("oblique_sod_mm only runs in 2D and 3D; for the "
+               "1D case use normal sod_mm");
   }
   else if constexpr(D == 2) {
     auto mdpolicy_yx = get_mdiota_policy(mass_density,

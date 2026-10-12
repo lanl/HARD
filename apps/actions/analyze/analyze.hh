@@ -46,7 +46,8 @@ analyze([[maybe_unused]] control_policy<state, D> & cp,
     scalar_v.insert(scalar_v.end(), v_t.begin(), v_t.end());
 
     if(s.output_method == spec::om::vti) {
-      flecsi::execute<tasks::io::vtk<D>, flecsi::mpi>(flecsi::exec::on,
+      sc.template execute<tasks::io::vtk<D>>(flecsi::exec::on,
+        flecsi::exec::group::world(),
         spec::io::name{""} << std::setfill('0') << std::setw(5) << cp.step(),
         s.t(*s.gt),
         lm,
@@ -58,7 +59,8 @@ analyze([[maybe_unused]] control_policy<state, D> & cp,
     }
 #ifdef HARD_ENABLE_HDF5
     else if(s.output_method == spec::om::xdmf) {
-      flecsi::execute<tasks::io::xdmf<D>, flecsi::mpi>(flecsi::exec::on,
+      sc.template execute<tasks::io::xdmf<D>>(flecsi::exec::on,
+        flecsi::comm::world(),
         spec::io::name{""} << std::setfill('0') << std::setw(5) << cp.step(),
         s.t(*s.gt),
         lm,
@@ -70,7 +72,8 @@ analyze([[maybe_unused]] control_policy<state, D> & cp,
     }
 #endif
     else {
-      flecsi::execute<tasks::io::csv<D>, flecsi::mpi>(flecsi::exec::on,
+      sc.template execute<tasks::io::csv<D>>(flecsi::exec::on,
+        flecsi::exec::group::world(),
         spec::io::name{""} << std::setfill('0') << std::setw(5) << cp.step(),
         s.t(*s.gt),
         lm,

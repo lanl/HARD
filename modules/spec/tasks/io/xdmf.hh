@@ -13,6 +13,7 @@ namespace hard::tasks::io {
 
 template<std::size_t D, dm::domain L = dm::quantities>
 void inline xdmf(flecsi::exec::cpu s,
+  flecsi::comm::ref comm,
   spec::io::name const & base,
   single<double>::accessor<ro> time,
   multi<typename mesh<D>::template accessor<ro>> mm,
@@ -23,9 +24,6 @@ void inline xdmf(flecsi::exec::cpu s,
       const std::string &>> field_vector_ma) noexcept {
 
   const auto rank = s.launch().index;
-
-  // Use MPI_COMM_WORLD for parallel HDF5 operations
-  MPI_Comm comm = MPI_COMM_WORLD;
 
   for(uint32_t i{0}; i < mm.depth(); ++i) {
     const auto m = mm.accessors()[i];

@@ -22,7 +22,7 @@ lw_implosion(flecsi::exec::cpu s,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
-  const double gamma) {
+  const double gamma) noexcept {
 
   if constexpr(D == 2) {
 

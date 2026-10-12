@@ -48,7 +48,7 @@ main(int argc, char ** argv) {
 #endif
 
   runtime run{cfg};
-  flog::add_output_stream("clog", std::clog, true);
+  flog::add_output_stream(std::clog, true);
 
 #ifdef HARD_BENCHMARK_MODE
   // Write header if process 0 and header==1

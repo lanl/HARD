@@ -11,6 +11,7 @@ namespace hard::tasks::io {
 
 template<std::size_t D>
 void inline csv(flecsi::exec::cpu s,
+  flecsi::exec::group::match,
   spec::io::name const & base,
   single<double>::accessor<ro> time,
   multi<typename mesh<D>::template accessor<ro>> mm,
@@ -18,7 +19,7 @@ void inline csv(flecsi::exec::cpu s,
     const std::string &>> field_ma,
   std::vector<
     std::tuple<multi<typename field<vec<D>>::template accessor<ro, ro>>,
-      const std::string &>> field_vector_ma) {
+      const std::string &>> field_vector_ma) noexcept {
 
   for(uint32_t i{0}; i < mm.depth(); ++i) {
     const auto m = mm.accessors()[i];

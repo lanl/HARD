@@ -23,7 +23,7 @@ class Hard(CMakePackage, CudaPackage):
     variant("caliper_detail", default="none", values=("none", "low", "medium", "high"),
         multi=False, description="Caliper instrumentation detail level")
 
-    depends_on("flecsi@2.4.2: +flog")
+    depends_on("flecsi@2.5: +flog")
     depends_on("flecsi +cuda", when="+cuda")
     depends_on("flecsi caliper_detail=low", when="caliper_detail=low")
     depends_on("flecsi caliper_detail=medium", when="caliper_detail=medium")
