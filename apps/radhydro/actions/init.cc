@@ -187,7 +187,6 @@ struct initialize {
         s.cons.hydro.momentum_density(*s.m),
         s.cons.hydro.total_energy_density(*s.m),
         s.rad.cons.radiation_energy_density(*s.m),
-        s.icst.temperature_boundary(*s.dense_topology),
         s.icst.particle_mass(*s.gt),
         config["gamma"].cast<double>());
     }

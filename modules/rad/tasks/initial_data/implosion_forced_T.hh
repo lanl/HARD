@@ -22,13 +22,12 @@ struct implosion {
 
 template<std::size_t Dim>
 auto
-implosion_forced_T(flecsi::exec::cpu s,
+implosion_forced_T(flecsi::exec::cpu,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
   field<double>::accessor<wo, na> total_energy_density_a,
   field<double>::accessor<wo, na> radiation_energy_density_a,
-  field<double>::accessor<ro> temperature_boundary_a,
   single<double>::accessor<ro> particle_mass_a,
   const double gamma) noexcept {
 

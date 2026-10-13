@@ -55,7 +55,7 @@ struct shock_task : annotation_task_region {
 
 template<typename T, std::size_t D>
 auto
-shock(flecsi::exec::cpu s,
+shock(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,

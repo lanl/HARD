@@ -13,7 +13,7 @@ struct kh_instability_task : annotation_task_region {
 
 template<std::size_t D>
 auto
-kh_instability(flecsi::exec::cpu s,
+kh_instability(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,
@@ -53,7 +53,7 @@ kh_instability(flecsi::exec::cpu s,
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);
 
-        double v, v_pert;
+        double v_pert;
         // velocity perturbations in the Y-direction
         v_pert = 0.05 * sin(N * wavenumber * x);
 

@@ -41,7 +41,7 @@ struct rad_rankine_hugoniot {
 
 template<typename T, std::size_t D>
 auto
-rad_RH(flecsi::exec::cpu s,
+rad_RH(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, ro> r_a,
   typename field<vec<D>>::template accessor<wo, ro> ru_a,

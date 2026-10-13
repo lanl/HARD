@@ -14,7 +14,7 @@ Currently this file is a copy of input file for Kelvin-Helmholtz Instability*/
 
 template<std::size_t D>
 auto
-rt_instability(flecsi::exec::cpu s,
+rt_instability(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,

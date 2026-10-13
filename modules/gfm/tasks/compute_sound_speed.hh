@@ -14,7 +14,6 @@ struct compute_sound_speed_from_eos_task : annotation_task_region {
 template<std::size_t Dim>
 void
 compute_sound_speed_from_eos(flecsi::exec::accelerator s,
-  typename mesh<Dim>::template accessor<ro> m_a,
   field<double>::accessor<ro, na> mass_density_a,
   field<double>::accessor<ro, na> specific_internal_energy_a,
   typename field<int>::accessor<ro, ro> material_a,

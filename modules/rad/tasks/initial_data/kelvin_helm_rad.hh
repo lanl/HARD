@@ -15,7 +15,7 @@ namespace hard::tasks::initial_data {
 
 template<std::size_t D>
 auto
-kh_instability_rad(flecsi::exec::cpu s,
+kh_instability_rad(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,

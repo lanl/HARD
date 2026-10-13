@@ -31,7 +31,6 @@ void inline vtk(flecsi::exec::cpu s,
       field_extractor<D>(m, i, field_ma, field_vector_ma);
 
     // Color indices (position in the decomposition)
-    const auto color_idx = m.color_indeces();
     const auto axis_colors = m.axis_colors();
 
     // Get mesh information and compute extents

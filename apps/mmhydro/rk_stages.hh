@@ -35,7 +35,6 @@ inline void
 perform_cons2prim(state<D> & s, flecsi::scheduler & sc) {
   annotation_rguard<tasks::gfm::conservative_to_primitive_mm_task>(),
     sc.execute<tasks::gfm::conservative_to_primitive_mm<D>>(flecsi::exec::on,
-      *s.m,
       s.cons.hydro.mass_density(*s.m),
       s.cons.hydro.momentum_density(*s.m),
       s.cons.hydro.total_energy_density(*s.m),
@@ -93,7 +92,6 @@ recompute_sound_speed(state<D> & s, flecsi::scheduler & sc) {
   annotation_rguard<hard::tasks::gfm::compute_sound_speed_from_eos_task>(),
     sc.execute<hard::tasks::gfm::compute_sound_speed_from_eos<D>>(
       flecsi::exec::on,
-      *s.m,
       s.cons.hydro.mass_density(*s.m),
       s.prim.specific_internal_energy(*s.m),
       s.ls.material(*s.m),
@@ -211,9 +209,7 @@ extrapolate_all_materials(state<D> & s, flecsi::scheduler & sc) {
     annotation_rguard<tasks::extrapolation::extp_interface_convergence_task>(),
       sc.execute<tasks::extrapolation::extp_interface_convergence<D>>(
         flecsi::exec::on,
-        *s.m,
         max_scaled_update_band_f,
-        mat,
         s.extp_steps,
         tasks::extrapolation::extp_residual_tol);
   }

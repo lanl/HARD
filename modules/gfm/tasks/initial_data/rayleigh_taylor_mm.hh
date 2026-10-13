@@ -14,7 +14,7 @@ struct rt_instability_mm_task : annotation_task_region {
 
 template<std::size_t D>
 auto
-rt_instability_mm(flecsi::exec::cpu s,
+rt_instability_mm(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,

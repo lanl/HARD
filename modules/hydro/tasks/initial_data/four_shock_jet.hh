@@ -10,7 +10,7 @@ namespace hard::tasks::initial_data {
 //
 template<std::size_t Dim>
 auto
-four_shock_jet(flecsi::exec::cpu s,
+four_shock_jet(flecsi::exec::cpu,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,
@@ -81,7 +81,7 @@ four_shock_jet(flecsi::exec::cpu s,
 
   const auto find_vals = [xc, yc](const values vals, const limits lims) {
     // Our grid element intersects the region limits
-    if(lims.x0 < xc && lims.x1 > xc || lims.y0 < yc && lims.y1 > yc) {
+    if((lims.x0 < xc && lims.x1 > xc) || (lims.y0 < yc && lims.y1 > yc)) {
 
       // It intersects all limits (the 4-intersection exists in the element)
       if(lims.x0 < xc && lims.x1 > xc && lims.y0 < yc && lims.y1 > yc) {

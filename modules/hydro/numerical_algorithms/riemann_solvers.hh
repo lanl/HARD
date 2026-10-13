@@ -47,10 +47,10 @@ RoeAvg( // Default Riemann Solver for HLLC.
   const double u_r,
   const double rho_l,
   const double rho_r,
-  const double e_l,
-  const double e_r,
-  const double p_l,
-  const double p_r,
+  const double /* e_l */,
+  const double /* e_r */,
+  const double /* p_l */,
+  const double /* p_r */,
   const double c_l,
   const double c_r) {
   const double sqrt_rho_l = std::sqrt(rho_l);
@@ -73,8 +73,8 @@ ClayTovWSE(const double u_l,
   const double u_r,
   const double rho_l,
   const double rho_r,
-  const double e_l, // e_z not used
-  const double e_r,
+  const double /* e_l */, // e_z not used
+  const double /* e_r */,
   const double p_l,
   const double p_r,
   const double c_l,
@@ -168,8 +168,6 @@ compute_S_star(const double u_l,
   const double rho_r,
   const double p_l,
   const double p_r,
-  const double c_l,
-  const double c_r,
   const double s_l,
   const double s_r) {
 
@@ -288,8 +286,7 @@ compute_HLLC_states(const vec<Dim> n_if,
   auto [s_l, s_r] =
     wse(u_l_n, u_r_n, rho_l, rho_r, e_l, e_r, p_l, p_r, c_l, c_r);
 
-  auto s_star =
-    compute_S_star(u_l_n, u_r_n, rho_l, rho_r, p_l, p_r, c_l, c_r, s_l, s_r);
+  auto s_star = compute_S_star(u_l_n, u_r_n, rho_l, rho_r, p_l, p_r, s_l, s_r);
 
   vec<Dim> vel_l_star = u_l + (s_star - u_l_n) * n_if;
   vec<Dim> vel_r_star = u_r + (s_star - u_r_n) * n_if;
@@ -342,8 +339,7 @@ compute_HLLC_fluxes(std::size_t fa,
   auto [s_l, s_r] =
     wse(u_l_n, u_r_n, rho_l, rho_r, e_l, e_r, p_l, p_r, c_l, c_r);
 
-  auto s_star =
-    compute_S_star(u_l_n, u_r_n, rho_l, rho_r, p_l, p_r, c_l, c_r, s_l, s_r);
+  auto s_star = compute_S_star(u_l_n, u_r_n, rho_l, rho_r, p_l, p_r, s_l, s_r);
 
   vec<Dim> vel_l_star = u_l, vel_r_star = u_r;
   if(fa == 0) {

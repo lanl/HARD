@@ -46,7 +46,6 @@ ssprk3_step(
   // 0) Freeze material for this entire time step: Lfrozen = L^n
   annotation_rguard<freeze_material_task>(),
     sc.execute<freeze_material<D>>(flecsi::exec::on,
-      *s.m,
 #ifdef IN_TEST
       s.material(*s.m),
       s.frozen_material(*s.m));
