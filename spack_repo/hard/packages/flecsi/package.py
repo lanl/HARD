@@ -5,4 +5,5 @@ class Flecsi(Flecsi):
     """
     Additional named versions for FleCSI
     """
-    version("2.develop", branch="2")
+    # not a real version
+    version("2.5", commit="1ce3933784e1337a44cb54b4065115a804a42856")
