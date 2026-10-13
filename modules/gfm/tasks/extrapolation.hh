@@ -216,7 +216,9 @@ sample_bilinear_nonzero(const ScalarAccessor & q,
   const auto xs = make_linear_axis_stencil(xi);
   const auto ys = make_linear_axis_stencil(yj);
   double value = 0.0;
+#ifdef __CUDACC__
 #pragma unroll 2
+#endif
   for(int b = 0; b < ys.n; ++b) {
     for(int a = 0; a < xs.n; ++a) {
       const double w = xs.w[a] * ys.w[b];
@@ -237,9 +239,13 @@ sample_trilinear_nonzero(const ScalarAccessor & q,
   const auto ys = make_linear_axis_stencil(yj);
   const auto zs = make_linear_axis_stencil(zk);
   double value = 0.0;
+#ifdef __CUDACC__
 #pragma unroll 2
+#endif
   for(int c = 0; c < zs.n; ++c) {
+#ifdef __CUDACC__
 #pragma unroll 2
+#endif
     for(int b = 0; b < ys.n; ++b) {
       for(int a = 0; a < xs.n; ++a) {
         const double w = xs.w[a] * ys.w[b] * zs.w[c];
@@ -399,15 +405,6 @@ unit_cell_normals(flecsi::exec::accelerator s,
   auto normal = m.template mdcolex<is::cells>(normal_a);
 
   constexpr double eps = 1e-12;
-
-  auto normalize = [](const vec<D> & g) {
-    vec<D> n(0.0);
-    const double mag = g.norm();
-    if(mag > eps) {
-      n = g / mag;
-    }
-    return n;
-  };
 
   if constexpr(D == 1) {
     s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
@@ -684,9 +681,7 @@ extp_interface_convergence_update(flecsi::exec::accelerator s,
 template<std::size_t D>
 void
 extp_interface_convergence(flecsi::exec::cpu,
-  typename mesh<D>::template accessor<ro>,
   flecsi::future<double> max_scaled_update_f,
-  int source_material,
   int steps,
   double tol) noexcept {
 

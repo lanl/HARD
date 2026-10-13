@@ -88,8 +88,7 @@ init_mesh(scheduler & s, state<D> & st, std::size_t levels) {
     } // if
 
     s.allocate(st.m,
-      typename mesh<D>::mpi_coloring(
-        s, s.runtime().processes(), axis_extents, bf.get()),
+      mesh<D>::color(s.runtime().processes(), axis_extents, bf.get()),
       geom);
 
     s.allocate(st.gt, s.runtime().processes());

@@ -14,7 +14,7 @@ struct acoustic_wave_task : annotation_task_region {
 //
 template<std::size_t Dim>
 auto
-acoustic_wave(flecsi::exec::cpu s,
+acoustic_wave(flecsi::exec::cpu,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,

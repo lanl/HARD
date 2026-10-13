@@ -23,7 +23,6 @@ struct rhs_upwind_task : annotation_task_region {
 template<std::size_t D>
 void
 freeze_material(flecsi::exec::accelerator s,
-  typename mesh<D>::template accessor<ro> m,
   typename field<int>::template accessor<ro, na> material_a,
   typename field<int>::template accessor<wo, na> frozen_material_a) noexcept {
 
@@ -569,14 +568,8 @@ eos_pair_equivalent_at_cell(const eosType & eos_disp,
   const vec<D> & mom,
   double rhoE) noexcept {
 
-  const bool valid_old =
-    old_mat >= 0 && static_cast<std::size_t>(old_mat) < eos_disp.size();
-
-  const bool valid_new =
-    new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_disp.size();
-
-  assert(valid_old);
-  assert(valid_new);
+  assert(old_mat >= 0 && static_cast<std::size_t>(old_mat) < eos_disp.size());
+  assert(new_mat >= 0 && static_cast<std::size_t>(new_mat) < eos_disp.size());
   assert(std::isfinite(rho) && rho > 0.0);
 
   if(old_mat == new_mat) {

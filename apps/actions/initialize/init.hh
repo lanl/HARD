@@ -343,15 +343,12 @@ init_mesh(state<D> & s,
       } // if
 
       if(cd.has_value()) {
-        sc.allocate(s.mh[i],
-          typename mesh<D>::mpi_coloring(
-            sc, cd.value(), axis_extents, bf.get()),
-          geom);
+        sc.allocate(
+          s.mh[i], mesh<D>::color(cd.value(), axis_extents, bf.get()), geom);
       }
       else {
         sc.allocate(s.mh[i],
-          typename mesh<D>::mpi_coloring(
-            sc, sc.runtime().processes(), axis_extents, bf.get()),
+          mesh<D>::color(sc.runtime().processes(), axis_extents, bf.get()),
           geom);
       }
     } // for

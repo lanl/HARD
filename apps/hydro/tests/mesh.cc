@@ -84,10 +84,8 @@ init_mesh(scheduler & s, typename mesh<D>::ptr & m) {
       axis_extents[ax::z] = 1 << (levels - i);
     } // if
 
-    s.allocate(m,
-      typename mesh<D>::mpi_coloring(
-        s, s.runtime().processes(), axis_extents, bf.get()),
-      geom);
+    s.allocate(
+      m, mesh<D>::color(s.runtime().processes(), axis_extents, bf.get()), geom);
   }
 }
 

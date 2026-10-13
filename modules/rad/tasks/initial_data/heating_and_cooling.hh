@@ -20,7 +20,7 @@ namespace hard::tasks::initial_data {
 //
 template<std::size_t Dim>
 auto
-heating_and_cooling(flecsi::exec::cpu s,
+heating_and_cooling(flecsi::exec::cpu,
   typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<wo, na> momentum_density_a,

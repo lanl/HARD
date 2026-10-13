@@ -14,7 +14,6 @@ struct conservative_to_primitive_mm_task : annotation_task_region {
 template<std::size_t Dim>
 void
 conservative_to_primitive_mm(flecsi::exec::accelerator s,
-  typename mesh<Dim>::template accessor<ro> m,
   field<double>::accessor<ro, na> mass_density_a,
   typename field<vec<Dim>>::template accessor<ro, na> momentum_density_a,
   field<double>::accessor<ro, na> total_energy_density_a,
