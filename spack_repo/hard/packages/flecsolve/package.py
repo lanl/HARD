@@ -13,7 +13,8 @@ class Flecsolve(CMakePackage, CudaPackage, ROCmPackage):
     homepage = "https://github.com/lanl/flecsolve.git"
     git = "https://github.com/lanl/flecsolve.git"
 
-    version("main", commit="307e7c6438514205d39e9eaa677b32075030e486")
+    version("main", branch="main")
+    version("1.0.1", commit="f5e324da8bb876f71930eb1406e2cb0b132ddede", tag="v1.0.1")
 
     variant("tests", default=False, description="Enable unit tests")
     variant("standard", default=False, description="Standard setup for flecsolve")
@@ -22,18 +23,11 @@ class Flecsolve(CMakePackage, CudaPackage, ROCmPackage):
     depends_on("eigen")
     depends_on("c", type="build")
     depends_on("cxx", type="build")
-    depends_on("fortran", type="build")
-
-    depends_on("cuda", when="+cuda")
+    depends_on("fortran", type="build", when="+standard")
 
     def cmake_args(self):
         args = [
             self.define_from_variant("FLECSOLVE_ENABLE_UNIT_TESTS", "tests"),
             self.define_from_variant("FLECSOLVE_ENABLE_AMP", "standard"),
         ]
-
-        if "+cuda" in self.spec:
-            cuda_prefix = self.spec["cuda"].prefix
-            args.append(self.define("CMAKE_CXX_FLAGS", f"--cuda-path={cuda_prefix}"))
-
         return args

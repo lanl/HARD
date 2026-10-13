@@ -40,6 +40,7 @@ endif()
 # Dependencies (load early).
 #------------------------------------------------------------------------------#
 
+set(Kokkos_LAUNCH_COMPILER FALSE)
 find_package(FleCSI 2 REQUIRED)
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 REQUIRED)
