@@ -101,15 +101,15 @@ struct initialize {
      *--------------------------------------------------------------------------*/
 
     vec<D> g(0.0);
-    if(config.contains("gravity_acc")) {
-      g[0] = config["gravity_acc"][0].cast<double>();
+    if(config.contains("gravity_const")) {
+      g[0] = config["gravity_const"][0].cast<double>();
       if constexpr(D > 1)
-        g[1] = config["gravity_acc"][1].cast<double>();
+        g[1] = config["gravity_const"][1].cast<double>();
       if constexpr(D > 2)
-        g[2] = config["gravity_acc"][2].cast<double>();
+        g[2] = config["gravity_const"][2].cast<double>();
     }
-    sc.execute<tasks::init::initialize_gravity_acc<D>>(
-      s.icst.gravity_acc(*s.gt), g);
+    sc.execute<tasks::init::initialize_gravity_const<D>>(
+      s.icst.gravity_const(*s.gt), g);
 
     /*--------------------------------------------------------------------------*
       Particle mass
@@ -139,8 +139,8 @@ struct initialize {
       Initialize problem state.
      *--------------------------------------------------------------------------*/
 
-    sc.execute<tasks::init::initialize_gravity_force<D>>(
-      flecsi::exec::on, s.src_t.hydro.gravity_force(*s.m));
+    sc.execute<tasks::init::initialize_gravity_accel<D>>(
+      flecsi::exec::on, s.src_t.hydro.gravity_accel(*s.m));
 
     // Ritchmyer-Meshkov works with both radiation on and off
     // FIXME: This problem does not converge (negative radiation energy)

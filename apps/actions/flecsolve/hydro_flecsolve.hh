@@ -242,7 +242,8 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
       sc.template execute<tasks::external_source<D>>(flecsi::exec::on,
         *s.m,
         s.prim.velocity(*s.m),
-        s.src_t.hydro.gravity_force(*s.m),
+        s.cons.hydro.mass_density(*s.m),
+        s.src_t.hydro.gravity_accel(*s.m),
         dmom.data.ref(),
         dE.data.ref());
 
@@ -298,7 +299,7 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
           s.rf.hydro.ru_f(*s.m),
           s.rf.hydro.re_f(*s.m),
           std::make_tuple(drho.data.ref(), dE.data.ref(), dmom.data.ref()),
-          s.icst.gravity_acc(*s.gt));
+          s.icst.gravity_const(*s.gt));
     }
   }
 };

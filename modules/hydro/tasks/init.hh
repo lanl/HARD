@@ -9,28 +9,28 @@ namespace hard {
 
 namespace tasks::init {
 
-struct initialize_gravity_force_task : annotation_task_region {
-  inline static const std::string name{"initialize_gravity_force"};
+struct initialize_gravity_accel_task : annotation_task_region {
+  inline static const std::string name{"initialize_gravity_accel"};
 };
 
 template<std::size_t D>
-void inline initialize_gravity_force(flecsi::exec::cpu,
-  typename field<vec<D>>::template accessor<wo, wo> gravity_force_a) noexcept {
-  auto gf = gravity_force_a.span();
+void inline initialize_gravity_accel(flecsi::exec::cpu,
+  typename field<vec<D>>::template accessor<wo, wo> gravity_accel_a) noexcept {
+  auto gf = gravity_accel_a.span();
   // initialize gravity force with zero
   std::fill(gf.begin(), gf.end(), vec<D>{0.0});
-} // initialize_gravity_force
+} // initialize_gravity_accel
 
-struct initialize_gravity_acc_task : annotation_task_region {
-  inline static const std::string name{"initialize_gravity_acc"};
+struct initialize_gravity_const_task : annotation_task_region {
+  inline static const std::string name{"initialize_gravity_const"};
 };
 
 template<std::size_t D>
-void inline initialize_gravity_acc(
+void inline initialize_gravity_const(
   typename single<vec<D>>::template accessor<wo> gravity_acc_a,
   vec<D> k) noexcept {
   (*gravity_acc_a) = k;
-} // initialize_gravity_acc
+} // initialize_gravity_const
 
 struct compute_dt_weighted_task : hard::annotation_task_region {
   inline static const std::string name{"compute_dt_weighted"};

@@ -662,7 +662,7 @@ getDiff(flecsi::exec::accelerator s,
   auto Diff = m.template mdcolex<is::cells>(Diff_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor().forall(i, (m.template cells<ax::x, dm::all>())) {
       auto const kappa = *kappa_a;
       const double clight = hard::constants::cgs::speed_of_light;
       Diff(i) = clight * lambda(i) / (kappa * r(i));
@@ -670,8 +670,8 @@ getDiff(flecsi::exec::accelerator s,
   }
   else if constexpr(D == 2) {
     auto mdpolicy_aa = get_mdiota_policy(r,
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
+      m.template cells<ax::y, dm::all>(),
+      m.template cells<ax::x, dm::all>());
 
     s.executor().forall(ji, mdpolicy_aa) {
       auto const kappa = *kappa_a;
@@ -682,9 +682,9 @@ getDiff(flecsi::exec::accelerator s,
   }
   else /* D == 3 */ {
     auto mdpolicy_aaa = get_mdiota_policy(r,
-      m.template cells<ax::z, dm::quantities>(),
-      m.template cells<ax::y, dm::quantities>(),
-      m.template cells<ax::x, dm::quantities>());
+      m.template cells<ax::z, dm::all>(),
+      m.template cells<ax::y, dm::all>(),
+      m.template cells<ax::x, dm::all>());
 
     s.executor().forall(kji, mdpolicy_aaa) {
       auto const kappa = *kappa_a;

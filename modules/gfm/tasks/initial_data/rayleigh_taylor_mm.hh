@@ -18,8 +18,8 @@ rt_instability_mm(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,
-  typename field<vec<D>>::template accessor<wo, na> gravity_force_a,
-  typename single<vec<D>>::template accessor<ro> gravity_acc_a,
+  typename field<vec<D>>::template accessor<wo, na> gravity_accel_a,
+  typename single<vec<D>>::template accessor<ro> gravity_const,
   field<double>::accessor<wo, na> total_energy_density_a,
   typename field<int>::accessor<wo, na> material_a,
   typename field<int>::accessor<wo, na> frozen_material_a,
@@ -34,8 +34,8 @@ rt_instability_mm(flecsi::exec::cpu,
     q_ext_minus_a,
   const std::vector<eos::eos_wrapper> & eos_mm) noexcept {
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto gravity_force = m.template mdcolex<is::cells>(gravity_force_a);
-  auto g = gravity_acc_a.get();
+  auto ga = m.template mdcolex<is::cells>(gravity_accel_a);
+  auto g = gravity_const.get();
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
@@ -79,7 +79,7 @@ rt_instability_mm(flecsi::exec::cpu,
         // upper fluid
         mass_density(i) = rH;
         vel.x() = uH;
-        gravity_force(i).x() = rH * g.x();
+        ga(i).x() = rH * g.x();
         momentum_density(i).x() = rH * vel.x();
         const double pH = p0 + rL * g.x() * x0 + g.x() * rH * (x - x0);
 
@@ -102,7 +102,7 @@ rt_instability_mm(flecsi::exec::cpu,
         // lower fluid
         mass_density(i) = rL;
         vel.x() = uL;
-        gravity_force(i).x() = rL * g.x();
+        ga(i).x() = g.x();
         momentum_density(i).x() = rL * vel.x();
         const double pL = p0 + rL * g.x() * x;
 
@@ -139,8 +139,8 @@ rt_instability_mm(flecsi::exec::cpu,
           mass_density(i, j) = rH;
           vel.x() = uH;
           vel.y() = v;
-          gravity_force(i, j).x() = rH * g.x();
-          gravity_force(i, j).y() = rH * g.y();
+          ga(i, j).x() = g.x();
+          ga(i, j).y() = g.y();
           momentum_density(i, j).x() = rH * vel.x();
           momentum_density(i, j).y() = rH * vel.y();
           const double pH = p0 + rL * g.y() * y0 + g.y() * rH * (y - y0);
@@ -165,8 +165,8 @@ rt_instability_mm(flecsi::exec::cpu,
           mass_density(i, j) = rL;
           vel.x() = uL;
           vel.y() = v;
-          gravity_force(i, j).x() = rL * g.x();
-          gravity_force(i, j).y() = rL * g.y();
+          ga(i, j).x() = g.x();
+          ga(i, j).y() = g.y();
           momentum_density(i, j).x() = rL * vel.x();
           momentum_density(i, j).y() = rL * vel.y();
           const double pL = p0 + rL * g.y() * y;

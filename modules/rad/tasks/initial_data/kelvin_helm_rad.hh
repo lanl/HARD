@@ -40,28 +40,28 @@ kh_instability_rad(flecsi::exec::cpu,
   // X and Z dimensions not used currently so not called here
   const double y_min = config["coords"][0][1].cast<double>();
   const double y_max = config["coords"][1][1].cast<double>();
-  const double L_y = std::abs(y_max - y_min);
+  const double l_y = std::abs(y_max - y_min);
 
   // setting density and velocity
   // H is the heavier fluid at bottom
-  const double rH =
+  const double r_h =
     config["problem_parameters"]["fluid_mass_density_high"].cast<double>();
-  const double pH =
+  const double p_h =
     config["problem_parameters"]["fluid_pressure_high"].cast<double>();
-  const double uH =
+  const double u_h =
     config["problem_parameters"]["fluid_x_velocity_high"].cast<double>();
-  const double vH =
+  const double v_h =
     config["problem_parameters"]["fluid_y_velocity_high"].cast<double>();
   double w_h{0};
 
   // L is the lighter fluid at top
-  const double rL =
+  const double r_l =
     config["problem_parameters"]["fluid_mass_density_low"].cast<double>();
-  const double pL =
+  const double p_l =
     config["problem_parameters"]["fluid_pressure_low"].cast<double>();
-  const double uL =
+  const double u_l =
     config["problem_parameters"]["fluid_x_velocity_low"].cast<double>();
-  const double vL =
+  const double v_l =
     config["problem_parameters"]["fluid_y_velocity_low"].cast<double>();
   double w_l{0};
 
@@ -80,8 +80,8 @@ kh_instability_rad(flecsi::exec::cpu,
     config["problem_parameters"]["fluid_sep_y_frac"].cast<double>();
   const double y_vp_f =
     config["problem_parameters"]["vel_per_y_frac"].cast<double>();
-  const double y_sep = y_sep_f * L_y;
-  const double y_vp = y_vp_f * L_y;
+  const double y_sep = y_sep_f * l_y;
+  const double y_vp = y_vp_f * l_y;
 
   // setting perturbation parameters
   //  constants for perturbation
@@ -103,29 +103,31 @@ kh_instability_rad(flecsi::exec::cpu,
         const auto y = m.template center<ax::y>(j);
 
         // initialize two different density and velocity fluids
-        if(std::abs(y - (L_y / 2)) > y_sep) {
-          mass_density(i, j) = rL;
-          momentum_density(i, j).x() = rL * uL;
-          momentum_density(i, j).y() = rL * vL;
-          const double e = util::find_sie(eos, rL, pL);
-          total_energy_density(i, j) = rL * e + 0.5 * rL * (vL * vL);
+        if(std::abs(y - (l_y / 2)) > y_sep) {
+          mass_density(i, j) = r_l;
+          momentum_density(i, j).x() = r_l * u_l;
+          momentum_density(i, j).y() = r_l * v_l;
+          const double e = util::find_sie(eos, r_l, p_l);
+          total_energy_density(i, j) =
+            r_l * e + 0.5 * r_l * (u_l * u_l + v_l * v_l);
         }
         else {
-          mass_density(i, j) = rH;
-          momentum_density(i, j).x() = rH * uH;
-          momentum_density(i, j).y() = rH * vH;
-          const double e = util::find_sie(eos, rH, pH);
-          total_energy_density(i, j) = rH * e + 0.5 * rH * (vH * vH);
+          mass_density(i, j) = r_h;
+          momentum_density(i, j).x() = r_h * u_h;
+          momentum_density(i, j).y() = r_h * v_h;
+          const double e = util::find_sie(eos, r_h, p_h);
+          total_energy_density(i, j) =
+            r_h * e + 0.5 * r_h * (u_h * u_h + v_h * v_h);
         } // if
 
         radiation_energy_density(i, j) =
           a * spec::utils::sqr(spec::utils::sqr(rad_temp));
 
         // velocity perturbations in the Y-direction
-        if(std::abs(y - (L_y / 4)) < y_vp) {
+        if(std::abs(y - (l_y / 4)) < y_vp) {
           momentum_density(i, j).y() = 0.05 * sin(wavenumber * x);
         }
-        if(std::abs(y - (3 * L_y / 4)) < y_vp) {
+        if(std::abs(y - (3 * l_y / 4)) < y_vp) {
           momentum_density(i, j).y() = 0.05 * sin(wavenumber * x);
         }
       } // for
@@ -139,31 +141,33 @@ kh_instability_rad(flecsi::exec::cpu,
           const auto y = m.template center<ax::y>(j);
 
           // initialize two different density and velocity fluids
-          if(std::abs(y - (L_y / 2)) > y_sep) {
-            mass_density(i, j, k) = rL;
-            momentum_density(i, j, k).x() = rL * uL;
-            momentum_density(i, j, k).y() = rL * vL;
-            momentum_density(i, j, k).z() = rL * w_l;
-            const double e = util::find_sie(eos, rL, pL);
-            total_energy_density(i, j, k) = rL * e + 0.5 * rL * (vL * vL);
+          if(std::abs(y - (l_y / 2)) > y_sep) {
+            mass_density(i, j, k) = r_l;
+            momentum_density(i, j, k).x() = r_l * u_l;
+            momentum_density(i, j, k).y() = r_l * v_l;
+            momentum_density(i, j, k).z() = r_l * w_l;
+            const double e = util::find_sie(eos, r_l, p_l);
+            total_energy_density(i, j, k) =
+              r_l * e + 0.5 * r_l * (u_l * u_l + v_l * v_l + w_l * w_l);
           }
           else {
-            mass_density(i, j, k) = rH;
-            momentum_density(i, j, k).x() = rH * uH;
-            momentum_density(i, j, k).y() = rH * vH;
-            momentum_density(i, j, k).z() = rH * w_h;
-            const double e = util::find_sie(eos, rH, pH);
-            total_energy_density(i, j, k) = rH * e + 0.5 * rH * (vH * vH);
+            mass_density(i, j, k) = r_h;
+            momentum_density(i, j, k).x() = r_h * u_h;
+            momentum_density(i, j, k).y() = r_h * v_h;
+            momentum_density(i, j, k).z() = r_h * w_h;
+            const double e = util::find_sie(eos, r_h, p_h);
+            total_energy_density(i, j, k) =
+              r_h * e + 0.5 * r_h * (v_l * v_l + v_h * v_h + w_h * w_h);
           } // if
 
           radiation_energy_density(i, j, k) =
             a * spec::utils::sqr(spec::utils::sqr(rad_temp));
 
           // velocity perturbations in the Y-direction
-          if(std::abs(y - (L_y / 4)) < y_vp) {
+          if(std::abs(y - (l_y / 4)) < y_vp) {
             momentum_density(i, j, k).y() = 0.05 * sin(wavenumber * x);
           }
-          if(std::abs(y - (3 * L_y / 4)) < y_vp) {
+          if(std::abs(y - (3 * l_y / 4)) < y_vp) {
             momentum_density(i, j, k).y() = 0.05 * sin(wavenumber * x);
           }
         } // for

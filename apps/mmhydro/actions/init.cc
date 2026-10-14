@@ -57,16 +57,16 @@ initialize(control_policy<state, D> & cp) {
    *--------------------------------------------------------------------------*/
 
   vec<D> g(0.0);
-  if(config.contains("gravity_acc")) {
-    g[0] = config["gravity_acc"][0].cast<double>();
+  if(config.contains("gravity_const")) {
+    g[0] = config["gravity_const"][0].cast<double>();
     if constexpr(D > 1)
-      g[1] = config["gravity_acc"][1].cast<double>();
+      g[1] = config["gravity_const"][1].cast<double>();
     if constexpr(D > 2)
-      g[2] = config["gravity_acc"][2].cast<double>();
+      g[2] = config["gravity_const"][2].cast<double>();
   }
-  annotation_rguard<tasks::init::initialize_gravity_acc_task>(),
-    sc.execute<tasks::init::initialize_gravity_acc<D>>(
-      s.icst.gravity_acc(*s.gt), g);
+  annotation_rguard<tasks::init::initialize_gravity_const_task>(),
+    sc.execute<tasks::init::initialize_gravity_const<D>>(
+      s.icst.gravity_const(*s.gt), g);
 
   /*--------------------------------------------------------------------------*
     Particle mass
@@ -97,9 +97,6 @@ initialize(control_policy<state, D> & cp) {
 
   eos::init_eos_mm(s.eos_mm, config);
 
-  
-
-
   /*--------------------------------------------------------------------------*
     Reconstruction scheme configuration.
     *--------------------------------------------------------------------------*/
@@ -110,9 +107,9 @@ initialize(control_policy<state, D> & cp) {
     Initialize problem state.
    *--------------------------------------------------------------------------*/
 
-  annotation_rguard<tasks::init::initialize_gravity_force_task>(),
-    sc.execute<tasks::init::initialize_gravity_force<D>>(
-      flecsi::exec::on, s.src_t.hydro.gravity_force(*s.m));
+  annotation_rguard<tasks::init::initialize_gravity_const_task>(),
+    sc.execute<tasks::init::initialize_gravity_accel<D>>(
+      flecsi::exec::on, s.src_t.hydro.gravity_accel(*s.m));
 
   auto problem = config["problem"].cast<std::string>();
 
@@ -277,8 +274,8 @@ initialize(control_policy<state, D> & cp) {
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
-        s.src_t.hydro.gravity_force(*s.m),
-        s.icst.gravity_acc(*s.gt),
+        s.src_t.hydro.gravity_accel(*s.m),
+        s.icst.gravity_const(*s.gt),
         s.cons.hydro.total_energy_density(*s.m),
         s.eos);
   }
@@ -288,8 +285,8 @@ initialize(control_policy<state, D> & cp) {
         *s.m,
         s.cons.hydro.mass_density(*s.m),
         s.cons.hydro.momentum_density(*s.m),
-        s.src_t.hydro.gravity_force(*s.m),
-        s.icst.gravity_acc(*s.gt),
+        s.src_t.hydro.gravity_accel(*s.m),
+        s.icst.gravity_const(*s.gt),
         s.cons.hydro.total_energy_density(*s.m),
         s.ls.material(*s.m),
         s.ls.frozen_material(*s.m),

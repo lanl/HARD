@@ -5,6 +5,7 @@
 
 #include <flecsi/util/serialize.hh>
 
+#include "../../modules/hydro/constants.hh"
 #include <singularity-eos/eos/eos.hpp>
 #include <singularity-utils/robust_utils.hpp>
 
@@ -109,8 +110,11 @@ init_eos(spec::config_py & config) {
   const std::string name(config["eos"].cast<std::string>());
 
   if(name == "ideal")
-    return singularity::IdealGas(
-      config["gamma"].cast<double>() - 1, 2.0 /* FIXME */);
+    return singularity::IdealGas(config["gamma"].cast<double>() - 1,
+      hard::constants::cgs::boltzmann_constant /
+        ((config["gamma"].cast<double>() - 1) *
+          config["mean_molecular_weight"].cast<double>() *
+          hard::constants::cgs::proton_mass));
   else if(name == "spiner")
     return singularity::SpinerEOSDependsRhoSie(
       config["spiner_file"].cast<std::string>(),

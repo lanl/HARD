@@ -40,14 +40,14 @@ class ProblemData(object):
             self.usecols = [0, 2, 3, 4, 8]
             self.extract = ["density", "pressure", "velocity"]
             self.labels = ["Density", "Pressure", "Velocity"]
-            self.tolerances = [1e-2, 1e-2, 5e-1]
+            self.tolerances = [5e-3, 5e-3, 5e-3]
         elif dim == 2:
             self.usecols = [0, 3, 4, 5, 6, 10, 11]
             self.extract = ["density", "pressure", "velocity_x", "velocity_y"]
             self.labels = ["Density", "Pressure", "Velocity x", "Velocity y"]
-            self.tolerances = [1e-2, 1e-2, 5e-1, 5e-1]
+            self.tolerances = [5e-3, 5e-3, 5e-3, 5e-3]
         else:
-            self.usecols = [0, 4, 5, 6, 7, 8, 13, 14, 15]
+            self.usecols = [0, 4, 5, 6, 7, 8, 12, 13, 14]
             self.extract = [
                 "density",
                 "pressure",
@@ -62,11 +62,13 @@ class ProblemData(object):
                 "Velocity y",
                 "Velocity z",
             ]
-            self.tolerances = [1e-2, 1e-2, 5e-1, 5e-1, 5e-1]
+            self.tolerances = [5e-3, 5e-3, 5e-3, 5e-3, 5e-3]
 
         # Define specifics per problem and analytical solutions
         if self.name in self.riemann_problems:
             self.function = self.__riemann_analytic_solution
+            if self.name == "leblanc":
+                self.tolerances[-1] = 2e-2
         elif self.name == "sedov":
             self.function = self.__sedov_analytic_solution
         elif self.name == "acoustic-wave":
@@ -76,8 +78,10 @@ class ProblemData(object):
             if dim == 1:
                 self.tolerances = 1e-8
             elif dim == 2:
+                # FIXME: This will be fixed once we merge the fix in github
                 self.tolerances = 2e-7
             else:
+                # FIXME: This will be fixed once we merge the fix in github
                 self.tolerances = 7e-6
         else:
             sys.exit(f"Unsupported problem type '{name}'")
@@ -131,12 +135,12 @@ class ProblemData(object):
             )
 
     def __sedov_analytic_solution(
-        self, x: NDArray, t: float, gamma: float
+        self, x: NDArray, t: float, gamma: float, problem_dict: dict[str, str]
     ) -> tuple[Callable, ...]:
 
         from exactpack.solvers.sedov import Sedov
 
-        solver = Sedov(gamma=gamma, geometry=1, eblast=0.0673185)
+        solver = Sedov(gamma=gamma, geometry=1, eblast=problem_dict["E_0"])
         result = wrapFunction(solver, t, self.extract)
 
         return result.density, result.pressure, result.velocity
@@ -278,7 +282,7 @@ class Problem(object):
                 self.data.right_state,
             ]
         elif self.name == "sedov":
-            input = [self.x_arr, self.time, self.gamma]
+            input = [self.x_arr, self.time, self.gamma, self.problem_dict]
         elif self.name == "acoustic-wave":
             input = [
                 self.gamma,
@@ -387,7 +391,7 @@ class Problem(object):
             print(f"  {label}  : {err:.6e} [{self.__color_text(stat, stat)}]")
 
         if any(failed):
-            s = "Test FAILED: relative L1 error exceeds tolerance of "
+            s = "Test FAILED: L1 error exceeds tolerance of "
             if type(tols) is list:
                 s += " ".join([f"{tol:.2e}" for tol in tols])
             elif type(tols) is float:
@@ -419,7 +423,7 @@ def main() -> None:
         problem.make_plot()
 
     # For Sedov: only compare for x > 0.2
-    if problem == "sedov":
+    if problem.name == "sedov":
         problem.sedov_cutoff(cutoff=0.2)
 
     # Compute errors

@@ -18,7 +18,8 @@ external_source(flecsi::exec::accelerator s,
   // Primitive variables
   typename field<vec<D>>::template accessor<ro, na> velocity_a,
   // Terms required for computing radiation force and photon tiring
-  typename field<vec<D>>::template accessor<ro, na> gravity_force_a,
+  field<double>::accessor<rw, na> mass_density_a,
+  typename field<vec<D>>::template accessor<ro, na> gravity_accel_a,
   // time derivative
   typename field<vec<D>>::template accessor<rw, na> dt_momentum_density_a,
   field<double>::accessor<rw, na> dt_total_energy_density_a) noexcept {
@@ -26,7 +27,8 @@ external_source(flecsi::exec::accelerator s,
   using common::tasks::utils::get_mdiota_policy;
 
   auto velocity = m.template mdcolex<is::cells>(velocity_a);
-  auto fg = m.template mdcolex<is::cells>(gravity_force_a);
+  auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
+  auto ga = m.template mdcolex<is::cells>(gravity_accel_a);
   auto dt_momentum_density =
     m.template mdcolex<is::cells>(dt_momentum_density_a);
   auto dt_total_energy_density =
@@ -37,11 +39,12 @@ external_source(flecsi::exec::accelerator s,
 
       // Explicitly updating conserved variables with S_ex
       // Adding the radiation force term to the momentum density
-      dt_momentum_density(i) += fg(i);
+      dt_momentum_density(i) += mass_density(i) * ga(i);
 
       // Updating the total gas energy density: Adding contribution from the
       // work done by the radiative force: vdot_fr(i) = u(i).x * fr(i).x
-      dt_total_energy_density(i) += velocity(i).x() * fg(i).x();
+      dt_total_energy_density(i) +=
+        velocity(i).x() * mass_density(i) * ga(i).x();
     };
   }
   else if constexpr(D == 2) {
@@ -54,12 +57,13 @@ external_source(flecsi::exec::accelerator s,
 
       // Explicitly updating conserved variables with S_ex
       // Adding the radiation force term to the momentum density
-      dt_momentum_density(i, j) += fg(i, j);
+      dt_momentum_density(i, j) += mass_density(i, j) * ga(i, j);
 
       // Updating the total gas energy density: Adding contribution from the
       // work done by the radiative force: vdot_fr(i) = u(i).x * fr(i).x
       dt_total_energy_density(i, j) +=
-        velocity(i, j).x() * fg(i, j).x() + velocity(i, j).y() * fg(i, j).y();
+        velocity(i, j).x() * ga(i, j).x() +
+        velocity(i, j).y() * mass_density(i, j) * ga(i, j).y();
     };
   }
   else {
@@ -73,14 +77,14 @@ external_source(flecsi::exec::accelerator s,
 
       // Explicitly updating conserved variables with S_ex
       // Adding the radiation force term to the momentum density
-      dt_momentum_density(i, j, k) += fg(i, j, k);
+      dt_momentum_density(i, j, k) += mass_density(i, j, k) * ga(i, j, k);
 
       // Updating the total gas energy density: Adding contribution from the
       // work done by the radiative force: vdot_fr(i) = u(i).x * fr(i).x
       dt_total_energy_density(i, j, k) +=
-        velocity(i, j, k).x() * fg(i, j, k).x() +
-        velocity(i, j, k).y() * fg(i, j, k).y() +
-        velocity(i, j, k).z() * fg(i, j, k).z();
+        velocity(i, j, k).x() * mass_density(i, j, k) * ga(i, j, k).x() +
+        velocity(i, j, k).y() * mass_density(i, j, k) * ga(i, j, k).y() +
+        velocity(i, j, k).z() * mass_density(i, j, k) * ga(i, j, k).z();
     }; // forall
   }
 } // explicitSourceUpdate

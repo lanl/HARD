@@ -47,25 +47,25 @@ kh_instability_mm(flecsi::exec::cpu,
   const double N = 4;
 
   // density, velocity and pressure for two fluids
-  const double rL = 1.0;
-  const double uL = -0.5;
-  const double vL = 0.0;
-  const double pL = 2.5;
-  const int mL = 0;
+  const double r_l = 1.0;
+  const double u_l = -0.5;
+  const double v_l = 0.0;
+  const double p_l = 2.5;
+  const int m_l = 0;
 
-  const double rH = 2.0;
-  const double uH = 0.5;
-  const double vH = 0.0;
-  const double pH = 2.5;
-  const int mH = 1;
+  const double r_h = 2.0;
+  const double u_h = 0.5;
+  const double v_h = 0.0;
+  const double p_h = 2.5;
+  const int m_h = 1;
 
   vec<D> vel;
 
   double sieL = 0., sieH = 0.;
-  const double eL =
-    eos_mm[static_cast<std::size_t>(mL)].ieRhoPSie(rL, pL, sieL);
-  const double eH =
-    eos_mm[static_cast<std::size_t>(mH)].ieRhoPSie(rH, pH, sieH);
+  const double e_l =
+    eos_mm[static_cast<std::size_t>(m_l)].ieRhoPSie(r_l, p_l, sieL);
+  const double e_h =
+    eos_mm[static_cast<std::size_t>(m_h)].ieRhoPSie(r_h, p_h, sieH);
 
   if constexpr(D == 1) {
     flog_fatal(
@@ -82,55 +82,55 @@ kh_instability_mm(flecsi::exec::cpu,
 
         // initialize two different density and velocity fluids
         if(std::abs(y - 0.5) > 0.25) {
-          mass_density(i, j) = rL;
-          vel.x() = uL;
-          momentum_density(i, j).x() = rL * vel.x();
+          mass_density(i, j) = r_l;
+          vel.x() = u_l;
+          momentum_density(i, j).x() = r_l * vel.x();
           if(std::abs(y - 0.25) < 0.1 || std::abs(y - 0.75) < 0.1) {
             vel.y() = v_pert;
           }
           else {
-            vel.y() = vL;
+            vel.y() = v_l;
           }
-          momentum_density(i, j).y() = rL * vel.y();
+          momentum_density(i, j).y() = r_l * vel.y();
 
-          material(i, j) = mL;
-          frozen_material(i, j) = mL;
+          material(i, j) = m_l;
+          frozen_material(i, j) = m_l;
           psi(i, j) = 0.25 - std::abs(y - 0.5);
 
           total_energy_density(i, j) =
-            rL * eL + 0.5 * rL * (vel.x() * vel.x() + vel.y() * vel.y());
+            r_l * e_l + 0.5 * r_l * (vel.x() * vel.x() + vel.y() * vel.y());
 
-          hard::tasks::util::pack_q<D>(q_scalar(i, j), rL, uL, pL, eL);
+          hard::tasks::util::pack_q<D>(q_scalar(i, j), r_l, u_l, p_l, e_l);
           q_scalar_known(i, j) = q_scalar(i, j);
         }
         else {
-          mass_density(i, j) = rH;
-          vel.x() = uH;
-          momentum_density(i, j).x() = rH * vel.x();
+          mass_density(i, j) = r_h;
+          vel.x() = u_h;
+          momentum_density(i, j).x() = r_h * vel.x();
           if(std::abs(y - 0.25) < 0.1 || std::abs(y - 0.75) < 0.1) {
             vel.y() = v_pert;
           }
           else {
-            vel.y() = vH;
+            vel.y() = v_h;
           }
-          momentum_density(i, j).y() = rH * vel.y();
+          momentum_density(i, j).y() = r_h * vel.y();
 
-          material(i, j) = mH;
-          frozen_material(i, j) = mH;
+          material(i, j) = m_h;
+          frozen_material(i, j) = m_h;
           psi(i, j) = 0.25 - std::abs(y - 0.5);
 
           total_energy_density(i, j) =
-            rH * eH + 0.5 * rH * (vel.x() * vel.x() + vel.y() * vel.y());
+            r_h * e_h + 0.5 * r_h * (vel.x() * vel.x() + vel.y() * vel.y());
 
-          hard::tasks::util::pack_q<D>(q_scalar(i, j), rH, uH, pH, eH);
+          hard::tasks::util::pack_q<D>(q_scalar(i, j), r_h, u_h, p_h, e_h);
           q_scalar_known(i, j) = q_scalar(i, j);
         } // if
         // Initial exact constant extrapolation fields.
         // plus: left/minus material extended into plus/right side.
-        hard::tasks::util::pack_q<D>(q_ext_plus(i, j), rL, vel, pL, eL);
+        hard::tasks::util::pack_q<D>(q_ext_plus(i, j), r_l, vel, p_l, e_l);
 
         // minus: right/plus material extended into minus/left side.
-        hard::tasks::util::pack_q<D>(q_ext_minus(i, j), rH, vel, pH, eH);
+        hard::tasks::util::pack_q<D>(q_ext_minus(i, j), r_h, vel, p_h, e_h);
       } // for
     }; // forall
   }
