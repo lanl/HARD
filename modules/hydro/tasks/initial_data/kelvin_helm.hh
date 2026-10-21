@@ -27,21 +27,21 @@ kh_instability(flecsi::exec::cpu,
   const double N = 4;
 
   // density, velocity and pressure for two fluids
-  const double rL = 1.0;
-  const double uL = -0.5;
-  const double vL = 0.0;
+  const double r_l = 1.0;
+  const double u_l = -0.5;
+  const double v_l = 0.0;
   const double pL = 2.5;
 
-  const double rH = 2.0;
-  const double uH = 0.5;
-  const double vH = 0.0;
+  const double r_h = 2.0;
+  const double u_h = 0.5;
+  const double v_h = 0.0;
   const double pH = 2.5;
 
   vec<D> vel;
 
   double sieL = 0., sieH = 0.;
-  const double eL = eos.ieRhoPSie(rL, pL, sieL);
-  const double eH = eos.ieRhoPSie(rH, pH, sieH);
+  const double e_l = eos.ieRhoPSie(r_l, pL, sieL);
+  const double e_h = eos.ieRhoPSie(r_h, pH, sieH);
 
   if constexpr(D == 1) {
     flog_fatal(
@@ -59,34 +59,34 @@ kh_instability(flecsi::exec::cpu,
 
         // initialize two different density and velocity fluids
         if(std::abs(y - 0.5) > 0.25) {
-          mass_density(i, j) = rL;
-          vel.x() = uL;
-          momentum_density(i, j).x() = rL * vel.x();
+          mass_density(i, j) = r_l;
+          vel.x() = u_l;
+          momentum_density(i, j).x() = r_l * vel.x();
           if(std::abs(y - 0.25) < 0.1 || std::abs(y - 0.75) < 0.1) {
             vel.y() = v_pert;
           }
           else {
-            vel.y() = vL;
+            vel.y() = v_l;
           }
-          momentum_density(i, j).y() = rL * vel.y();
+          momentum_density(i, j).y() = r_l * vel.y();
 
           total_energy_density(i, j) =
-            rL * eL + 0.5 * rL * (vel.x() * vel.x() + vel.y() * vel.y());
+            r_l * e_l + 0.5 * r_l * (vel.x() * vel.x() + vel.y() * vel.y());
         }
         else {
-          mass_density(i, j) = rH;
-          vel.x() = uH;
-          momentum_density(i, j).x() = rH * vel.x();
+          mass_density(i, j) = r_h;
+          vel.x() = u_h;
+          momentum_density(i, j).x() = r_h * vel.x();
           if(std::abs(y - 0.25) < 0.1 || std::abs(y - 0.75) < 0.1) {
             vel.y() = v_pert;
           }
           else {
-            vel.y() = vH;
+            vel.y() = v_h;
           }
-          momentum_density(i, j).y() = rH * vel.y();
+          momentum_density(i, j).y() = r_h * vel.y();
 
           total_energy_density(i, j) =
-            rH * eH + 0.5 * rH * (vel.x() * vel.x() + vel.y() * vel.y());
+            r_h * e_h + 0.5 * r_h * (vel.x() * vel.x() + vel.y() * vel.y());
         } // if
       } // for
     }; // forall

@@ -42,7 +42,8 @@ advance_rk_stage_1(state<D> & s,
     sc.execute<tasks::external_source<D>>(flecsi::exec::on,
       *s.m,
       s.prim.velocity(*s.m),
-      s.src_t.hydro.gravity_force(*s.m),
+      s.cons.hydro.mass_density(*s.m),
+      s.src_t.hydro.gravity_accel(*s.m),
       // time-derivatives
       s.rk_dt1.momentum_energy_density()(*s.m),
       s.rk_dt1.total_energy_density()(*s.m));
@@ -131,7 +132,7 @@ advance_rk_stage_1(state<D> & s,
         s.rf.hydro.ru_f(*s.m),
         s.rf.hydro.re_f(*s.m),
         s.rk_dt1(s.m),
-        s.icst.gravity_acc(*s.gt));
+        s.icst.gravity_const(*s.gt));
 
     // Apply function if present
     if constexpr(!std::is_same_v<F, std::nullptr_t>)

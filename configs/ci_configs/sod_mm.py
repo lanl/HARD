@@ -1,18 +1,19 @@
 config = {
     "problem": "sod_mm",
-
     "eos_list": [
         {
             "eos": "ideal",
             "gamma": 1.4,
+            "mean_molecular_weight": 1.0,
         },
         {
             "eos": "ideal",
             "gamma": 2.0,
+            "mean_molecular_weight": 1.0,
         },
     ],
-    "kappa": 1.0e-100,
     "mean_molecular_weight": 1.0,
+    "kappa": 1.0e-100,
     "t0": 0.0,
     "tf": 0.3,
     "max_steps": 100,

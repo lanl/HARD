@@ -18,13 +18,13 @@ rt_instability(flecsi::exec::cpu,
   typename mesh<D>::template accessor<ro> m,
   field<double>::accessor<wo, na> mass_density_a,
   typename field<vec<D>>::template accessor<wo, na> momentum_density_a,
-  typename field<vec<D>>::template accessor<wo, na> gravity_force_a,
-  typename single<vec<D>>::template accessor<ro> gravity_acc_a,
+  typename field<vec<D>>::template accessor<wo, na> gravity_accel_a,
+  typename single<vec<D>>::template accessor<ro> gravity_const,
   field<double>::accessor<wo, na> total_energy_density_a,
   const eos::eos_wrapper & eos) noexcept {
   auto mass_density = m.template mdcolex<is::cells>(mass_density_a);
-  auto gravity_force = m.template mdcolex<is::cells>(gravity_force_a);
-  auto g = gravity_acc_a.get();
+  auto gravity_accel = m.template mdcolex<is::cells>(gravity_accel_a);
+  auto g = gravity_const.get();
   auto momentum_density = m.template mdcolex<is::cells>(momentum_density_a);
   auto total_energy_density =
     m.template mdcolex<is::cells>(total_energy_density_a);
@@ -69,7 +69,7 @@ rt_instability(flecsi::exec::cpu,
 
       // Initialize state variables at location
       mass_density(i) = r;
-      gravity_force(i).x() = r * g.x();
+      gravity_accel(i).x() = r * g.x();
       momentum_density(i).x() = r * u;
       const double e = util::find_sie(eos, r, p);
       total_energy_density(i) = r * e + 0.5 * r * (u * u + v * v);
@@ -103,8 +103,8 @@ rt_instability(flecsi::exec::cpu,
 
         // Initialize state variables at location
         mass_density(i, j) = r;
-        gravity_force(i, j).x() = r * g.x();
-        gravity_force(i, j).y() = r * g.y();
+        gravity_accel(i, j).x() = r * g.x();
+        gravity_accel(i, j).y() = r * g.y();
         momentum_density(i, j).x() = r * u;
         momentum_density(i, j).y() = r * v;
         const double e = util::find_sie(eos, r, p);
@@ -146,9 +146,9 @@ rt_instability(flecsi::exec::cpu,
 
           // Initialize state variables at location
           mass_density(i, j, k) = r;
-          gravity_force(i, j, k).x() = r * g.x();
-          gravity_force(i, j, k).y() = r * g.y();
-          gravity_force(i, j, k).z() = r * g.z();
+          gravity_accel(i, j, k).x() = r * g.x();
+          gravity_accel(i, j, k).y() = r * g.y();
+          gravity_accel(i, j, k).z() = r * g.z();
           momentum_density(i, j, k).x() = r * u;
           momentum_density(i, j, k).y() = r * v;
           momentum_density(i, j, k).z() = r * w;

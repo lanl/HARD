@@ -7,15 +7,12 @@
 #include "gfm/tasks/extrapolation.hh"
 #include "gfm/tasks/interface_fluxes_gfm.hh"
 #include "gfm/tasks/reconstruct.hh"
-#include "gfm/tasks/utils.hh"
 #include "hydro/tasks/external_source.hh"
 #include "hydro/tasks/rhs.hh"
 #include "reconstruct_dispatch.hh"
 #include "spec/tasks/boundaries/boundary.hh"
 
 #include "gfm/tasks/compute_sound_speed.hh"
-
-#include <algorithm>
 
 namespace hard {
 
@@ -281,7 +278,7 @@ advance_rk_stage_axis_loop(state<D> & s,
           s.rf.hydro.ru_f(*s.m),
           s.rf.hydro.re_f(*s.m),
           s.rk_dt1(s.m),
-          s.icst.gravity_acc(*s.gt),
+          s.icst.gravity_const(*s.gt),
           s.eos_mm);
     }
     else {
@@ -306,7 +303,7 @@ advance_rk_stage_axis_loop(state<D> & s,
           s.rf.hydro.ru_f(*s.m),
           s.rf.hydro.re_f(*s.m),
           s.rk_dt1(s.m),
-          s.icst.gravity_acc(*s.gt),
+          s.icst.gravity_const(*s.gt),
           s.eos_mm);
     }
 
@@ -336,7 +333,8 @@ advance_rk_stage_common(state<D> & s,
     sc.execute<tasks::external_source<D>>(flecsi::exec::on,
       *s.m,
       s.prim.velocity(*s.m),
-      s.src_t.hydro.gravity_force(*s.m),
+      s.cons.hydro.mass_density(*s.m),
+      s.src_t.hydro.gravity_accel(*s.m),
       // time-derivatives
       rk_dt.momentum_energy_density()(*s.m),
       rk_dt.total_energy_density()(*s.m));

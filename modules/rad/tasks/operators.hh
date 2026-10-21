@@ -245,8 +245,8 @@ cell_centered_interpolation(flecsi::exec::accelerator s,
   if constexpr(D == 1) {
     s.executor().forall(i, (mc.template cells<ax::x, dm::quantities>())) {
       auto fi = 2 * i - mc.ghost_zone_size();
-      ff(i) = cf(fi);
-      ff(i + 1) = cf(fi);
+      ff(fi) = cf(i);
+      ff(fi + 1) = cf(i);
     }; // for
   }
   else if constexpr(D == 2) {

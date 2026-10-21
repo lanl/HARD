@@ -45,35 +45,76 @@ sedov_blast(flecsi::exec::cpu,
   // some problem parameters: for now hardwired
   const double density = 1.0;
 
-  const double volume =
-    pow(radius, D) * (D > 1 ? M_PI : 1.) * (D > 2 ? 4. / 3. : 1.);
-  const double rE_inside = E_0 / volume;
-  const double rE_outside = 1.0e-5;
+  // Energy outside of blast
+  const double r_E_outside = 1.0e-5;
 
   using spec::utils::sqr;
 
   if constexpr(D == 1) {
+    std::size_t hot_cells = 0;
+    for(auto i : m.template cells<ax::x, dm::quantities>()) {
+      const auto x = m.template center<ax::x>(i);
+      const double distance = std::abs(x - x0);
+      hot_cells += distance < radius;
+    }; // forall
+
+    const double r_E_inside = E_0 / (hot_cells * m.template delta<ax::x>());
+
     for(auto i : m.template cells<ax::x, dm::quantities>()) {
       const auto x = m.template center<ax::x>(i);
       double distance = std::abs(x - x0);
       mass_density(i) = density;
       momentum_density(i).x() = 0.0;
-      total_energy_density(i) = distance < radius ? rE_inside : rE_outside;
+      total_energy_density(i) = distance < radius ? r_E_inside : r_E_outside;
     }; // forall
   }
   else if constexpr(D == 2) {
+    std::size_t hot_cells = 0;
     for(auto j : m.template cells<ax::y, dm::quantities>()) {
       for(auto i : m.template cells<ax::x, dm::quantities>()) {
         const auto x = m.template center<ax::x>(i);
         const auto y = m.template center<ax::y>(j);
-        double distance = std::sqrt((x - x0) * (x - x0) + (y - y0) * (y - y0));
+        const double distance =
+          std::sqrt((x - x0) * (x - x0) + (y - y0) * (y - y0));
+        hot_cells += distance < radius;
+      } // for
+    }; // forall
+
+    const double r_E_inside =
+      E_0 / (hot_cells * m.template delta<ax::x>() * m.template delta<ax::y>());
+
+    for(auto j : m.template cells<ax::y, dm::quantities>()) {
+      for(auto i : m.template cells<ax::x, dm::quantities>()) {
+        const auto x = m.template center<ax::x>(i);
+        const auto y = m.template center<ax::y>(j);
+        const double distance =
+          std::sqrt((x - x0) * (x - x0) + (y - y0) * (y - y0));
         mass_density(i, j) = density;
         momentum_density(i, j) = vec<D>(0.0);
-        total_energy_density(i, j) = distance < radius ? rE_inside : rE_outside;
+        total_energy_density(i, j) =
+          distance < radius ? r_E_inside : r_E_outside;
       } // for
     }; // forall
   }
   else if constexpr(D == 3) {
+    std::size_t hot_cells = 0;
+    for(auto k : m.template cells<ax::z, dm::quantities>()) {
+      for(auto j : m.template cells<ax::y, dm::quantities>()) {
+        for(auto i : m.template cells<ax::x, dm::quantities>()) {
+          const auto x = m.template center<ax::x>(i);
+          const auto y = m.template center<ax::y>(j);
+          const auto z = m.template center<ax::z>(k);
+          double distance = std::sqrt(
+            (x - x0) * (x - x0) + (y - y0) * (y - y0) + (z - z0) * (z - z0));
+          hot_cells += distance < radius;
+        } // for
+      }
+    }; // forall
+
+    const double r_E_inside =
+      E_0 / (hot_cells * m.template delta<ax::x>() * m.template delta<ax::y>() *
+              m.template delta<ax::z>());
+
     for(auto k : m.template cells<ax::z, dm::quantities>()) {
       for(auto j : m.template cells<ax::y, dm::quantities>()) {
         for(auto i : m.template cells<ax::x, dm::quantities>()) {
@@ -85,7 +126,7 @@ sedov_blast(flecsi::exec::cpu,
           mass_density(i, j, k) = density;
           momentum_density(i, j, k) = vec<D>(0.0);
           total_energy_density(i, j, k) =
-            distance < radius ? rE_inside : rE_outside;
+            distance < radius ? r_E_inside : r_E_outside;
         } // for
       }
     }; // forall

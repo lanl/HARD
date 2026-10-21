@@ -5,7 +5,7 @@ config = {
     "adaptive_check": False,
     "limiter_id": 0,
     "closure_id": 0,
-    "gravity_acc": [0.0, -0.1, 0.0],
+    "gravity_const": [0.0, -0.1, 0.0],
     "mean_molecular_weight": 1.0,
     "eos": "ideal",
     "t0": 0.0,

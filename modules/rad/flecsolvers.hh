@@ -161,7 +161,7 @@ struct v_cycle : flecsolve::op::base<precond_parameters<D>> {
         s.rad.mgr.Df_y(mc),
         s.rad.mgr.Df_z(mc),
         s.rad.mgr.Ew(mc),
-        s.dt(*s.gt));
+        s.dt_weighted(*s.gt));
 
       // Recursive solve
       sc.execute<tasks::rad::residual<D>>(flecsi::exec::on,
@@ -307,7 +307,7 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
         s.mgr.Df_y(mc),
         s.mgr.Df_z(mc),
         s.mgr.Ew(mc),
-        s.dt(*s.gt));
+        s.dt_weighted(*s.gt));
 
       // Recursive solve
       sc.execute<tasks::rad::residual<D>>(flecsi::exec::on,
@@ -384,7 +384,7 @@ struct f_mg : flecsolve::op::base<precond_parameters<D>> {
         s.mgr.Df_y(mc),
         s.mgr.Df_z(mc),
         s.mgr.Ew(mc),
-        s.dt(*s.gt));
+        s.dt_weighted(*s.gt));
 
       // Now call solve for one level deeper
       _fmg(s, index + 1);

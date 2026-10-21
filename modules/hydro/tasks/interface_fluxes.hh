@@ -65,31 +65,34 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
     s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
       const auto dx = m.template delta<ax::x>();
       auto g = g_acc.get();
-      // Fluxes from left and right state
-      const double pLeft_wave =
+
+      // Gravity correction
+      const double p_left_wave =
         p_left(i - 1) + 0.5 * r_left(i - 1) * g.x() * dx;
-      const double pRight_wave = p_right(i) - 0.5 * r_right(i) * g.x() * dx;
+
+      // Fluxes from left and right state
+      const double p_right_wave = p_right(i) - 0.5 * r_right(i) * g.x() * dx;
       const double f_r_T{ru_left(i - 1).x()};
       const double f_r_H{ru_right(i).x()};
-      const vec<1> f_ru_T{ru_left(i - 1).x() * u_left(i - 1).x() + pLeft_wave};
-      const vec<1> f_ru_H{ru_right(i).x() * u_right(i).x() + pRight_wave};
-      const double f_rE_T{(re_left(i - 1) + pLeft_wave) * u_left(i - 1).x()};
-      const double f_rE_H{(re_right(i) + pRight_wave) * u_right(i).x()};
+      const vec<1> f_ru_T{ru_left(i - 1).x() * u_left(i - 1).x() + p_left_wave};
+      const vec<1> f_ru_H{ru_right(i).x() * u_right(i).x() + p_right_wave};
+      const double f_rE_T{(re_left(i - 1) + p_left_wave) * u_left(i - 1).x()};
+      const double f_rE_H{(re_right(i) + p_right_wave) * u_right(i).x()};
 
       // clang-format off
         r_f(i) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          r_left(i-1), r_left(i-1), u_left(i-1), re_left(i-1), pLeft_wave, c_left(i-1), f_r_T,
-            r_right(i),   r_right(i),   u_right(i),   re_right(i),   pRight_wave, c_right(i), f_r_H,
+          r_left(i-1), r_left(i-1), u_left(i-1), re_left(i-1), p_left_wave, c_left(i-1), f_r_T,
+            r_right(i),   r_right(i),   u_right(i),   re_right(i),   p_right_wave, c_right(i), f_r_H,
             numerical_algorithms::field_tag::rho);
         ru_f(i) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ru_left(i-1), r_left(i-1), u_left(i-1), re_left(i-1), pLeft_wave, c_left(i-1), f_ru_T,
-            ru_right(i),   r_right(i),   u_right(i),   re_right(i),   pRight_wave, c_right(i), f_ru_H, numerical_algorithms::field_tag::ru);
+          ru_left(i-1), r_left(i-1), u_left(i-1), re_left(i-1), p_left_wave, c_left(i-1), f_ru_T,
+            ru_right(i),   r_right(i),   u_right(i),   re_right(i),   p_right_wave, c_right(i), f_ru_H, numerical_algorithms::field_tag::ru);
         re_f(i) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          re_left(i-1), r_left(i-1), u_left(i-1), re_left(i-1), pLeft_wave, c_left(i-1), f_rE_T,
-            re_right(i),   r_right(i),   u_right(i),   re_right(i),   pRight_wave, c_right(i), f_rE_H, numerical_algorithms::field_tag::re);
+          re_left(i-1), r_left(i-1), u_left(i-1), re_left(i-1), p_left_wave, c_left(i-1), f_rE_T,
+            re_right(i),   r_right(i),   u_right(i),   re_right(i),   p_right_wave, c_right(i), f_rE_H, numerical_algorithms::field_tag::re);
       // clang-format on
 
     }; // forall
@@ -113,38 +116,41 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         auto g = g_acc.get();
         auto [j, i] = ji;
 
+        // Gravity correction
+        const double p_left_wave =
+          p_left(i - 1, j) + 0.5 * r_left(i - 1, j) * g.x() / one_over_dx_i[0];
+        const double p_right_wave =
+          p_right(i, j) - 0.5 * r_right(i, j) * g.x() / one_over_dx_i[0];
+
         // Fluxes from left and right state
         const double f_r_T{ru_left(i - 1, j).x()};
         const double f_r_H{ru_right(i, j).x()};
         const vec<2> f_ru_T{
-
-          ru_left(i - 1, j).x() * u_left(i - 1, j).x() + p_left(i - 1, j),
+          ru_left(i - 1, j).x() * u_left(i - 1, j).x() + p_left_wave,
           ru_left(i - 1, j).x() * u_left(i - 1, j).y()};
         const vec<2> f_ru_H{
-          ru_right(i, j).x() * u_right(i, j).x() + p_right(i, j),
+          ru_right(i, j).x() * u_right(i, j).x() + p_right_wave,
           ru_right(i, j).x() * u_right(i, j).y()};
         const double f_rE_T{
-          (re_left(i - 1, j) + p_left(i - 1, j)) * u_left(i - 1, j).x()};
+          (re_left(i - 1, j) + p_left_wave) * u_left(i - 1, j).x()};
         const double f_rE_H{
-          (re_right(i, j) + p_right(i, j)) * u_right(i, j).x()};
+          (re_right(i, j) + p_right_wave) * u_right(i, j).x()};
 
         // clang-format off
-        const double pLeft_wave = p_left(i-1,j) - 0.5 * r_left(i-1,j) * g.x() / one_over_dx_i[0];
-        const double pRight_wave = p_right(i,j) - 0.5 * r_right(i,j) * g.x() / one_over_dx_i[0];
         r_f(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          r_left(i-1,j), r_left(i-1,j), u_left(i-1,j), re_left(i-1,j), pLeft_wave, c_left(i-1,j), f_r_T,
-          r_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_r_H,
+          r_left(i-1,j), r_left(i-1,j), u_left(i-1,j), re_left(i-1,j), p_left_wave, c_left(i-1,j), f_r_T,
+          r_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   p_right_wave, c_right(i,j), f_r_H,
            numerical_algorithms::field_tag::rho);
         ru_f(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ru_left(i-1,j), r_left(i-1,j), u_left(i-1,j), re_left(i-1,j), pLeft_wave, c_left(i-1,j), f_ru_T,
-          ru_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_ru_H,
+          ru_left(i-1,j), r_left(i-1,j), u_left(i-1,j), re_left(i-1,j), p_left_wave, c_left(i-1,j), f_ru_T,
+          ru_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   p_right_wave, c_right(i,j), f_ru_H,
           numerical_algorithms::field_tag::ru);
         re_f(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis,
-          re_left(i-1,j), r_left(i-1,j), u_left(i-1,j), re_left(i-1,j), pLeft_wave, c_left(i-1,j), f_rE_T,
-          re_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_rE_H,
+          re_left(i-1,j), r_left(i-1,j), u_left(i-1,j), re_left(i-1,j), p_left_wave, c_left(i-1,j), f_rE_T,
+          re_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   p_right_wave, c_right(i,j), f_rE_H,
           numerical_algorithms::field_tag::re);
         // clang-format on
       }; // forall
@@ -173,35 +179,39 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         auto g = g_acc.get();
         auto [j, i] = ji;
 
+        // Gravity correction
+        const double p_left_wave =
+          p_left(i, j - 1) + 0.5 * r_left(i, j - 1) * g.y() / one_over_dx_i[1];
+        const double p_right_wave =
+          p_right(i, j) - 0.5 * r_right(i, j) * g.y() / one_over_dx_i[1];
+
         // Fluxes from left and right state
         const double f_r_T{ru_left(i, j - 1).y()};
         const double f_r_H{ru_right(i, j).y()};
         const vec<2> f_ru_T{ru_left(i, j - 1).y() * u_left(i, j - 1).x(),
-          ru_left(i, j - 1).y() * u_left(i, j - 1).y() + p_left(i, j - 1)};
+          ru_left(i, j - 1).y() * u_left(i, j - 1).y() + p_left_wave};
         const vec<2> f_ru_H{ru_right(i, j).y() * u_right(i, j).x(),
-          ru_right(i, j).y() * u_right(i, j).y() + p_right(i, j)};
+          ru_right(i, j).y() * u_right(i, j).y() + p_right_wave};
         const double f_rE_T{
-          (re_left(i, j - 1) + p_left(i, j - 1)) * u_left(i, j - 1).y()};
+          (re_left(i, j - 1) + p_left_wave) * u_left(i, j - 1).y()};
         const double f_rE_H{
-          (re_right(i, j) + p_right(i, j)) * u_right(i, j).y()};
+          (re_right(i, j) + p_right_wave) * u_right(i, j).y()};
 
         // clang-format off
-        const double pLeft_wave = p_left(i,j-1) - 0.5 * r_left(i,j-1) * g.y() / one_over_dx_i[1];
-        const double pRight_wave = p_right(i,j) - 0.5 * r_right(i,j) * g.y() / one_over_dx_i[1];
         r_f(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          r_left(i,j-1), r_left(i,j-1), u_left(i,j-1), re_left(i,j-1), pLeft_wave, c_left(i,j-1), f_r_T,
-          r_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_r_H,
+          r_left(i,j-1), r_left(i,j-1), u_left(i,j-1), re_left(i,j-1), p_left_wave, c_left(i,j-1), f_r_T,
+          r_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   p_right_wave, c_right(i,j), f_r_H,
            numerical_algorithms::field_tag::rho);
         ru_f(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ru_left(i,j-1), r_left(i,j-1), u_left(i,j-1), re_left(i,j-1), pLeft_wave, c_left(i,j-1), f_ru_T,
-          ru_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_ru_H,
+          ru_left(i,j-1), r_left(i,j-1), u_left(i,j-1), re_left(i,j-1), p_left_wave, c_left(i,j-1), f_ru_T,
+          ru_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   p_right_wave, c_right(i,j), f_ru_H,
           numerical_algorithms::field_tag::ru);
         re_f(i, j) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          re_left(i,j-1), r_left(i,j-1), u_left(i,j-1), re_left(i,j-1), pLeft_wave, c_left(i,j-1), f_rE_T,
-          re_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   pRight_wave, c_right(i,j), f_rE_H,
+          re_left(i,j-1), r_left(i,j-1), u_left(i,j-1), re_left(i,j-1), p_left_wave, c_left(i,j-1), f_rE_T,
+          re_right(i,j),   r_right(i,j),   u_right(i,j),   re_right(i,j),   p_right_wave, c_right(i,j), f_rE_H,
           numerical_algorithms::field_tag::re);
         // clang-format on
       }; // forall
@@ -234,40 +244,45 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         auto g = g_acc.get();
         auto [k, j, i] = kji;
 
+        // Gravity correction
+        const double p_left_wave =
+          p_left(i - 1, j, k) +
+          0.5 * r_left(i - 1, j, k) * g.x() / one_over_dx_i[0];
+        const double p_right_wave =
+          p_right(i, j, k) - 0.5 * r_right(i, j, k) * g.x() / one_over_dx_i[0];
+
         // Fluxes from left and right state
         const double f_r_T{ru_left(i - 1, j, k).x()};
         const double f_r_H{ru_right(i, j, k).x()};
-        const vec<3> f_ru_T{ru_left(i - 1, j, k).x() * u_left(i - 1, j, k).x() +
-                              p_left(i - 1, j, k),
+        const vec<3> f_ru_T{
+          ru_left(i - 1, j, k).x() * u_left(i - 1, j, k).x() + p_left_wave,
           ru_left(i - 1, j, k).x() * u_left(i - 1, j, k).y(),
           ru_left(i - 1, j, k).x() * u_left(i - 1, j, k).z()};
         const vec<3> f_ru_H{
-          ru_right(i, j, k).x() * u_right(i, j, k).x() + p_right(i, j, k),
+          ru_right(i, j, k).x() * u_right(i, j, k).x() + p_right_wave,
           ru_right(i, j, k).x() * u_right(i, j, k).y(),
           ru_right(i, j, k).x() * u_right(i, j, k).z()};
-        const double f_rE_T{(re_left(i - 1, j, k) + p_left(i - 1, j, k)) *
-                            u_left(i - 1, j, k).x()};
+        const double f_rE_T{
+          (re_left(i - 1, j, k) + p_left_wave) * u_left(i - 1, j, k).x()};
         const double f_rE_H{
-          (re_right(i, j, k) + p_right(i, j, k)) * u_right(i, j, k).x()};
+          (re_right(i, j, k) + p_right_wave) * u_right(i, j, k).x()};
 
         // Advect conserved quantities
         // clang-format off
-        const double pLeft_wave = p_left(i-1,j,k) + 0.5 * r_left(i-1,j,k) * g.x() / one_over_dx_i[0];
-        const double pRight_wave = p_right(i,j,k) - 0.5 * r_right(i,j,k) * g.x() / one_over_dx_i[0];
         r_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          r_left(i-1,j,k), r_left(i-1,j,k), u_left(i-1,j,k), re_left(i-1,j,k), pLeft_wave, c_left(i-1,j,k), f_r_T,
-          r_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_r_H,
+          r_left(i-1,j,k), r_left(i-1,j,k), u_left(i-1,j,k), re_left(i-1,j,k), p_left_wave, c_left(i-1,j,k), f_r_T,
+          r_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   p_right_wave, c_right(i,j,k), f_r_H,
            numerical_algorithms::field_tag::rho);
         ru_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ru_left(i-1,j,k), r_left(i-1,j,k), u_left(i-1,j,k), re_left(i-1,j,k), pLeft_wave, c_left(i-1,j,k), f_ru_T,
-          ru_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_ru_H,
+          ru_left(i-1,j,k), r_left(i-1,j,k), u_left(i-1,j,k), re_left(i-1,j,k), p_left_wave, c_left(i-1,j,k), f_ru_T,
+          ru_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   p_right_wave, c_right(i,j,k), f_ru_H,
           numerical_algorithms::field_tag::ru);
         re_f(i, j,k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          re_left(i-1,j,k), r_left(i-1,j,k), u_left(i-1,j,k), re_left(i-1,j,k), pLeft_wave, c_left(i-1,j,k), f_rE_T,
-          re_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_rE_H,
+          re_left(i-1,j,k), r_left(i-1,j,k), u_left(i-1,j,k), re_left(i-1,j,k), p_left_wave, c_left(i-1,j,k), f_rE_T,
+          re_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   p_right_wave, c_right(i,j,k), f_rE_H,
           numerical_algorithms::field_tag::re);
         // clang-format on
 
@@ -300,40 +315,44 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         auto g = g_acc.get();
         auto [k, j, i] = kji;
 
+        // Gravity correction
+        const double p_left_wave =
+          p_left(i, j - 1, k) +
+          0.5 * r_left(i, j - 1, k) * g.y() / one_over_dx_i[1];
+        const double p_right_wave =
+          p_right(i, j, k) - 0.5 * r_right(i, j, k) * g.y() / one_over_dx_i[1];
+
         // Fluxes from left and right state
         const double f_r_T{ru_left(i, j - 1, k).y()};
         const double f_r_H{ru_right(i, j, k).y()};
         const vec<3> f_ru_T{ru_left(i, j - 1, k).y() * u_left(i, j - 1, k).x(),
-          ru_left(i, j - 1, k).y() * u_left(i, j - 1, k).y() +
-            p_left(i, j - 1, k),
+          ru_left(i, j - 1, k).y() * u_left(i, j - 1, k).y() + p_left_wave,
           ru_left(i, j - 1, k).y() * u_left(i, j - 1, k).z()};
         const vec<3> f_ru_H{ru_right(i, j, k).y() * u_right(i, j, k).x(),
-          ru_right(i, j, k).y() * u_right(i, j, k).y() + p_right(i, j, k),
+          ru_right(i, j, k).y() * u_right(i, j, k).y() + p_right_wave,
           ru_right(i, j, k).y() * u_right(i, j, k).z()};
-        const double f_rE_T{(re_left(i, j - 1, k) + p_left(i, j - 1, k)) *
-                            u_left(i, j - 1, k).y()};
+        const double f_rE_T{
+          (re_left(i, j - 1, k) + p_left_wave) * u_left(i, j - 1, k).y()};
         const double f_rE_H{
-          (re_right(i, j, k) + p_right(i, j, k)) * u_right(i, j, k).y()};
+          (re_right(i, j, k) + p_right_wave) * u_right(i, j, k).y()};
 
         // Advect conserved quantities
 
         // clang-format off
-        const double pLeft_wave = p_left(i,j-1,k) + 0.5 * r_left(i,j-1,k) * g.y() / one_over_dx_i[1];
-        const double pRight_wave = p_right(i,j,k) - 0.5 * r_right(i,j,k) * g.y() / one_over_dx_i[1];
         r_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          r_left(i,j-1,k), r_left(i,j-1,k), u_left(i,j-1,k), re_left(i,j-1,k), pLeft_wave, c_left(i,j-1,k), f_r_T,
-          r_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_r_H,
+          r_left(i,j-1,k), r_left(i,j-1,k), u_left(i,j-1,k), re_left(i,j-1,k), p_left_wave, c_left(i,j-1,k), f_r_T,
+          r_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   p_right_wave, c_right(i,j,k), f_r_H,
            numerical_algorithms::field_tag::rho);
         ru_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ru_left(i,j-1,k), r_left(i,j-1,k), u_left(i,j-1,k), re_left(i,j-1,k), pLeft_wave, c_left(i,j-1,k), f_ru_T,
-          ru_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_ru_H,
+          ru_left(i,j-1,k), r_left(i,j-1,k), u_left(i,j-1,k), re_left(i,j-1,k), p_left_wave, c_left(i,j-1,k), f_ru_T,
+          ru_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   p_right_wave, c_right(i,j,k), f_ru_H,
           numerical_algorithms::field_tag::ru);
         re_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          re_left(i,j-1,k), r_left(i,j-1,k), u_left(i,j-1,k), re_left(i,j-1,k), pLeft_wave, c_left(i,j-1,k), f_rE_T,
-          re_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_rE_H,
+          re_left(i,j-1,k), r_left(i,j-1,k), u_left(i,j-1,k), re_left(i,j-1,k), p_left_wave, c_left(i,j-1,k), f_rE_T,
+          re_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   p_right_wave, c_right(i,j,k), f_rE_H,
           numerical_algorithms::field_tag::re);
         // clang-format on
       }; // forall
@@ -364,40 +383,44 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         auto g = g_acc.get();
         auto [k, j, i] = kji;
 
+        // Gravity correction
+        const double p_left_wave =
+          p_left(i, j, k - 1) +
+          0.5 * r_left(i, j, k - 1) * g.z() / one_over_dx_i[2];
+        const double p_right_wave =
+          p_right(i, j, k) - 0.5 * r_right(i, j, k) * g.z() / one_over_dx_i[2];
+
         // Fluxes from left and right state
         const double f_r_T{ru_left(i, j, k - 1).z()};
         const double f_r_H{ru_right(i, j, k).z()};
         const vec<3> f_ru_T{ru_left(i, j, k - 1).z() * u_left(i, j, k - 1).x(),
           ru_left(i, j, k - 1).z() * u_left(i, j, k - 1).y(),
-          ru_left(i, j, k - 1).z() * u_left(i, j, k - 1).z() +
-            p_left(i, j, k - 1)};
+          ru_left(i, j, k - 1).z() * u_left(i, j, k - 1).z() + p_left_wave};
         const vec<3> f_ru_H{ru_right(i, j, k).z() * u_right(i, j, k).x(),
           ru_right(i, j, k).z() * u_right(i, j, k).y(),
-          ru_right(i, j, k).z() * u_right(i, j, k).z() + p_right(i, j, k)};
-        const double f_rE_T{(re_left(i, j, k - 1) + p_left(i, j, k - 1)) *
-                            u_left(i, j, k - 1).z()};
+          ru_right(i, j, k).z() * u_right(i, j, k).z() + p_right_wave};
+        const double f_rE_T{
+          (re_left(i, j, k - 1) + p_left_wave) * u_left(i, j, k - 1).z()};
         const double f_rE_H{
-          (re_right(i, j, k) + p_right(i, j, k)) * u_right(i, j, k).z()};
+          (re_right(i, j, k) + p_right_wave) * u_right(i, j, k).z()};
 
         // Advect conserved quantities
 
         // clang-format off
-        const double pLeft_wave = p_left(i,j,k-1) + 0.5 * r_left(i,j,k-1) * g.z() / one_over_dx_i[2];
-        const double pRight_wave = p_right(i,j,k) - 0.5 * r_right(i,j,k) * g.z() / one_over_dx_i[2];
         r_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          r_left(i,j,k-1), r_left(i,j,k-1), u_left(i,j,k-1), re_left(i,j,k-1), pLeft_wave, c_left(i,j,k-1), f_r_T,
-          r_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_r_H,
+          r_left(i,j,k-1), r_left(i,j,k-1), u_left(i,j,k-1), re_left(i,j,k-1), p_left_wave, c_left(i,j,k-1), f_r_T,
+          r_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   p_right_wave, c_right(i,j,k), f_r_H,
            numerical_algorithms::field_tag::rho);
         ru_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, vec<Dim>>(face_axis, 
-          ru_left(i,j,k-1), r_left(i,j,k-1), u_left(i,j,k-1), re_left(i,j,k-1), pLeft_wave, c_left(i,j,k-1), f_ru_T,
-          ru_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_ru_H,
+          ru_left(i,j,k-1), r_left(i,j,k-1), u_left(i,j,k-1), re_left(i,j,k-1), p_left_wave, c_left(i,j,k-1), f_ru_T,
+          ru_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   p_right_wave, c_right(i,j,k), f_ru_H,
           numerical_algorithms::field_tag::ru);
         re_f(i, j, k) =
           numerical_algorithms::compute_HLLC_fluxes<Dim, double>(face_axis, 
-          re_left(i,j,k-1), r_left(i,j,k-1), u_left(i,j,k-1), re_left(i,j,k-1), pLeft_wave, c_left(i,j,k-1), f_rE_T,
-          re_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   pRight_wave, c_right(i,j,k), f_rE_H,
+          re_left(i,j,k-1), r_left(i,j,k-1), u_left(i,j,k-1), re_left(i,j,k-1), p_left_wave, c_left(i,j,k-1), f_rE_T,
+          re_right(i,j,k),   r_right(i,j,k),   u_right(i,j,k),   re_right(i,j,k),   p_right_wave, c_right(i,j,k), f_rE_H,
           numerical_algorithms::field_tag::re);
         // clang-format on
       }; // forall

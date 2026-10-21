@@ -158,7 +158,7 @@ fmg(control_policy<state, D> & cp, std::size_t index = 0) {
       s.rad.mgr.Df_y(mc),
       s.rad.mgr.Df_z(mc),
       s.rad.mgr.Ew(mc),
-      s.dt(*s.gt));
+      s.dt_weighted(*s.gt));
 
     // Now call solve for one level deeper
     fmg<D>(cp, index + 1);

@@ -33,7 +33,7 @@ struct state {
     static inline const field<double>::definition<global> temperature_boundary;
 
     static inline const typename single<vec<D>>::template definition<global>
-      gravity_acc;
+      gravity_const;
 
   } icst;
 
@@ -101,10 +101,10 @@ struct state {
   // action, init
   struct source_term {
     struct hydrodynamics {
-      // Gravity force
+      // Gravity acceleration
       static inline const typename field<vec<D>>::template definition<mesh<D>,
         is::cells>
-        gravity_force;
+        gravity_accel;
     } hydro;
   } src_t;
 

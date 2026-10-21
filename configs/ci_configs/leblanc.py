@@ -8,7 +8,7 @@ config = {
     "tf": 0.2,
     "max_steps": 300,
     "cfl": 0.3,
-    "max_dt": 1.0,
+    "max_dt": 0.2,
     "log_frequency": 500,
     "output_frequency": 500,
     "levels": [8, 3, 3],
