@@ -34,8 +34,9 @@ struct state {
       *--------------------------------------------------------------------------*/
 
     struct conserved {
-      static inline const field<double>::definition<mesh<D>, is::cells>
-        radiation_energy_density;
+      static inline const tfield<double, mesh<D>> radiation_energy_density{
+        "radiation_energy_density",
+        tag::boundary};
     } cons;
 
     struct faces_rl {
@@ -122,8 +123,8 @@ struct state {
       static inline const field<double>::definition<mesh<D>, is::cells> R_value;
 
       // Flux limiter (standard/adaptive)
-      static inline const field<double>::definition<mesh<D>, is::cells>
-        lambda_bridge;
+      static inline const tfield<double, mesh<D>> lambda_bridge{"lambda_bridge",
+        tag::boundary};
 
       // Eddington Factor
       static inline const field<double>::definition<mesh<D>, is::cells>
@@ -136,6 +137,11 @@ struct state {
     field<double>::definition<mesh<D>, is::cells> dt_radiation_energy_density_n;
 
   } rad; // struct rad
+
+  auto fields() const {
+    return std::tie(
+      rad.cons.radiation_energy_density, rad.limiter.lambda_bridge);
+  }
 
 }; // struct state
 

@@ -35,15 +35,13 @@ struct initialize {
       Global and color topology allocations.
      *--------------------------------------------------------------------------*/
 
-    std::vector<double> time;
-    std::vector<double> temperature;
-    actions::init_topologies(s, sc, time, temperature);
+    actions::init_topologies(s, sc);
 
     /*--------------------------------------------------------------------------*
       Set boundaries.
      *--------------------------------------------------------------------------*/
 
-    auto bf = actions::init_boundaries(s, sc, time, temperature, config);
+    auto bf = actions::init_boundaries(s, config);
 
     /*--------------------------------------------------------------------------*
       Gravity Acceleration

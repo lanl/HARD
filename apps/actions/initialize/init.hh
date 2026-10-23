@@ -1,6 +1,7 @@
 #ifndef HARD_APPS_ACTIONS_INITIALIZE_MESH_HH
 #define HARD_APPS_ACTIONS_INITIALIZE_MESH_HH
 
+#include "spec/tasks/boundaries/boundary.hh"
 #include "spec/types.hh"
 
 namespace hard::actions {
@@ -63,11 +64,7 @@ init_reconstructor(state<D> & s, spec::config_py & config) {
 
 template<std::size_t D>
 void
-init_timestep(state<D> & s,
-  flecsi::scheduler & sc,
-  spec::config_py & config,
-  std::vector<flecsi::field<double>::Reference<spec::mesh<D>, spec::is::cells>>
-    fr = {}) {
+init_timestep(state<D> & s, flecsi::scheduler & sc, spec::config_py & config) {
 
   annotation_rguard<init_timestep_region> guard;
 
@@ -100,18 +97,7 @@ init_timestep(state<D> & s,
     sc.reduce<tasks::hydro::update_dtmin<D>, flecsi::exec::fold::min>(
       flecsi::exec::on, *s.m, lmax_f));
 
-  auto scalar_v = std::vector{s.cons.hydro.mass_density(*s.m),
-    s.prim.pressure(*s.m),
-    s.prim.specific_internal_energy(*s.m),
-    s.cons.hydro.total_energy_density(*s.m)};
-  scalar_v.insert(scalar_v.end(), fr.begin(), fr.end());
-
-  annotation_rguard<tasks::apply_boundaries_task>(),
-    sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-      *s.m,
-      s.icst.bmap(*s.gt),
-      scalar_v,
-      std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
+  apply_tagged_boundaries<D>(sc, s, tag::boundary);
 
   /*--------------------------------------------------------------------------*
     Initialize time to 0
@@ -154,99 +140,21 @@ init_solver(state<D> & s, spec::config_py & config) {
 }
 
 template<std::size_t D>
-flecsi::future<typename mesh<D>::periodic_axes>
-init_boundaries(state<D> & s,
-  flecsi::scheduler & sc,
-  std::vector<double> & time,
-  std::vector<double> & temperature,
-  spec::config_py & config) {
-
+typename mesh<D>::periodic_axes
+init_boundaries(state<D> & s, spec::config_py & config) {
   annotation_rguard<init_boundaries_region> guard;
-
-  std::array<std::array<bd::boundary_type, 2>, D> bnds;
-  bnds[ax::x][bd::low] =
-    utils::mesh_boundary<D>(config["boundaries"]["xlow"].cast<std::string>());
-  bnds[ax::x][bd::high] =
-    utils::mesh_boundary<D>(config["boundaries"]["xhigh"].cast<std::string>());
-  if(D == 2 || D == 3) {
-    bnds[ax::y][bd::low] =
-      utils::mesh_boundary<D>(config["boundaries"]["ylow"].cast<std::string>());
-    bnds[ax::y][bd::high] = utils::mesh_boundary<D>(
-      config["boundaries"]["yhigh"].cast<std::string>());
-  } // if
-  if(D == 3) {
-    bnds[ax::z][bd::low] =
-      utils::mesh_boundary<D>(config["boundaries"]["zlow"].cast<std::string>());
-    bnds[ax::z][bd::high] = utils::mesh_boundary<D>(
-      config["boundaries"]["zhigh"].cast<std::string>());
-  } // if
-
-  auto bf = [&] {
-    annotation_rguard<tasks::init_boundaries_task> init_boundaries_task_guard;
-    return sc.execute<tasks::init_boundaries<D>>(
-      flecsi::exec::on, s.icst.bmap(*s.gt), bnds);
-  }();
-
-  /*--------------------------------------------------------------------------*
-    T boundary.
-   *--------------------------------------------------------------------------*/
-
-  annotation_rguard<tasks::init::set_t_boundary_task>(),
-    sc.execute<tasks::init::set_t_boundary>(
-      flecsi::exec::on, s.icst.time_boundary(*s.dense_topology), time);
-  annotation_rguard<tasks::init::set_t_boundary_task>(),
-    sc.execute<tasks::init::set_t_boundary>(flecsi::exec::on,
-      s.icst.temperature_boundary(*s.dense_topology),
-      temperature);
-  if(config["problem"].cast<std::string>() == "implosion")
-    annotation_rguard<tasks::init::convert_temperature_task>(),
-      sc.execute<tasks::init::convert_temperature>(flecsi::exec::on,
-        s.icst.temperature_boundary(*s.dense_topology),
-        config["temperature_units"].cast<std::string>());
-
-  return bf;
+  s.bcs = spec::parse_boundaries<D>(config, s.fields());
+  return s.bcs.periodic;
 }
 
 template<std::size_t D>
 void
-init_topologies(state<D> & s,
-  flecsi::scheduler & sc,
-  std::vector<double> & time,
-  std::vector<double> & temperature) {
-
+init_topologies(state<D> & s, flecsi::scheduler & sc) {
   annotation_rguard<init_topologies_region> guard;
 
   /*--------------------------------------------------------------------------*
     Global and color topology allocations.
    *--------------------------------------------------------------------------*/
-
-  // How many boundary points to allocate
-  std::string filename{opt::source_fds};
-
-  int n_lines{0};
-  std::ifstream filein(filename);
-
-  for(std::string line; std::getline(filein, line);) {
-
-    int i{0};
-    std::istringstream input;
-    input.str(line);
-
-    for(std::string element; std::getline(input, element, ' ');) {
-      if(i == 0) {
-        time.emplace_back(std::stod(element));
-      }
-      else {
-        temperature.emplace_back(std::stod(element));
-      }
-      i++;
-    }
-
-    n_lines++;
-  }
-
-  sc.allocate(s.dense_topology, n_lines);
-
   const auto num_colors =
     opt::colors.value() == 0 ? sc.runtime().processes() : opt::colors.value();
   sc.allocate(s.gt, num_colors);
@@ -257,7 +165,7 @@ template<std::size_t D>
 void
 init_mesh(state<D> & s,
   flecsi::scheduler & sc,
-  flecsi::future<typename mesh<D>::periodic_axes> & bf,
+  typename mesh<D>::periodic_axes const & bf,
   spec::config_py & config) {
   using namespace common::utils;
 
@@ -344,11 +252,11 @@ init_mesh(state<D> & s,
 
       if(cd.has_value()) {
         sc.allocate(
-          s.mh[i], mesh<D>::color(cd.value(), axis_extents, bf.get()), geom);
+          s.mh[i], mesh<D>::color(cd.value(), axis_extents, bf), geom);
       }
       else {
         sc.allocate(s.mh[i],
-          mesh<D>::color(sc.runtime().processes(), axis_extents, bf.get()),
+          mesh<D>::color(sc.runtime().processes(), axis_extents, bf),
           geom);
       }
     } // for

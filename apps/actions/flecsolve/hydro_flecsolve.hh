@@ -150,16 +150,7 @@ recover_primitives_and_apply_boundaries(state<D> & s, flecsi::scheduler & sc) {
       s.prim.sound_speed(*s.m),
       s.eos);
 
-  annotation_rguard<tasks::apply_boundaries_task>(),
-    sc.template execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-      *s.m,
-      s.icst.bmap(*s.gt),
-      std::vector{s.cons.hydro.mass_density(*s.m),
-        s.prim.pressure(*s.m),
-        s.prim.specific_internal_energy(*s.m),
-        s.prim.sound_speed(*s.m),
-        s.cons.hydro.total_energy_density(*s.m)},
-      std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
+  apply_tagged_boundaries<D>(sc, s, tag::boundary);
 }
 
 template<std::size_t D>
@@ -220,16 +211,17 @@ struct rhs_operator : flecsolve::op::base<rhs_params<D>,
         s.eos);
 
     // Apply boundary conditions.
-    annotation_rguard<tasks::apply_boundaries_task>(),
-      sc.template execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-        *s.m,
-        s.icst.bmap(*s.gt),
-        std::vector{rho.data.ref(),
-          s.prim.pressure(*s.m),
-          s.prim.specific_internal_energy(*s.m),
-          s.prim.sound_speed(*s.m),
-          E.data.ref()},
-        std::vector{s.prim.velocity(*s.m), mom.data.ref()});
+    {
+      annotation_rguard<tasks::apply_boundaries_task> guard;
+      boundary_batch<D> bb(s.bcs);
+      bb.add(s.cons.hydro.mass_density.name, rho.data.ref());
+      bb.add(s.cons.hydro.total_energy_density.name, E.data.ref());
+      bb.add(s.cons.hydro.momentum_density.name, mom.data.ref());
+      bb.add(s.prim.pressure, *s.m);
+      bb.add(s.prim.specific_internal_energy, *s.m);
+      bb.add(s.prim.velocity, *s.m);
+      bb.execute(sc, *s.m);
+    }
 
     /*
       Explicit source contribution.

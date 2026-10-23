@@ -43,43 +43,24 @@ perform_cons2prim(state<D> & s, flecsi::scheduler & sc) {
       s.eos_mm);
 }
 
-// Update the INTEGER material field and the DOUBLE psi field in ghost cells.
+// Fill ghost cells in one task launch: the INTEGER material field and the
+// DOUBLE psi field always take flow, the hydro variables take the boundaries
+// configured per field in the input file. Sound speed is left out on purpose:
+// stage 1 recomputes it from the EOS in ghost cells afterwards.
 template<std::size_t D>
 inline void
-apply_material_boundaries(state<D> & s, flecsi::scheduler & sc) {
-  // Update INTEGER material field in ghost cells before hydro/primitive
-  // variables.
-  annotation_rguard<tasks::apply_boundaries_scalar_task>(),
-    sc.execute<tasks::apply_boundaries_scalar<D, true, int>>(flecsi::exec::on,
-      *s.m,
-      s.icst.bmap(*s.gt),
-      std::vector{s.ls.material(*s.m)}); // Only int fields
-
-  // Update DOUBLE psi field in ghost cells
-  annotation_rguard<tasks::apply_boundaries_scalar_task>(),
-    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(
-      flecsi::exec::on,
-      *s.m,
-      s.icst.bmap(*s.gt),
-      std::vector{s.ls.psi(*s.m)}); // Only double scalar fields
-}
-
-// Update material/psi ghost cells followed by the primitive variables in ghost
-// cells for the supplied set of scalar fields.
-template<std::size_t D>
-inline void
-apply_scalar_boundaries(state<D> & s,
-  flecsi::scheduler & sc,
-  std::vector<field_double<D>> scalar_v) {
-  apply_material_boundaries(s, sc);
-
-  // Update boundary cells
-  annotation_rguard<tasks::apply_boundaries_task>(),
-    sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-      *s.m,
-      s.icst.bmap(*s.gt),
-      scalar_v,
-      std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
+apply_boundaries(state<D> & s, flecsi::scheduler & sc) {
+  annotation_rguard<tasks::apply_boundaries_task> guard;
+  actions::boundary_batch<D> bb(s.bcs);
+  bb.add_flow(s.ls.material(*s.m));
+  bb.add_flow(s.ls.psi(*s.m));
+  bb.add(s.cons.hydro.mass_density, *s.m);
+  bb.add(s.prim.pressure, *s.m);
+  bb.add(s.prim.specific_internal_energy, *s.m);
+  bb.add(s.cons.hydro.total_energy_density, *s.m);
+  bb.add(s.prim.velocity, *s.m);
+  bb.add(s.cons.hydro.momentum_density, *s.m);
+  bb.execute(sc, *s.m);
 }
 
 // Recompute sound speed from EOS in ghost cells.
@@ -368,13 +349,7 @@ advance_rk_stage_common(state<D> & s,
 
   // Update material/psi and primitive variables in ghost cells BEFORE
   // reconstruction.
-  apply_scalar_boundaries(s,
-    sc,
-    std::vector{s.cons.hydro.mass_density(*s.m),
-      s.prim.pressure(*s.m),
-      s.prim.specific_internal_energy(*s.m),
-      // s.prim.sound_speed(*s.m),
-      s.cons.hydro.total_energy_density(*s.m)});
+  apply_boundaries(s, sc);
 
   // Recompute sound speed from EOS in ghost cells (stage 1 only).
   if(do_sound_speed)

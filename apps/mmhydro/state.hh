@@ -24,7 +24,6 @@ struct state : hydro::state<D>, gfm::state<D> {
     *--------------------------------------------------------------------------*/
   flecsi::topo::index::ptr ct; /* Color topology. */
   flecsi::topo::global::ptr gt;
-  flecsi::topo::global::ptr dense_topology;
 
   // Deque for meshes in multigrid
   std::deque<typename mesh<D>::ptr> mh;

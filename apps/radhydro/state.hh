@@ -22,7 +22,6 @@ struct state : rad::state<D>, hydro::state<D> {
    *--------------------------------------------------------------------------*/
   flecsi::topo::index::ptr ct; /* Color topology. */
   flecsi::topo::global::ptr gt;
-  flecsi::topo::global::ptr dense_topology;
 
   // Deque for meshes in multigrid
   std::deque<typename mesh<D>::ptr> mh;
@@ -45,6 +44,10 @@ struct state : rad::state<D>, hydro::state<D> {
   std::size_t max_num_levels;
 
   spec::om::output_method output_method = spec::om::csv;
+
+  auto fields() const {
+    return std::tuple_cat(hydro::state<D>::fields(), rad::state<D>::fields());
+  }
 
 }; // struct state
 

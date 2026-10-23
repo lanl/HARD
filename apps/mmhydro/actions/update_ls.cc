@@ -88,9 +88,7 @@ ssprk3_step(
   // Update psi1 ghost cells before Stage 2 uses it with 7-point stencil
   // TODO: Ensure that IN_TEST updates the ghost cells between rhs_upwind and
   // advance_psi
-  annotation_rguard<tasks::apply_boundaries_scalar_task>(),
-    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(
-      flecsi::exec::on, *s.m, s.icst.bmap(*s.gt), std::vector{s.ls.psi1(*s.m)});
+  actions::apply_flow_boundaries<D>(sc, s, s.ls.psi1(*s.m));
 #endif
 
 #ifdef IN_TEST
@@ -139,9 +137,7 @@ ssprk3_step(
   // Update psi2 ghost cells before Stage 3 uses it with 7-point stencil
   // TODO: Ensure that IN_TEST updates the ghost cells between rhs_upwind and
   // advance_psi
-  annotation_rguard<tasks::apply_boundaries_scalar_task>(),
-    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(
-      flecsi::exec::on, *s.m, s.icst.bmap(*s.gt), std::vector{s.ls.psi2(*s.m)});
+  actions::apply_flow_boundaries<D>(sc, s, s.ls.psi2(*s.m));
 #endif
 
 #ifdef IN_TEST
@@ -190,9 +186,7 @@ ssprk3_step(
   // Update psi3 ghost cells before determine_psi uses it
   // TODO: Ensure that IN_TEST updates the ghost cells between rhs_upwind and
   // advance_psi
-  annotation_rguard<tasks::apply_boundaries_scalar_task>(),
-    sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(
-      flecsi::exec::on, *s.m, s.icst.bmap(*s.gt), std::vector{s.ls.psi3(*s.m)});
+  actions::apply_flow_boundaries<D>(sc, s, s.ls.psi3(*s.m));
 #endif
 
   // Algorithm 1 post-process: (psi3, L^n) -> (psi^{n+1}, L^{n+1})
@@ -230,36 +224,10 @@ ssprk3_step(
         s.prim.sound_speed(*s.m),
         s.eos_mm);
 
-    {
-      auto scalar_v = std::vector{s.cons.hydro.mass_density(*s.m),
-        s.prim.pressure(*s.m),
-        s.prim.specific_internal_energy(*s.m),
-        s.cons.hydro.total_energy_density(*s.m),
-        s.prim.sound_speed(*s.m)};
-
-      annotation_rguard<tasks::apply_boundaries_task>(),
-        sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-          *s.m,
-          s.icst.bmap(*s.gt),
-          scalar_v,
-          std::vector{
-            s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
-    }
-
-    // Update INTEGER material field in ghost cells BEFORE flux computation
-    annotation_rguard<tasks::apply_boundaries_scalar_task>(),
-      sc.execute<tasks::apply_boundaries_scalar<D, true, int>>(flecsi::exec::on,
-        *s.m,
-        s.icst.bmap(*s.gt),
-        std::vector{s.ls.material(*s.m)}); // Only int fields
-
-    // Update DOUBLE psi field in ghost cells
-    annotation_rguard<tasks::apply_boundaries_scalar_task>(),
-      sc.execute<tasks::apply_boundaries_scalar<D, true, double>>(
-        flecsi::exec::on,
-        *s.m,
-        s.icst.bmap(*s.gt),
-        std::vector{s.ls.psi(*s.m)}); // Only double scalar fields
+    // Hydro variables (configured boundaries), material and psi (flow) in
+    // ghost cells BEFORE flux computation.
+    actions::apply_tagged_boundaries<D>(
+      sc, s, tag::boundary, s.ls.material(*s.m), s.ls.psi(*s.m));
   }
 
 #endif

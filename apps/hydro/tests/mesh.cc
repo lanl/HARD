@@ -28,13 +28,7 @@ template<std::size_t D>
 typename mesh<D>::periodic_axes
 init_boundaries() noexcept {
   typename mesh<D>::periodic_axes p;
-  p[ax::x] = false;
-  if constexpr(D == 2 || D == 3) {
-    p[ax::y] = false;
-  }
-  else if constexpr(D == 3) {
-    p[ax::z] = false;
-  } // if
+  p.fill(false);
   return p;
 }
 

@@ -32,6 +32,7 @@ using spec::index;
 using spec::multi;
 using spec::single;
 using spec::stencil;
+using spec::tfield;
 using spec::vec;
 using spec::st::dirs;
 

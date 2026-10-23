@@ -20,7 +20,7 @@ struct dirichlet<1> {
 
   template<typename T>
   FLECSI_INLINE_TARGET void
-  operator()(flecsi::util::mdcolex<T, 1> a, double v, int i, int level) const {
+  operator()(flecsi::util::mdcolex<T, 1> a, T v, int i, int level) const {
     if(level == bl::low)
       for(int m = 0; m < ghost_zone_size; ++m)
         a(m) = v;
@@ -39,7 +39,7 @@ struct dirichlet<2> {
   template<typename T>
   FLECSI_INLINE_TARGET void operator()(int axis,
     flecsi::util::mdcolex<T, 2> a,
-    double v,
+    T v,
     int i,
     int j,
     int level) const {
@@ -71,7 +71,7 @@ struct dirichlet<3> {
   template<typename T>
   FLECSI_INLINE_TARGET void operator()(int axis,
     flecsi::util::mdcolex<T, 3> a,
-    double v,
+    T v,
     int i,
     int j,
     int k,

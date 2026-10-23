@@ -14,18 +14,6 @@ inline flecsi::program_option<std::string> config("python file",
              : (ss << "file(" << v << ") has invalid suffix") && false;
   });
 
-#ifdef USE_CATALYST
-inline flecsi::program_option<std::string> catalyst_script("catalyst script",
-  "The catalyst script file.",
-  1,
-  [](flecsi::any const & v, std::stringstream & ss) {
-    const std::string value = flecsi::option_value<std::string>(v);
-    return value.find(".py") != std::string::npos
-             ? true
-             : (ss << "file(" << value << ") has invalid suffix") && false;
-  });
-#endif
-
 inline flecsi::program_option<unsigned int> dimension("Hard Options",
   "dimension,d",
   "Specify the dimension of the solver (default: 3).",
@@ -35,11 +23,6 @@ inline flecsi::program_option<unsigned int> resolution("Hard Options",
   "resolution,r",
   "Specify the lowest level resolution for the grid.",
   {{flecsi::option_default, 0}});
-
-inline flecsi::program_option<std::string> source_fds("Hard Options",
-  "fds_file",
-  "Specify where the file lives (default: source_fds.txt)",
-  {{flecsi::option_default, "source_fds.txt"}});
 
 inline flecsi::program_option<unsigned int> colors("Hard Options",
   "colors,c",

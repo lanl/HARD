@@ -46,11 +46,11 @@ struct radiation {
       s.rad.icst.kappa(*s.gt),
       s.rad.icst.limiter_id(*s.gt));
 
-    sc.execute<tasks::apply_boundaries_scalar<D, false, double>>(
-      flecsi::exec::on,
-      *s.m,
-      s.icst.bmap(*s.gt),
-      std::vector{s.rad.limiter.lambda_bridge(*s.m)});
+    {
+      actions::boundary_batch<D> bb(s.bcs);
+      bb.add(s.rad.limiter.lambda_bridge, *s.m);
+      bb.execute(sc, *s.m);
+    }
 
     sc.execute<tasks::rad::getDiff<D>>(flecsi::exec::on,
       *s.m,
@@ -117,15 +117,7 @@ struct radiation {
       s.eos);
 
     // Update boundary cells
-    sc.execute<tasks::apply_boundaries<D>>(flecsi::exec::on,
-      *s.m,
-      s.icst.bmap(*s.gt),
-      std::vector{s.cons.hydro.mass_density(*s.m),
-        s.prim.pressure(*s.m),
-        s.prim.specific_internal_energy(*s.m),
-        s.rad.cons.radiation_energy_density(*s.m),
-        s.cons.hydro.total_energy_density(*s.m)},
-      std::vector{s.prim.velocity(*s.m), s.cons.hydro.momentum_density(*s.m)});
+    actions::apply_tagged_boundaries<D>(sc, s, tag::boundary);
   }
 };
 
