@@ -74,7 +74,7 @@ apply_boundary(flecsi::exec::accelerator & s,
           const T v = bc_value<T>(bs.value);
           std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
           flecsi::util::iota_view policy{0, 1}; // default execution space
-          s.executor().forall(x, policy) {
+          s.executor().named("boundary_x").forall(x, policy) {
             (void)x; // remove compiler warning for unused
             if(bs.type == bd::flow)
               f(f_acc, i, l);
@@ -97,7 +97,9 @@ apply_boundary(flecsi::exec::accelerator & s,
           const spec::bc_side bs = sp[ax::x][l];
           const T v = bc_value<T>(bs.value);
           std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
-          s.executor().forall(j, (m.template cells<ax::y, dm::quantities>())) {
+          s.executor()
+            .named("boundary_x")
+            .forall(j, (m.template cells<ax::y, dm::quantities>())) {
             if(bs.type == bd::flow)
               f(ax::x, f_acc, i, j, l);
             if(bs.type == bd::reflecting)
@@ -111,7 +113,9 @@ apply_boundary(flecsi::exec::accelerator & s,
           const spec::bc_side bs = sp[ax::y][l];
           const T v = bc_value<T>(bs.value);
           std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
-          s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+          s.executor()
+            .named("boundary_y")
+            .forall(i, (m.template cells<ax::x, dm::quantities>())) {
             if(bs.type == bd::flow)
               f(ax::y, f_acc, i, j, l);
             if(bs.type == bd::reflecting)
@@ -139,7 +143,7 @@ apply_boundary(flecsi::exec::accelerator & s,
             m.template cells<ax::z, dm::quantities>(),
             m.template cells<ax::y, dm::quantities>());
           std::size_t i = l == bl::low ? 0 : m.template size<ax::x, dm::all>();
-          s.executor().forall(kj, mdpolicy_zy) {
+          s.executor().named("boundary_x").forall(kj, mdpolicy_zy) {
             auto [k, j] = kj;
             if(bs.type == bd::flow)
               f(ax::x, f_acc, i, j, k, l);
@@ -157,7 +161,7 @@ apply_boundary(flecsi::exec::accelerator & s,
             m.template cells<ax::z, dm::quantities>(),
             m.template cells<ax::x, dm::quantities>());
           std::size_t j = l == bl::low ? 0 : m.template size<ax::y, dm::all>();
-          s.executor().forall(ki, mdpolicy_zx) {
+          s.executor().named("boundary_y").forall(ki, mdpolicy_zx) {
             auto [k, i] = ki;
             if(bs.type == bd::flow)
               f(ax::y, f_acc, i, j, k, l);
@@ -175,7 +179,7 @@ apply_boundary(flecsi::exec::accelerator & s,
             m.template cells<ax::y, dm::quantities>(),
             m.template cells<ax::x, dm::quantities>());
           std::size_t k = l == bl::low ? 0 : m.template size<ax::z, dm::all>();
-          s.executor().forall(ji, mdpolicy_yx) {
+          s.executor().named("boundary_z").forall(ji, mdpolicy_yx) {
             auto [j, i] = ji;
             if(bs.type == bd::flow)
               f(ax::z, f_acc, i, j, k, l);

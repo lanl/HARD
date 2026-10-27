@@ -20,7 +20,9 @@ full_weighting(flecsi::exec::accelerator s,
   auto fc = mc.template mdcolex<is::cells>(fca);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (mc.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("mg_full_weighting")
+      .forall(i, (mc.template cells<ax::x, dm::quantities>())) {
       auto fi = 2 * i;
       fc(i) = 0.125 * (3.0 * (rf(fi - 2) + rf(fi - 1)) + rf(fi - 3) + rf(fi));
     }; // for
@@ -30,7 +32,7 @@ full_weighting(flecsi::exec::accelerator s,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("mg_full_weighting").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       auto fj = 2 * j;
       auto fi = 2 * i;
@@ -52,7 +54,7 @@ full_weighting(flecsi::exec::accelerator s,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("mg_full_weighting").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       auto fk = 2 * k;
       auto fj = 2 * j;
@@ -115,7 +117,9 @@ nlinear_interpolation(flecsi::exec::accelerator s,
   auto ff = mf.template mdcolex<is::cells>(ffa);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (mf.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("mg_nlinear_interp")
+      .forall(i, (mf.template cells<ax::x, dm::quantities>())) {
       auto ci = i / 2 + 1;
       auto di = +1;
       if((i + 1) % 2) {
@@ -129,7 +133,7 @@ nlinear_interpolation(flecsi::exec::accelerator s,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("mg_nlinear_interp").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       auto cj = j / 2 + 1;
       auto dj = 1;
@@ -151,7 +155,7 @@ nlinear_interpolation(flecsi::exec::accelerator s,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("mg_nlinear_interp").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       auto ck = k / 2 + 1;
       auto dk = 1;
@@ -190,7 +194,9 @@ cell_centered_weighting(flecsi::exec::accelerator s,
   auto fc = mc.template mdcolex<is::cells>(fca);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (mc.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("mg_cc_weighting")
+      .forall(i, (mc.template cells<ax::x, dm::quantities>())) {
       auto fi = 2 * i - mc.ghost_zone_size();
       fc(i) = 0.5 * (rf(fi) + rf(fi + 1));
     }; // for
@@ -200,7 +206,7 @@ cell_centered_weighting(flecsi::exec::accelerator s,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("mg_cc_weighting").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       auto fj = 2 * j - mc.ghost_zone_size();
       auto fi = 2 * i - mc.ghost_zone_size();
@@ -215,7 +221,7 @@ cell_centered_weighting(flecsi::exec::accelerator s,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("mg_cc_weighting").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       auto fk = 2 * k - mc.ghost_zone_size();
       auto fj = 2 * j - mc.ghost_zone_size();
@@ -243,7 +249,9 @@ cell_centered_interpolation(flecsi::exec::accelerator s,
   auto ff = mf.template mdcolex<is::cells>(ffa);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (mc.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("mg_cc_interp")
+      .forall(i, (mc.template cells<ax::x, dm::quantities>())) {
       auto fi = 2 * i - mc.ghost_zone_size();
       ff(fi) = cf(i);
       ff(fi + 1) = cf(i);
@@ -254,7 +262,7 @@ cell_centered_interpolation(flecsi::exec::accelerator s,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("mg_cc_interp").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       auto fj = 2 * j - mc.ghost_zone_size();
       auto fi = 2 * i - mc.ghost_zone_size();
@@ -272,7 +280,7 @@ cell_centered_interpolation(flecsi::exec::accelerator s,
       mc.template cells<ax::y, dm::quantities>(),
       mc.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("mg_cc_interp").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       auto fj = 2 * j - mc.ghost_zone_size();
       auto fi = 2 * i - mc.ghost_zone_size();
@@ -303,7 +311,9 @@ apply_operator(flecsi::exec::accelerator s,
   auto u_old = m.template mdcolex<is::cells>(ua_old);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("mg_apply_operator")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       u_new(i) = (Ew(i)[dirs::c] * u_old(i) - Ew(i)[dirs::w] * u_old(i - 1) -
                   Ew(i + 1)[dirs::w] * u_old(i + 1));
     };
@@ -313,7 +323,7 @@ apply_operator(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("mg_apply_operator").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       u_new(i, j) =
         (Ew(i, j)[dirs::c] * u_old(i, j) - Ew(i, j)[dirs::w] * u_old(i - 1, j) -
@@ -328,7 +338,7 @@ apply_operator(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("mg_apply_operator").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       u_new(i, j, k) = (Ew(i, j, k)[dirs::c] * u_old(i, j, k) -
                         Ew(i, j, k)[dirs::w] * u_old(i - 1, j, k) -
@@ -357,7 +367,9 @@ damped_jacobi(flecsi::exec::accelerator s,
   auto f = m.template mdcolex<is::cells>(fa);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("mg_damped_jacobi")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const double z = (Ew(i)[dirs::w] * u_old(i - 1) +
                          Ew(i + 1)[dirs::w] * u_old(i + 1) + f(i)) /
                        Ew(i)[dirs::c];
@@ -370,7 +382,7 @@ damped_jacobi(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("mg_damped_jacobi").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       const double z = (Ew(i, j)[dirs::w] * u_old(i - 1, j) +
                          Ew(i + 1, j)[dirs::w] * u_old(i + 1, j) +
@@ -387,7 +399,7 @@ damped_jacobi(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("mg_damped_jacobi").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       const double z =
         (Ew(i, j, k)[dirs::w] * u_old(i - 1, j, k) +
@@ -419,7 +431,9 @@ residual(flecsi::exec::accelerator s,
   auto r = m.template mdcolex<is::cells>(ra);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("mg_residual")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       r(i) = f(i) - (Ew(i)[dirs::c] * u(i) - Ew(i)[dirs::w] * u(i - 1) -
                       Ew(i + 1)[dirs::w] * u(i + 1));
     };
@@ -429,7 +443,7 @@ residual(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("mg_residual").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       r(i, j) = f(i, j) -
                 (Ew(i, j)[dirs::c] * u(i, j) - Ew(i, j)[dirs::w] * u(i - 1, j) -
@@ -444,7 +458,7 @@ residual(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("mg_residual").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       r(i, j, k) = f(i, j, k) - (Ew(i, j, k)[dirs::c] * u(i, j, k) -
                                   Ew(i, j, k)[dirs::w] * u(i - 1, j, k) -
@@ -469,7 +483,9 @@ correction(flecsi::exec::accelerator s,
   auto e = m.template mdcolex<is::cells>(ea);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("mg_correction")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       u(i) += e(i);
     }; // for
   }
@@ -478,7 +494,7 @@ correction(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("mg_correction").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       u(i, j) += e(i, j);
     }; // for
@@ -489,7 +505,7 @@ correction(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("mg_correction").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       u(i, j, k) += e(i, j, k);
     }; // for

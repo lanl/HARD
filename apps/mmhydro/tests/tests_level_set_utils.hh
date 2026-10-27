@@ -87,7 +87,9 @@ copy_test_vel_stage(flecsi::exec::accelerator s,
   auto u = m.template mdcolex<is::cells>(velocity_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("copy_test_vel")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const double stage_time = (STAGE == 1)   ? *t
                                 : (STAGE == 2) ? (*t + *dt)
                                                : (*t + 0.5 * *dt);
@@ -100,7 +102,7 @@ copy_test_vel_stage(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("copy_test_vel").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       const double stage_time = (STAGE == 1)   ? *t
                                 : (STAGE == 2) ? (*t + *dt)
@@ -117,7 +119,7 @@ copy_test_vel_stage(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("copy_test_vel").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       const double stage_time = (STAGE == 1)   ? *t
                                 : (STAGE == 2) ? (*t + *dt)

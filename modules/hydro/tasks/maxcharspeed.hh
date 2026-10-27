@@ -24,8 +24,10 @@ update_max_characteristic_speed(flecsi::exec::accelerator s,
   auto soundspeed = m.template mdcolex<is::cells>(c_a);
 
   if constexpr(D == 1) {
-    return s.executor().reduceall(
-      i, up, (m.template cells<ax::x, dm::quantities>()), fold::max, double) {
+    return s.executor()
+      .named("max_char_speed")
+      .reduceall(
+        i, up, (m.template cells<ax::x, dm::quantities>()), fold::max, double) {
       up(velocity(i).norm() + soundspeed(i));
     };
   }
@@ -34,7 +36,9 @@ update_max_characteristic_speed(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    return s.executor().reduceall(ji, up, mdpolicy_qq, fold::max, double) {
+    return s.executor()
+      .named("max_char_speed")
+      .reduceall(ji, up, mdpolicy_qq, fold::max, double) {
       auto [j, i] = ji;
       up(velocity(i, j).norm() + soundspeed(i, j));
     };
@@ -45,7 +49,9 @@ update_max_characteristic_speed(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    return s.executor().reduceall(kji, up, mdpolicy_qqq, fold::max, double) {
+    return s.executor()
+      .named("max_char_speed")
+      .reduceall(kji, up, mdpolicy_qqq, fold::max, double) {
       auto [k, j, i] = kji;
       up(velocity(i, j, k).norm() + soundspeed(i, j, k));
     };

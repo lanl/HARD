@@ -338,7 +338,9 @@ gradient_centered(flecsi::exec::accelerator s,
   auto psi = m.template mdcolex<is::cells>(psi_a);
   auto dp = m.template mdcolex<is::cells>(dp_a);
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("gradient_centered")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const double psi_c = psi(i);
       dp(i).x() =
         side_aware_derivative_1d([&](int off) { return psi(i + off); },
@@ -351,7 +353,7 @@ gradient_centered(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("gradient_centered").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       const double psi_c = psi(i, j);
       dp(i, j).x() =
@@ -370,7 +372,7 @@ gradient_centered(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("gradient_centered").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       const double psi_c = psi(i, j, k);
       dp(i, j, k).x() =
@@ -407,7 +409,9 @@ unit_cell_normals(flecsi::exec::accelerator s,
   constexpr double eps = 1e-12;
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("cell_normals")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       normal(i) = dp(i) / (dp(i).norm() + eps);
     };
   }
@@ -416,7 +420,7 @@ unit_cell_normals(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("cell_normals").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       normal(i, j) = dp(i, j) / (dp(i, j).norm() + eps);
     };
@@ -427,7 +431,7 @@ unit_cell_normals(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("cell_normals").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       normal(i, j, k) = dp(i, j, k) / (dp(i, j, k).norm() + eps);
     };
@@ -463,7 +467,9 @@ rhs_constant_extrapolation(flecsi::exec::accelerator s,
   const double dx = m.template delta<ax::x>();
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("extp_rhs")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       if(psi(i) <= 0.0) {
         rhs(i) = 0.0;
       }
@@ -483,7 +489,7 @@ rhs_constant_extrapolation(flecsi::exec::accelerator s,
 
     const double dy = m.template delta<ax::y>();
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("extp_rhs").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       if(psi(i, j) <= 0.0) {
         rhs(i, j) = 0.0;
@@ -506,7 +512,7 @@ rhs_constant_extrapolation(flecsi::exec::accelerator s,
     const double dy = m.template delta<ax::y>();
     const double dz = m.template delta<ax::z>();
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("extp_rhs").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       if(psi(i, j, k) <= 0.0) {
         rhs(i, j, k) = 0.0;
@@ -574,8 +580,13 @@ extp_interface_convergence_update(flecsi::exec::accelerator s,
 
     // --- Pass 1: per-variable band-max reference scale ---
     for(std::size_t qid = 0; qid < N_Q; ++qid) {
-      q_ref[qid] = s.executor().reduceall(
-        i, up, (m.template cells<ax::x, dm::quantities>()), fold::max, double) {
+      q_ref[qid] = s.executor()
+                     .named("extp_conv_ref")
+                     .reduceall(i,
+                       up,
+                       (m.template cells<ax::x, dm::quantities>()),
+                       fold::max,
+                       double) {
         up(in_band(i) ? std::abs(q_new(i)[qid]) : 0.0);
       };
     }
@@ -593,8 +604,10 @@ extp_interface_convergence_update(flecsi::exec::accelerator s,
     };
 
     // --- Pass 2: scaled-update reduction ---
-    return s.executor().reduceall(
-      i, up, (m.template cells<ax::x, dm::quantities>()), fold::max, double) {
+    return s.executor()
+      .named("extp_conv_update")
+      .reduceall(
+        i, up, (m.template cells<ax::x, dm::quantities>()), fold::max, double) {
       up(in_band(i) ? scaled_update(q_old(i), q_new(i)) : 0.0);
     };
   }
@@ -610,8 +623,9 @@ extp_interface_convergence_update(flecsi::exec::accelerator s,
 
     // --- Pass 1: per-variable band-max reference scale ---
     for(std::size_t qid = 0; qid < N_Q; ++qid) {
-      q_ref[qid] =
-        s.executor().reduceall(ji, up, mdpolicy_qq, fold::max, double) {
+      q_ref[qid] = s.executor()
+                     .named("extp_conv_ref")
+                     .reduceall(ji, up, mdpolicy_qq, fold::max, double) {
         auto [j, i] = ji;
         up(in_band(i, j) ? std::abs(q_new(i, j)[qid]) : 0.0);
       };
@@ -630,7 +644,9 @@ extp_interface_convergence_update(flecsi::exec::accelerator s,
     };
 
     // --- Pass 2: scaled-update reduction ---
-    return s.executor().reduceall(ji, up, mdpolicy_qq, fold::max, double) {
+    return s.executor()
+      .named("extp_conv_update")
+      .reduceall(ji, up, mdpolicy_qq, fold::max, double) {
       auto [j, i] = ji;
       up(in_band(i, j) ? scaled_update(q_old(i, j), q_new(i, j)) : 0.0);
     };
@@ -650,8 +666,9 @@ extp_interface_convergence_update(flecsi::exec::accelerator s,
 
     // --- Pass 1: per-variable band-max reference scale ---
     for(std::size_t qid = 0; qid < N_Q; ++qid) {
-      q_ref[qid] =
-        s.executor().reduceall(kji, up, mdpolicy_qqq, fold::max, double) {
+      q_ref[qid] = s.executor()
+                     .named("extp_conv_ref")
+                     .reduceall(kji, up, mdpolicy_qqq, fold::max, double) {
         auto [k, j, i] = kji;
         up(in_band(i, j, k) ? std::abs(q_new(i, j, k)[qid]) : 0.0);
       };
@@ -670,7 +687,9 @@ extp_interface_convergence_update(flecsi::exec::accelerator s,
     };
 
     // --- Pass 2: scaled-update reduction ---
-    return s.executor().reduceall(kji, up, mdpolicy_qqq, fold::max, double) {
+    return s.executor()
+      .named("extp_conv_update")
+      .reduceall(kji, up, mdpolicy_qqq, fold::max, double) {
       auto [k, j, i] = kji;
       up(
         in_band(i, j, k) ? scaled_update(q_old(i, j, k), q_new(i, j, k)) : 0.0);
@@ -758,7 +777,9 @@ advance_q_rk2_s1_cfl(flecsi::exec::accelerator s,
     dz = m.template delta<ax::z>();
   constexpr double eps = 1e-14;
 
-  s.executor().forall(i, flecsi::util::iota_view({}, q_known_a.span().size())) {
+  s.executor()
+    .named("extp_rk2_s1")
+    .forall(i, flecsi::util::iota_view({}, q_known_a.span().size())) {
     if(extp_psi_a(i) <= 0.0) {
       q1_a(i) = q_known_a(i);
     }
@@ -804,7 +825,9 @@ advance_q_rk2_s2_cfl(flecsi::exec::accelerator s,
     dz = m.template delta<ax::z>();
   constexpr double eps = 1e-14;
 
-  s.executor().forall(i, flecsi::util::iota_view({}, q_known_a.span().size())) {
+  s.executor()
+    .named("extp_rk2_s2")
+    .forall(i, flecsi::util::iota_view({}, q_known_a.span().size())) {
     if(extp_psi_a(i) <= 0.0) {
       q0_a(i) = q_known_a(i);
     }
@@ -833,7 +856,9 @@ copy_extp_q(flecsi::exec::accelerator s,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<wo, na>
     dst_a) noexcept {
 
-  s.executor().forall(i, flecsi::util::iota_view({}, src_a.span().size())) {
+  s.executor()
+    .named("copy_extp_q")
+    .forall(i, flecsi::util::iota_view({}, src_a.span().size())) {
     dst_a(i) = src_a(i);
   };
 }
@@ -887,7 +912,9 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
   auto q_known = m.template mdcolex<is::cells>(q_known_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::all>())) {
+    s.executor()
+      .named("extp_prepare")
+      .forall(i, (m.template cells<ax::x, dm::all>())) {
       extp_psi(i) = (material(i) == source_material) ? -std::abs(ls_psi(i))
                                                      : std::abs(ls_psi(i));
 
@@ -902,7 +929,7 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::all>(),
       m.template cells<ax::x, dm::all>());
 
-    s.executor().forall(ji, mdpolicy_yx) {
+    s.executor().named("extp_prepare").forall(ji, mdpolicy_yx) {
       auto [j, i] = ji;
       extp_psi(i, j) = (material(i, j) == source_material)
                          ? -std::abs(ls_psi(i, j))
@@ -921,7 +948,7 @@ prepare_extp_for_material(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::all>(),
       m.template cells<ax::x, dm::all>());
 
-    s.executor().forall(kji, mdpolicy_zyx) {
+    s.executor().named("extp_prepare").forall(kji, mdpolicy_zyx) {
       auto [k, j, i] = kji;
       extp_psi(i, j, k) = (material(i, j, k) == source_material)
                             ? -std::abs(ls_psi(i, j, k))

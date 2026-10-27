@@ -76,7 +76,9 @@ copy_scalar(flecsi::exec::accelerator s,
   field<double>::accessor<ro, na> from_a,
   field<double>::accessor<wo, na> to_a) noexcept {
 
-  s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
+  s.executor()
+    .named("copy_scalar")
+    .forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
     to_a(i) = from_a(i);
   };
 }
@@ -96,13 +98,17 @@ copy_scalar_v_vector(flecsi::exec::accelerator s,
     typename field<V>::template accessor<wo, na>>> vec_v_a) noexcept {
 
   for(auto & [from_a, to_a] : v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
+    s.executor()
+      .named("copy_scalar")
+      .forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
       to_a(i) = from_a(i);
     }; // forall
   }
 
   for(auto & [from_a, to_a] : vec_v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
+    s.executor()
+      .named("copy_vector")
+      .forall(i, flecsi::util::iota_view({}, from_a.span().size())) {
       to_a(i) = from_a(i);
     }; // forall
   }

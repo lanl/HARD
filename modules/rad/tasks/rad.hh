@@ -143,7 +143,9 @@ getGradV(flecsi::exec::accelerator s,
   if constexpr(D == 1) {
     const double one_over_12dx = 1.0 / (12.0 * m.template delta<ax::x>());
 
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("rad_grad_v")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       grad_v(i).xx = (u(i - 2).x() - 8.0 * u(i - 1).x() + 8.0 * u(i + 1).x() -
                        u(i + 2).x()) *
                      one_over_12dx;
@@ -157,7 +159,7 @@ getGradV(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("rad_grad_v").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
       grad_v(i, j).xx = (u(i - 2, j).x() - 8.0 * u(i - 1, j).x() +
@@ -185,7 +187,7 @@ getGradV(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("rad_grad_v").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       grad_v(i, j, k).xx = (u(i - 2, j, k).x() - 8.0 * u(i - 1, j, k).x() +
                              8.0 * u(i + 1, j, k).x() - u(i + 2, j, k).x()) *
@@ -234,7 +236,9 @@ getEddFactor(flecsi::exec::accelerator s,
   auto edd_factor = m.template mdcolex<is::cells>(edd_factor_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("rad_edd_factor")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       edd_factor(i) = AFLDEddFactor(lambda(i), *limiter_id_a, *closure_id_a);
     };
   }
@@ -242,7 +246,7 @@ getEddFactor(flecsi::exec::accelerator s,
     auto mdpolicy_qq = get_mdiota_policy(lambda,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("rad_edd_factor").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       edd_factor(i, j) =
         AFLDEddFactor(lambda(i, j), *limiter_id_a, *closure_id_a);
@@ -253,7 +257,7 @@ getEddFactor(flecsi::exec::accelerator s,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("rad_edd_factor").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       edd_factor(i, j, k) =
         AFLDEddFactor(lambda(i, j, k), *limiter_id_a, *closure_id_a);
@@ -284,7 +288,9 @@ getTensorP(flecsi::exec::accelerator s,
   const double zero_guard = 1.0e-15;
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("rad_tensor_p")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const double f = edd_factor(i);
       P_tensor(i).xx = (0.5 * (1 - f) + 0.5 * (3 * f - 1)) * Esf(i);
     };
@@ -294,7 +300,7 @@ getTensorP(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("rad_tensor_p").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
       const double nx = grad_esf(i, j).x() / (grad_e_mag(i, j) + zero_guard);
@@ -316,7 +322,7 @@ getTensorP(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("rad_tensor_p").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       const double nx =
@@ -362,7 +368,9 @@ getGradE(flecsi::exec::accelerator s,
     const double one_over_12dx = 1.0 / (12.0 * m.template delta<ax::x>());
 
     // Application of the 5-stencil central differencing:
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("rad_grad_e")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       grad_esf(i).x() =
         (Esf(i - 2) - 8.0 * Esf(i - 1) + 8.0 * Esf(i + 1) - Esf(i + 2)) *
         one_over_12dx;
@@ -376,7 +384,7 @@ getGradE(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("rad_grad_e").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
       // Application of the 5-stencil central differencing:
@@ -398,7 +406,7 @@ getGradE(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("rad_grad_e").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       // Application of the 5-stencil central differencing:
@@ -445,7 +453,9 @@ getLambda(flecsi::exec::accelerator s,
   auto lambda = m.template mdcolex<is::cells>(lambda_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("rad_lambda")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       auto const kappa = *kappa_a;
       const double zero_guard = 1.0e-15;
 
@@ -458,7 +468,7 @@ getLambda(flecsi::exec::accelerator s,
     auto mdpolicy_qq = get_mdiota_policy(Esf,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("rad_lambda").forall(ji, mdpolicy_qq) {
       auto const kappa = *kappa_a;
       const double zero_guard = 1.0e-15;
 
@@ -473,7 +483,7 @@ getLambda(flecsi::exec::accelerator s,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("rad_lambda").forall(kji, mdpolicy_qqq) {
       auto const kappa = *kappa_a;
       const double zero_guard = 1.0e-15;
 
@@ -500,7 +510,9 @@ getRadForce(flecsi::exec::accelerator s,
   auto fr = m.template mdcolex<is::cells>(fr_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("rad_force")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       fr(i).x() = -lambda(i) * grad_esf(i).x();
     };
   }
@@ -509,7 +521,7 @@ getRadForce(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("rad_force").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       fr(i, j).x() = -lambda(i, j) * grad_esf(i, j).x();
       fr(i, j).y() = -lambda(i, j) * grad_esf(i, j).y();
@@ -520,7 +532,7 @@ getRadForce(flecsi::exec::accelerator s,
       m.template cells<ax::z, dm::quantities>(),
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("rad_force").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       fr(i, j, k).x() = -lambda(i, j, k) * grad_esf(i, j, k).x();
       fr(i, j, k).y() = -lambda(i, j, k) * grad_esf(i, j, k).y();
@@ -564,7 +576,9 @@ explicit_source_update(flecsi::exec::accelerator s,
   // const double radiation_constant = hard::constants::cgs::radiation_constant;
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("rad_explicit_source")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
 
       // Explicitly updating conserved variables with S_ex
       // Adding the radiation force term to the momentum density
@@ -590,7 +604,7 @@ explicit_source_update(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("rad_explicit_source").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
       // Explicitly updating conserved variables with S_ex
@@ -617,7 +631,7 @@ explicit_source_update(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("rad_explicit_source").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       // Explicitly updating conserved variables with S_ex
@@ -662,7 +676,9 @@ getDiff(flecsi::exec::accelerator s,
   auto Diff = m.template mdcolex<is::cells>(Diff_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::all>())) {
+    s.executor()
+      .named("rad_diff_coeff")
+      .forall(i, (m.template cells<ax::x, dm::all>())) {
       auto const kappa = *kappa_a;
       const double clight = hard::constants::cgs::speed_of_light;
       Diff(i) = clight * lambda(i) / (kappa * r(i));
@@ -673,7 +689,7 @@ getDiff(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::all>(),
       m.template cells<ax::x, dm::all>());
 
-    s.executor().forall(ji, mdpolicy_aa) {
+    s.executor().named("rad_diff_coeff").forall(ji, mdpolicy_aa) {
       auto const kappa = *kappa_a;
       const double clight = hard::constants::cgs::speed_of_light;
       auto [j, i] = ji;
@@ -686,7 +702,7 @@ getDiff(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::all>(),
       m.template cells<ax::x, dm::all>());
 
-    s.executor().forall(kji, mdpolicy_aaa) {
+    s.executor().named("rad_diff_coeff").forall(kji, mdpolicy_aaa) {
       auto const kappa = *kappa_a;
       const double clight = hard::constants::cgs::speed_of_light;
       auto [k, j, i] = kji;
@@ -711,7 +727,9 @@ diffusion_init(flecsi::exec::accelerator s,
   auto Df_z = m.template mdcolex<is::cells>(Df_za);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
+    s.executor()
+      .named("rad_diffusion_init")
+      .forall(i, (m.template cells<ax::x, dm::corrector>())) {
       Df_x(i) = 2 * Diff(i) * Diff(i - 1) / (Diff(i) + Diff(i - 1));
     };
   }
@@ -721,7 +739,7 @@ diffusion_init(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::corrector>(),
       m.template cells<ax::x, dm::corrector>());
 
-    s.executor().forall(ji, mdpolicy_cc) {
+    s.executor().named("rad_diffusion_init").forall(ji, mdpolicy_cc) {
       auto [j, i] = ji;
       Df_x(i, j) =
         2 * Diff(i, j) * Diff(i - 1, j) / (Diff(i, j) + Diff(i - 1, j));
@@ -735,7 +753,7 @@ diffusion_init(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::corrector>(),
       m.template cells<ax::x, dm::corrector>());
 
-    s.executor().forall(kji, mdpolicy_ccc) {
+    s.executor().named("rad_diffusion_init").forall(kji, mdpolicy_ccc) {
       auto [k, j, i] = kji;
       Df_x(i, j, k) = 2 * Diff(i, j, k) * Diff(i - 1, j, k) /
                       (Diff(i, j, k) + Diff(i - 1, j, k));
@@ -757,7 +775,9 @@ const_init(flecsi::exec::accelerator s,
   auto f = m.template mdcolex<is::cells>(f_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("rad_const_init")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       f(i) = w;
     }; // for
   }
@@ -766,7 +786,7 @@ const_init(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_aa) {
+    s.executor().named("rad_const_init").forall(ji, mdpolicy_aa) {
       auto [j, i] = ji;
       f(i, j) = w;
     };
@@ -778,7 +798,7 @@ const_init(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_aaa) {
+    s.executor().named("rad_const_init").forall(kji, mdpolicy_aaa) {
       auto [k, j, i] = kji;
       f(i, j, k) = w;
     };
@@ -804,7 +824,9 @@ stencil_init(flecsi::exec::accelerator s,
   if constexpr(D == 1) {
     const double dx{m.template delta<ax::x>()};
 
-    s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
+    s.executor()
+      .named("rad_stencil_init")
+      .forall(i, (m.template cells<ax::x, dm::corrector>())) {
       auto const dt = *dt_a;
       const double wx{dt / pow(dx, 2)};
       Ew(i)[dirs::c] = 1.0 + wx * (Df_x(i + 1) + Df_x(i));
@@ -819,7 +841,7 @@ stencil_init(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::corrector>(),
       m.template cells<ax::x, dm::corrector>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("rad_stencil_init").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
       auto const dt = *dt_a;
       const double wx{dt / pow(dx, 2)};
@@ -840,7 +862,7 @@ stencil_init(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::corrector>(),
       m.template cells<ax::x, dm::corrector>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("rad_stencil_init").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
       auto const dt = *dt_a;
       const double wx{dt / pow(dx, 2)};

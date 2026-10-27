@@ -32,8 +32,9 @@ conservative_to_primitive_mm(flecsi::exec::accelerator s,
    * correctly populated, triggering wrong const auto & eos = eos_disp[mat]
    * accessing
    */
-  s.executor().forall(
-    i, flecsi::util::iota_view({}, pressure_a.span().size())) {
+  s.executor()
+    .named("cons2prim_mm")
+    .forall(i, flecsi::util::iota_view({}, pressure_a.span().size())) {
     const auto mat = static_cast<std::size_t>(material_a(i));
     if(mat < eos_disp.size_) {
       const auto & eos = eos_disp[mat];
