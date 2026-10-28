@@ -17,18 +17,18 @@ mpich-legion-gnu:release:
   variables:
     SPACK_ENV_NAME: legion/ucx/serial/mpich-gcc-release
 
-openmpi-legion-openmp-gnu:
-  stage: Legion backend
-  extends: [.darwin_regular_job, .build_and_test]
-  variables:
-    SPACK_ENV_NAME: legion/ucx/openmp/openmpi-gcc-debug
+#openmpi-legion-openmp-gnu:
+#  stage: Legion backend
+#  extends: [.darwin_regular_job, .build_and_test]
+#  variables:
+#    SPACK_ENV_NAME: legion/ucx/openmp/openmpi-gcc-debug
 #    ARCHIVE_SPACK_ENV: "yes"
 
-openmpi-legion-openmp-gnu:release:
-  stage: Legion backend
-  extends: [.darwin_release_job, .build_and_test]
-  variables:
-    SPACK_ENV_NAME: legion/ucx/openmp/openmpi-gcc-release
+#openmpi-legion-openmp-gnu:release:
+#  stage: Legion backend
+#  extends: [.darwin_release_job, .build_and_test]
+#  variables:
+#    SPACK_ENV_NAME: legion/ucx/openmp/openmpi-gcc-release
 
 # mpich-legion-cuda-ampere-clang:
 #   stage: Legion backend
