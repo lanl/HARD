@@ -50,7 +50,9 @@ update_energy_density(flecsi::exec::accelerator s,
       Compute the updated gas energy and raditaion energy.
      *------------------------------------------------------------------------*/
 
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("rad_update_energy")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       auto & dt_weighted = *dt_a;
 
       const double ke = 0.5 * r(i) * u(i).norm_squared(); // kinetic energy
@@ -85,7 +87,7 @@ update_energy_density(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("rad_update_energy").forall(ji, mdpolicy_qq) {
 
       auto [j, i] = ji;
 
@@ -120,7 +122,7 @@ update_energy_density(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("rad_update_energy").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       const double ke =

@@ -86,7 +86,9 @@ material_to_scalar_output(flecsi::exec::accelerator s,
   auto material_out = m.template mdcolex<is::cells>(material_out_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+    s.executor()
+      .named("material_output")
+      .forall(i, m.template cells<ax::x, dm::quantities>()) {
       material_out(i) = static_cast<double>(material(i));
     };
   }
@@ -95,7 +97,7 @@ material_to_scalar_output(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, pol) {
+    s.executor().named("material_output").forall(ji, pol) {
       auto [j, i] = ji;
       material_out(i, j) = static_cast<double>(material(i, j));
     };
@@ -106,7 +108,7 @@ material_to_scalar_output(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, pol) {
+    s.executor().named("material_output").forall(kji, pol) {
       auto [k, j, i] = kji;
       material_out(i, j, k) = static_cast<double>(material(i, j, k));
     };
@@ -120,7 +122,9 @@ extp_rho_to_scalar_output(flecsi::exec::accelerator s,
   typename field<hard::tasks::util::extp_q<D>>::template accessor<ro, na> q_a,
   typename field<double>::template accessor<wo, na> rho_out_a) noexcept {
 
-  s.executor().forall(i, flecsi::util::iota_view({}, q_a.span().size())) {
+  s.executor()
+    .named("extp_rho_output")
+    .forall(i, flecsi::util::iota_view({}, q_a.span().size())) {
     rho_out_a(i) = q_a(i).rho();
   };
 }
@@ -144,7 +148,9 @@ vec_components_to_scalar_output(flecsi::exec::accelerator s,
   auto mag_out = m.template mdcolex<is::cells>(mag_out_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+    s.executor()
+      .named("vec_output")
+      .forall(i, m.template cells<ax::x, dm::quantities>()) {
       x_out(i) = v(i).x();
       y_out(i) = 0.0;
       z_out(i) = 0.0;
@@ -156,7 +162,7 @@ vec_components_to_scalar_output(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, pol) {
+    s.executor().named("vec_output").forall(ji, pol) {
       auto [j, i] = ji;
       x_out(i, j) = v(i, j).x();
       y_out(i, j) = v(i, j).y();
@@ -170,7 +176,7 @@ vec_components_to_scalar_output(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, pol) {
+    s.executor().named("vec_output").forall(kji, pol) {
       auto [k, j, i] = kji;
       x_out(i, j, k) = v(i, j, k).x();
       y_out(i, j, k) = v(i, j, k).y();

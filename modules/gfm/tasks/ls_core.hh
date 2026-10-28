@@ -26,8 +26,9 @@ freeze_material(flecsi::exec::accelerator s,
   typename field<int>::template accessor<ro, na> material_a,
   typename field<int>::template accessor<wo, na> frozen_material_a) noexcept {
 
-  s.executor().forall(
-    i, flecsi::util::iota_view({}, frozen_material_a.span().size())) {
+  s.executor()
+    .named("freeze_material")
+    .forall(i, flecsi::util::iota_view({}, frozen_material_a.span().size())) {
     frozen_material_a(i) = material_a(i);
   };
 }
@@ -182,7 +183,9 @@ rhs_upwind(flecsi::exec::accelerator s,
   if constexpr(D == 1) {
     const double dx = m.template delta<ax::x>();
 
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("ls_rhs_upwind")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const int center_material = fmat(i);
       const double ux = vel(i).x();
 
@@ -218,7 +221,7 @@ rhs_upwind(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, pol) {
+    s.executor().named("ls_rhs_upwind").forall(ji, pol) {
       auto [j, i] = ji;
       const int center_material = fmat(i, j);
       const auto u = vel(i, j);
@@ -269,7 +272,7 @@ rhs_upwind(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, pol) {
+    s.executor().named("ls_rhs_upwind").forall(kji, pol) {
       auto [k, j, i] = kji;
       const int center_material = fmat(i, j, k);
       const auto u = vel(i, j, k);
@@ -347,7 +350,9 @@ advance_psi_s1(flecsi::exec::accelerator s,
   auto psi_out = m.template mdcolex<is::cells>(psi_out_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+    s.executor()
+      .named("ls_advance_s1")
+      .forall(i, m.template cells<ax::x, dm::quantities>()) {
       psi_out(i) = psi_n0(i) + *dt_a * rhs(i);
     };
   }
@@ -356,7 +361,7 @@ advance_psi_s1(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, pol) {
+    s.executor().named("ls_advance_s1").forall(ji, pol) {
       auto [j, i] = ji;
       psi_out(i, j) = psi_n0(i, j) + *dt_a * rhs(i, j);
     };
@@ -367,7 +372,7 @@ advance_psi_s1(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, pol) {
+    s.executor().named("ls_advance_s1").forall(kji, pol) {
       auto [k, j, i] = kji;
       psi_out(i, j, k) = psi_n0(i, j, k) + *dt_a * rhs(i, j, k);
     };
@@ -412,7 +417,9 @@ advance_psi(flecsi::exec::accelerator s,
   };
 
   if constexpr(D == 1) {
-    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+    s.executor()
+      .named("ls_advance")
+      .forall(i, m.template cells<ax::x, dm::quantities>()) {
       psi_out(i) = update_one(psi_n0(i), psi_prev(i), rhs(i));
     };
   }
@@ -421,7 +428,7 @@ advance_psi(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, pol) {
+    s.executor().named("ls_advance").forall(ji, pol) {
       auto [j, i] = ji;
       psi_out(i, j) = update_one(psi_n0(i, j), psi_prev(i, j), rhs(i, j));
     };
@@ -432,7 +439,7 @@ advance_psi(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, pol) {
+    s.executor().named("ls_advance").forall(kji, pol) {
       auto [k, j, i] = kji;
       psi_out(i, j, k) =
         update_one(psi_n0(i, j, k), psi_prev(i, j, k), rhs(i, j, k));
@@ -463,7 +470,9 @@ determine_psi(flecsi::exec::accelerator s,
   auto mat = m.template mdcolex<is::cells>(material_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("ls_determine_psi")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       if(fpsi(i) > 0.0) {
         double psimin = fpsi(i);
         int lmin = fmat(i);
@@ -492,7 +501,7 @@ determine_psi(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, pol) {
+    s.executor().named("ls_determine_psi").forall(ji, pol) {
       auto [j, i] = ji;
 
       if(fpsi(i, j) > 0.0) {
@@ -525,7 +534,7 @@ determine_psi(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, pol) {
+    s.executor().named("ls_determine_psi").forall(kji, pol) {
       auto [k, j, i] = kji;
 
       if(fpsi(i, j, k) > 0.0) {
@@ -640,7 +649,9 @@ promote_changed_material_cells(flecsi::exec::accelerator s,
   auto sound_speed = m.template mdcolex<is::cells>(sound_speed_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, m.template cells<ax::x, dm::quantities>()) {
+    s.executor()
+      .named("ls_promote_cells")
+      .forall(i, m.template cells<ax::x, dm::quantities>()) {
       const int old_mat = old_material(i);
       const int new_mat = new_material(i);
 
@@ -700,7 +711,7 @@ promote_changed_material_cells(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, pol) {
+    s.executor().named("ls_promote_cells").forall(ji, pol) {
       auto [j, i] = ji;
 
       const int old_mat = old_material(i, j);
@@ -763,7 +774,7 @@ promote_changed_material_cells(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, pol) {
+    s.executor().named("ls_promote_cells").forall(kji, pol) {
       auto [k, j, i] = kji;
 
       const int old_mat = old_material(i, j, k);

@@ -62,7 +62,9 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
   if constexpr(Dim == 1) {
     assert(
       (face_axis == 0) && "1D executable can only compute fluxes along X axis");
-    s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
+    s.executor()
+      .named("hllc_flux_x")
+      .forall(i, (m.template cells<ax::x, dm::corrector>())) {
       const auto dx = m.template delta<ax::x>();
       auto g = g_acc.get();
 
@@ -98,7 +100,9 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
     }; // forall
 
     // Store dF^x/dx into du_dt
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("flux_div_x")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       dt_mass_density(i) += one_over_dx_i[0] * (r_f(i) - r_f(i + 1));
       dt_momentum_density(i) += one_over_dx_i[0] * (ru_f(i) - ru_f(i + 1));
       dt_total_energy_density(i) += one_over_dx_i[0] * (re_f(i) - re_f(i + 1));
@@ -112,7 +116,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::corrector>());
 
-      s.executor().forall(ji, mdpolicy_qc) {
+      s.executor().named("hllc_flux_x").forall(ji, mdpolicy_qc) {
         auto g = g_acc.get();
         auto [j, i] = ji;
 
@@ -160,7 +164,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(ji, mdpolicy_qq) {
+      s.executor().named("flux_div_x").forall(ji, mdpolicy_qq) {
         auto [j, i] = ji;
         dt_mass_density(i, j) += one_over_dx_i[0] * (r_f(i, j) - r_f(i + 1, j));
         dt_momentum_density(i, j) +=
@@ -175,7 +179,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::corrector>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(ji, mdpolicy_cq) {
+      s.executor().named("hllc_flux_y").forall(ji, mdpolicy_cq) {
         auto g = g_acc.get();
         auto [j, i] = ji;
 
@@ -221,7 +225,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(ji, mdpolicy_qq) {
+      s.executor().named("flux_div_y").forall(ji, mdpolicy_qq) {
         auto [j, i] = ji;
         dt_mass_density(i, j) += one_over_dx_i[1] * (r_f(i, j) - r_f(i, j + 1));
         dt_momentum_density(i, j) +=
@@ -240,7 +244,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::corrector>());
 
-      s.executor().forall(kji, mdpolicy_qqc) {
+      s.executor().named("hllc_flux_x").forall(kji, mdpolicy_qqc) {
         auto g = g_acc.get();
         auto [k, j, i] = kji;
 
@@ -295,7 +299,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_qqq) {
+      s.executor().named("flux_div_x").forall(kji, mdpolicy_qqq) {
         auto [k, j, i] = kji;
         dt_mass_density(i, j, k) +=
           one_over_dx_i[0] * (r_f(i, j, k) - r_f(i + 1, j, k));
@@ -311,7 +315,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::corrector>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_qcq) {
+      s.executor().named("hllc_flux_y").forall(kji, mdpolicy_qcq) {
         auto g = g_acc.get();
         auto [k, j, i] = kji;
 
@@ -363,7 +367,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_qqq) {
+      s.executor().named("flux_div_y").forall(kji, mdpolicy_qqq) {
         auto [k, j, i] = kji;
         dt_mass_density(i, j, k) +=
           one_over_dx_i[1] * (r_f(i, j, k) - r_f(i, j + 1, k));
@@ -379,7 +383,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_cqq) {
+      s.executor().named("hllc_flux_z").forall(kji, mdpolicy_cqq) {
         auto g = g_acc.get();
         auto [k, j, i] = kji;
 
@@ -431,7 +435,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_qqq) {
+      s.executor().named("flux_div_z").forall(kji, mdpolicy_qqq) {
         auto [k, j, i] = kji;
         dt_mass_density(i, j, k) +=
           one_over_dx_i[2] * (r_f(i, j, k) - r_f(i, j, k + 1));

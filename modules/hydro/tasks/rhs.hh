@@ -43,13 +43,17 @@ set_dudt_to_zero(flecsi::exec::accelerator s,
     rk_dt_vec_v_a) noexcept {
 
   for(auto rk_dt_a : rk_dt_v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, rk_dt_a.span().size())) {
+    s.executor()
+      .named("zero_dudt")
+      .forall(i, flecsi::util::iota_view({}, rk_dt_a.span().size())) {
       rk_dt_a(i) = 0.0;
     }; // forall
   }
 
   for(auto rk_dt_a : rk_dt_vec_v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, rk_dt_a.span().size())) {
+    s.executor()
+      .named("zero_dudt_vec")
+      .forall(i, flecsi::util::iota_view({}, rk_dt_a.span().size())) {
       rk_dt_a(i) = vec<Dim>(0.0);
     }; // forall
   }
@@ -73,14 +77,18 @@ update_u(flecsi::exec::accelerator s,
 
   // Scalar
   for(auto & [dt_a, a] : v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, a.span().size())) {
+    s.executor()
+      .named("update_u")
+      .forall(i, flecsi::util::iota_view({}, a.span().size())) {
       a(i) += *h_a * dt_a(i);
     }; // forall
   }
 
   // Vec<D>
   for(auto & [vec_dt_a, vec_a] : vec_v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, vec_a.span().size())) {
+    s.executor()
+      .named("update_u_vec")
+      .forall(i, flecsi::util::iota_view({}, vec_a.span().size())) {
       vec_a(i) += *h_a * vec_dt_a(i);
     }; // forall
   }
@@ -99,7 +107,9 @@ update_u_scalar(flecsi::exec::accelerator s,
 
   // Scalar
   for(auto & [dt_a, a] : v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, a.span().size())) {
+    s.executor()
+      .named("update_u_scalar")
+      .forall(i, flecsi::util::iota_view({}, a.span().size())) {
       a(i) += *h_a * dt_a(i);
     }; // forall
   }
@@ -125,14 +135,18 @@ update_u_stage(flecsi::exec::accelerator s,
 
   // Scalar
   for(auto & [n_a, dt_a, new_a] : v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, n_a.span().size())) {
+    s.executor()
+      .named("update_u_stage")
+      .forall(i, flecsi::util::iota_view({}, n_a.span().size())) {
       new_a(i) = n_a(i) + *h_a * dt_a(i);
     }; // forall
   }
 
   // Vec<D>
   for(auto & [n_a, dt_a, new_a] : vec_v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, n_a.span().size())) {
+    s.executor()
+      .named("update_u_stage_vec")
+      .forall(i, flecsi::util::iota_view({}, n_a.span().size())) {
       new_a(i) = n_a(i) + *h_a * dt_a(i);
     }; // forall
   }
@@ -152,7 +166,9 @@ update_u_stage_scalar(flecsi::exec::accelerator s,
 
   // Scalar
   for(auto & [n_a, dt_a, new_a] : v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, n_a.span().size())) {
+    s.executor()
+      .named("update_u_stage_scalar")
+      .forall(i, flecsi::util::iota_view({}, n_a.span().size())) {
       new_a(i) = n_a(i) + *h_a * dt_a(i);
     }; // forall
   }
@@ -172,14 +188,18 @@ add_k1_k2(flecsi::exec::accelerator s,
 
   // Scalar
   for(auto & [rk_1_a, rk_2_a] : v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, rk_1_a.span().size())) {
+    s.executor()
+      .named("add_k1_k2")
+      .forall(i, flecsi::util::iota_view({}, rk_1_a.span().size())) {
       rk_1_a(i) = (rk_1_a(i) + rk_2_a(i)) * 0.5;
     }; // forall
   }
 
   // Vec<D>
   for(auto & [rk_1_a, rk_2_a] : vec_v_a) {
-    s.executor().forall(i, flecsi::util::iota_view({}, rk_1_a.span().size())) {
+    s.executor()
+      .named("add_k1_k2_vec")
+      .forall(i, flecsi::util::iota_view({}, rk_1_a.span().size())) {
       rk_1_a(i) = (rk_1_a(i) + rk_2_a(i)) * 0.5;
     }; // forall
   }

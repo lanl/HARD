@@ -36,7 +36,9 @@ conserved_to_primitive(flecsi::exec::accelerator s,
   auto soundspeed = m.template mdcolex<is::cells>(soundspeed_a);
 
   if constexpr(Dim == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("cons2prim")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       velocity(i) = momentum_density(i) / mass_density(i);
       specific_internal_energy(i) =
         (total_energy_density(i) -
@@ -51,7 +53,7 @@ conserved_to_primitive(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_yx) {
+    s.executor().named("cons2prim").forall(ji, mdpolicy_yx) {
       auto [j, i] = ji;
       velocity(i, j) = momentum_density(i, j) / mass_density(i, j);
       specific_internal_energy(i, j) =
@@ -69,7 +71,7 @@ conserved_to_primitive(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_zyx) {
+    s.executor().named("cons2prim").forall(kji, mdpolicy_zyx) {
       auto [k, j, i] = kji;
       velocity(i, j, k) = momentum_density(i, j, k) / mass_density(i, j, k);
       specific_internal_energy(i, j, k) =

@@ -690,7 +690,9 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
     const auto dx = 1.0 / inv_dx;
 
     // Face-flux pass (+ GFM cut correction to the plus/right cell).
-    s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
+    s.executor()
+      .named("gfm_flux")
+      .forall(i, (m.template cells<ax::x, dm::corrector>())) {
       const double g_comp = (*g_acc)[0];
 
       const int mL_raw = mat_id(i - 1);
@@ -827,7 +829,9 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
     };
 
     // Flux-divergence pass.
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("gfm_flux_div")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       dt_mass_density(i) += inv_dx * (r_f(i) - r_f(i + 1));
       dt_momentum_density(i) += inv_dx * (ru_f(i) - ru_f(i + 1));
       dt_total_energy_density(i) += inv_dx * (re_f(i) - re_f(i + 1));
@@ -854,7 +858,7 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
                           m.template cells<ax::y, dm::corrector>(),
                           m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy) {
+    s.executor().named("gfm_flux").forall(ji, mdpolicy) {
       auto [j, i] = ji;
 
       const double g_comp = (*g_acc)[face_axis];
@@ -953,7 +957,7 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("gfm_flux_div").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
       if(face_axis == 0) {
@@ -993,7 +997,7 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
                              m.template cells<ax::y, dm::quantities>(),
                              m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy) {
+    s.executor().named("gfm_flux").forall(kji, mdpolicy) {
       auto [k, j, i] = kji;
 
       const double g_comp = (*g_acc)[face_axis];
@@ -1095,7 +1099,7 @@ compute_interface_fluxes_gfm(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("gfm_flux_div").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       if(face_axis == 0) {

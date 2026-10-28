@@ -53,7 +53,9 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto [cons_a, face_a] = cf;
       auto [h, t] = faces<Dim>::mdcolex(m, face_a);
       auto cons = m.template mdcolex<is::cells>(cons_a);
-      s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
+      s.executor()
+        .named("recon_scalar")
+        .forall(i, (m.template cells<ax::x, dm::predictor>())) {
         utils::tie(Reconstructor::reconstruct(i, cons), h(i), t(i));
       };
     }
@@ -62,7 +64,9 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto [cons_a, face_a] = cf;
       auto [h, t] = faces<Dim>::mdcolex(m, face_a);
       auto cons = m.template mdcolex<is::cells>(cons_a);
-      s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
+      s.executor()
+        .named("recon_vector")
+        .forall(i, (m.template cells<ax::x, dm::predictor>())) {
         utils::tie(Reconstructor::reconstruct(i, cons), h(i), t(i));
       };
     }
@@ -78,7 +82,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto [cons_a, face_a] = cf;
       auto [h, t] = faces<Dim>::mdcolex(m, face_a);
       auto cons = m.template mdcolex<is::cells>(cons_a);
-      s.executor().forall(ji, mdpolicy_pp) {
+      s.executor().named("recon_scalar").forall(ji, mdpolicy_pp) {
         auto [j, i] = ji;
         utils::tie(
           Reconstructor::reconstruct(ra, i, j, cons), h(i, j), t(i, j));
@@ -88,7 +92,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto [cons_a, face_a] = cf;
       auto [h, t] = faces<Dim>::mdcolex(m, face_a);
       auto cons = m.template mdcolex<is::cells>(cons_a);
-      s.executor().forall(ji, mdpolicy_pp) {
+      s.executor().named("recon_vector").forall(ji, mdpolicy_pp) {
         auto [j, i] = ji;
         utils::tie(
           Reconstructor::reconstruct(ra, i, j, cons), h(i, j), t(i, j));
@@ -107,7 +111,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto [cons_a, face_a] = cf;
       auto [h, t] = faces<Dim>::mdcolex(m, face_a);
       auto cons = m.template mdcolex<is::cells>(cons_a);
-      s.executor().forall(kji, mdpolicy_ppp) {
+      s.executor().named("recon_scalar").forall(kji, mdpolicy_ppp) {
         auto [k, j, i] = kji;
         utils::tie(Reconstructor::reconstruct(ra, i, j, k, cons),
           h(i, j, k),
@@ -119,7 +123,7 @@ reconstruct_primitives_f(flecsi::exec::accelerator s,
       auto [cons_a, face_a] = cf;
       auto [h, t] = faces<Dim>::mdcolex(m, face_a);
       auto cons = m.template mdcolex<is::cells>(cons_a);
-      s.executor().forall(kji, mdpolicy_ppp) {
+      s.executor().named("recon_vector").forall(kji, mdpolicy_ppp) {
         auto [k, j, i] = kji;
         utils::tie(Reconstructor::reconstruct(ra, i, j, k, cons),
           h(i, j, k),
@@ -186,7 +190,9 @@ get_conserved(flecsi::exec::accelerator s,
 
   if constexpr(Dim == 1) {
 
-    s.executor().forall(i, (m.template cells<ax::x, dm::predictor>())) {
+    s.executor()
+      .named("recon_cons")
+      .forall(i, (m.template cells<ax::x, dm::predictor>())) {
 
       // Compute conserved variables
       ru_right(i) = r_right(i) * u_right(i);
@@ -204,7 +210,7 @@ get_conserved(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::predictor>(),
       m.template cells<ax::x, dm::predictor>());
 
-    s.executor().forall(ji, mdpolicy_pp) {
+    s.executor().named("recon_cons").forall(ji, mdpolicy_pp) {
       auto [j, i] = ji;
 
       // Compute conserved variables
@@ -223,7 +229,7 @@ get_conserved(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::predictor>(),
       m.template cells<ax::x, dm::predictor>());
 
-    s.executor().forall(kji, mdpolicy_ppp) {
+    s.executor().named("recon_cons").forall(kji, mdpolicy_ppp) {
       auto [k, j, i] = kji;
 
       // Compute conserved variables on faces

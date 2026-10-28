@@ -35,7 +35,9 @@ external_source(flecsi::exec::accelerator s,
     m.template mdcolex<is::cells>(dt_total_energy_density_a);
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("external_source")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
 
       // Explicitly updating conserved variables with S_ex
       // Adding the radiation force term to the momentum density
@@ -52,7 +54,7 @@ external_source(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, mdpolicy_qq) {
+    s.executor().named("external_source").forall(ji, mdpolicy_qq) {
       auto [j, i] = ji;
 
       // Explicitly updating conserved variables with S_ex
@@ -72,7 +74,7 @@ external_source(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, mdpolicy_qqq) {
+    s.executor().named("external_source").forall(kji, mdpolicy_qqq) {
       auto [k, j, i] = kji;
 
       // Explicitly updating conserved variables with S_ex

@@ -49,7 +49,9 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
       flog_fatal("1D executable can only compute fluxes along X axis");
     }
 #endif
-    s.executor().forall(i, (m.template cells<ax::x, dm::corrector>())) {
+    s.executor()
+      .named("rad_flux_x")
+      .forall(i, (m.template cells<ax::x, dm::corrector>())) {
 
       // min/max characteristic speeds on left
       const double cT{c_left(i - 1)};
@@ -72,7 +74,9 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
     }; // forall
 
     // Store dF^x/dx into du_dt
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("rad_flux_div_x")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       dt_radiation_energy_density(i) +=
         one_over_dx_i[0] * (erad_f(i) - erad_f(i + 1));
     }; // forall
@@ -88,7 +92,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::corrector>());
 
-      s.executor().forall(ji, mdpolicy_qc) {
+      s.executor().named("rad_flux_x").forall(ji, mdpolicy_qc) {
 
         auto [j, i] = ji;
 
@@ -117,7 +121,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(ji, mdpolicy_qq) {
+      s.executor().named("rad_flux_div_x").forall(ji, mdpolicy_qq) {
         auto [j, i] = ji;
         dt_radiation_energy_density(i, j) +=
           one_over_dx_i[0] * (erad_f(i, j) - erad_f(i + 1, j));
@@ -128,7 +132,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::corrector>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(ji, mdpolicy_cq) {
+      s.executor().named("rad_flux_y").forall(ji, mdpolicy_cq) {
 
         auto [j, i] = ji;
 
@@ -157,7 +161,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(ji, mdpolicy_qq) {
+      s.executor().named("rad_flux_div_y").forall(ji, mdpolicy_qq) {
         auto [j, i] = ji;
         dt_radiation_energy_density(i, j) +=
           one_over_dx_i[1] * (erad_f(i, j) - erad_f(i, j + 1));
@@ -173,7 +177,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::corrector>());
 
-      s.executor().forall(kji, mdpolicy_qqc) {
+      s.executor().named("rad_flux_x").forall(kji, mdpolicy_qqc) {
 
         auto [k, j, i] = kji;
 
@@ -205,7 +209,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_qqq) {
+      s.executor().named("rad_flux_div_x").forall(kji, mdpolicy_qqq) {
         auto [k, j, i] = kji;
         dt_radiation_energy_density(i, j, k) +=
           one_over_dx_i[0] * (erad_f(i, j, k) - erad_f(i + 1, j, k));
@@ -217,7 +221,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::corrector>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_qcq) {
+      s.executor().named("rad_flux_y").forall(kji, mdpolicy_qcq) {
 
         auto [k, j, i] = kji;
 
@@ -248,7 +252,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_qqq) {
+      s.executor().named("rad_flux_div_y").forall(kji, mdpolicy_qqq) {
         auto [k, j, i] = kji;
         dt_radiation_energy_density(i, j, k) +=
           one_over_dx_i[1] * (erad_f(i, j, k) - erad_f(i, j + 1, k));
@@ -260,7 +264,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_cqq) {
+      s.executor().named("rad_flux_z").forall(kji, mdpolicy_cqq) {
 
         auto [k, j, i] = kji;
 
@@ -291,7 +295,7 @@ compute_interface_fluxes(flecsi::exec::accelerator s,
         m.template cells<ax::y, dm::quantities>(),
         m.template cells<ax::x, dm::quantities>());
 
-      s.executor().forall(kji, mdpolicy_qqq) {
+      s.executor().named("rad_flux_div_z").forall(kji, mdpolicy_qqq) {
         auto [k, j, i] = kji;
         dt_radiation_energy_density(i, j, k) +=
           one_over_dx_i[2] * (erad_f(i, j, k) - erad_f(i, j, k + 1));

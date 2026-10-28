@@ -126,7 +126,9 @@ init_fields(flecsi::exec::accelerator s,
   const double R = 0.15;
 
   if constexpr(D == 1) {
-    s.executor().forall(i, (m.template cells<ax::x, dm::quantities>())) {
+    s.executor()
+      .named("ls_test_init")
+      .forall(i, (m.template cells<ax::x, dm::quantities>())) {
       const double x = m.template center<ax::x>(i);
       const double d =
         std::abs(x - x0) - R; // signed distance to interval boundary analog
@@ -149,7 +151,7 @@ init_fields(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(ji, pol) {
+    s.executor().named("ls_test_init").forall(ji, pol) {
       auto [j, i] = ji;
       const double x = m.template center<ax::x>(i);
       const double y = m.template center<ax::y>(j);
@@ -175,7 +177,7 @@ init_fields(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    s.executor().forall(kji, pol) {
+    s.executor().named("ls_test_init").forall(kji, pol) {
       auto [k, j, i] = kji;
       const double x = m.template center<ax::x>(i);
       const double y = m.template center<ax::y>(j);
@@ -222,8 +224,10 @@ compare_psi_l1(flecsi::exec::accelerator s,
 
   if constexpr(D == 1) {
     auto dx = m.template delta<ax::x>();
-    return s.executor().reduceall(
-      i, l1, (m.template cells<ax::x, dm::quantities>()), fold::sum, double) {
+    return s.executor()
+      .named("ls_test_l1")
+      .reduceall(
+        i, l1, (m.template cells<ax::x, dm::quantities>()), fold::sum, double) {
       const double ref = psic(i);
       l1((std::abs(ref) < interface_band) ? std::abs(psi(i) - ref) * dx : 0.0);
     };
@@ -235,7 +239,9 @@ compare_psi_l1(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    return s.executor().reduceall(ji, l1, pol, fold::sum, double) {
+    return s.executor()
+      .named("ls_test_l1")
+      .reduceall(ji, l1, pol, fold::sum, double) {
       auto [j, i] = ji;
       const double ref = psic(i, j);
       l1((std::abs(ref) < interface_band) ? std::abs(psi(i, j) - ref) * dx * dy
@@ -251,7 +257,9 @@ compare_psi_l1(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    return s.executor().reduceall(kji, l1, pol, fold::sum, double) {
+    return s.executor()
+      .named("ls_test_l1")
+      .reduceall(kji, l1, pol, fold::sum, double) {
       auto [k, j, i] = kji;
       const double ref = psic(i, j, k);
       l1((std::abs(ref) < interface_band)
@@ -275,8 +283,13 @@ compare_psi_linf(flecsi::exec::accelerator s,
   auto psic = m.template mdcolex<is::cells>(psi_comp_a);
 
   if constexpr(D == 1) {
-    return s.executor().reduceall(
-      i, linf, (m.template cells<ax::x, dm::quantities>()), fold::max, double) {
+    return s.executor()
+      .named("ls_test_linf")
+      .reduceall(i,
+        linf,
+        (m.template cells<ax::x, dm::quantities>()),
+        fold::max,
+        double) {
       const double ref = psic(i);
       linf((std::abs(ref) < interface_band) ? std::abs(psi(i) - ref) : 0.0);
     };
@@ -286,7 +299,9 @@ compare_psi_linf(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    return s.executor().reduceall(ji, linf, pol, fold::max, double) {
+    return s.executor()
+      .named("ls_test_linf")
+      .reduceall(ji, linf, pol, fold::max, double) {
       auto [j, i] = ji;
       const double ref = psic(i, j);
       linf((std::abs(ref) < interface_band) ? std::abs(psi(i, j) - ref) : 0.0);
@@ -298,7 +313,9 @@ compare_psi_linf(flecsi::exec::accelerator s,
       m.template cells<ax::y, dm::quantities>(),
       m.template cells<ax::x, dm::quantities>());
 
-    return s.executor().reduceall(kji, linf, pol, fold::max, double) {
+    return s.executor()
+      .named("ls_test_linf")
+      .reduceall(kji, linf, pol, fold::max, double) {
       auto [k, j, i] = kji;
       const double ref = psic(i, j, k);
       linf(
